@@ -3,7 +3,7 @@ title Chrome MCP Server - npm 启动器
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.2.1 — npm 启动
+echo   Chrome MCP Server v1.2.2 — npm 启动
 echo ========================================
 echo.
 
