@@ -1,61 +1,58 @@
-@echo off
-title Chrome MCP Server - npm 启动器
+﻿@echo off
+title Chrome MCP Server - npm Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.2.2 — npm 启动
+echo   Chrome MCP Server v1.2.2 -- npm
 echo ========================================
 echo.
 
-echo [1/4] 安装依赖...
+echo [1/4] Installing dependencies...
 call npm install
 if %ERRORLEVEL% NEQ 0 (
-    echo 安装依赖失败
+    echo Install failed
     pause
     exit /b 1
 )
-echo 依赖安装完成。
+echo Done.
 echo.
 
-echo [2/4] 构建 shared 包...
+echo [2/4] Building shared package...
 call npm run -w @ethanwilkins/chrome-mcp-shared-2026 build
 if %ERRORLEVEL% NEQ 0 (
-    echo 构建 shared 失败
+    echo Build shared failed
     pause
     exit /b 1
 )
-echo 构建完成。
+echo Done.
 echo.
 
-echo [3/4] 构建并注册 native-server...
+echo [3/4] Building and registering native-server...
 call npm run -w @ethanwilkins/mcp-chrome-bridge-2026 build
 if %ERRORLEVEL% NEQ 0 (
-    echo 构建 native-server 失败
+    echo Build native-server failed
     pause
     exit /b 1
 )
 
 call npm run -w @ethanwilkins/mcp-chrome-bridge-2026 register:dev
 if %ERRORLEVEL% NEQ 0 (
-    echo 注册失败，可能需要管理员权限。
-    echo 请右键以管理员身份运行本脚本，或手动执行：
-    echo   npm run -w @ethanwilkins/mcp-chrome-bridge-2026 register:dev
+    echo Register failed - may need admin rights.
+    echo Run manually: npm run -w @ethanwilkins/mcp-chrome-bridge-2026 register:dev
 ) else (
-    echo 注册成功。
+    echo Register OK.
 )
 echo.
 
-echo [4/4] 启动本地 Native Host（等待 Chrome 扩展连接）...
+echo [4/4] Starting Native Host (waiting for Chrome extension)...
 echo.
-echo   提示：Native Host 启动后，会在端口 12306 提供 HTTP/MCP 服务
-echo         请确保 Chrome 扩展已加载，扩展会自动连接本服务
-echo.
-echo   按 Ctrl+C 停止服务
+echo   Native Host will serve on port 12306 via HTTP/MCP
+echo   Press Ctrl+C to stop
 echo ========================================
 echo.
 
 node app/native-server/dist/index.js
 
 echo.
-echo 服务已停止。
+echo Server stopped.
 pause
