@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.1]
+
+### Fixed
+
+- **Extension ID Stability**: Fixed Chrome extension key in `.env.local` so the extension ID no longer changes on reload; native messaging now connects reliably
+- **Native Messaging Registration**: Updated native host manifest with correct extension ID
+
+### Changed
+
+- All packages bumped to v1.1.1
+
 ## [v1.1.0]
 
 ### Added
