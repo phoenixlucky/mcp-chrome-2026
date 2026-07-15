@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Extension ID Stability**: Fixed Chrome extension key in `.env.local` so the extension ID no longer changes on reload; native messaging now connects reliably
+- **Extension ID Calculation**: Fixed incorrect extension ID in native host constant — was using a manually guessed ID, now computes correctly from the extension key. Native messaging connection now works.
+- **Extension ID Stability**: Fixed Chrome extension key in `.env.local` so the extension ID no longer changes on reload
 - **Native Messaging Registration**: Updated native host manifest with correct extension ID
 
 ### Changed
