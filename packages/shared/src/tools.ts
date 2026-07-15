@@ -39,6 +39,11 @@ export const TOOL_NAMES = {
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
     GIF_RECORDER: 'chrome_gif_recorder',
+    // Scraping tools
+    GET_TAB_URL: 'chrome_get_tab_url',
+    SCROLL: 'chrome_scroll',
+    WAIT: 'chrome_wait',
+    EXTRACT: 'chrome_extract',
   },
   RECORD_REPLAY: {
     FLOW_RUN: 'record_replay_flow_run',
@@ -1395,6 +1400,217 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_TAB_URL,
+    description:
+      'Get the current URL and title of a specified browser tab. Returns url, title, tabId, and favIconUrl. Simpler and faster than get_windows_and_tabs when you only need the current URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab in current window).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.SCROLL,
+    description:
+      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the main scrollable container by walking the DOM tree.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        amount: {
+          type: 'number',
+          description:
+            'Pixels to scroll. Positive scrolls down/right, negative scrolls up/left. When direction is set without amount, defaults to 300.',
+        },
+        direction: {
+          type: 'string',
+          enum: ['down', 'up', 'left', 'right'],
+          description: 'Scroll direction. Used with amount or defaults to 300px.',
+        },
+        toBottom: {
+          type: 'boolean',
+          description: 'Scroll to the very bottom of the scroll container.',
+        },
+        toTop: {
+          type: 'boolean',
+          description: 'Scroll to the very top of the scroll container.',
+        },
+        selector: {
+          type: 'string',
+          description:
+            'CSS selector of an element to scroll into view. Uses scrollIntoView by default.',
+        },
+        scrollIntoView: {
+          type: 'boolean',
+          description:
+            "When selector is given: use scrollIntoView (default: true). When false, sets the container scrollTop to the element's offsetTop.",
+        },
+        block: {
+          type: 'string',
+          enum: ['start', 'center', 'end', 'nearest'],
+          description:
+            'scrollIntoView vertical alignment (default: "center" when scrolling element into view).',
+        },
+        behavior: {
+          type: 'string',
+          enum: ['auto', 'smooth'],
+          description:
+            'Scroll behavior (default: "auto" for instant). Use "smooth" for animated scroll.',
+        },
+        containerSelector: {
+          type: 'string',
+          description:
+            'CSS selector of the scroll container. When omitted, auto-detects the main scrollable container by inspecting overflow styles on ancestor elements.',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.WAIT,
+    description:
+      'Wait for a DOM element or JavaScript condition to become true. Polls the page at a configurable interval until the condition is met or the timeout expires. Does NOT throw on timeout — returns { found: false } so the caller can decide how to proceed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description: 'CSS selector of the element to wait for.',
+        },
+        waitFor: {
+          type: 'string',
+          enum: ['visible', 'present', 'hidden', 'gone', 'enabled'],
+          description:
+            'What to check:\n- "visible" (default): element exists AND is visible (offsetParent !== null)\n- "present": element exists in DOM\n- "hidden": element exists but is hidden\n- "gone": element does NOT exist in DOM\n- "enabled": element exists, is visible, and not disabled',
+        },
+        jsCondition: {
+          type: 'string',
+          description:
+            'Custom JavaScript expression that returns boolean. Evaluated in the page context. Alternative to selector+waitFor. Example: \'document.querySelectorAll(".item").length >= 10\'',
+        },
+        timeout: {
+          type: 'number',
+          description: 'Maximum wait time in milliseconds (default: 10000, max: 120000).',
+        },
+        pollInterval: {
+          type: 'number',
+          description: 'Polling interval in milliseconds (default: 200, min: 50).',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.EXTRACT,
+    description:
+      'Extract structured data from a web page using CSS selectors. Injects JavaScript into the page to query elements and return clean structured JSON. Supports nested field extraction, multiple extraction modes (text/html/attribute/number/href/src), and configurable limits.\n\nExample:\n{\n  "selector": ".product-card",\n  "fields": [\n    { "name": "title", "selector": ".product-title", "type": "text" },\n    { "name": "price", "selector": ".price", "type": "number" },\n    { "name": "link", "selector": "a", "type": "href" },\n    { "name": "rating", "selector": ".stars", "type": "attribute", "attribute": "data-score" }\n  ]\n}',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description:
+            'CSS selector for elements to extract (each match becomes one item in the result array).',
+        },
+        fields: {
+          type: 'array',
+          description:
+            'Fields to extract from each matched element. Each field defines a name, a relative CSS selector, and how to extract the value.',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Field name in the output object (required).',
+              },
+              selector: {
+                type: 'string',
+                description:
+                  'CSS selector relative to the parent element. If omitted, uses the parent element itself.',
+              },
+              type: {
+                type: 'string',
+                enum: ['text', 'html', 'outerHtml', 'attribute', 'number', 'href', 'src'],
+                description:
+                  'How to extract the value:\n- "text" (default): element.textContent (trimmed)\n- "html": element.innerHTML\n- "outerHtml": element.outerHTML\n- "attribute": element.getAttribute(attribute)\n- "number": parseFloat(textContent) or null\n- "href": anchor.href (resolved absolute URL)\n- "src": img/video/iframe src (resolved absolute URL)',
+              },
+              attribute: {
+                type: 'string',
+                description:
+                  'Attribute name when type is "attribute" (e.g. "href", "data-id", "alt").',
+              },
+              multiple: {
+                type: 'boolean',
+                description:
+                  'When true, returns an array of ALL matching sub-elements. When false (default), returns only the first match.',
+              },
+              defaultValue: {
+                description: 'Fallback value when the selector produces no match (default: null).',
+              },
+            },
+            required: ['name'],
+          },
+        },
+        contextSelector: {
+          type: 'string',
+          description:
+            'Optional parent container that narrows the extraction scope. Equivalent to calling document.querySelector(contextSelector).querySelectorAll(selector).',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of items to return (default: no limit).',
+        },
+        offset: {
+          type: 'number',
+          description: 'Skip the first N matched elements (default: 0).',
+        },
+        waitForSelector: {
+          type: 'boolean',
+          description:
+            'When true, waits for the selector to appear in the DOM before extracting (default: true).',
+        },
+        waitTimeout: {
+          type: 'number',
+          description:
+            'Maximum time in ms to wait for the selector to appear when waitForSelector is true (default: 5000).',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+      },
+      required: ['selector', 'fields'],
     },
   },
 ];
