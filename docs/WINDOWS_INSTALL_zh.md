@@ -6,7 +6,7 @@ Chrome MCP Server 在windows电脑的详细安装和配置步骤
 
 1. **从github上下载最新的chrome扩展**
 
-下载地址：https://github.com/hangwin/mcp-chrome/releases
+下载地址：https://github.com/phoenixlucky/mcp-chrome-2026/releases
 
 2. **全局安装mcp-chrome-bridge**
 
