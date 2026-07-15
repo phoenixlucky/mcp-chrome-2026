@@ -117,6 +117,14 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 
 ## 更新日志
 
+### v1.2.0（2026-07-15）
+
+- **一键启动脚本** — 新增 `start-server.bat`，整合构建、注册、启动三步
+- **服务状态端点** — `/status` 报告服务、MCP 会话、Native Messaging 和扩展状态
+- **增强稳定性** — 浏览器写操作按标签页串行化、MCP 取消转发、过期间会话回收、移除模块级单例
+- **`chrome_wait` 改进** — 新增 `stableForMs` 参数，确保虚拟列表等场景下元素稳定后返回
+- **文档全面升级** — README 专业重写、TOOLS_zh.md 补充完整抓取工具文档
+
 ### v1.1.2（2026-07-15）
 
 - **`chrome_get_page_text`** — 基于 Readability 的文章提取（纯文本、HTML、标题、作者、站点元数据）

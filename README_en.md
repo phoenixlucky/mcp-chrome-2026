@@ -117,6 +117,14 @@ The native host listens for connections from the Chrome extension and starts an 
 
 ## What's New
 
+### v1.2.0 (2026-07-15)
+
+- **One-click startup** — New `start-server.bat` for build + register + start in one step
+- **Server status endpoint** — `/status` reports service, MCP session, Native Messaging, and extension state
+- **Stability improvements** — Per-tab serialization for browser writes, MCP cancellation forwarding, stale session reclamation, removed module-level singleton
+- **`chrome_wait` enhancement** — New `stableForMs` parameter for virtual scrolling scenarios
+- **Documentation overhaul** — Professional README rewrite, TOOLS_zh.md completed with scraping tools docs
+
 ### v1.1.2 (2026-07-15)
 
 - **`chrome_get_page_text`** — Readability-based article extraction (plain text, HTML, title, author, site metadata)
