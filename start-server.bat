@@ -3,7 +3,7 @@ title Chrome MCP Server - 启动器
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.1.2 — 一键启动
+echo   Chrome MCP Server v1.2.1 — 一键启动
 echo ========================================
 echo.
 

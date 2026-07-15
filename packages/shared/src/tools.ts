@@ -1547,6 +1547,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'number',
           description: 'Polling interval in milliseconds (default: 200, min: 50).',
         },
+        stableForMs: {
+          type: 'number',
+          description:
+            'Require the condition to remain true continuously for this many milliseconds before returning (default: 0).',
+        },
         tabId: {
           type: 'number',
           description: 'Target tab ID (default: active tab).',
@@ -1682,3 +1687,20 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
 ];
+
+for (const tool of TOOL_SCHEMAS) {
+  if (
+    [
+      TOOL_NAMES.BROWSER.NAVIGATE,
+      TOOL_NAMES.BROWSER.CLICK,
+      TOOL_NAMES.BROWSER.FILL,
+      TOOL_NAMES.BROWSER.SCROLL,
+      TOOL_NAMES.BROWSER.CLICK_AND_WAIT,
+    ].includes(tool.name as any)
+  ) {
+    (tool.inputSchema as any).properties.expectedUrl = {
+      type: 'string',
+      description: 'Refuse this write unless the target tab URL starts with this value.',
+    };
+  }
+}

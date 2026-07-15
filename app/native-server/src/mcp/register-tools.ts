@@ -7,6 +7,25 @@ import {
 import nativeMessagingHostInstance from '../native-messaging-host';
 import { NativeMessageType, TOOL_SCHEMAS } from 'chrome-mcp-shared';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { randomUUID } from 'node:crypto';
+
+interface ToolActivity {
+  requestId: string;
+  name: string;
+  tabId?: number;
+  startedAt: string;
+  queueMs?: number;
+  executionStartedAt?: string;
+  elapsedMs?: number;
+  outcome: 'running' | 'success' | 'error' | 'cancelled';
+  error?: string;
+}
+const recentToolCalls: ToolActivity[] = [];
+export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
+const WRITE_TOOL = /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload)/;
+const LONG_TOOL = /(?:performance|trace|record|download|upload)/;
+const NAVIGATION_TOOL = /(?:navigate|download|upload)/;
+const tabQueues = new Map<string, Promise<void>>();
 
 async function listDynamicFlowTools(): Promise<Tool[]> {
   try {
@@ -74,13 +93,77 @@ export const setupTools = (server: Server) => {
   });
 
   // Call tool handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) =>
-    handleToolCall(request.params.name, request.params.arguments || {}),
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
+    handleToolCall(request.params.name, request.params.arguments || {}, extra.signal),
   );
 };
 
-const handleToolCall = async (name: string, args: any): Promise<CallToolResult> => {
+function timeoutFor(name: string, args: any): number {
+  const ceiling = LONG_TOOL.test(name) ? 120_000 : NAVIGATION_TOOL.test(name) ? 60_000 : 20_000;
+  const requested = Number(args.timeoutMs ?? args.timeout);
+  return Number.isFinite(requested) ? Math.min(Math.max(requested, 1_000), ceiling) : ceiling;
+}
+
+function serialByTab<T>(
+  name: string,
+  args: any,
+  task: () => Promise<T>,
+  onStart?: () => void,
+): Promise<T> {
+  if (args.newWindow || (!WRITE_TOOL.test(name) && !name.startsWith('flow.'))) {
+    onStart?.();
+    return task();
+  }
+  const key = `tab:${typeof args.tabId === 'number' ? args.tabId : 'active'}`;
+  const previous = tabQueues.get(key) || Promise.resolve();
+  const result = previous
+    .catch(() => undefined)
+    .then(() => {
+      onStart?.();
+      return task();
+    });
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  tabQueues.set(key, tail);
+  void tail.finally(() => {
+    if (tabQueues.get(key) === tail) tabQueues.delete(key);
+  });
+  return result;
+}
+
+async function resolveWriteTab(args: any, signal?: AbortSignal): Promise<any> {
+  if (typeof args.tabId === 'number' || args.newWindow) return args;
+  const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+    { name: 'chrome_get_tab_url', args: { windowId: args.windowId } },
+    NativeMessageType.CALL_TOOL,
+    5_000,
+    signal,
+  );
+  const text = response?.data?.content?.[0]?.text;
+  const tabId = typeof text === 'string' ? JSON.parse(text).tabId : undefined;
+  if (typeof tabId !== 'number') throw new Error('Could not resolve the active tab before write');
+  return { ...args, tabId };
+}
+
+const handleToolCall = async (
+  name: string,
+  args: any,
+  signal?: AbortSignal,
+): Promise<CallToolResult> => {
+  const activity: ToolActivity = {
+    requestId: randomUUID(),
+    name,
+    startedAt: new Date().toISOString(),
+    outcome: 'running',
+  };
+  recentToolCalls.push(activity);
+  if (recentToolCalls.length > 100) recentToolCalls.shift();
   try {
+    if (WRITE_TOOL.test(name) && !name.startsWith('flow.'))
+      args = await resolveWriteTab(args, signal);
+    activity.tabId = args.tabId;
     // If calling a dynamic flow tool (name starts with flow.), proxy to common flow-run tool
     if (name && name.startsWith('flow.')) {
       // We need to resolve flow by slug to ID
@@ -95,17 +178,35 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
         const match = items.find((it: any) => it.slug === slug);
         if (!match) throw new Error(`Flow not found for tool ${name}`);
         const flowArgs = { flowId: match.id, args };
-        const proxyRes = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-          { name: 'record_replay_flow_run', args: flowArgs },
-          NativeMessageType.CALL_TOOL,
-          120000,
+        const queuedAt = Date.now();
+        const proxyRes = await serialByTab(
+          name,
+          args,
+          () =>
+            nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+              { name: 'record_replay_flow_run', args: flowArgs },
+              NativeMessageType.CALL_TOOL,
+              timeoutFor('record_replay_flow_run', args),
+              signal,
+            ),
+          () => {
+            activity.queueMs = Date.now() - queuedAt;
+            activity.executionStartedAt = new Date().toISOString();
+          },
         );
-        if (proxyRes.status === 'success') return proxyRes.data;
+        if (proxyRes.status === 'success') {
+          activity.outcome = 'success';
+          return proxyRes.data;
+        }
+        activity.outcome = 'error';
+        activity.error = proxyRes.error;
         return {
           content: [{ type: 'text', text: `Error calling dynamic flow tool: ${proxyRes.error}` }],
           isError: true,
         };
       } catch (err: any) {
+        activity.outcome = 'error';
+        activity.error = err?.message || String(err);
         return {
           content: [
             {
@@ -118,17 +219,28 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
       }
     }
     // 发送请求到Chrome扩展并等待响应
-    const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-      {
-        name,
-        args,
+    const queuedAt = Date.now();
+    const response = await serialByTab(
+      name,
+      args,
+      () =>
+        nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+          { name, args },
+          NativeMessageType.CALL_TOOL,
+          timeoutFor(name, args),
+          signal,
+        ),
+      () => {
+        activity.queueMs = Date.now() - queuedAt;
+        activity.executionStartedAt = new Date().toISOString();
       },
-      NativeMessageType.CALL_TOOL,
-      120000, // 延长到 120 秒，避免性能分析等长任务超时
     );
     if (response.status === 'success') {
+      activity.outcome = 'success';
       return response.data;
     } else {
+      activity.outcome = 'error';
+      activity.error = response.error;
       return {
         content: [
           {
@@ -140,6 +252,8 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
       };
     }
   } catch (error: any) {
+    activity.outcome = error.message === 'Request cancelled' ? 'cancelled' : 'error';
+    activity.error = error.message;
     return {
       content: [
         {
@@ -149,5 +263,7 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
       ],
       isError: true,
     };
+  } finally {
+    activity.elapsedMs = Date.now() - new Date(activity.startedAt).getTime();
   }
 };

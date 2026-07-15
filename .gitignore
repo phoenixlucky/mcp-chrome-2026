@@ -47,3 +47,5 @@ CLAUDE.md
 
 .docs/
 .claude/
+
+.pnpm-store/

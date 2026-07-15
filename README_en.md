@@ -117,6 +117,16 @@ The native host listens for connections from the Chrome extension and starts an 
 
 ## What's New
 
+### v1.2.1 (2026-07-15)
+
+- **Tool cancellation** — `CANCEL_TOOL` message type for aborting in-flight tool calls
+- **Stable waits** — `chrome_wait` accepts `stableForMs` parameter for virtualized list scenarios
+- **URL safety guard** — Write tools (navigate, click, fill, scroll, click_and_wait) accept `expectedUrl`; rejects if tab URL doesn't match
+- **Per-tab serialization** — Write operations to the same tab are queued sequentially
+- **`/status` endpoint enhanced** — MCP session tracking, NativeHost connection state, health check probe
+- **Stale session reclamation** — Idle MCP sessions (>10 min) are auto-cleaned every 60s
+- **Dynamic tool timeouts** — Timeouts tailored per tool type (read/write/navigation/long-running)
+
 ### v1.2.0 (2026-07-15)
 
 - **One-click startup** — New `start-server.bat` for build + register + start in one step

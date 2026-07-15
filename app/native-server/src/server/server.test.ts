@@ -24,4 +24,12 @@ describe('服务器测试', () => {
       message: 'pong',
     });
   });
+
+  test('GET /status 应返回可诊断状态', async () => {
+    const response = await supertest(Server.getInstance().server).get('/status').expect(200);
+
+    expect(response.body.server.version).toBe('1.2.1');
+    expect(response.body.mcp).toMatchObject({ activeSessions: 0, streamableHttp: true });
+    expect(response.body.tools.count).toBeGreaterThan(0);
+  });
 });

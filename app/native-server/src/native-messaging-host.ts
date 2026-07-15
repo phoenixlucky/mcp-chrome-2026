@@ -11,9 +11,28 @@ interface PendingRequest {
   timeoutId: NodeJS.Timeout;
 }
 
+export interface NativeHostStatus {
+  connected: boolean;
+  pendingRequests: number;
+  lastActivityAt: string | null;
+  lastSuccessAt: string | null;
+}
+
 export class NativeMessagingHost {
   private associatedServer: Server | null = null;
   private pendingRequests: Map<string, PendingRequest> = new Map();
+  private connected = false;
+  private lastActivityAt: Date | null = null;
+  private lastSuccessAt: Date | null = null;
+
+  public getStatus(): NativeHostStatus {
+    return {
+      connected: this.connected,
+      pendingRequests: this.pendingRequests.size,
+      lastActivityAt: this.lastActivityAt?.toISOString() ?? null,
+      lastSuccessAt: this.lastSuccessAt?.toISOString() ?? null,
+    };
+  }
 
   public setServer(serverInstance: Server): void {
     this.associatedServer = serverInstance;
@@ -22,6 +41,8 @@ export class NativeMessagingHost {
   // add message handler to wait for start server
   public start(): void {
     try {
+      this.connected = true;
+      this.lastActivityAt = new Date();
       this.setupMessageHandling();
     } catch (error: any) {
       process.exit(1);
@@ -93,6 +114,7 @@ export class NativeMessagingHost {
   }
 
   private async handleMessage(message: any): Promise<void> {
+    this.lastActivityAt = new Date();
     if (!message || typeof message !== 'object') {
       this.sendError('Invalid message format');
       return;
@@ -108,6 +130,7 @@ export class NativeMessagingHost {
           pending.reject(new Error(message.error));
         } else {
           pending.resolve(message.payload);
+          this.lastSuccessAt = new Date();
         }
         this.pendingRequests.delete(requestId);
       } else {
@@ -194,17 +217,44 @@ export class NativeMessagingHost {
     messagePayload: any,
     messageType: string = 'request_data',
     timeoutMs: number = TIMEOUTS.DEFAULT_REQUEST_TIMEOUT,
+    signal?: AbortSignal,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestId = uuidv4(); // Generate unique request ID
 
+      const cancel = () => {
+        const pending = this.pendingRequests.get(requestId);
+        if (!pending) return;
+        clearTimeout(pending.timeoutId);
+        this.pendingRequests.delete(requestId);
+        this.sendMessage({ type: NativeMessageType.CANCEL_TOOL, payload: { requestId } });
+        reject(new Error('Request cancelled'));
+      };
+      if (signal?.aborted) {
+        reject(new Error('Request cancelled'));
+        return;
+      }
+      signal?.addEventListener('abort', cancel, { once: true });
+
       const timeoutId = setTimeout(() => {
         this.pendingRequests.delete(requestId); // Remove from Map after timeout
+        signal?.removeEventListener('abort', cancel);
+        this.sendMessage({ type: NativeMessageType.CANCEL_TOOL, payload: { requestId } });
         reject(new Error(`Request timed out after ${timeoutMs}ms`));
       }, timeoutMs);
 
       // Store request's resolve/reject functions and timeout ID
-      this.pendingRequests.set(requestId, { resolve, reject, timeoutId });
+      this.pendingRequests.set(requestId, {
+        resolve: (value) => {
+          signal?.removeEventListener('abort', cancel);
+          resolve(value);
+        },
+        reject: (reason) => {
+          signal?.removeEventListener('abort', cancel);
+          reject(reason);
+        },
+        timeoutId,
+      });
 
       // Send message with requestId to Chrome
       this.sendMessage({
@@ -308,6 +358,7 @@ export class NativeMessagingHost {
    * Clean up resources
    */
   private cleanup(): void {
+    this.connected = false;
     // Reject all pending requests
     this.pendingRequests.forEach((pending) => {
       clearTimeout(pending.timeoutId);

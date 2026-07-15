@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.1] - 2026-07-15
+
+### Added
+
+- **Tool cancellation**: `CANCEL_TOOL` message type for aborting in-flight tool calls. AbortController support in native host and Chrome extension.
+- **`stableForMs` for `chrome_wait`**: Require the condition to remain true continuously for N milliseconds before returning (default: 0).
+- **`expectedUrl` URL guard**: Write tools (navigate, click, fill, scroll, click_and_wait) accept `expectedUrl` — refuses execution if the target tab URL doesn't match.
+- **Active tab resolution**: Write operations auto-resolve the active tab ID before execution.
+- **Tool-level dynamic timeouts**: Timeouts tailored per tool type (write/read/navigation/long-running).
+- **Per-tab serialization**: Write operations to the same tab are queued sequentially.
+- **`getRecentToolCalls()`**: Diagnostic endpoint logging recent tool activity (outcome, timing, errors).
+
+### Changed
+
+- All release packages bumped to v1.2.1.
+- `/status` endpoint enhanced with MCP session tracking (`activeSessions`, `activeRequests`, `reclaimedSessions`), NativeHost connection state, and optional `probe` query parameter for end-to-end health check.
+- Stale MCP sessions (>10 min idle) are automatically reclaimed every 60s.
+- `start-server.bat` version label updated.
+
+### Fixed
+
+- Server test: Added GET /status smoke test.
+
 ## [v1.2.0] - 2026-07-15
 
 ### Added

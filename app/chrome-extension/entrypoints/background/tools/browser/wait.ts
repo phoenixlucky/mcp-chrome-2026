@@ -42,6 +42,7 @@ interface WaitToolParams {
   jsCondition?: string;
   timeout?: number;
   pollInterval?: number;
+  stableForMs?: number;
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
@@ -117,7 +118,7 @@ function buildConditionExpression(params: WaitToolParams): string {
 class WaitTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.WAIT;
 
-  async execute(args: WaitToolParams): Promise<ToolResult> {
+  async execute(args: WaitToolParams, signal?: AbortSignal): Promise<ToolResult> {
     const timeout = Math.min(
       typeof args.timeout === 'number' ? args.timeout : DEFAULT_TIMEOUT_MS,
       MAX_TIMEOUT_MS,
@@ -126,6 +127,7 @@ class WaitTool extends BaseBrowserToolExecutor {
       typeof args.pollInterval === 'number' ? args.pollInterval : DEFAULT_POLL_INTERVAL_MS,
       MIN_POLL_INTERVAL_MS,
     );
+    const stableForMs = Math.max(0, typeof args.stableForMs === 'number' ? args.stableForMs : 0);
 
     try {
       // 1. Resolve target tab
@@ -159,8 +161,10 @@ class WaitTool extends BaseBrowserToolExecutor {
       // 4. Poll loop
       const startedAt = Date.now();
       let lastError: string | null = null;
+      let trueSince: number | null = null;
 
       while (Date.now() - startedAt < timeout) {
+        if (signal?.aborted) return createErrorResponse('Wait cancelled');
         const elapsed = Date.now() - startedAt;
         const remaining = timeout - elapsed;
 
@@ -176,7 +180,7 @@ class WaitTool extends BaseBrowserToolExecutor {
         if (response?.exceptionDetails) {
           lastError = response.exceptionDetails.text || 'Unknown evaluation error';
           // Wait before retry
-          await this.sleep(pollInterval);
+          await this.sleep(pollInterval, signal);
           continue;
         }
 
@@ -184,12 +188,16 @@ class WaitTool extends BaseBrowserToolExecutor {
 
         if (typeof value === 'string' && value.startsWith('__ERROR__:')) {
           lastError = value.slice(9);
-          await this.sleep(pollInterval);
+          await this.sleep(pollInterval, signal);
           continue;
         }
 
         if (value === true) {
-          // Condition met
+          trueSince ??= Date.now();
+          if (Date.now() - trueSince < stableForMs) {
+            await this.sleep(Math.min(pollInterval, timeout - (Date.now() - startedAt)), signal);
+            continue;
+          }
           const metadata = await this.getMatchMetadata(tabId, args.selector, args.frameSelector);
           return {
             content: [
@@ -198,6 +206,7 @@ class WaitTool extends BaseBrowserToolExecutor {
                 text: JSON.stringify({
                   found: true,
                   elapsedMs: Date.now() - startedAt,
+                  stableForMs,
                   ...metadata,
                 }),
               },
@@ -206,11 +215,13 @@ class WaitTool extends BaseBrowserToolExecutor {
           };
         }
 
+        trueSince = null;
+
         // Wait for next poll
         const timeRemaining = timeout - (Date.now() - startedAt);
         if (timeRemaining <= 0) break;
 
-        await this.sleep(Math.min(pollInterval, timeRemaining));
+        await this.sleep(Math.min(pollInterval, timeRemaining), signal);
       }
 
       // 5. Timeout — condition not met
@@ -284,8 +295,16 @@ class WaitTool extends BaseBrowserToolExecutor {
   /**
    * Promise-based sleep helper
    */
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(done, ms);
+      function done(): void {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', done);
+        resolve();
+      }
+      signal?.addEventListener('abort', done, { once: true });
+    });
   }
 }
 

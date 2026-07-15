@@ -8,6 +8,7 @@ import { acquireKeepalive } from './keepalive-manager';
 const LOG_PREFIX = '[NativeHost]';
 
 let nativePort: chrome.runtime.Port | null = null;
+const activeToolCalls = new Map<string, AbortController>();
 export const HOST_NAME = NATIVE_HOST.NAME;
 
 // ==================== Reconnect Configuration ====================
@@ -358,8 +359,11 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
         });
       } else if (message.type === NativeMessageType.CALL_TOOL && message.requestId) {
         const requestId = message.requestId;
+        const controller = new AbortController();
+        activeToolCalls.set(requestId, controller);
         try {
-          const result = await handleCallTool(message.payload);
+          const result = await handleCallTool(message.payload, controller.signal);
+          if (controller.signal.aborted) return;
           nativePort?.postMessage({
             responseToRequestId: requestId,
             payload: {
@@ -369,6 +373,7 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
             },
           });
         } catch (error) {
+          if (controller.signal.aborted) return;
           nativePort?.postMessage({
             responseToRequestId: requestId,
             payload: {
@@ -377,7 +382,11 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
               error: error instanceof Error ? error.message : String(error),
             },
           });
+        } finally {
+          activeToolCalls.delete(requestId);
         }
+      } else if (message.type === NativeMessageType.CANCEL_TOOL && message.payload?.requestId) {
+        activeToolCalls.get(message.payload.requestId)?.abort();
       } else if (message.type === 'rr_list_published_flows' && message.requestId) {
         const requestId = message.requestId;
         try {
