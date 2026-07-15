@@ -19,7 +19,7 @@ importers:
         version: 9.39.5
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.32.0
-        version: 8.64.0(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
+        version: 8.64.0(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
       '@typescript-eslint/parser':
         specifier: ^8.32.0
         version: 8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
@@ -31,7 +31,7 @@ importers:
         version: 10.1.8(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-vue:
         specifier: ^10.0.0
-        version: 10.9.2(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(vue-eslint-parser@10.4.1(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0))
+        version: 10.9.2(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(vue-eslint-parser@10.4.1(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0))
       globals:
         specifier: ^16.1.0
         version: 16.1.0
@@ -112,8 +112,8 @@ importers:
         specifier: ^1.0.2
         version: 1.0.3(vite@8.1.4(@types/node@22.20.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.39(typescript@5.8.3))(wxt@0.20.27(@types/node@22.20.1)(eslint@9.39.5(jiti@2.7.0))(jiti@2.7.0)(rolldown@1.1.5)(rollup@4.62.2)(supports-color@5.5.0)(yaml@2.9.0))
       dotenv:
-        specifier: ^16.5.0
-        version: 16.5.0
+        specifier: ^17.4.2
+        version: 17.4.2
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
@@ -259,7 +259,7 @@ importers:
         version: 8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
       tsup:
         specifier: ^8.5.1
-        version: 8.5.1(jiti@2.7.0)(postcss@8.5.19)(typescript@5.8.3)(yaml@2.9.0)
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.19)(supports-color@5.5.0)(typescript@5.8.3)(yaml@2.9.0)
 
   packages/wasm-simd:
     devDependencies:
@@ -7558,7 +7558,7 @@ snapshots:
     dependencies:
       '@types/yargs-parser': 21.0.3
 
-  '@typescript-eslint/eslint-plugin@8.64.0(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)':
+  '@typescript-eslint/eslint-plugin@8.64.0(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
       '@typescript-eslint/parser': 8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
@@ -8789,7 +8789,7 @@ snapshots:
     dependencies:
       eslint: 9.39.5(jiti@2.7.0)
 
-  eslint-plugin-vue@10.9.2(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(vue-eslint-parser@10.4.1(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)):
+  eslint-plugin-vue@10.9.2(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(vue-eslint-parser@10.4.1(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)):
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@9.39.5(jiti@2.7.0))
       eslint: 9.39.5(jiti@2.7.0)
@@ -11650,7 +11650,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsup@8.5.1(jiti@2.7.0)(postcss@8.5.19)(typescript@5.8.3)(yaml@2.9.0):
+  tsup@8.5.1(jiti@2.7.0)(postcss@8.5.19)(supports-color@5.5.0)(typescript@5.8.3)(yaml@2.9.0):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
       cac: 6.7.14
@@ -11716,7 +11716,7 @@ snapshots:
 
   typescript-eslint@8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.64.0(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
+      '@typescript-eslint/eslint-plugin': 8.64.0(@typescript-eslint/parser@8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3))(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
       '@typescript-eslint/parser': 8.64.0(eslint@9.39.5(jiti@2.7.0))(supports-color@5.5.0)(typescript@5.8.3)
       '@typescript-eslint/typescript-estree': 8.64.0(supports-color@5.5.0)(typescript@5.8.3)
       '@typescript-eslint/utils': 8.64.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.8.3)
