@@ -4,92 +4,92 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://developer.chrome.com/docs/extensions/)
 
-> **Bridge AI agents with your Chrome browser** — A Model Context Protocol (MCP) server that exposes Chrome browser capabilities to AI assistants for browser automation, content analysis, and data extraction.
+> **让 AI 直接操控你的 Chrome 浏览器** — 一个基于 Model Context Protocol (MCP) 的服务器，向 AI 助手开放浏览器能力，实现浏览器自动化、内容分析和数据提取。
 
 **📖 Language**: [中文](README.md) | [English](README_en.md)
 
 ---
 
-## Overview
+## 概述
 
-Chrome MCP Server is a **Model Context Protocol (MCP) server** built as a Chrome extension. It grants AI assistants direct control over your browser through **40+ tools** — navigate pages, extract data, take screenshots, monitor networks, manage bookmarks, and more.
+Chrome MCP Server 是一个基于 Chrome 扩展的 **MCP 服务器**。它向 AI 助手提供 **40 多个工具**，使其能够直接操控浏览器——导航页面、提取数据、截取屏幕、监控网络、管理书签等。
 
-Unlike Playwright-based MCP servers, this extension operates on your **existing Chrome instance**, preserving your login sessions, cookies, extensions, and user preferences. No separate browser process, no re-authentication.
+与基于 Playwright 的 MCP 服务不同，本扩展直接在您**正在使用的 Chrome 浏览器**上运行，保留所有登录态、Cookie、扩展和用户偏好。无需启动独立浏览器进程，无需重新登录。
 
-## Features
+## 核心特性
 
-- **🤖 AI-Native Browser Control** — Let any MCP-compatible client (Claude, Cursor, VS Code extensions, etc.) automate your browser
-- **🔐 Zero Setup, Reuse Your Browser** — Works with your existing Chrome — all login sessions, bookmarks, and settings are immediately available
-- **🛡️ Fully Local** — All processing stays on your machine; no data leaves your environment
-- **🚄 Streamable HTTP Transport** — Modern MCP transport for real-time streaming responses
-- **🧠 Semantic Search** — Built-in vector database with local embedding models for cross-tab content discovery
-- **📊 40+ Tools** — Comprehensive browser API coverage: navigation, screenshots, network capture, content analysis, form interaction, bookmark/history management, and structured data extraction
-- **⚡ SIMD Acceleration** — Custom WebAssembly SIMD optimizations deliver 4–8× faster vector operations for AI workloads
-- **🔄 Cross-Tab Context** — Operate across multiple tabs and windows seamlessly
+- **🤖 AI 原生浏览器控制** — 让任何兼容 MCP 的客户端（Claude、Cursor、VS Code 扩展等）操控您的浏览器
+- **🔐 零配置，复用现有浏览器** — 直接使用您的 Chrome，所有登录态、书签和设置即刻可用
+- **🛡️ 纯本地运行** — 所有处理都在本地完成，数据不会离开您的环境
+- **🚄 Streamable HTTP 传输** — 现代 MCP 传输协议，支持实时流式响应
+- **🧠 语义搜索** — 内置向量数据库和本地嵌入模型，支持跨标签页内容发现
+- **📊 40+ 工具** — 全面的浏览器 API 覆盖：导航、截图、网络捕获、内容分析、表单交互、书签/历史管理、结构化数据提取
+- **⚡ SIMD 加速** — 自定义 WebAssembly SIMD 优化，向量运算速度提升 4-8 倍
+- **🔄 跨标签页上下文** — 无缝操作多个标签页和窗口
 
-## Comparison with Playwright-based Alternatives
+## 与 Playwright 方案对比
 
-| Dimension                 | Playwright-based MCP                                                                | Chrome Extension MCP (This Project)                                          |
-| ------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Browser Process**       | Launches a separate browser instance; requires Playwright + browser binary download | Uses your existing Chrome directly                                           |
-| **Login Sessions**        | Requires re-authentication to every site                                            | Automatically inherits existing sessions                                     |
-| **User Environment**      | Clean profile — no extensions, no settings                                          | Full user profile — extensions, cookies, preferences intact                  |
-| **API Surface**           | Limited to Playwright's API                                                         | Full Chrome extension API access (tabs, bookmarks, history, downloads, etc.) |
-| **Startup Time**          | Must launch and initialize a new browser                                            | Extension activates instantly                                                |
-| **Inter-Process Latency** | 50–200ms (browser protocol)                                                         | Lower latency (in-process communication)                                     |
+| 对比维度       | 基于 Playwright 的 MCP                                     | 基于 Chrome 扩展的 MCP（本项目）                         |
+| -------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| **浏览器进程** | 需启动独立浏览器实例；需安装 Playwright + 下载浏览器二进制 | 直接使用用户现有的 Chrome                                |
+| **登录态**     | 每个站点需要重新登录                                       | 自动继承已有登录态                                       |
+| **用户环境**   | 干净配置文件——无扩展、无设置                               | 完整用户配置——扩展、Cookie、偏好全部保留                 |
+| **API 能力**   | 受限于 Playwright API                                      | 完整的 Chrome 扩展 API（标签页、书签、历史记录、下载等） |
+| **启动速度**   | 需启动并初始化新浏览器                                     | 扩展即刻激活                                             |
+| **通信延迟**   | 50–200ms（浏览器协议）                                     | 更低延迟（进程内通信）                                   |
 
-## Quick Start
+## 快速开始
 
-### Prerequisites
+### 环境要求
 
-- Node.js >= 20.0.0 (npm or pnpm)
-- Chrome or Chromium browser
+- Node.js >= 20.0.0（npm 或 pnpm）
+- Chrome 或 Chromium 浏览器
 
-### Installation
+### 安装步骤
 
-#### 1. Install the Chrome Extension
+#### 1. 安装 Chrome 扩展
 
-Download the latest extension package from the [Releases page](https://github.com/phoenixlucky/mcp-chrome-2026/releases) and unzip it.
+从 [Releases 页面](https://github.com/phoenixlucky/mcp-chrome-2026/releases) 下载最新的扩展包并解压。
 
-Load it in Chrome:
+在 Chrome 中加载：
 
-1. Open `chrome://extensions/`
-2. Enable **Developer mode** (toggle in the top-right corner)
-3. Click **Load unpacked** and select the unzipped extension folder
-4. The extension icon appears in the toolbar
+1. 打开 `chrome://extensions/`
+2. 开启右上角的**开发者模式**
+3. 点击**加载已解压的扩展程序**，选择解压后的扩展文件夹
+4. 扩展图标显示在工具栏中
 
-#### 2. Install the Native Host
+#### 2. 安装 Native Host
 
 ```bash
 # npm
 npm install -g mcp-chrome-bridge
 
-# pnpm (auto-register)
+# pnpm（自动注册）
 pnpm config set enable-pre-post-scripts true
 pnpm install -g mcp-chrome-bridge
 
-# pnpm (manual register if postinstall didn't run)
+# pnpm（如果 postinstall 未运行，手动注册）
 pnpm install -g mcp-chrome-bridge
 mcp-chrome-bridge register
 ```
 
-#### 3. Start the Local Service
+#### 3. 启动本地服务
 
 ```bash
-# One-click startup (project development)
+# 一键启动（项目开发）
 start-server.bat
 
-# Or via pnpm (after cloning the repo)
+# 或通过 pnpm（克隆仓库后）
 pnpm build
 pnpm --filter mcp-chrome-bridge register:dev
 node app/native-server/dist/index.js
 ```
 
-The native host listens for connections from the Chrome extension and starts an MCP HTTP server on `http://127.0.0.1:12306/mcp`.
+Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mcp` 上启动 MCP HTTP 服务。
 
-### Configure Your MCP Client
+### 配置 MCP 客户端
 
-#### Streamable HTTP (Recommended)
+#### Streamable HTTP（推荐）
 
 ```json
 {
@@ -102,7 +102,7 @@ The native host listens for connections from the Chrome extension and starts an 
 }
 ```
 
-#### STDIO (Alternative)
+#### STDIO（备选）
 
 ```json
 {
@@ -115,109 +115,109 @@ The native host listens for connections from the Chrome extension and starts an 
 }
 ```
 
-## What's New
+## 更新日志
 
-### v1.1.2 (2026-07-15)
+### v1.1.2（2026-07-15）
 
-- **`chrome_get_page_text`** — Readability-based article extraction (plain text, HTML, title, author, site metadata)
-- **Same-origin iframe support** — `chrome_scroll`, `chrome_wait`, `chrome_extract` now accept `frameSelector`
-- **Table extraction** — New `table` field type in `chrome_extract` with `colspan`/`rowspan` expansion
-- **`chrome_click_and_wait`** — Combined click + conditional wait in one atomic operation
+- **`chrome_get_page_text`** — 基于 Readability 的文章提取（纯文本、HTML、标题、作者、站点元数据）
+- **同源 iframe 支持** — `chrome_scroll`、`chrome_wait`、`chrome_extract` 增加 `frameSelector` 参数
+- **表格提取** — `chrome_extract` 新增 `table` 字段类型，支持 `colspan`/`rowspan` 展开
+- **`chrome_click_and_wait`** — 点击后等待条件满足，一步完成
 
-### v1.1.1 (2026-07-15)
+### v1.1.1（2026-07-15）
 
-- **Native Host auto-connection** — Automatic native-messaging startup and reconnection
-- **Service status display** — Separate indicators for Native Host and HTTP service states
+- **Native Host 自动连接** — 自动启动和断线重连本地 MCP 服务
+- **服务状态展示** — 分别显示 Native Host 和 HTTP 服务的运行状态
 
-### v1.1.0 (2026-07-15)
+### v1.1.0（2026-07-15）
 
-- 4 new scraping tools: `chrome_get_tab_url`, `chrome_scroll`, `chrome_wait`, `chrome_extract`
+- 4 个新增采集工具：`chrome_get_tab_url`、`chrome_scroll`、`chrome_wait`、`chrome_extract`
 
-### v0.0.5 (2025-12-30)
+### v0.0.5（2025-12-30）
 
-- Visual Editor for Claude Code / Codex — see [VisualEditor](docs/VisualEditor_zh.md)
+- Claude Code / Codex 可视化编辑器，详见 [VisualEditor](docs/VisualEditor_zh.md)
 
-## Tools
+## 工具一览
 
-| Category               | Tools | Description                                                                                  |
-| ---------------------- | ----- | -------------------------------------------------------------------------------------------- |
-| **Browser Management** | 7     | Window/tab listing, navigation, switch, close, go back/forward, script injection             |
-| **Screenshots**        | 1     | Element-level, full-page, and custom-viewport screenshots                                    |
-| **Network Monitoring** | 4     | Request capture (webRequest/Debugger API), custom HTTP requests                              |
-| **Content Analysis**   | 4     | Semantic search, HTML/text extraction, interactive element detection, console output capture |
-| **Interaction**        | 3     | Click, fill forms, keyboard input                                                            |
-| **Data Management**    | 4     | History search, bookmark CRUD                                                                |
-| **Scraping**           | 6+    | Tab URL, scroll, wait, structured extraction, Readability extraction, click-and-wait         |
+| 分类           | 数量 | 说明                                                               |
+| -------------- | ---- | ------------------------------------------------------------------ |
+| **浏览器管理** | 7    | 窗口/标签页列表、导航、切换、关闭、前进后退、脚本注入              |
+| **截图**       | 1    | 元素级、全页面、自定义视口截图                                     |
+| **网络监控**   | 4    | 请求捕获（webRequest/Debugger API）、自定义 HTTP 请求              |
+| **内容分析**   | 4    | 语义搜索、HTML/文本提取、交互元素检测、控制台输出捕获              |
+| **交互操作**   | 3    | 点击、表单填充、键盘输入                                           |
+| **数据管理**   | 4    | 历史记录搜索、书签增删查                                           |
+| **采集提取**   | 6+   | 标签页 URL、滚动、等待、结构化提取、Readability 提取、点击等待组合 |
 
-Full API reference: [中文](docs/TOOLS_zh.md) | [English](docs/TOOLS.md)
+完整 API 参考：[中文](docs/TOOLS_zh.md) | [English](docs/TOOLS.md)
 
-## Usage Examples
+## 使用示例
 
-### AI-Powered Page Summarization + Excalidraw Visualization
+### AI 总结网页 + Excalidraw 可视化
 
 **Prompt**: [excalidraw-prompt](prompt/excalidraw-prompt.md)  
-**Instruction**: Summarize the current page and draw a diagram to illustrate the content.  
-[Demo video](https://www.youtube.com/watch?v=3fBPdUBWVz0)
+**指令**: 总结当前页面内容，画图帮助理解。  
+[演示视频](https://www.youtube.com/watch?v=3fBPdUBWVz0)
 
-### AI-Driven Image Reconstruction in Excalidraw
+### AI 分析图片并用 Excalidraw 重建
 
 **Prompt**: [excalidraw-prompt](prompt/excalidraw-prompt.md) | [content-analize](prompt/content-analize.md)  
-**Instruction**: Analyze the image content and replicate it using Excalidraw.  
-[Demo video](https://www.youtube.com/watch?v=tEPdHZBzbZk)
+**指令**: 分析图片内容，使用 Excalidraw 复现。  
+[演示视频](https://www.youtube.com/watch?v=tEPdHZBzbZk)
 
-### Style Injection & Webpage Modification
+### 样式注入与网页修改
 
 **Prompt**: [modify-web-prompt](prompt/modify-web.md)  
-**Instruction**: Modify the current page styles and remove advertisements.  
-[Demo video](https://youtu.be/twI6apRKHsk)
+**指令**: 修改当前页面样式，去除广告。  
+[演示视频](https://youtu.be/twI6apRKHsk)
 
-### Network Request Capture & Analysis
+### 网络请求捕获与分析
 
-**Instruction**: Identify search API endpoints and inspect response structures.  
-[Demo video](https://youtu.be/1hHKr7XKqnQ)
+**指令**: 找出搜索 API 端点，查看响应结构。  
+[演示视频](https://youtu.be/1hHKr7XKqnQ)
 
-### Browsing History Analysis
+### 浏览历史分析
 
-**Instruction**: Analyze the past month's browsing history.  
-[Demo video](https://youtu.be/jf2UZfrR2Vk)
+**指令**: 分析近一个月的浏览记录。  
+[演示视频](https://youtu.be/jf2UZfrR2Vk)
 
-### Web Page Conversation
+### 网页对话
 
-**Instruction**: Translate and summarize the current web page.  
-[Demo video](https://youtu.be/FlJKS9UQyC8)
+**指令**: 翻译并总结当前网页。  
+[演示视频](https://youtu.be/FlJKS9UQyC8)
 
-### Page & Element Screenshots
+### 页面与元素截图
 
-**Instruction**: Screenshot Hugging Face's homepage / capture a specific icon element.  
-[Demo video: page](https://youtu.be/7ycK6iksWi4) | [Demo video: element](https://youtu.be/ev8VivANIrk)
+**指令**: 截取 Hugging Face 首页 / 捕获特定图标元素。  
+[演示视频：页面](https://youtu.be/7ycK6iksWi4) | [演示视频：元素](https://youtu.be/ev8VivANIrk)
 
-### Bookmark Management
+### 书签管理
 
-**Instruction**: Add the current page to bookmarks in the appropriate folder.  
-[Demo video](https://youtu.be/R_83arKmFTo)
+**指令**: 将当前页面添加到书签，放入合适的文件夹。  
+[演示视频](https://youtu.be/R_83arKmFTo)
 
-### Batch Tab Closure
+### 批量关闭标签页
 
-**Instruction**: Close all tabs matching a keyword.  
-[Demo video](https://youtu.be/2wzUT6eNVg4)
+**指令**: 关闭所有匹配关键词的标签页。  
+[演示视频](https://youtu.be/2wzUT6eNVg4)
 
-## Project Roadmap
+## 路线图
 
-- [ ] Authentication & permission management
-- [ ] Recording and playback of browser workflows
-- [ ] Visual workflow automation builder
-- [ ] Firefox extension support
+- [ ] 认证与权限管理
+- [ ] 浏览器工作流录制与回放
+- [ ] 可视化工作流自动化编辑器
+- [ ] Firefox 扩展支持
 
-## Contributing
+## 贡献
 
-Contributions are welcome. Please read [CONTRIBUTING_zh.md](docs/CONTRIBUTING_zh.md) before submitting a pull request.
+欢迎贡献代码。提交 Pull Request 前请阅读 [CONTRIBUTING_zh.md](docs/CONTRIBUTING_zh.md)。
 
-## License
+## 许可证
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT — 详见 [LICENSE](LICENSE) 文件。
 
-## Documentation
+## 更多文档
 
-- [Architecture](docs/ARCHITECTURE_zh.md)
-- [Tool API Reference (中文)](docs/TOOLS_zh.md)
-- [Troubleshooting](docs/TROUBLESHOOTING_zh.md)
+- [架构设计](docs/ARCHITECTURE_zh.md)
+- [工具 API 参考](docs/TOOLS_zh.md)
+- [故障排除](docs/TROUBLESHOOTING_zh.md)
