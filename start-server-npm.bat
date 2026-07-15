@@ -8,7 +8,7 @@ echo ========================================
 echo.
 
 echo [1/4] Installing dependencies...
-call npm install
+call pnpm install
 if %ERRORLEVEL% NEQ 0 (
     echo Install failed
     pause
@@ -51,7 +51,7 @@ echo   Press Ctrl+C to stop
 echo ========================================
 echo.
 
-node app/native-server/dist/index.js
+node app/native-server/start-server.js
 
 echo.
 echo Server stopped.
