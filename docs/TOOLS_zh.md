@@ -10,6 +10,7 @@
 - [内容分析](#内容分析)
 - [交互操作](#交互操作)
 - [数据管理](#数据管理)
+- [抓取与提取](#抓取与提取)
 - [响应格式](#响应格式)
 
 ## 📊 浏览器管理
@@ -470,6 +471,262 @@
 ```json
 {
   "url": "https://example.com"
+}
+```
+
+## 🕸️ 抓取与提取
+
+### `chrome_get_tab_url`
+
+获取浏览器标签页的当前 URL 和标题。当只需要当前 URL 时，比 `get_windows_and_tabs` 更轻量快速。
+
+**参数**：
+
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID，用于选取活动标签页
+
+**示例**：
+
+```json
+{ "tabId": 123 }
+```
+
+**响应**：
+
+```json
+{
+  "url": "https://example.com/page",
+  "title": "示例页面",
+  "tabId": 123,
+  "windowId": 456,
+  "favIconUrl": "https://example.com/favicon.ico",
+  "status": "complete",
+  "active": true
+}
+```
+
+### `chrome_scroll`
+
+滚动页面或可滚动容器，支持多种滚动模式。
+
+**参数**：
+
+- `amount` (数字，可选)：滚动像素数（正数=下/右，负数=上/左）
+- `direction` (字符串，可选)：`down` | `up` | `left` | `right`
+- `toBottom` (布尔值，可选)：滚动到容器底部
+- `toTop` (布尔值，可选)：滚动到容器顶部
+- `selector` (字符串，可选)：要滚动到视图中的元素 CSS 选择器
+- `scrollIntoView` (布尔值，可选)：使用 `scrollIntoView`（有 selector 时默认 true）
+- `block` (字符串，可选)：`start` | `center` | `end` | `nearest`（默认：`center`）
+- `behavior` (字符串，可选)：`auto` | `smooth`（默认：`auto`）
+- `containerSelector` (字符串，可选)：滚动容器的 CSS 选择器（省略时自动检测主滚动容器）
+- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于在其中执行滚动
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+
+**示例**：
+
+```json
+{ "amount": 500 }
+{ "toBottom": true }
+{ "selector": "#load-more-button", "block": "center" }
+```
+
+**响应**：
+
+```json
+{
+  "scrollTop": 1500,
+  "scrollHeight": 4500,
+  "clientHeight": 900,
+  "atBottom": false,
+  "atTop": false
+}
+```
+
+### `chrome_wait`
+
+等待 DOM 元素或 JavaScript 条件变为真。以可配置的间隔轮询页面，超时不抛异常，返回 `{ found: false }`。
+
+**参数**：
+
+- `selector` (字符串，可选)：要等待的 CSS 选择器
+- `waitFor` (字符串，可选)：`visible`（默认）| `present` | `hidden` | `gone` | `enabled`
+- `jsCondition` (字符串，可选)：自定义 JS 表达式返回布尔值（替代 selector）
+- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于在其中评估条件
+- `timeout` (数字，可选)：最大等待时间（毫秒，默认：10000，最大：120000）
+- `pollInterval` (数字，可选)：轮询间隔（毫秒，默认：200，最小：50）
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+
+**示例**：
+
+```json
+{
+  "selector": ".product-list",
+  "waitFor": "visible",
+  "timeout": 15000
+}
+```
+
+```json
+{
+  "jsCondition": "document.querySelectorAll('.item').length >= 10",
+  "timeout": 20000
+}
+```
+
+**响应（找到）**：
+
+```json
+{
+  "found": true,
+  "elapsedMs": 1200,
+  "count": 1,
+  "tag": "div#products",
+  "visible": true,
+  "rect": { "top": 100, "left": 0, "width": 800, "height": 600 }
+}
+```
+
+**响应（超时）**：
+
+```json
+{
+  "found": false,
+  "elapsedMs": 10000,
+  "timeout": 10000
+}
+```
+
+### `chrome_extract`
+
+使用 CSS 选择器从网页提取结构化数据，是网页抓取的核心工具。支持嵌套字段提取、8 种提取模式、同源 iframe 定位和可配置限制。
+
+**参数**：
+
+- `selector` (字符串，必需)：要提取元素的 CSS 选择器（每个匹配=一个结果项）
+- `fields` (数组，必需)：从每个匹配元素中提取的字段
+  - `name` (字符串，必需)：输出字段名
+  - `selector` (字符串，可选)：相对 CSS 选择器（默认：使用父元素自身）
+  - `type` (字符串，可选)：`text`（默认）| `html` | `outerHtml` | `attribute` | `number` | `href` | `src` | `table`
+    - `table` 模式会自动提取表格头部和行，支持 colspan/rowspan 展开
+  - `attribute` (字符串，可选)：当 type 为 `attribute` 时的属性名
+  - `multiple` (布尔值，可选)：返回所有匹配的数组（默认：false）
+  - `defaultValue` (任意，可选)：无匹配时的回退值（默认：null）
+- `contextSelector` (字符串，可选)：将提取范围限定到父容器
+- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于从中提取数据
+- `limit` (数字，可选)：最大返回条目数
+- `offset` (数字，可选)：跳过前 N 个匹配项
+- `waitForSelector` (布尔值，可选)：提取前等待选择器出现（默认：true）
+- `waitTimeout` (数字，可选)：等待超时（毫秒，默认：5000）
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+
+**示例**：
+
+```json
+{
+  "selector": ".product-card",
+  "fields": [
+    { "name": "title", "selector": ".product-title", "type": "text" },
+    { "name": "price", "selector": ".price", "type": "number" },
+    { "name": "link", "selector": "a", "type": "href" },
+    { "name": "rating", "selector": ".stars", "type": "attribute", "attribute": "data-score" },
+    { "name": "tags", "selector": ".tag", "type": "text", "multiple": true }
+  ],
+  "limit": 20
+}
+```
+
+**响应**：
+
+```json
+{
+  "items": [
+    {
+      "title": "商品 A",
+      "price": 29.99,
+      "link": "https://example.com/product-a",
+      "rating": "4.5",
+      "tags": ["促销", "热门"]
+    }
+  ],
+  "total": 45,
+  "returned": 20,
+  "pageUrl": "https://example.com/products"
+}
+```
+
+### `chrome_get_page_text`
+
+使用 Readability 从页面提取可读的主文章内容。返回干净文本、文章 HTML 和元数据（标题、摘要、作者、站点名称、语言、长度等）。
+
+**参数**：
+
+- `selector` (字符串，可选)：CSS 选择器。提供时返回该元素的文本而非 Readability 文章提取结果
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+
+**示例**：
+
+```json
+{
+  "tabId": 123
+}
+```
+
+**响应**：
+
+```json
+{
+  "title": "文章标题",
+  "byline": "作者名",
+  "excerpt": "文章摘要...",
+  "siteName": "站点名称",
+  "lang": "zh-CN",
+  "textContent": "文章正文纯文本...",
+  "articleHtml": "<div><p>文章 HTML...</p></div>",
+  "length": 12345
+}
+```
+
+### `chrome_click_and_wait`
+
+点击 CSS 选择器指定的元素，然后等待另一个选择器达到指定状态。将 `click` 和 `wait` 合二为一，简化交互流程。
+
+**参数**：
+
+- `selector` (字符串，必需)：要点击的元素的 CSS 选择器
+- `waitSelector` (字符串，必需)：点击后等待的 CSS 选择器
+- `waitFor` (字符串，可选)：`visible`（默认）| `present` | `hidden` | `gone` | `enabled`
+- `waitTimeout` (数字，可选)：最大等待时间（毫秒，默认：10000）
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+- `frameId` (数字，可选)：点击的目标 frame ID
+- `frameSelector` (字符串，可选)：等待时所在的同源 iframe 选择器
+
+**示例**：
+
+```json
+{
+  "selector": "#load-more-button",
+  "waitSelector": ".new-content",
+  "waitFor": "visible",
+  "waitTimeout": 15000
+}
+```
+
+**响应**：
+
+```json
+{
+  "clicked": true,
+  "found": true,
+  "elapsedMs": 2300,
+  "count": 5,
+  "tag": "div.new-content",
+  "visible": true
 }
 ```
 
