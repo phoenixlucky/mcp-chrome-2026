@@ -42,6 +42,7 @@ interface WaitToolParams {
   jsCondition?: string;
   timeout?: number;
   pollInterval?: number;
+  frameSelector?: string;
   tabId?: number;
   windowId?: number;
 }
@@ -51,11 +52,17 @@ interface WaitToolParams {
 // ============================================================================
 
 function buildConditionExpression(params: WaitToolParams): string {
-  const { selector, waitFor = 'visible', jsCondition } = params;
+  const { selector, waitFor = 'visible', jsCondition, frameSelector } = params;
+  const framePrelude = frameSelector
+    ? `const frame = globalThis.document.querySelector(${JSON.stringify(frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${frameSelector}');
+       const win = frame.contentWindow || globalThis.window;`
+    : 'const doc = globalThis.document; const win = globalThis.window;';
 
   if (jsCondition) {
-    // Custom JS condition — evaluate as-is, coerce to boolean
-    return `((${jsCondition}) === true)`;
+    return `(() => { ${framePrelude}; const document = doc; const window = win; return ((${jsCondition}) === true); })()`;
   }
 
   if (!selector) {
@@ -67,28 +74,31 @@ function buildConditionExpression(params: WaitToolParams): string {
 
   switch (waitFor) {
     case 'present':
-      return `(document.querySelector(${escapedSelector}) !== null)`;
+      return `(() => { ${framePrelude}; return doc.querySelector(${escapedSelector}) !== null; })()`;
     case 'visible':
       return `(() => {
-        const el = document.querySelector(${escapedSelector});
+        ${framePrelude}
+        const el = doc.querySelector(${escapedSelector});
         if (!el) return false;
         if (el.offsetParent === null) return false;
-        const style = window.getComputedStyle(el);
+        const style = win.getComputedStyle(el);
         if (style.display === 'none') return false;
         if (style.visibility === 'hidden') return false;
         return true;
       })()`;
     case 'hidden':
       return `(() => {
-        const el = document.querySelector(${escapedSelector});
+        ${framePrelude}
+        const el = doc.querySelector(${escapedSelector});
         if (!el) return false;
-        return (el.offsetParent === null || window.getComputedStyle(el).display === 'none');
+        return (el.offsetParent === null || win.getComputedStyle(el).display === 'none');
       })()`;
     case 'gone':
-      return `(document.querySelector(${escapedSelector}) === null)`;
+      return `(() => { ${framePrelude}; return doc.querySelector(${escapedSelector}) === null; })()`;
     case 'enabled':
       return `(() => {
-        const el = document.querySelector(${escapedSelector});
+        ${framePrelude}
+        const el = doc.querySelector(${escapedSelector});
         if (!el) return false;
         if (el.offsetParent === null) return false;
         if (el.disabled === true) return false;
@@ -180,7 +190,7 @@ class WaitTool extends BaseBrowserToolExecutor {
 
         if (value === true) {
           // Condition met
-          const metadata = await this.getMatchMetadata(tabId, args.selector);
+          const metadata = await this.getMatchMetadata(tabId, args.selector, args.frameSelector);
           return {
             content: [
               {
@@ -230,6 +240,7 @@ class WaitTool extends BaseBrowserToolExecutor {
   private async getMatchMetadata(
     tabId: number,
     selector?: string,
+    frameSelector?: string,
   ): Promise<Record<string, unknown>> {
     if (!selector) return {};
 
@@ -237,14 +248,17 @@ class WaitTool extends BaseBrowserToolExecutor {
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
         return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
           expression: `(() => {
-              const el = document.querySelector(${JSON.stringify(selector)});
+              const frame = ${frameSelector ? `document.querySelector(${JSON.stringify(frameSelector)})` : 'null'};
+              const doc = frame ? frame.contentDocument : document;
+              if (!doc) return JSON.stringify({ count: 0, error: 'Iframe is cross-origin or unavailable' });
+              const el = doc.querySelector(${JSON.stringify(selector)});
               if (!el) return JSON.stringify({ count: 0 });
               const rect = el.getBoundingClientRect();
               const tag = el.tagName ? el.tagName.toLowerCase() : '';
               const id = el.id || '';
               const cls = Array.from(el.classList || []).join('.');
               return JSON.stringify({
-                count: document.querySelectorAll(${JSON.stringify(selector)}).length,
+                count: doc.querySelectorAll(${JSON.stringify(selector)}).length,
                 tag,
                 id: cls ? tag + '#' + id + '.' + cls : tag + '#' + id,
                 visible: el.offsetParent !== null,

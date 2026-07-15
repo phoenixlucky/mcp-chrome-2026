@@ -20,6 +20,14 @@ Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) ser
 
 ## ✨ New Features
 
+### v1.1.2 (2026/07/15)
+
+- **`chrome_get_page_text`**: Extract readable article text, HTML, and metadata using Readability
+- **Same-origin iframe support**: `chrome_scroll`, `chrome_wait`, and `chrome_extract` accept `frameSelector`
+- **Table extraction**: `chrome_extract` supports the `table` field type with `colspan` and `rowspan`
+- **`chrome_click_and_wait`**: Click an element, then wait for a target state
+- **Version Bump**: Release packages unified to v1.1.2
+
 ### v1.1.0 (2026/07/15)
 
 - **4 New Scraping Tools**: Dedicated tools for web scraping and data collection

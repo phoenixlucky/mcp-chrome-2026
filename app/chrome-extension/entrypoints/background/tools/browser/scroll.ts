@@ -41,6 +41,7 @@ interface ScrollToolParams {
   block?: ScrollBlock;
   behavior?: ScrollBehavior;
   containerSelector?: string;
+  frameSelector?: string;
   tabId?: number;
   windowId?: number;
 }
@@ -65,22 +66,31 @@ function buildScrollExpression(params: ScrollToolParams): string {
     block,
     behavior,
     containerSelector,
+    frameSelector,
   } = params;
+
+  const framePrelude = frameSelector
+    ? `const frame = document.querySelector(${JSON.stringify(frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${frameSelector}');
+       const win = frame.contentWindow || window;`
+    : 'const doc = document; const win = window;';
 
   // Determine the container element expression
   const containerExpr = containerSelector
-    ? `document.querySelector(${JSON.stringify(containerSelector)})`
+    ? `doc.querySelector(${JSON.stringify(containerSelector)})`
     : `(() => {
     // Auto-detect main scroll container (X Collector pattern)
-    const el = document.scrollingElement || document.documentElement;
+    const el = doc.scrollingElement || doc.documentElement;
     // Try to find a better scrollable ancestor
     const candidates = [];
     // Walk up from body
-    const body = document.body;
+    const body = doc.body;
     if (body) {
       let p = body.parentElement;
-      while (p && p !== document.documentElement) {
-        const cs = window.getComputedStyle(p);
+      while (p && p !== doc.documentElement) {
+        const cs = win.getComputedStyle(p);
         if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
           candidates.push(p);
         }
@@ -89,16 +99,16 @@ function buildScrollExpression(params: ScrollToolParams): string {
     }
     // Also check common SPA root containers
     for (const sel of ['#root', '#app', '#__next', '#__nuxt', '[data-reactroot]', 'main', '[role="main"]']) {
-      const el2 = document.querySelector(sel);
+      const el2 = doc.querySelector(sel);
       if (el2) {
-        const cs = window.getComputedStyle(el2);
+        const cs = win.getComputedStyle(el2);
         if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
           candidates.push(el2);
         }
       }
     }
     if (candidates.length > 0) return candidates[0];
-    return document.scrollingElement || document.documentElement;
+    return doc.scrollingElement || doc.documentElement;
   })()`;
 
   // Build scroll action
@@ -114,7 +124,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
     // Scroll element into view
     const elExpr = containerSelector
       ? `${containerExpr}.querySelector(${JSON.stringify(selector)})`
-      : `document.querySelector(${JSON.stringify(selector)})`;
+      : `doc.querySelector(${JSON.stringify(selector)})`;
     actions.push(`(($el) => {
       if (!$el) throw new Error('Element not found: ${JSON.stringify(selector)}');
       $el.scrollIntoView({ behavior: ${JSON.stringify(behavior || 'auto')}, block: ${JSON.stringify(block || 'center')} });
@@ -123,7 +133,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
     // Set scrollTop to element's offsetTop
     const elExpr = containerSelector
       ? `${containerExpr}.querySelector(${JSON.stringify(selector)})`
-      : `document.querySelector(${JSON.stringify(selector)})`;
+      : `doc.querySelector(${JSON.stringify(selector)})`;
     actions.push(`(($el, $container) => {
       if (!$el) throw new Error('Element not found: ${JSON.stringify(selector)}');
       $container.scrollTop = $el.offsetTop - $container.offsetTop;
@@ -147,6 +157,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
   const fullExpression = `
 (() => {
   try {
+    ${framePrelude}
     ${actions.join(';\n    ')};
     const c = ${containerExpr};
     return JSON.stringify({

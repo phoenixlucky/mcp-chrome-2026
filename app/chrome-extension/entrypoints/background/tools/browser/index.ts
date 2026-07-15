@@ -32,3 +32,5 @@ export { getTabUrlTool } from './get-tab-url';
 export { scrollTool } from './scroll';
 export { waitTool } from './wait';
 export { extractTool } from './extract';
+export { pageTextTool } from './get-page-text';
+export { clickAndWaitTool } from './click-and-wait';

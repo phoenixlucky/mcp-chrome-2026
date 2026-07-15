@@ -44,6 +44,8 @@ export const TOOL_NAMES = {
     SCROLL: 'chrome_scroll',
     WAIT: 'chrome_wait',
     EXTRACT: 'chrome_extract',
+    GET_PAGE_TEXT: 'chrome_get_page_text',
+    CLICK_AND_WAIT: 'chrome_click_and_wait',
   },
   RECORD_REPLAY: {
     FLOW_RUN: 'record_replay_flow_run',
@@ -1403,6 +1405,27 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.GET_PAGE_TEXT,
+    description:
+      'Extract the readable main article from a page using Readability. Returns clean text, article HTML, and metadata such as title, excerpt, author, site name, language, and length.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description:
+            'Optional CSS selector. When provided, returns text from that element instead of Readability article extraction.',
+        },
+        tabId: { type: 'number', description: 'Target tab ID (default: active tab).' },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.GET_TAB_URL,
     description:
       'Get the current URL and title of a specified browser tab. Returns url, title, tabId, and favIconUrl. Simpler and faster than get_windows_and_tabs when you only need the current URL.',
@@ -1473,6 +1496,10 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'CSS selector of the scroll container. When omitted, auto-detects the main scrollable container by inspecting overflow styles on ancestor elements.',
         },
+        frameSelector: {
+          type: 'string',
+          description: 'Optional CSS selector for a same-origin iframe to scroll inside.',
+        },
         tabId: {
           type: 'number',
           description: 'Target tab ID (default: active tab).',
@@ -1507,6 +1534,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'Custom JavaScript expression that returns boolean. Evaluated in the page context. Alternative to selector+waitFor. Example: \'document.querySelectorAll(".item").length >= 10\'',
         },
+        frameSelector: {
+          type: 'string',
+          description:
+            'Optional CSS selector for a same-origin iframe in which to evaluate the condition.',
+        },
         timeout: {
           type: 'number',
           description: 'Maximum wait time in milliseconds (default: 10000, max: 120000).',
@@ -1530,7 +1562,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.EXTRACT,
     description:
-      'Extract structured data from a web page using CSS selectors. Injects JavaScript into the page to query elements and return clean structured JSON. Supports nested field extraction, multiple extraction modes (text/html/attribute/number/href/src), and configurable limits.\n\nExample:\n{\n  "selector": ".product-card",\n  "fields": [\n    { "name": "title", "selector": ".product-title", "type": "text" },\n    { "name": "price", "selector": ".price", "type": "number" },\n    { "name": "link", "selector": "a", "type": "href" },\n    { "name": "rating", "selector": ".stars", "type": "attribute", "attribute": "data-score" }\n  ]\n}',
+      'Extract structured data from a web page using CSS selectors. Supports nested field extraction, same-origin iframe targeting, table extraction, and configurable limits.\n\nExample:\n{\n  "selector": ".product-card",\n  "fields": [\n    { "name": "title", "selector": ".product-title", "type": "text" },\n    { "name": "price", "selector": ".price", "type": "number" },\n    { "name": "link", "selector": "a", "type": "href" }\n  ]\n}',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1557,9 +1589,9 @@ export const TOOL_SCHEMAS: Tool[] = [
               },
               type: {
                 type: 'string',
-                enum: ['text', 'html', 'outerHtml', 'attribute', 'number', 'href', 'src'],
+                enum: ['text', 'html', 'outerHtml', 'attribute', 'number', 'href', 'src', 'table'],
                 description:
-                  'How to extract the value:\n- "text" (default): element.textContent (trimmed)\n- "html": element.innerHTML\n- "outerHtml": element.outerHTML\n- "attribute": element.getAttribute(attribute)\n- "number": parseFloat(textContent) or null\n- "href": anchor.href (resolved absolute URL)\n- "src": img/video/iframe src (resolved absolute URL)',
+                  'How to extract the value:\n- "text" (default): element.textContent (trimmed)\n- "html": element.innerHTML\n- "outerHtml": element.outerHTML\n- "attribute": element.getAttribute(attribute)\n- "number": parseFloat(textContent) or null\n- "href": anchor.href (resolved absolute URL)\n- "src": img/video/iframe src (resolved absolute URL)\n- "table": table headers and rows, including colspan/rowspan',
               },
               attribute: {
                 type: 'string',
@@ -1582,6 +1614,10 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           description:
             'Optional parent container that narrows the extraction scope. Equivalent to calling document.querySelector(contextSelector).querySelectorAll(selector).',
+        },
+        frameSelector: {
+          type: 'string',
+          description: 'Optional CSS selector for a same-origin iframe to extract from.',
         },
         limit: {
           type: 'number',
@@ -1611,6 +1647,38 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['selector', 'fields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.CLICK_AND_WAIT,
+    description:
+      'Click a CSS-selected element, then wait for another selector to reach the requested state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: { type: 'string', description: 'CSS selector of the element to click.' },
+        waitSelector: { type: 'string', description: 'CSS selector to wait for after clicking.' },
+        waitFor: {
+          type: 'string',
+          enum: ['visible', 'present', 'hidden', 'gone', 'enabled'],
+          description: 'Expected state for waitSelector (default: visible).',
+        },
+        waitTimeout: {
+          type: 'number',
+          description: 'Maximum wait time in milliseconds (default: 10000).',
+        },
+        tabId: { type: 'number', description: 'Target tab ID (default: active tab).' },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+        frameId: { type: 'number', description: 'Target frame ID for the click.' },
+        frameSelector: {
+          type: 'string',
+          description: 'Optional same-origin iframe selector in which to wait.',
+        },
+      },
+      required: ['selector', 'waitSelector'],
     },
   },
 ];

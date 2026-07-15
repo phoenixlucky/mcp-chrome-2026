@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.1.2] - 2026-07-15
+
+### Added
+
+- `chrome_get_page_text`: Extract readable article text, HTML, and metadata with Readability.
+- Same-origin iframe support (`frameSelector`) for `chrome_scroll`, `chrome_wait`, and `chrome_extract`.
+- `table` extraction mode in `chrome_extract`, including `colspan` and `rowspan` expansion.
+- `chrome_click_and_wait`: Click an element, then wait for a target element state.
+
+### Changed
+
+- All release packages bumped to v1.1.2.
+
 ## [v1.1.1]
 
 ### Fixed

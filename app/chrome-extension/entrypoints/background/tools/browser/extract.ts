@@ -32,7 +32,8 @@ const CDP_SESSION_KEY = 'extract';
 // Types
 // ============================================================================
 
-type ExtractFieldType = 'text' | 'html' | 'outerHtml' | 'attribute' | 'number' | 'href' | 'src';
+type ExtractFieldType =
+  'text' | 'html' | 'outerHtml' | 'attribute' | 'number' | 'href' | 'src' | 'table';
 
 interface ExtractField {
   name: string;
@@ -51,6 +52,7 @@ interface ExtractToolParams {
   offset?: number;
   waitForSelector?: boolean;
   waitTimeout?: number;
+  frameSelector?: string;
   tabId?: number;
   windowId?: number;
 }
@@ -63,21 +65,29 @@ interface ExtractToolParams {
  * Build the full extraction JS code injected into the page.
  * This generates a self-contained extraction function that runs in MAIN world.
  */
-function buildExtractionScript(params: ExtractToolParams): string {
-  const { selector, fields, contextSelector, limit, offset } = params;
+export function buildExtractionScript(params: ExtractToolParams): string {
+  const { selector, fields, contextSelector, limit, offset, frameSelector } = params;
 
   // Serialize fields config for injection
   const fieldsJson = JSON.stringify(fields);
 
   // Build context expression
   const contextExpr = contextSelector
-    ? `document.querySelector(${JSON.stringify(contextSelector)})`
-    : 'document';
+    ? `doc.querySelector(${JSON.stringify(contextSelector)})`
+    : 'doc';
+  const framePrelude = frameSelector
+    ? `const frame = document.querySelector(${JSON.stringify(frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${frameSelector}');
+       const win = frame.contentWindow || window;`
+    : 'const doc = document; const win = window;';
 
   // Build the extraction code
   return `
 (() => {
   try {
+    ${framePrelude}
     const selector = ${JSON.stringify(selector)};
     const fields = ${fieldsJson};
     const context = ${contextExpr};
@@ -130,6 +140,8 @@ function buildExtractionScript(params: ExtractToolParams): string {
             return el.getAttribute('href') || null;
           case 'src':
             return el.src || el.getAttribute('src') || null;
+          case 'table':
+            return extractTable(el);
           default:
             return (el.textContent || '').trim();
         }
@@ -138,8 +150,37 @@ function buildExtractionScript(params: ExtractToolParams): string {
       }
     }
 
+    function extractTable(el) {
+      const table = el.tagName === 'TABLE' ? el : el.querySelector('table');
+      if (!table) return null;
+      const rows = Array.from(table.querySelectorAll('tr')).filter(row => row.closest('table') === table);
+      const grid = [];
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        const row = rows[rowIndex];
+        const values = grid[rowIndex] || (grid[rowIndex] = []);
+        let column = 0;
+        for (const cell of Array.from(row.querySelectorAll(':scope > th, :scope > td'))) {
+          while (values[column] !== undefined) column++;
+          const text = (cell.innerText || cell.textContent || '').replace(/\\s+/g, ' ').trim();
+          const colSpan = Math.max(1, Number(cell.colSpan) || 1);
+          const rowSpan = Math.max(1, Number(cell.rowSpan) || 1);
+          for (let r = 0; r < rowSpan; r++) {
+            const target = grid[rowIndex + r] || (grid[rowIndex + r] = []);
+            for (let c = 0; c < colSpan; c++) target[column + c] = text;
+          }
+          column += colSpan;
+        }
+      }
+      const headerRows = rows.filter(row => row.parentElement?.tagName === 'THEAD').length ||
+        (rows[0] && rows[0].querySelector('th') ? 1 : 0);
+      return {
+        headers: headerRows > 0 ? grid[headerRows - 1] || [] : [],
+        rows: grid.slice(headerRows),
+      };
+    }
+
     // Get parent element for querying
-    const root = context || document;
+    const root = context || doc;
 
     // Wait briefly for elements (handled by caller's waitForSelector)
     const elements = root.querySelectorAll(selector);
@@ -164,7 +205,7 @@ function buildExtractionScript(params: ExtractToolParams): string {
       items: items,
       total: total,
       returned: items.length,
-      pageUrl: window.location.href,
+      pageUrl: win.location.href,
     });
   } catch (e) {
     return JSON.stringify({ success: false, error: e.message || String(e) });
@@ -212,7 +253,12 @@ class ExtractTool extends BaseBrowserToolExecutor {
         typeof args.waitTimeout === 'number' ? args.waitTimeout : DEFAULT_WAIT_TIMEOUT_MS;
 
       if (shouldWait && args.selector) {
-        const found = await this.waitForSelector(tabId, args.selector, waitTimeout);
+        const found = await this.waitForSelector(
+          tabId,
+          args.selector,
+          waitTimeout,
+          args.frameSelector,
+        );
         if (!found) {
           // Return empty result instead of error
           return {
@@ -291,6 +337,7 @@ class ExtractTool extends BaseBrowserToolExecutor {
     tabId: number,
     selector: string,
     timeoutMs: number,
+    frameSelector?: string,
   ): Promise<boolean> {
     const startedAt = Date.now();
     const pollInterval = 200;
@@ -299,7 +346,13 @@ class ExtractTool extends BaseBrowserToolExecutor {
       try {
         const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
           return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-            expression: `document.querySelector(${JSON.stringify(selector)}) !== null`,
+            expression: `(() => {
+            const frame = ${frameSelector ? `document.querySelector(${JSON.stringify(frameSelector)})` : 'null'};
+            if (${frameSelector ? '!frame' : 'false'}) throw new Error('Iframe not found');
+            const doc = frame ? frame.contentDocument : document;
+            if (!doc) throw new Error('Iframe is cross-origin or unavailable');
+            return doc.querySelector(${JSON.stringify(selector)}) !== null;
+          })()`,
             returnByValue: true,
             awaitPromise: true,
             timeout: 3000,
