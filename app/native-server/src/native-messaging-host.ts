@@ -289,6 +289,14 @@ export class NativeMessagingHost {
         payload: { port },
       });
     } catch (error: any) {
+      // If port is already in use (another process started the server), treat as success
+      if (error.code === 'EADDRINUSE' || (error.message && error.message.includes('EADDRINUSE'))) {
+        this.sendMessage({
+          type: NativeMessageType.SERVER_STARTED,
+          payload: { port },
+        });
+        return;
+      }
       this.sendError(`Failed to start server: ${error.message}`);
     }
   }
