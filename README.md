@@ -18,7 +18,18 @@
 
 Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) server** that exposes your Chrome browser functionality to AI assistants like Claude, enabling complex browser automation, content analysis, and semantic search. Unlike traditional browser automation tools (like Playwright), **Chrome MCP Server** directly uses your daily Chrome browser, leveraging existing user habits, configurations, and login states, allowing various large models or chatbots to take control of your browser and truly become your everyday assistant.
 
-## ✨ New Features(2025/12/30)
+## ✨ New Features
+
+### v1.1.0 (2026/07/15)
+
+- **4 New Scraping Tools**: Dedicated tools for web scraping and data collection
+  - `chrome_get_tab_url` - Lightweight tab URL retrieval
+  - `chrome_scroll` - Scroll page/container with 4 modes
+  - `chrome_wait` - Wait for element or JS condition
+  - `chrome_extract` - Extract structured data via CSS selectors
+- **Version Bump**: All packages unified to v1.1.0
+
+### v0.0.5 (2025/12/30)
 
 - **A New Visual Editor for Claude Code & Codex**, for more detail here: [VisualEditor](docs/VisualEditor.md)
 
@@ -31,7 +42,7 @@ Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) ser
 - 🏎 **Cross-Tab**: Cross-tab context
 - 🧠 **Semantic Search**: Built-in vector database for intelligent browser tab content discovery
 - 🔍 **Smart Content Analysis**: AI-powered text extraction and similarity matching
-- 🌐 **20+ Tools**: Support for screenshots, network monitoring, interactive operations, bookmark management, browsing history, and 20+ other tools
+- 🌐 **40+ Tools**: Support for screenshots, network monitoring, interactive operations, bookmark management, browsing history, data extraction, and 40+ other tools
 - 🚀 **SIMD-Accelerated AI**: Custom WebAssembly SIMD optimization for 4-8x faster vector operations
 
 ## 🆚 Comparison with Similar Projects
@@ -156,12 +167,14 @@ Complete tool list: [Complete Tool List](docs/TOOLS.md)
 - `chrome_go_back_or_forward` - Browser navigation control
 - `chrome_inject_script` - Inject content scripts into web pages
 - `chrome_send_command_to_inject_script` - Send commands to injected content scripts
+
 </details>
 
 <details>
 <summary><strong>📸 Screenshots & Visual (1 tool)</strong></summary>
 
 - `chrome_screenshot` - Advanced screenshot capture with element targeting, full-page support, and custom dimensions
+
 </details>
 
 <details>
@@ -170,6 +183,7 @@ Complete tool list: [Complete Tool List](docs/TOOLS.md)
 - `chrome_network_capture_start/stop` - webRequest API network capture
 - `chrome_network_debugger_start/stop` - Debugger API with response bodies
 - `chrome_network_request` - Send custom HTTP requests
+
 </details>
 
 <details>
@@ -179,6 +193,7 @@ Complete tool list: [Complete Tool List](docs/TOOLS.md)
 - `chrome_get_web_content` - Extract HTML/text content from pages
 - `chrome_get_interactive_elements` - Find clickable elements
 - `chrome_console` - Capture and retrieve console output from browser tabs
+
 </details>
 
 <details>
@@ -187,6 +202,7 @@ Complete tool list: [Complete Tool List](docs/TOOLS.md)
 - `chrome_click_element` - Click elements using CSS selectors
 - `chrome_fill_or_select` - Fill forms and select options
 - `chrome_keyboard` - Simulate keyboard input and shortcuts
+
 </details>
 
 <details>
@@ -196,6 +212,17 @@ Complete tool list: [Complete Tool List](docs/TOOLS.md)
 - `chrome_bookmark_search` - Find bookmarks by keywords
 - `chrome_bookmark_add` - Add new bookmarks with folder support
 - `chrome_bookmark_delete` - Delete bookmarks
+
+</details>
+
+<details>
+<summary><strong>🕸️ Scraping & Extraction (4 new tools)</strong></summary>
+
+- `chrome_get_tab_url` - Get current URL/title of a browser tab
+- `chrome_scroll` - Scroll page or container with 4 modes (pixel/edge/element/auto-detect)
+- `chrome_wait` - Wait for element or JS condition with 6 wait modes
+- `chrome_extract` - Extract structured data from pages via CSS selectors (7 extraction types)
+
 </details>
 
 ## 🧪 Usage Examples

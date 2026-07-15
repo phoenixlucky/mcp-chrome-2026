@@ -10,6 +10,7 @@ Complete reference for all available tools and their parameters.
 - [Content Analysis](#content-analysis)
 - [Interaction](#interaction)
 - [Data Management](#data-management)
+- [Scraping & Extraction](#scraping--extraction)
 - [Response Format](#response-format)
 
 ## 📊 Browser Management
@@ -522,6 +523,186 @@ Delete bookmarks by ID or URL.
 ```json
 {
   "url": "https://example.com"
+}
+```
+
+## 🕸️ Scraping & Extraction
+
+### `chrome_get_tab_url`
+
+Get the current URL and title of a browser tab. Lightweight alternative to `get_windows_and_tabs` when only the current URL is needed.
+
+**Parameters**:
+
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID to pick active tab from
+
+**Example**:
+
+```json
+{ "tabId": 123 }
+```
+
+**Response**:
+
+```json
+{
+  "url": "https://example.com/page",
+  "title": "Example Page",
+  "tabId": 123,
+  "windowId": 456,
+  "favIconUrl": "https://example.com/favicon.ico",
+  "status": "complete",
+  "active": true
+}
+```
+
+### `chrome_scroll`
+
+Scroll the page or a scrollable container with 4 modes.
+
+**Parameters**:
+
+- `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
+- `direction` (string, optional): `down` | `up` | `left` | `right`
+- `toBottom` (boolean, optional): Scroll to the bottom of the container
+- `toTop` (boolean, optional): Scroll to the top of the container
+- `selector` (string, optional): CSS selector of element to scroll into view
+- `scrollIntoView` (boolean, optional): Use `scrollIntoView` (default: true with selector)
+- `block` (string, optional): `start` | `center` | `end` | `nearest` (default: `center`)
+- `behavior` (string, optional): `auto` | `smooth` (default: `auto`)
+- `containerSelector` (string, optional): CSS selector of scroll container (auto-detected if omitted)
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID
+
+**Examples**:
+
+```json
+{ "amount": 500 }
+{ "toBottom": true }
+{ "selector": "#load-more-button", "block": "center" }
+```
+
+**Response**:
+
+```json
+{
+  "scrollTop": 1500,
+  "scrollHeight": 4500,
+  "clientHeight": 900,
+  "atBottom": false,
+  "atTop": false
+}
+```
+
+### `chrome_wait`
+
+Wait for a DOM element or JavaScript condition to become true. Polls the page at a configurable interval. Returns `{ found: false }` on timeout (does not throw).
+
+**Parameters**:
+
+- `selector` (string, optional): CSS selector to wait for
+- `waitFor` (string, optional): `visible` (default) | `present` | `hidden` | `gone` | `enabled`
+- `jsCondition` (string, optional): Custom JS expression returning boolean (alternative to selector)
+- `timeout` (number, optional): Max wait time in ms (default: 10000, max: 120000)
+- `pollInterval` (number, optional): Poll interval in ms (default: 200, min: 50)
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID
+
+**Examples**:
+
+```json
+{
+  "selector": ".product-list",
+  "waitFor": "visible",
+  "timeout": 15000
+}
+```
+
+```json
+{
+  "jsCondition": "document.querySelectorAll('.item').length >= 10",
+  "timeout": 20000
+}
+```
+
+**Response** (found):
+
+```json
+{
+  "found": true,
+  "elapsedMs": 1200,
+  "count": 1,
+  "tag": "div#products",
+  "visible": true,
+  "rect": { "top": 100, "left": 0, "width": 800, "height": 600 }
+}
+```
+
+**Response** (timeout):
+
+```json
+{
+  "found": false,
+  "elapsedMs": 10000,
+  "timeout": 10000
+}
+```
+
+### `chrome_extract`
+
+Extract structured data from a web page using CSS selectors. The core tool for web scraping. Supports nested field extraction, 7 extraction modes, and configurable limits.
+
+**Parameters**:
+
+- `selector` (string, required): CSS selector for elements to extract (each match = one result item)
+- `fields` (array, required): Fields to extract from each matched element
+  - `name` (string, required): Output field name
+  - `selector` (string, optional): Relative CSS selector (default: use parent element)
+  - `type` (string, optional): `text` (default) | `html` | `outerHtml` | `attribute` | `number` | `href` | `src`
+  - `attribute` (string, optional): Attribute name when type is `attribute`
+  - `multiple` (boolean, optional): Return array of all matches (default: false)
+  - `defaultValue` (any, optional): Fallback value (default: null)
+- `contextSelector` (string, optional): Narrow extraction to a parent container
+- `limit` (number, optional): Max items to return
+- `offset` (number, optional): Skip first N items
+- `waitForSelector` (boolean, optional): Wait for selector before extracting (default: true)
+- `waitTimeout` (number, optional): Wait timeout in ms (default: 5000)
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID
+
+**Example**:
+
+```json
+{
+  "selector": ".product-card",
+  "fields": [
+    { "name": "title", "selector": ".product-title", "type": "text" },
+    { "name": "price", "selector": ".price", "type": "number" },
+    { "name": "link", "selector": "a", "type": "href" },
+    { "name": "rating", "selector": ".stars", "type": "attribute", "attribute": "data-score" },
+    { "name": "tags", "selector": ".tag", "type": "text", "multiple": true }
+  ],
+  "limit": 20
+}
+```
+
+**Response**:
+
+```json
+{
+  "items": [
+    {
+      "title": "Product A",
+      "price": 29.99,
+      "link": "https://example.com/product-a",
+      "rating": "4.5",
+      "tags": ["sale", "popular"]
+    }
+  ],
+  "total": 45,
+  "returned": 20,
+  "pageUrl": "https://example.com/products"
 }
 ```
 
