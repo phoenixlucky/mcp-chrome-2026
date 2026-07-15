@@ -3,7 +3,7 @@ title Chrome MCP Server - Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.2.2
+echo   Chrome MCP Server v1.2.3
 echo ========================================
 echo.
 

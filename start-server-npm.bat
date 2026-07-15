@@ -3,7 +3,7 @@ title Chrome MCP Server - npm Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.2.2 -- npm
+echo   Chrome MCP Server v1.2.3 -- npm
 echo ========================================
 echo.
 
