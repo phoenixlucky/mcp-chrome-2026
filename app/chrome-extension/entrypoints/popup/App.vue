@@ -41,8 +41,11 @@
               <div class="service-warning-body">
                 <div class="service-warning-title">{{ getMessage('connectedServiceNotStartedStatus') }}</div>
                 <div class="service-warning-desc">{{ getMessage('serviceNotStartedTip') }}</div>
-                <button class="service-warning-btn" @click="refreshServerStatus">
+                <button class="service-warning-btn" @click="refreshServerStatus" style="margin-right:6px">
                   {{ getMessage('refreshStatusButton') }}
+                </button>
+                <button class="service-warning-btn service-warning-btn-primary" @click="startService">
+                  {{ getMessage('startServiceButton') }}
                 </button>
               </div>
             </div>
@@ -1068,6 +1071,13 @@ const copyMcpConfig = async () => {
       copyButtonText.value = getMessage('copyConfigButton');
     }, 2000);
   }
+};
+
+const startService = async () => {
+  try {
+    await chrome.runtime.sendMessage({ type: 'connectNative', port: nativeServerPort.value });
+    setTimeout(refreshServerStatus, 1500);
+  } catch (e) { console.error('Start service failed:', e); }
 };
 
 const testNativeConnection = async () => {
@@ -2739,5 +2749,15 @@ onUnmounted(() => {
 
 .service-warning-btn:hover {
   background: #fef3c7;
+}
+
+.service-warning-btn-primary {
+  color: #fff;
+  background: #f59e0b;
+  border-color: #d97706;
+}
+
+.service-warning-btn-primary:hover {
+  background: #d97706;
 }
 </style>

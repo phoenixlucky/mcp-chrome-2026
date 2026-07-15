@@ -85,7 +85,7 @@
     "message": "Connected, Service Not Started",
     "description": "Connected but service not started status"
   },
-  "serviceNotStartedTip": {
+  "startServiceButton": { "message": "Start Service", "description": "Start service button" },`r`n  "serviceNotStartedTip": {
     "message": "Native host connected. Waiting for HTTP service to start. Try refreshing or check native host status.",
     "description": "Service not started tip text"
   },
