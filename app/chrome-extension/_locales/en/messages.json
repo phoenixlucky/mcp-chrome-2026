@@ -85,6 +85,10 @@
     "message": "Connected, Service Not Started",
     "description": "Connected but service not started status"
   },
+  "serviceNotStartedTip": {
+    "message": "Native host connected. Waiting for HTTP service to start. Try refreshing or check native host status.",
+    "description": "Service not started tip text"
+  },
   "mcpServerConfigLabel": {
     "message": "MCP Server Configuration",
     "description": "MCP server configuration section label"

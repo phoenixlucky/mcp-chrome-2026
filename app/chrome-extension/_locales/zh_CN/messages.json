@@ -85,6 +85,10 @@
     "message": "已连接，服务未启动",
     "description": "已连接但服务未启动状态"
   },
+  "serviceNotStartedTip": {
+    "message": "Native 主机已连接，正在等待 HTTP 服务启动。请刷新状态或检查 native host 是否正常运行。",
+    "description": "服务未启动时的提示文字"
+  },
   "mcpServerConfigLabel": {
     "message": "MCP 服务器配置",
     "description": "MCP 服务器配置节标签"

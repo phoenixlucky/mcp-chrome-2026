@@ -33,6 +33,20 @@
               </div>
             </div>
 
+            <div
+              v-if="nativeConnectionStatus === 'connected' && !serverStatus.isRunning"
+              class="service-warning"
+            >
+              <div class="service-warning-icon">⚠️</div>
+              <div class="service-warning-body">
+                <div class="service-warning-title">{{ getMessage('connectedServiceNotStartedStatus') }}</div>
+                <div class="service-warning-desc">{{ getMessage('serviceNotStartedTip') }}</div>
+                <button class="service-warning-btn" @click="refreshServerStatus">
+                  {{ getMessage('refreshStatusButton') }}
+                </button>
+              </div>
+            </div>
+
             <div v-if="showMcpConfig" class="mcp-config-section">
               <div class="mcp-config-header">
                 <p class="mcp-config-label">{{ getMessage('mcpServerConfigLabel') }}</p>
@@ -2675,5 +2689,55 @@ onUnmounted(() => {
 .toast-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(12px);
+}
+
+/* Service warning card */
+.service-warning {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+}
+
+.service-warning-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.service-warning-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-warning-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 2px;
+}
+
+.service-warning-desc {
+  font-size: 12px;
+  color: #a16207;
+  line-height: 1.4;
+}
+
+.service-warning-btn {
+  margin-top: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.service-warning-btn:hover {
+  background: #fef3c7;
 }
 </style>
