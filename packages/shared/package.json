@@ -30,7 +30,7 @@
   "devDependencies": {
     "@types/node": "^18.0.0",
     "@typescript-eslint/parser": "^8.32.0",
-    "tsup": "^8.4.0"
+    "tsup": "^8.5.1"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",

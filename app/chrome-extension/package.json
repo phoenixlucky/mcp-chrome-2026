@@ -13,7 +13,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "vue-tsc --noEmit",
-    "postinstall": "node -e \"try{require('child_process').execSync('wxt prepare',{cwd:__dirname,shell:true,stdio:'inherit'})}catch(e){}\",
+    "postinstall": "node -e \"try{require('child_process').execSync('wxt prepare',{cwd:__dirname,shell:true,stdio:'inherit'})}catch(e){}\"",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint . --fix",
     "format": "npx prettier --write .",
