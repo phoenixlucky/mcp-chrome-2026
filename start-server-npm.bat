@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 title Chrome MCP Server - npm Launcher
 cd /d "%~dp0"
 
