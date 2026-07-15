@@ -143,7 +143,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { TOOL_NAMES } from 'chrome-mcp-shared';
+import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
 import { STORAGE_KEYS } from '@/common/constants';
 
 type ListItem = {

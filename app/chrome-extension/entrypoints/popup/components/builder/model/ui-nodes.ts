@@ -10,7 +10,7 @@ import {
   listNodeSpecs,
   getNodeSpec,
 } from '@/entrypoints/popup/components/builder/model/node-spec-registry';
-import { STEP_TYPES } from 'chrome-mcp-shared';
+import { STEP_TYPES } from 'chrome-mcp-shared-2026';
 
 // Canvas renderer components
 import NodeCard from '@/entrypoints/popup/components/builder/components/nodes/NodeCard.vue';

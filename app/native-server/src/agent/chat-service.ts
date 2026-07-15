@@ -8,7 +8,7 @@ import type {
   RunningExecution,
 } from './engines/types';
 import type { AgentMessage, RealtimeEvent } from './types';
-import type { AttachmentMetadata } from 'chrome-mcp-shared';
+import type { AttachmentMetadata } from 'chrome-mcp-shared-2026';
 import { AgentStreamManager } from './stream-manager';
 import { getProject, touchProjectActivity, updateProjectClaudeSessionId } from './project-service';
 import { createMessage as persistAgentMessage } from './message-service';

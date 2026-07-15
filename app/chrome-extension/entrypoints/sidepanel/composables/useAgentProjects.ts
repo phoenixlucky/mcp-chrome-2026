@@ -3,7 +3,7 @@
  * Handles project CRUD, selection, and persistence.
  */
 import { ref, computed, watch } from 'vue';
-import type { AgentProject, AgentStoredMessage } from 'chrome-mcp-shared';
+import type { AgentProject, AgentStoredMessage } from 'chrome-mcp-shared-2026';
 
 const STORAGE_KEY_SELECTED_PROJECT = 'agent-selected-project-id';
 

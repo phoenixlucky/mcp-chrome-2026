@@ -1,4 +1,4 @@
-import { TOOL_NAMES } from 'chrome-mcp-shared';
+import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
 import { handleCallTool } from '@/entrypoints/background/tools';
 import type { StepFill } from '../types';
 import { locateElement } from '../selector-engine';

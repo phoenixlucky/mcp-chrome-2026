@@ -11,7 +11,7 @@ import type {
   UpdateAgentSessionInput,
   AgentStoredMessage,
   AgentManagementInfo,
-} from 'chrome-mcp-shared';
+} from 'chrome-mcp-shared-2026';
 
 const STORAGE_KEY_SELECTED_SESSION = 'agent-selected-session-id';
 

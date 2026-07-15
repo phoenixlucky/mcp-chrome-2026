@@ -11,7 +11,7 @@ import { mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { eq, desc } from 'drizzle-orm';
-import type { AgentProject } from 'chrome-mcp-shared';
+import type { AgentProject } from 'chrome-mcp-shared-2026';
 import type { CreateOrUpdateProjectInput } from './project-types';
 import { getDb, projects, type ProjectRow } from './db';
 

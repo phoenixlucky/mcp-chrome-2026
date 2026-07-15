@@ -1,5 +1,5 @@
 import { ToolResult } from '@/common/tool-handler';
-import { TOOL_NAMES } from 'chrome-mcp-shared';
+import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
 import { clickTool } from './interaction';
 import { waitTool } from './wait';
 

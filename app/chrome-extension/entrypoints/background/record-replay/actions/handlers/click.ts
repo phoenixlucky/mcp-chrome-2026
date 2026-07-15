@@ -9,7 +9,7 @@
  */
 
 import { handleCallTool } from '@/entrypoints/background/tools';
-import { TOOL_NAMES } from 'chrome-mcp-shared';
+import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
 import { ENGINE_CONSTANTS } from '../../engine/constants';
 import {
   maybeQuickWaitForNav,

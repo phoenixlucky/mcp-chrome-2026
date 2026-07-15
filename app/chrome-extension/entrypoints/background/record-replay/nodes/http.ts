@@ -1,4 +1,4 @@
-import { TOOL_NAMES } from 'chrome-mcp-shared';
+import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
 import { handleCallTool } from '@/entrypoints/background/tools';
 import type { StepHttp } from '../types';
 import { applyAssign, expandTemplatesDeep } from '../rr-utils';

@@ -7,7 +7,7 @@ import type {
   AgentMessage,
   AgentMessageAttachmentMetadata,
   AttachmentMetadata,
-} from 'chrome-mcp-shared';
+} from 'chrome-mcp-shared-2026';
 import type { RequestState } from './useAgentChat';
 
 /**
@@ -18,12 +18,7 @@ export const AGENT_SERVER_PORT_KEY: InjectionKey<Ref<number | null>> = Symbol('a
 
 /** Thread state */
 export type AgentThreadState =
-  | 'idle'
-  | 'starting'
-  | 'running'
-  | 'completed'
-  | 'error'
-  | 'cancelled';
+  'idle' | 'starting' | 'running' | 'completed' | 'error' | 'cancelled';
 
 /** Tool kinds for presentation */
 export type ToolKind = 'grep' | 'read' | 'edit' | 'run' | 'plan' | 'generic';

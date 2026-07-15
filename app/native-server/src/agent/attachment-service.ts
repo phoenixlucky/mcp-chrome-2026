@@ -16,7 +16,7 @@ import type {
   AgentAttachment,
   AttachmentMetadata,
   AttachmentProjectStats,
-} from 'chrome-mcp-shared';
+} from 'chrome-mcp-shared-2026';
 import { getAgentDataDir } from './storage';
 
 // ============================================================

@@ -18,7 +18,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { AgentAttachment } from 'chrome-mcp-shared';
+import type { AgentAttachment } from 'chrome-mcp-shared-2026';
 
 defineProps<{
   attachments: AgentAttachment[];

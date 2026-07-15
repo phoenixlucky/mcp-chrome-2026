@@ -367,7 +367,7 @@ import type {
   AttachmentCleanupResponse,
   AttachmentProjectStats,
   AttachmentStatsResponse,
-} from 'chrome-mcp-shared';
+} from 'chrome-mcp-shared-2026';
 import { AGENT_SERVER_PORT_KEY } from '../../composables';
 
 const props = defineProps<{

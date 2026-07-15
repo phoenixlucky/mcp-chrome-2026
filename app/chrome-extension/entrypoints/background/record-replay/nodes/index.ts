@@ -13,7 +13,7 @@ import { waitNode } from './wait';
 import { assertNode } from './assert';
 import { navigateNode } from './navigate';
 import { ifNode } from './conditional';
-import { STEP_TYPES } from 'chrome-mcp-shared';
+import { STEP_TYPES } from 'chrome-mcp-shared-2026';
 import { foreachNode, whileNode } from './loops';
 import { executeFlowNode } from './execute-flow';
 import {

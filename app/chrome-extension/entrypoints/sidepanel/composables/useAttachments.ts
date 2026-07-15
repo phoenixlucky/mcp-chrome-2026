@@ -3,7 +3,7 @@
  * Handles file selection, drag-drop, paste, conversion, preview, and removal.
  */
 import { ref, computed } from 'vue';
-import type { AgentAttachment } from 'chrome-mcp-shared';
+import type { AgentAttachment } from 'chrome-mcp-shared-2026';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ATTACHMENTS = 10; // Maximum number of attachments

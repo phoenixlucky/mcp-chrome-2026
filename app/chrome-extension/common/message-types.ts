@@ -3,7 +3,7 @@
  * Note: Native message types are imported from the shared package
  */
 
-import type { RealtimeEvent } from 'chrome-mcp-shared';
+import type { RealtimeEvent } from 'chrome-mcp-shared-2026';
 
 // Message targets for routing
 export enum MessageTarget {
@@ -253,8 +253,7 @@ export interface QuickPanelSendToAIPayload {
  * Response from QUICK_PANEL_SEND_TO_AI message handler.
  */
 export type QuickPanelSendToAIResponse =
-  | { success: true; requestId: string; sessionId: string }
-  | { success: false; error: string };
+  { success: true; requestId: string; sessionId: string } | { success: false; error: string };
 
 /**
  * Message structure for sending to AI.

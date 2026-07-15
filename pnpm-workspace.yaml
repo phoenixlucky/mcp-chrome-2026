@@ -1,3 +1,10 @@
 packages:
   - 'app/*'
   - 'packages/*'
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  spawn-sync: true
+  vue-demi: true

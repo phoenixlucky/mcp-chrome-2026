@@ -19,8 +19,7 @@ import type { EngineName } from './engines/types';
  * System prompt configuration options.
  */
 export type SystemPromptConfig =
-  | { type: 'custom'; text: string }
-  | { type: 'preset'; preset: 'claude_code'; append?: string };
+  { type: 'custom'; text: string } | { type: 'preset'; preset: 'claude_code'; append?: string };
 
 /**
  * Tools configuration - can be a list of tool names or a preset.
@@ -48,7 +47,7 @@ export interface SessionOptionsConfig {
    * Optional Codex-specific configuration overrides.
    * Only applicable when using CodexEngine.
    */
-  codexConfig?: Partial<import('chrome-mcp-shared').CodexEngineConfig>;
+  codexConfig?: Partial<import('chrome-mcp-shared-2026').CodexEngineConfig>;
 }
 
 /**

@@ -3,7 +3,7 @@
  * Stores the default target (vscode/terminal) in chrome.storage.local.
  */
 import { ref, type Ref } from 'vue';
-import type { OpenProjectTarget, OpenProjectResponse } from 'chrome-mcp-shared';
+import type { OpenProjectTarget, OpenProjectResponse } from 'chrome-mcp-shared-2026';
 
 // Storage key for default open target
 const STORAGE_KEY = 'agent-open-project-default';
