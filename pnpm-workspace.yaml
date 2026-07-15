@@ -8,3 +8,5 @@ allowBuilds:
   sharp: true
   spawn-sync: true
   vue-demi: true
+minimumReleaseAgeExclude:
+  - '@ethanwilkins/chrome-mcp-shared-2026@1.2.2'
