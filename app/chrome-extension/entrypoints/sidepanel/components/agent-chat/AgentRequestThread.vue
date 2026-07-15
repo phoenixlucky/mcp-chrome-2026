@@ -147,7 +147,7 @@
 
 <script lang="ts" setup>
 import { computed, inject, onMounted, ref, watch } from 'vue';
-import type { AttachmentMetadata } from 'chrome-mcp-shared-2026';
+import type { AttachmentMetadata } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { AgentThread } from '../../composables/useAgentThreads';
 import { AGENT_SERVER_PORT_KEY } from '../../composables';
 import AgentTimeline from './AgentTimeline.vue';

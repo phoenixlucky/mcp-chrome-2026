@@ -9,7 +9,7 @@
 
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { handleCallTool } from '@/entrypoints/background/tools';
-import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
+import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { failed, invalid, ok } from '../registry';
 import type { ActionHandler, ElementTarget } from '../types';
 import {

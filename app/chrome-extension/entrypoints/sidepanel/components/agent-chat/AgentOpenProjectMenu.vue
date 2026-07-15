@@ -83,7 +83,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { OpenProjectTarget } from 'chrome-mcp-shared-2026';
+import type { OpenProjectTarget } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 defineProps<{
   open: boolean;

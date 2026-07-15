@@ -7,7 +7,7 @@ import type {
   AgentMessage,
   AgentMessageAttachmentMetadata,
   AttachmentMetadata,
-} from 'chrome-mcp-shared-2026';
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { RequestState } from './useAgentChat';
 
 /**

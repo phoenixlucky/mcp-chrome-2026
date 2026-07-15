@@ -11,7 +11,7 @@
  */
 
 import { handleCallTool } from '@/entrypoints/background/tools';
-import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
+import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { failed, invalid, ok } from '../registry';
 import type { ActionHandler, ElementTarget, Point, VariableStore } from '../types';
 import {

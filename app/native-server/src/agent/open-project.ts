@@ -18,7 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { stat } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
-import type { OpenProjectResponse, OpenProjectTarget } from 'chrome-mcp-shared-2026';
+import type { OpenProjectResponse, OpenProjectTarget } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { validateRootPath } from './project-service';
 
 // ============================================================

@@ -171,7 +171,7 @@ import type {
   AgentStoredMessage,
   AgentMessage,
   CodexReasoningEffort,
-} from 'chrome-mcp-shared-2026';
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 
 // Composables
 import {
@@ -190,7 +190,7 @@ import {
   AGENT_SERVER_PORT_KEY,
   type AgentThemeId,
 } from '../composables';
-import type { OpenProjectTarget } from 'chrome-mcp-shared-2026';
+import type { OpenProjectTarget } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 // New UI Components
 import {
@@ -268,7 +268,7 @@ const openProjectContext = ref<{ type: 'session' | 'project'; id: string } | nul
 const sessionSettingsOpen = ref(false);
 const sessionSettingsLoading = ref(false);
 const sessionSettingsSaving = ref(false);
-const currentManagementInfo = ref<import('chrome-mcp-shared-2026').AgentManagementInfo | null>(
+const currentManagementInfo = ref<import('@ethanwilkins/chrome-mcp-shared-2026').AgentManagementInfo | null>(
   null,
 );
 

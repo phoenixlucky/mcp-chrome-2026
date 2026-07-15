@@ -29,10 +29,10 @@ import { CodexEngine } from '../agent/engines/codex';
 import { ClaudeEngine } from '../agent/engines/claude';
 import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
-import { TOOL_SCHEMAS } from 'chrome-mcp-shared-2026';
+import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import packageJson from '../../package.json';
 import { getRecentToolCalls } from '../mcp/register-tools';
-import { NativeMessageType } from 'chrome-mcp-shared-2026';
+import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 // ============================================================
 // Types

@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import { NativeMessageType } from 'chrome-mcp-shared-2026';
+import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import './style.css';
 // 引入AgentChat主题样式
 import '../sidepanel/styles/agent-chat.css';

@@ -1,7 +1,7 @@
 import type { Edge, Flow, NodeBase, Step, VariableDef } from '../types';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { NODE_TYPES } from '@/common/node-types';
-import { mapStepToNodeConfig, stepsToDAG, EDGE_LABELS } from 'chrome-mcp-shared-2026';
+import { mapStepToNodeConfig, stepsToDAG, EDGE_LABELS } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 /**
  * Recording status state machine:

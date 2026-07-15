@@ -397,7 +397,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, nextTick, toRef } from 'vue';
-import type { CodexReasoningEffort } from 'chrome-mcp-shared-2026';
+import type { CodexReasoningEffort } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { ModelDefinition } from '@/common/agent-models';
 import type { AttachmentWithPreview } from '../../composables/useAttachments';
 import type { RequestState } from '../../composables/useAgentChat';

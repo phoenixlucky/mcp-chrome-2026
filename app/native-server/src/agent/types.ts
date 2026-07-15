@@ -18,4 +18,4 @@ export {
   type AgentProject,
   type AgentEngineInfo,
   type AgentStoredMessage,
-} from 'chrome-mcp-shared-2026';
+} from '@ethanwilkins/chrome-mcp-shared-2026';

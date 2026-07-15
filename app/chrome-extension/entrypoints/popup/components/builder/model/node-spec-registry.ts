@@ -1,1 +1,1 @@
-export * from 'chrome-mcp-shared-2026';
+export * from '@ethanwilkins/chrome-mcp-shared-2026';

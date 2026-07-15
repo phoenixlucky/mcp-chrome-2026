@@ -1,6 +1,6 @@
 // subflow-runner.ts — execute a subflow (nodes/edges) using DAG traversal with branch support
 
-import { STEP_TYPES } from 'chrome-mcp-shared-2026';
+import { STEP_TYPES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { ExecCtx } from '../../nodes';
 import { RunLogger } from '../logging/run-logger';
 import { PluginManager } from '../plugins/manager';

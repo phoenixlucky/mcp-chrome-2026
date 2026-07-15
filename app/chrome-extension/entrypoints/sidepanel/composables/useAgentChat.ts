@@ -12,7 +12,7 @@ import type {
   AgentStatusEvent,
   AgentCliPreference,
   AgentUsageStats,
-} from 'chrome-mcp-shared-2026';
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 
 /**
  * Request lifecycle state.

@@ -53,7 +53,7 @@ import type {
   AttachmentCleanupResponse,
   OpenProjectRequest,
   OpenProjectTarget,
-} from 'chrome-mcp-shared-2026';
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 
 // Valid engine names for validation
 const VALID_ENGINE_NAMES: readonly EngineName[] = ['claude', 'codex', 'cursor', 'qwen', 'glm'];

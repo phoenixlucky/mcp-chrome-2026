@@ -1,5 +1,5 @@
 import type { NodeBase } from '@/entrypoints/background/record-replay/types';
-import { STEP_TYPES } from 'chrome-mcp-shared-2026';
+import { STEP_TYPES } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 export function validateNode(n: NodeBase): string[] {
   const errs: string[] = [];

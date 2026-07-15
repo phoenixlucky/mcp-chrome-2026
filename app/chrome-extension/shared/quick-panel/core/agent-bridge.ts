@@ -28,7 +28,7 @@
  * ```
  */
 
-import type { RealtimeEvent } from 'chrome-mcp-shared-2026';
+import type { RealtimeEvent } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 import {
   BACKGROUND_MESSAGE_TYPES,

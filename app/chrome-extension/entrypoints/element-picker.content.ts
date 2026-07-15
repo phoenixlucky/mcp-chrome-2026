@@ -16,7 +16,7 @@ import {
   type ElementPickerUiState,
 } from '@/shared/element-picker';
 import { BACKGROUND_MESSAGE_TYPES, TOOL_MESSAGE_TYPES } from '@/common/message-types';
-import type { PickedElement } from 'chrome-mcp-shared-2026';
+import type { PickedElement } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 // ============================================================
 // Message Types

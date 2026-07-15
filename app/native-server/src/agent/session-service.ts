@@ -47,7 +47,7 @@ export interface SessionOptionsConfig {
    * Optional Codex-specific configuration overrides.
    * Only applicable when using CodexEngine.
    */
-  codexConfig?: Partial<import('chrome-mcp-shared-2026').CodexEngineConfig>;
+  codexConfig?: Partial<import('@ethanwilkins/chrome-mcp-shared-2026').CodexEngineConfig>;
 }
 
 /**

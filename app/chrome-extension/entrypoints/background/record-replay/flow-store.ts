@@ -1,5 +1,5 @@
 import type { Flow, RunRecord, NodeBase, Edge } from './types';
-import { stepsToDAG, type RRNode, type RREdge } from 'chrome-mcp-shared-2026';
+import { stepsToDAG, type RRNode, type RREdge } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { NODE_TYPES } from '@/common/node-types';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { IndexedDbStorage, ensureMigratedFromLocal } from './storage/indexeddb-manager';

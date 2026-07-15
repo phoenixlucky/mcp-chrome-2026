@@ -40,7 +40,7 @@ import type { NodeBase, Edge as EdgeV2 } from '@/entrypoints/background/record-r
 import NodeCard from './nodes/NodeCard.vue';
 import NodeIf from './nodes/NodeIf.vue';
 import { NODE_UI_LIST, canvasTypeKey } from '@/entrypoints/popup/components/builder/model/ui-nodes';
-import { EDGE_LABELS } from 'chrome-mcp-shared-2026';
+import { EDGE_LABELS } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 const props = defineProps<{
   nodes: NodeBase[];

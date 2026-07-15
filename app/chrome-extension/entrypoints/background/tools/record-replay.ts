@@ -1,5 +1,5 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
-import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
+import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { listPublished } from '../record-replay/flow-store';
 import { getFlow } from '../record-replay/flow-store';
 import { runFlow } from '../record-replay/flow-runner';

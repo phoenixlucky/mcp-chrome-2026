@@ -1,7 +1,7 @@
 import { stdin, stdout } from 'process';
 import { Server } from './server';
 import { v4 as uuidv4 } from 'uuid';
-import { NativeMessageType } from 'chrome-mcp-shared-2026';
+import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
 

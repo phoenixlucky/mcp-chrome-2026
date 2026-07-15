@@ -1,5 +1,5 @@
 {
-  "name": "chrome-mcp-shared-2026",
+  "name": "@ethanwilkins/chrome-mcp-shared-2026",
   "version": "1.2.1",
   "author": "hangye",
   "main": "dist/index.js",

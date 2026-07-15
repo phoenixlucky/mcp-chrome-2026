@@ -132,7 +132,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
-import type { AgentSession, AgentProject } from 'chrome-mcp-shared-2026';
+import type { AgentSession, AgentProject } from '@ethanwilkins/chrome-mcp-shared-2026';
 import AgentSessionListItem from './AgentSessionListItem.vue';
 
 // =============================================================================

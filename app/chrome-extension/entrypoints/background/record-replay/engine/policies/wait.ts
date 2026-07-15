@@ -2,7 +2,7 @@
 // Keep logic centralized to avoid duplication in schedulers and nodes
 
 import { handleCallTool } from '@/entrypoints/background/tools';
-import { TOOL_NAMES } from 'chrome-mcp-shared-2026';
+import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { waitForNavigation as rrWaitForNavigation, waitForNetworkIdle } from '../../rr-utils';
 
 export async function waitForNavigationDone(prevUrl: string, timeoutMs?: number) {

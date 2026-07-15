@@ -17,7 +17,7 @@ import type {
   AgentStatusEvent,
   AgentUsageStats,
   RealtimeEvent,
-} from 'chrome-mcp-shared-2026';
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 
 import type { QuickPanelAIContext, QuickPanelSendToAIPayload } from '@/common/message-types';
 import type { QuickPanelAgentBridge } from '../core/agent-bridge';

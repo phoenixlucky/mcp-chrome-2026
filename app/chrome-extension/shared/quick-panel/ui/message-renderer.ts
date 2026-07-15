@@ -10,7 +10,7 @@
  * - Memory-efficient DOM recycling
  */
 
-import type { AgentMessage, AgentRole } from 'chrome-mcp-shared-2026';
+import type { AgentMessage, AgentRole } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { createMarkdownRenderer, type MarkdownRendererInstance } from './markdown-renderer';
 
 // ============================================================
