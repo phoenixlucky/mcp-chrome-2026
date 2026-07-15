@@ -13,6 +13,8 @@ import {
 import { BrowserType, parseBrowserType, detectInstalledBrowsers } from './scripts/browser-config';
 import { runDoctor } from './scripts/doctor';
 import { runReport } from './scripts/report';
+import server from './server';
+import nativeHost from './native-messaging-host';
 
 program
   .version(require('../package.json').version)
@@ -223,6 +225,25 @@ program
       process.exit(exitCode);
     } catch (error: any) {
       console.error(colorText(`Report failed: ${error.message}`, 'red'));
+      process.exit(1);
+    }
+  });
+
+// Start HTTP server
+program
+  .command('start')
+  .description('Start the HTTP server on the specified port')
+  .option('-p, --port <port>', 'Port to listen on', '12306')
+  .action(async (options) => {
+    try {
+      const port = parseInt(options.port, 10);
+      server.setNativeHost(nativeHost);
+      nativeHost.setServer(server);
+      await server.start(port, nativeHost);
+      console.log(colorText(`HTTP server started on http://127.0.0.1:${port}/mcp`, 'green'));
+      console.log(colorText('Press Ctrl+C to stop', 'blue'));
+    } catch (error: any) {
+      console.error(colorText(`Failed to start server: ${error.message}`, 'red'));
       process.exit(1);
     }
   });

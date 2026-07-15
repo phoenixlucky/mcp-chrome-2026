@@ -50,7 +50,7 @@ echo   Press Ctrl+C to stop
 echo ========================================
 echo.
 
-node app/native-server/start-server.js
+node app/native-server/dist/cli.js start
 
 echo.
 echo Server stopped.
