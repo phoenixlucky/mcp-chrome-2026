@@ -117,6 +117,11 @@ The native host listens for connections from the Chrome extension and starts an 
 
 ## What's New
 
+### v1.3.1 (2026-07-16)
+
+- **Operation overlay** — Shows the active MCP operation in the page bottom-left and highlights the target when available.
+- **Bounded lazy scrolling** — Returns after each paced step so callers can continue without exceeding request limits.
+
 ### v1.3.0 (2026-07-16)
 
 - **Automatic Native Host ID sync** — Registration derives the allowed ID from the current extension build.

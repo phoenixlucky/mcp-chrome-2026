@@ -26,6 +26,7 @@ const WRITE_TOOL = /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|u
 const LONG_TOOL = /(?:performance|trace|record|download|upload)/;
 const NAVIGATION_TOOL = /(?:navigate|download|upload)/;
 const tabQueues = new Map<string, Promise<void>>();
+const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
 
 async function listDynamicFlowTools(): Promise<Tool[]> {
   try {
@@ -101,7 +102,9 @@ export const setupTools = (server: Server) => {
 function timeoutFor(name: string, args: any): number {
   const ceiling = LONG_TOOL.test(name) ? 120_000 : NAVIGATION_TOOL.test(name) ? 60_000 : 20_000;
   const requested = Number(args.timeoutMs ?? args.timeout);
-  return Number.isFinite(requested) ? Math.min(Math.max(requested, 1_000), ceiling) : ceiling;
+  return Number.isFinite(requested)
+    ? Math.min(Math.max(requested, MIN_TOOL_TRANSPORT_TIMEOUT_MS), ceiling)
+    : ceiling;
 }
 
 function serialByTab<T>(
