@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.0] - 2026-07-16
+
+### Added
+
+- **CLI `start` command**: New `cli.js start` subcommand to launch the Native Host directly.
+- **Auto-derive extension ID**: Native Messaging registration now reads the extension ID from the current Chrome build instead of hard-coding it.
+- **Port conflict resolution**: `start-server.bat` and `start-server-npm.bat` automatically kill any existing process on port 12306 before starting.
+- **`reasonix.toml`**: Project configuration file for Reasonix agent.
+- **`start-server-npm.bat`**: npm-based one-click startup script (alternative to pnpm version).
+- **Pop-up UI beautification**: Status banner with colored background, enlarged status dot with glow, SVG warning icon, port input with `127.0.0.1:` prefix, visual grouping of connection controls.
+- **Extension ID display**: Pop-up now shows the runtime extension ID and current extension logo.
+- **Semantic engine cleanup**: Unused agent-model configurations removed.
+
+### Changed
+
+- Extension icons compressed significantly (e.g. 128.png: 210 KB → 33 KB).
+- All release packages bumped to v1.3.0.
+- `start-server.bat` now runs `pnpm install` and uses `cli.js start` instead of `dist/index.js`.
+
+### Removed
+
+- `app/native-server/start-server.js`: Superseded by `cli.js start`.
+
 ## [v1.2.1] - 2026-07-15
 
 ### Added

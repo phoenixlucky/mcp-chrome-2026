@@ -27,6 +27,7 @@ let ensurePromise: Promise<boolean> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let manualDisconnect = false;
+let statusReady: Promise<void> = Promise.resolve();
 
 /**
  * Server status management interface
@@ -287,6 +288,9 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
   if (ensurePromise) return ensurePromise;
 
   ensurePromise = (async () => {
+    // Avoid a stale storage read overwriting SERVER_STARTED from a new host.
+    await statusReady;
+
     // Load auto-connect setting if not yet loaded
     if (!autoConnectLoaded) {
       autoConnectEnabled = await loadNativeAutoConnectEnabled();
@@ -478,7 +482,7 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
  */
 export const initNativeHostListener = () => {
   // Initialize server status from storage
-  loadServerStatus()
+  statusReady = loadServerStatus()
     .then((status) => {
       currentServerStatus = status;
     })
@@ -619,6 +623,26 @@ export const initNativeHostListener = () => {
             connected: nativePort !== null,
           });
         });
+      return true;
+    }
+
+    if (message.type === BACKGROUND_MESSAGE_TYPES.START_NATIVE_SERVER) {
+      const portOverride = typeof message === 'object' ? message.port : undefined;
+      ensureNativeConnected('ui_start', portOverride)
+        .then((connected) => {
+          if (!connected || !nativePort) {
+            sendResponse({ success: false, connected: false, error: 'Native host not connected' });
+            return;
+          }
+          nativePort.postMessage({
+            type: NativeMessageType.START,
+            payload: { port: portOverride },
+          });
+          sendResponse({ success: true, connected: true });
+        })
+        .catch((e) =>
+          sendResponse({ success: false, connected: nativePort !== null, error: String(e) }),
+        );
       return true;
     }
 

@@ -1,18 +1,23 @@
 @echo off
+setlocal enabledelayedexpansion
 title Chrome MCP Server - Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.2.3
+echo   Chrome MCP Server v1.3.0
 echo ========================================
 echo.
 
-echo [1/4] Installing dependencies...
-call pnpm install
-if %ERRORLEVEL% NEQ 0 (
-    echo Install failed
-    pause
-    exit /b 1
+echo [1/4] Checking dependencies...
+if not exist "node_modules" (
+    call pnpm install
+    if %ERRORLEVEL% NEQ 0 (
+        echo Install failed
+        pause
+        exit /b 1
+    )
+) else (
+    echo Dependencies already installed.
 )
 echo Done.
 echo.
@@ -30,6 +35,12 @@ if %ERRORLEVEL% NEQ 0 (
     pause
     exit /b 1
 )
+call pnpm run build:extension
+if %ERRORLEVEL% NEQ 0 (
+    echo Build extension failed, check dependencies
+    pause
+    exit /b 1
+)
 echo Done.
 echo.
 
@@ -43,15 +54,20 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 
-echo [4/4] Starting Native Host (waiting for Chrome extension)...
+echo [4/4] Clearing stale HTTP processes...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":12306 " ^| findstr "LISTENING"') do (
+    echo   Killing PID %%a ...
+    taskkill /F /PID %%a >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        echo   Port 12306 freed.
+    )
+)
 echo.
-echo   Native Host will serve on port 12306 via HTTP/MCP
-echo   Press Ctrl+C to stop
+
+echo Setup complete.
+for /f %%i in ('node -e "process.stdout.write(require('./app/native-server/dist/scripts/constant.js').EXTENSION_ID)"') do set EXTENSION_ID=%%i
+echo   Extension ID: !EXTENSION_ID!
+echo.
+echo   Reload the Chrome extension, then connect from its popup.
 echo ========================================
-echo.
-
-node app/native-server/dist/cli.js start
-
-echo.
-echo Server stopped.
 pause

@@ -5,6 +5,7 @@
       <div class="header">
         <div class="header-content">
           <h1 class="header-title">Chrome MCP Server</h1>
+          <img class="header-logo" :src="extensionLogoUrl" alt="" />
         </div>
       </div>
       <div class="content">
@@ -23,13 +24,13 @@
                   <RefreshIcon className="icon-small" />
                 </button>
               </div>
-              <div class="status-info">
-                <span :class="['status-dot', getStatusClass()]"></span>
+              <div :class="['status-banner', getStatusBgClass()]">
+                <span :class="['status-dot', getStatusDotClass()]"></span>
                 <span class="status-text">{{ getStatusText() }}</span>
-              </div>
-              <div v-if="serverStatus.lastUpdated" class="status-timestamp">
-                {{ getMessage('lastUpdatedLabel') }}
-                {{ new Date(serverStatus.lastUpdated).toLocaleTimeString() }}
+                <div v-if="serverStatus.lastUpdated" class="status-timestamp">
+                  {{ getMessage('lastUpdatedLabel') }}
+                  {{ new Date(serverStatus.lastUpdated).toLocaleTimeString() }}
+                </div>
               </div>
             </div>
 
@@ -37,16 +38,38 @@
               v-if="nativeConnectionStatus === 'connected' && !serverStatus.isRunning"
               class="service-warning"
             >
-              <div class="service-warning-icon">⚠️</div>
+              <div class="service-warning-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="#d97706"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
               <div class="service-warning-body">
-                <div class="service-warning-title">{{ getMessage('connectedServiceNotStartedStatus') }}</div>
+                <div class="service-warning-title">{{
+                  getMessage('connectedServiceNotStartedStatus')
+                }}</div>
                 <div class="service-warning-desc">{{ getMessage('serviceNotStartedTip') }}</div>
-                <button class="service-warning-btn" @click="refreshServerStatus" style="margin-right:6px">
-                  {{ getMessage('refreshStatusButton') }}
-                </button>
-                <button class="service-warning-btn service-warning-btn-primary" @click="startService">
-                  {{ getMessage('startServiceButton') }}
-                </button>
+                <div class="service-warning-actions">
+                  <button class="service-warning-btn" @click="refreshServerStatus">
+                    {{ getMessage('refreshStatusButton') }}
+                  </button>
+                  <button
+                    class="service-warning-btn service-warning-btn-primary"
+                    @click="startService"
+                  >
+                    {{ getMessage('startServiceButton') }}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -61,27 +84,35 @@
                 <pre class="mcp-config-json">{{ mcpConfigJson }}</pre>
               </div>
             </div>
-            <div class="port-section">
-              <label for="port" class="port-label">{{ getMessage('connectionPortLabel') }}</label>
-              <input
-                type="text"
-                id="port"
-                :value="nativeServerPort"
-                @input="updatePort"
-                class="port-input"
-              />
-            </div>
 
-            <button class="connect-button" :disabled="isConnecting" @click="testNativeConnection">
-              <BoltIcon />
-              <span>{{
-                isConnecting
-                  ? getMessage('connectingStatus')
-                  : nativeConnectionStatus === 'connected'
-                    ? getMessage('disconnectButton')
-                    : getMessage('connectButton')
-              }}</span>
-            </button>
+            <!-- 端口与连接 -->
+            <div class="connection-group">
+              <div class="port-section">
+                <label for="port" class="port-label">{{ getMessage('connectionPortLabel') }}</label>
+                <div class="port-input-wrapper">
+                  <span class="port-prefix">127.0.0.1:</span>
+                  <input
+                    type="text"
+                    id="port"
+                    :value="nativeServerPort"
+                    @input="updatePort"
+                    class="port-input"
+                  />
+                </div>
+              </div>
+
+              <button class="connect-button" :disabled="isConnecting" @click="testNativeConnection">
+                <BoltIcon />
+                <span>{{
+                  isConnecting
+                    ? getMessage('connectingStatus')
+                    : nativeConnectionStatus === 'connected'
+                      ? getMessage('disconnectButton')
+                      : getMessage('connectButton')
+                }}</span>
+              </button>
+            </div>
+            <div class="extension-id">扩展 ID: {{ extensionId }}</div>
           </div>
         </div>
 
@@ -532,6 +563,8 @@ const runFlow = async (flowId: string) => {
 const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('unknown');
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
+const extensionId = chrome.runtime.id;
+const extensionLogoUrl = chrome.runtime.getURL('icon/128.png');
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -615,17 +648,31 @@ const availableModels = computed(() => {
   }));
 });
 
-const getStatusClass = () => {
+const getStatusDotClass = () => {
   if (nativeConnectionStatus.value === 'connected') {
     if (serverStatus.value.isRunning) {
-      return 'bg-emerald-500';
+      return 'dot-green';
     } else {
-      return 'bg-yellow-500';
+      return 'dot-yellow';
     }
   } else if (nativeConnectionStatus.value === 'disconnected') {
-    return 'bg-red-500';
+    return 'dot-red';
   } else {
-    return 'bg-gray-500';
+    return 'dot-gray';
+  }
+};
+
+const getStatusBgClass = () => {
+  if (nativeConnectionStatus.value === 'connected') {
+    if (serverStatus.value.isRunning) {
+      return 'bg-green-subtle';
+    } else {
+      return 'bg-yellow-subtle';
+    }
+  } else if (nativeConnectionStatus.value === 'disconnected') {
+    return 'bg-red-subtle';
+  } else {
+    return 'bg-gray-subtle';
   }
 };
 
@@ -1075,9 +1122,14 @@ const copyMcpConfig = async () => {
 
 const startService = async () => {
   try {
-    await chrome.runtime.sendMessage({ type: 'connectNative', port: nativeServerPort.value });
+    await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.START_NATIVE_SERVER,
+      port: nativeServerPort.value,
+    });
     setTimeout(refreshServerStatus, 1500);
-  } catch (e) { console.error('Start service failed:', e); }
+  } catch (e) {
+    console.error('Start service failed:', e);
+  }
 };
 
 const testNativeConnection = async () => {
@@ -1615,6 +1667,13 @@ onUnmounted(() => {
   margin: 0;
 }
 
+.header-logo {
+  width: 40px;
+  height: 40px;
+  margin-right: 16px;
+  border-radius: 50%;
+}
+
 .settings-button {
   padding: 8px;
   border-radius: 50%;
@@ -1656,36 +1715,66 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
-.status-info {
+.status-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.status-banner.bg-green-subtle {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.status-banner.bg-yellow-subtle {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.status-banner.bg-red-subtle {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.status-banner.bg-gray-subtle {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
 }
 
 .status-dot {
-  height: 8px;
-  width: 8px;
+  flex-shrink: 0;
+  height: 12px;
+  width: 12px;
   border-radius: 50%;
+  transition: box-shadow 0.2s ease;
 }
 
-.status-dot.bg-emerald-500 {
+.status-dot.dot-green {
   background-color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 
-.status-dot.bg-red-500 {
+.status-dot.dot-red {
   background-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
 }
 
-.status-dot.bg-yellow-500 {
+.status-dot.dot-yellow {
   background-color: #eab308;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.4);
 }
 
-.status-dot.bg-gray-500 {
-  background-color: #6b7280;
+.status-dot.dot-gray {
+  background-color: #9ca3af;
+  box-shadow: 0 0 6px rgba(156, 163, 175, 0.3);
 }
 
 .status-text {
-  font-size: 16px;
+  flex: 1;
+  font-size: 14px;
   font-weight: 600;
   color: #1e293b;
 }
@@ -2021,9 +2110,10 @@ onUnmounted(() => {
 }
 
 .status-timestamp {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 4px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
 .mcp-config-section {
@@ -2081,10 +2171,25 @@ onUnmounted(() => {
   overflow-x: auto;
 }
 
+.connection-group {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.extension-id {
+  color: #64748b;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
 .port-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .port-label {
@@ -2093,21 +2198,40 @@ onUnmounted(() => {
   color: #64748b;
 }
 
+.port-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.port-input-wrapper:focus-within {
+  border-color: var(--ac-accent, #d97757);
+  box-shadow: 0 0 0 3px var(--ac-accent-subtle, rgba(217, 119, 87, 0.12));
+}
+
+.port-prefix {
+  padding: 10px 0 10px 12px;
+  font-size: 14px;
+  color: #9ca3af;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  user-select: none;
+}
+
 .port-input {
   display: block;
   width: 100%;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  padding: 12px;
+  border: none;
+  background: transparent;
+  padding: 10px 12px 10px 4px;
   font-size: 14px;
-  background: #f8fafc;
-}
-
-.port-input:focus {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   outline: none;
-  border-color: var(--ac-accent, #d97757);
-  box-shadow: 0 0 0 3px var(--ac-accent-subtle, rgba(217, 119, 87, 0.12));
 }
 
 .connect-button {
@@ -2704,17 +2828,18 @@ onUnmounted(() => {
 /* Service warning card */
 .service-warning {
   display: flex;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 14px 16px;
   background: #fef3c7;
   border: 1px solid #f59e0b;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .service-warning-icon {
-  font-size: 18px;
+  font-size: 20px;
   flex-shrink: 0;
   line-height: 1.4;
+  margin-top: 1px;
 }
 
 .service-warning-body {
@@ -2724,27 +2849,33 @@ onUnmounted(() => {
 
 .service-warning-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   color: #92400e;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .service-warning-desc {
-  font-size: 12px;
+  font-size: 13px;
   color: #a16207;
   line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.service-warning-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .service-warning-btn {
-  margin-top: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #92400e;
   background: #fffbeb;
   border: 1px solid #f59e0b;
   border-radius: 6px;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .service-warning-btn:hover {

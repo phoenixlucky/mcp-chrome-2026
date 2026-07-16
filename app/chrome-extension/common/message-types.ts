@@ -21,6 +21,7 @@ export const BACKGROUND_MESSAGE_TYPES = {
   CLEAR_ALL_DATA: 'clear_all_data',
   GET_SERVER_STATUS: 'get_server_status',
   REFRESH_SERVER_STATUS: 'refresh_server_status',
+  START_NATIVE_SERVER: 'start_native_server',
   SERVER_STATUS_CHANGED: 'server_status_changed',
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
   // Record & Replay background control and queries

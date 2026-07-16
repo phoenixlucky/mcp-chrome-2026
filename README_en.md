@@ -117,6 +117,22 @@ The native host listens for connections from the Chrome extension and starts an 
 
 ## What's New
 
+### v1.3.0 (2026-07-16)
+
+- **Automatic Native Host ID sync** — Registration derives the allowed ID from the current extension build.
+- **Clear startup script** — Builds, registers, clears stale port 12306, and displays the extension ID.
+- **New cat-girl icon** — Shared by the browser toolbar and popup header.
+
+### v1.3.0 (2026-07-16)
+
+- **CLI `start` command** — New `cli.js start` subcommand to launch Native Host directly
+- **Auto-derive extension ID** — Native Messaging registration reads extension ID from the current build
+- **Port conflict auto-resolution** — Startup scripts kill any existing process on port 12306 before starting
+- **Startup scripts upgraded** — `start-server.bat` now runs `pnpm install` + `cli.js start`; new `start-server-npm.bat` added
+- **Extension icons compressed** — Dramatically smaller icons (128.png: 210KB → 33KB)
+- **Popup UI beautification** — Status banner with colored background, glowing status dot, SVG warning icon, port prefix input, visual grouping
+- **Extension info display** — Popup shows runtime extension ID and logo
+
 ### v1.2.1 (2026-07-15)
 
 - **Tool cancellation** — `CANCEL_TOOL` message type for aborting in-flight tool calls
