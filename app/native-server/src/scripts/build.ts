@@ -84,7 +84,11 @@ const windowsWrapperDestPath = path.join(distDir, 'run_host.bat');
 
 try {
   if (fs.existsSync(macOsWrapperSourcePath)) {
-    fs.copyFileSync(macOsWrapperSourcePath, macOsWrapperDestPath);
+    // run_host.sh runs under bash on macOS/Linux; force LF so a CRLF working
+    // copy (git core.autocrlf on Windows) can't ship a script that fails with
+    // `$'\r': command not found`.
+    const wrapperContent = fs.readFileSync(macOsWrapperSourcePath, 'utf8').replace(/\r\n/g, '\n');
+    fs.writeFileSync(macOsWrapperDestPath, wrapperContent, 'utf8');
     console.log(`已将 ${macOsWrapperSourcePath} 复制到 ${macOsWrapperDestPath}`);
   } else {
     console.error(`错误: macOS 包装脚本源文件未找到: ${macOsWrapperSourcePath}`);
