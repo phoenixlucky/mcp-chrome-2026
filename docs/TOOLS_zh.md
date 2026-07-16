@@ -509,7 +509,7 @@
 
 滚动页面或可滚动容器，支持多种滚动模式。
 
-懒加载页面可使用 `toBottom: true, lazyLoad: true`，以 400px 小步向下滚动、每步等待 800ms；可按站点通过 `lazyLoadStep`、`lazyLoadWaitMs` 和 `lazyLoadMaxSteps` 调整。
+懒加载页面可使用 `toBottom: true, lazyLoad: true`，每次以 400px 小步向下滚动、等待 800ms 后立即返回。根据响应中的 `atBottom` 重复调用，直至为 `true`，避免超出单次 MCP 请求时限。
 
 **参数**：
 
@@ -519,7 +519,7 @@
 - `lazyLoad` (布尔值，可选)：与 `toBottom: true` 配合，分段缓慢滚动以等待懒加载内容（默认 `false`）
 - `lazyLoadStep` (数字，可选)：每次分段滚动像素数（默认 `400`）
 - `lazyLoadWaitMs` (数字，可选)：每次分段滚动后的等待毫秒数（默认 `800`）
-- `lazyLoadMaxSteps` (数字，可选)：最大分段次数（默认 `100`）
+- `lazyLoadMaxSteps` (数字，可选)：单次请求最大分段次数（默认 `1`；为避免超时会被限制）
 - `toTop` (布尔值，可选)：滚动到容器顶部
 - `selector` (字符串，可选)：要滚动到视图中的元素 CSS 选择器
 - `scrollIntoView` (布尔值，可选)：使用 `scrollIntoView`（有 selector 时默认 true）

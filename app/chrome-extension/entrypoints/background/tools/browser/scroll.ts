@@ -24,7 +24,9 @@ const CDP_SESSION_KEY = 'scroll';
 const DEFAULT_SCROLL_AMOUNT = 300;
 const DEFAULT_LAZY_LOAD_STEP = 400;
 const DEFAULT_LAZY_LOAD_WAIT_MS = 800;
-const DEFAULT_LAZY_LOAD_MAX_STEPS = 100;
+const DEFAULT_LAZY_LOAD_MAX_STEPS = 1;
+// ponytail: keep each MCP request below 2s; repeat chrome_scroll until atBottom is true.
+const MAX_LAZY_LOAD_DURATION_MS = 1_500;
 
 // ============================================================================
 // Types
@@ -127,8 +129,14 @@ function buildScrollExpression(params: ScrollToolParams): string {
 
   if (toBottom && lazyLoad) {
     const step = Math.max(1, lazyLoadStep || DEFAULT_LAZY_LOAD_STEP);
-    const waitMs = Math.max(0, lazyLoadWaitMs ?? DEFAULT_LAZY_LOAD_WAIT_MS);
-    const maxSteps = Math.max(1, lazyLoadMaxSteps || DEFAULT_LAZY_LOAD_MAX_STEPS);
+    const waitMs = Math.min(
+      MAX_LAZY_LOAD_DURATION_MS,
+      Math.max(0, lazyLoadWaitMs ?? DEFAULT_LAZY_LOAD_WAIT_MS),
+    );
+    const maxSteps = Math.min(
+      Math.max(1, lazyLoadMaxSteps || DEFAULT_LAZY_LOAD_MAX_STEPS),
+      Math.max(1, Math.floor(MAX_LAZY_LOAD_DURATION_MS / Math.max(waitMs, 1))),
+    );
     actions.push(`await (async () => {
       const c = ${containerExpr};
       let bottomChecks = 0;
@@ -235,24 +243,12 @@ class ScrollTool extends BaseBrowserToolExecutor {
 
       // 2. Build and execute scroll JS via CDP
       const expression = buildScrollExpression(args);
-      const timeout = args.lazyLoad
-        ? Math.min(
-            120_000,
-            Math.max(
-              10_000,
-              (args.lazyLoadMaxSteps || DEFAULT_LAZY_LOAD_MAX_STEPS) *
-                (args.lazyLoadWaitMs ?? DEFAULT_LAZY_LOAD_WAIT_MS) +
-                10_000,
-            ),
-          )
-        : DEFAULT_TIMEOUT_MS;
-
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
         return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
           expression,
           returnByValue: true,
           awaitPromise: true,
-          timeout,
+          timeout: DEFAULT_TIMEOUT_MS,
         });
       });
 

@@ -1447,7 +1447,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCROLL,
     description:
-      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to move down in paced steps so lazy content can render\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the main scrollable container by walking the DOM tree.',
+      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to take one paced step so lazy content can render, then repeat until atBottom=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the main scrollable container by walking the DOM tree.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1468,7 +1468,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         lazyLoad: {
           type: 'boolean',
           description:
-            'With toBottom=true, scroll down in small steps and pause after each step for lazy-loaded content (default: false).',
+            'With toBottom=true, take a short paced step and pause for lazy-loaded content. Repeat until the response has atBottom=true (default: false).',
         },
         lazyLoadStep: {
           type: 'number',
@@ -1483,7 +1483,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         lazyLoadMaxSteps: {
           type: 'number',
           description:
-            'Maximum paced lazy-load steps before returning (default: 100; only used with toBottom=true and lazyLoad=true).',
+            'Maximum paced lazy-load steps per request (default: 1; capped to keep the request below 2 seconds).',
         },
         toTop: {
           type: 'boolean',
