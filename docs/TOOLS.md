@@ -561,11 +561,17 @@ Get the current URL and title of a browser tab. Lightweight alternative to `get_
 
 Scroll the page or a scrollable container with 4 modes.
 
+For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to scroll in 400px steps with an 800ms pause after each step. Override this with `lazyLoadStep`, `lazyLoadWaitMs`, and `lazyLoadMaxSteps` when needed.
+
 **Parameters**:
 
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
 - `toBottom` (boolean, optional): Scroll to the bottom of the container
+- `lazyLoad` (boolean, optional): With `toBottom: true`, use paced steps so lazy-loaded content can render (default: `false`)
+- `lazyLoadStep` (number, optional): Pixels per paced step (default: `400`)
+- `lazyLoadWaitMs` (number, optional): Wait after each paced step, in milliseconds (default: `800`)
+- `lazyLoadMaxSteps` (number, optional): Maximum paced steps before returning (default: `100`)
 - `toTop` (boolean, optional): Scroll to the top of the container
 - `selector` (string, optional): CSS selector of element to scroll into view
 - `scrollIntoView` (boolean, optional): Use `scrollIntoView` (default: true with selector)

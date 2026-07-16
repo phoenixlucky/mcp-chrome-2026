@@ -22,6 +22,9 @@ import { cdpSessionManager } from '@/utils/cdp-session-manager';
 const DEFAULT_TIMEOUT_MS = 10_000;
 const CDP_SESSION_KEY = 'scroll';
 const DEFAULT_SCROLL_AMOUNT = 300;
+const DEFAULT_LAZY_LOAD_STEP = 400;
+const DEFAULT_LAZY_LOAD_WAIT_MS = 800;
+const DEFAULT_LAZY_LOAD_MAX_STEPS = 100;
 
 // ============================================================================
 // Types
@@ -35,6 +38,10 @@ interface ScrollToolParams {
   amount?: number;
   direction?: ScrollDirection;
   toBottom?: boolean;
+  lazyLoad?: boolean;
+  lazyLoadStep?: number;
+  lazyLoadWaitMs?: number;
+  lazyLoadMaxSteps?: number;
   toTop?: boolean;
   selector?: string;
   scrollIntoView?: boolean;
@@ -60,6 +67,10 @@ function buildScrollExpression(params: ScrollToolParams): string {
     amount,
     direction,
     toBottom,
+    lazyLoad,
+    lazyLoadStep,
+    lazyLoadWaitMs,
+    lazyLoadMaxSteps,
     toTop,
     selector,
     scrollIntoView,
@@ -114,7 +125,23 @@ function buildScrollExpression(params: ScrollToolParams): string {
   // Build scroll action
   const actions: string[] = [];
 
-  if (toBottom) {
+  if (toBottom && lazyLoad) {
+    const step = Math.max(1, lazyLoadStep || DEFAULT_LAZY_LOAD_STEP);
+    const waitMs = Math.max(0, lazyLoadWaitMs ?? DEFAULT_LAZY_LOAD_WAIT_MS);
+    const maxSteps = Math.max(1, lazyLoadMaxSteps || DEFAULT_LAZY_LOAD_MAX_STEPS);
+    actions.push(`await (async () => {
+      const c = ${containerExpr};
+      let bottomChecks = 0;
+      for (let i = 0; i < ${maxSteps}; i++) {
+        const heightBefore = c.scrollHeight;
+        c.scrollTop += ${step};
+        await new Promise(resolve => setTimeout(resolve, ${waitMs}));
+        if (c.scrollTop + c.clientHeight < c.scrollHeight - 1) continue;
+        bottomChecks = c.scrollHeight === heightBefore ? bottomChecks + 1 : 0;
+        if (bottomChecks >= 2) break;
+      }
+    })()`);
+  } else if (toBottom) {
     // Scroll to bottom
     actions.push(`${containerExpr}.scrollTop = ${containerExpr}.scrollHeight`);
   } else if (toTop) {
@@ -155,7 +182,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
 
   // Build return statement
   const fullExpression = `
-(() => {
+ (async () => {
   try {
     ${framePrelude}
     ${actions.join(';\n    ')};
@@ -208,13 +235,24 @@ class ScrollTool extends BaseBrowserToolExecutor {
 
       // 2. Build and execute scroll JS via CDP
       const expression = buildScrollExpression(args);
+      const timeout = args.lazyLoad
+        ? Math.min(
+            120_000,
+            Math.max(
+              10_000,
+              (args.lazyLoadMaxSteps || DEFAULT_LAZY_LOAD_MAX_STEPS) *
+                (args.lazyLoadWaitMs ?? DEFAULT_LAZY_LOAD_WAIT_MS) +
+                10_000,
+            ),
+          )
+        : DEFAULT_TIMEOUT_MS;
 
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
         return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
           expression,
           returnByValue: true,
           awaitPromise: true,
-          timeout: DEFAULT_TIMEOUT_MS,
+          timeout,
         });
       });
 

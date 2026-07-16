@@ -1447,7 +1447,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCROLL,
     description:
-      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the main scrollable container by walking the DOM tree.',
+      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to move down in paced steps so lazy content can render\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the main scrollable container by walking the DOM tree.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1464,6 +1464,26 @@ export const TOOL_SCHEMAS: Tool[] = [
         toBottom: {
           type: 'boolean',
           description: 'Scroll to the very bottom of the scroll container.',
+        },
+        lazyLoad: {
+          type: 'boolean',
+          description:
+            'With toBottom=true, scroll down in small steps and pause after each step for lazy-loaded content (default: false).',
+        },
+        lazyLoadStep: {
+          type: 'number',
+          description:
+            'Pixels per paced lazy-load step (default: 400; only used with toBottom=true and lazyLoad=true).',
+        },
+        lazyLoadWaitMs: {
+          type: 'number',
+          description:
+            'Milliseconds to wait after each paced lazy-load step (default: 800; only used with toBottom=true and lazyLoad=true).',
+        },
+        lazyLoadMaxSteps: {
+          type: 'number',
+          description:
+            'Maximum paced lazy-load steps before returning (default: 100; only used with toBottom=true and lazyLoad=true).',
         },
         toTop: {
           type: 'boolean',
