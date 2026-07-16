@@ -1,1 +1,7 @@
+# Unix shell scripts must stay LF even on Windows checkouts (core.autocrlf),
+# otherwise run_host.sh ships with CRLF and the native messaging host fails to
+# start on macOS/Linux: run_host.sh: line N: $'\r': command not found
+*.sh text eol=lf
+*.bat text eol=crlf
+
 *.onnx filter=lfs diff=lfs merge=lfs -text
