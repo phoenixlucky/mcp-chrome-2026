@@ -49,40 +49,39 @@ Chrome MCP Server 是一个基于 Chrome 扩展的 **MCP 服务器**。它向 AI
 
 #### 1. 安装 Chrome 扩展
 
-从 [Releases 页面](https://github.com/phoenixlucky/mcp-chrome-2026/releases) 下载最新的扩展包并解压。
+从 [Releases 页面](https://github.com/phoenixlucky/mcp-chrome-2026/releases) 下载最新的 `chrome-mcp-server-*.zip`。
 
 在 Chrome 中加载：
 
 1. 打开 `chrome://extensions/`
 2. 开启右上角的**开发者模式**
-3. 点击**加载已解压的扩展程序**，选择解压后的扩展文件夹
+3. 将下载的 `.zip` 文件拖入页面即可安装
 4. 扩展图标显示在工具栏中
 
 #### 2. 安装 Native Host
 
 ```bash
-# npm
-npm install -g mcp-chrome-bridge
+# npm（安装后自动注册 Native Messaging Host）
+npm install -g @ethanwilkins/mcp-chrome-bridge-2026
 
-# pnpm（自动注册）
-pnpm config set enable-pre-post-scripts true
-pnpm install -g mcp-chrome-bridge
+# pnpm
+pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
+```
 
-# pnpm（如果 postinstall 未运行，手动注册）
-pnpm install -g mcp-chrome-bridge
+安装后 `postinstall` 脚本会自动注册 Native Messaging Host。如果注册未成功，可手动运行：
+
+```bash
 mcp-chrome-bridge register
 ```
 
-#### 3. 启动本地服务
+#### 3. 启动服务
 
 ```bash
-# 一键启动（项目开发）
-start-server.bat
+# 一键启动（推荐）
+mcp-chrome-bridge start
 
-# 或通过 pnpm（克隆仓库后）
-pnpm build
-pnpm --filter mcp-chrome-bridge register:dev
-node app/native-server/dist/index.js
+# 或克隆仓库后通过脚本启动
+start-server.bat
 ```
 
 Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mcp` 上启动 MCP HTTP 服务。
@@ -120,6 +119,8 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 ### v1.3.3（2026-07-17）
 
 - **CDP 图片拦截** — 新增 `chrome_block_images`，在导航或刷新前阻止后续图片 HTTP 请求
+- **操作叠层安全加固** — 参数严格校验（selector/coordinates 类型检查），渲染异常不再导致工具调用失败
+- **辅助脚本改进** — web-fetcher-helper 和 base-browser 工具优化
 
 ### v1.3.2（2026-07-17）
 

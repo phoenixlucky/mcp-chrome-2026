@@ -49,40 +49,39 @@ Unlike Playwright-based MCP servers, this extension operates on your **existing 
 
 #### 1. Install the Chrome Extension
 
-Download the latest extension package from the [Releases page](https://github.com/phoenixlucky/mcp-chrome-2026/releases) and unzip it.
+Download the latest `chrome-mcp-server-*.zip` from the [Releases page](https://github.com/phoenixlucky/mcp-chrome-2026/releases).
 
 Load it in Chrome:
 
 1. Open `chrome://extensions/`
 2. Enable **Developer mode** (toggle in the top-right corner)
-3. Click **Load unpacked** and select the unzipped extension folder
+3. Drag and drop the `.zip` file onto the page to install
 4. The extension icon appears in the toolbar
 
 #### 2. Install the Native Host
 
 ```bash
-# npm
-npm install -g mcp-chrome-bridge
+# npm (auto-registers Native Messaging Host via postinstall)
+npm install -g @ethanwilkins/mcp-chrome-bridge-2026
 
-# pnpm (auto-register)
-pnpm config set enable-pre-post-scripts true
-pnpm install -g mcp-chrome-bridge
+# pnpm
+pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
+```
 
-# pnpm (manual register if postinstall didn't run)
-pnpm install -g mcp-chrome-bridge
+The `postinstall` script automatically registers the Native Messaging Host. If registration fails, run manually:
+
+```bash
 mcp-chrome-bridge register
 ```
 
-#### 3. Start the Local Service
+#### 3. Start the Service
 
 ```bash
-# One-click startup (project development)
-start-server.bat
+# One-click start (recommended)
+mcp-chrome-bridge start
 
-# Or via pnpm (after cloning the repo)
-pnpm build
-pnpm --filter mcp-chrome-bridge register:dev
-node app/native-server/dist/index.js
+# Or via the startup script after cloning the repo
+start-server.bat
 ```
 
 The native host listens for connections from the Chrome extension and starts an MCP HTTP server on `http://127.0.0.1:12306/mcp`.
@@ -120,6 +119,8 @@ The native host listens for connections from the Chrome extension and starts an 
 ### v1.3.3 (2026-07-17)
 
 - **CDP image blocking** — New `chrome_block_images` prevents future image HTTP requests before navigation or reload.
+- **Operation overlay hardening** — Strict parameter validation (selector/coordinates type checks); rendering errors no longer break tool calls.
+- **Helper script improvements** — web-fetcher-helper and base-browser tool optimizations.
 
 ### v1.3.2 (2026-07-17)
 

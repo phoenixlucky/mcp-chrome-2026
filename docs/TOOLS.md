@@ -250,6 +250,23 @@ Send custom HTTP requests.
 }
 ```
 
+### `chrome_block_images`
+
+Block image HTTP requests in a tab via CDP. Useful to save bandwidth and speed up page loads when called before navigation or reload.
+
+**Parameters**:
+
+- `action` (string, required): `"start"` to begin blocking, `"stop"` to stop blocking
+- `tabId` (number, optional): Target tab ID, defaults to the active tab
+
+**Example**:
+
+```json
+{
+  "action": "start"
+}
+```
+
 ## 🔍 Content Analysis
 
 ### `chrome_read_page`

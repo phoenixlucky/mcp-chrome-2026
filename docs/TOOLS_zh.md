@@ -246,6 +246,23 @@
 }
 ```
 
+### `chrome_block_images`
+
+通过 CDP 阻止标签页中的图片 HTTP 请求。适合在导航或刷新前调用，以节省带宽、加速页面加载。
+
+**参数**：
+
+- `action` (字符串，必需)：`"start"` 开始拦截，`"stop"` 停止拦截
+- `tabId` (数字，可选)：目标标签页 ID，默认当前活动标签页
+
+**示例**：
+
+```json
+{
+  "action": "start"
+}
+```
+
 ## 🔍 内容分析
 
 ### `search_tabs_content`
