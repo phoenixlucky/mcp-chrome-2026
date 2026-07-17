@@ -154,22 +154,42 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
       : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
   if (!tab?.id) return;
 
-  await chrome.scripting
-    .executeScript({
+  // The overlay is best-effort; only pass primitives so malformed tool input cannot block the tool.
+  const selector =
+    compact(param.args?.selector) ||
+    (param.name === 'chrome_scroll' ? compact(param.args?.containerSelector) : '') ||
+    null;
+  const coordinates = param.args?.coordinates;
+  const safeCoordinates =
+    typeof coordinates?.x === 'number' &&
+    Number.isFinite(coordinates.x) &&
+    typeof coordinates?.y === 'number' &&
+    Number.isFinite(coordinates.y)
+      ? { x: coordinates.x, y: coordinates.y }
+      : null;
+
+  try {
+    await chrome.scripting.executeScript({
       target: {
         tabId: tab.id,
         ...(typeof param.args?.frameId === 'number' ? { frameIds: [param.args.frameId] } : {}),
       },
       args: [
         param.name,
-        param.args?.selector ??
-          (param.name === 'chrome_scroll' ? (param.args?.containerSelector ?? null) : null),
-        param.args?.ref ?? null,
-        param.args?.coordinates ?? null,
+        selector,
+        compact(param.args?.ref) || null,
+        safeCoordinates,
         state,
         operationDetail(param),
       ],
-      func: (name, selector, ref, coordinates, state, detail) => {
+      func: (
+        name: string,
+        selector: string | null,
+        ref: string | null,
+        coordinates: { x: number; y: number } | null,
+        state: '执行中' | '完成' | '失败',
+        detail: string,
+      ) => {
         const statusId = '__mcp_operation_status__';
         const highlightId = '__mcp_operation_highlight__';
         const root = document.documentElement || document.body;
@@ -323,8 +343,10 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
             highlight?.remove();
           }, 1800);
       },
-    })
-    .catch(() => undefined);
+    });
+  } catch {
+    // Status rendering must never turn a successful tool call into a failure.
+  }
 }
 
 async function checkExpectedUrl(param: ToolCallParam): Promise<string | null> {
