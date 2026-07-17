@@ -17,6 +17,9 @@ const IS_DEV = process.env.NODE_ENV !== 'production' && process.env.MODE !== 'pr
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
+  zip: {
+    name: 'chrome-mcp-server',
+  },
   runner: {
     // 方案1: 禁用自动启动（推荐）
     disabled: true,

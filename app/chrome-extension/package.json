@@ -11,6 +11,7 @@
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
+    "postzip": "node scripts/postzip.mjs",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "vue-tsc --noEmit",
     "postinstall": "node -e \"try{require('child_process').execSync('wxt prepare',{cwd:__dirname,shell:true,stdio:'inherit'})}catch(e){}\"",
