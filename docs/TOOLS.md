@@ -618,6 +618,35 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 }
 ```
 
+### `chrome_get_scroll_state`
+
+Get the native scroll state of the page or a scrollable container. Useful to call before/after scrolling to check if the bottom or top has been reached, especially for lazy-loaded pages.
+
+**Parameters**:
+
+- `containerSelector` (string, optional): CSS selector of the scroll container. Auto-detects main container if omitted.
+- `frameSelector` (string, optional): CSS selector for a same-origin iframe containing the scroll container.
+- `tabId` (number, optional): Target tab ID (default: active tab).
+- `windowId` (number, optional): Target window ID to pick active tab from.
+
+**Example**:
+
+```json
+{}
+```
+
+**Response**:
+
+```json
+{
+  "target": "document.scrollingElement",
+  "y": 1500,
+  "maxY": 4500,
+  "atTop": false,
+  "atBottom": false
+}
+```
+
 ### `chrome_wait`
 
 Wait for a DOM element or JavaScript condition to become true. Polls the page at a configurable interval. Returns `{ found: false }` on timeout (does not throw).

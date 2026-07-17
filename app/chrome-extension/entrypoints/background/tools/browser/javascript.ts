@@ -39,6 +39,7 @@ type ExecutionEngine = 'cdp' | 'scripting';
 type ErrorKind =
   | 'debugger_conflict'
   | 'timeout'
+  | 'no_result'
   | 'syntax_error'
   | 'runtime_error'
   | 'cdp_error'
@@ -49,6 +50,7 @@ interface JavaScriptToolParams {
   tabId?: number;
   timeoutMs?: number;
   maxOutputBytes?: number;
+  requireResult?: boolean;
 }
 
 interface ExecutionError {
@@ -68,7 +70,9 @@ interface ExecutionMetrics {
 interface JavaScriptToolResult {
   success: boolean;
   tabId: number;
+  url: string;
   engine: ExecutionEngine;
+  returned: boolean;
   result?: string;
   truncated?: boolean;
   redacted?: boolean;
@@ -86,6 +90,7 @@ interface ExecutionOptions {
 type ExecutionSuccess = {
   ok: true;
   engine: ExecutionEngine;
+  returned: boolean;
   output: string;
   truncated: boolean;
   redacted: boolean;
@@ -256,6 +261,7 @@ async function executeViaCdp(
     return {
       ok: true,
       engine: 'cdp',
+      returned: Boolean(response?.result && response.result.type !== 'undefined'),
       output: sanitized.text,
       truncated: sanitized.truncated,
       redacted: sanitized.redacted,
@@ -373,6 +379,7 @@ async function executeViaScripting(
     return {
       ok: true,
       engine: 'scripting',
+      returned: result.value !== undefined,
       output: sanitized.text,
       truncated: sanitized.truncated,
       redacted: sanitized.redacted,
@@ -428,6 +435,7 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
         return createErrorResponse('Tab has no ID');
       }
       const tabId = tab.id;
+      const url = tab.url ?? '';
 
       // Normalize options
       const options: ExecutionOptions = {
@@ -441,12 +449,14 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
       const cdpResult = await executeViaCdp(tabId, code, options);
 
       if (cdpResult.ok) {
-        return this.buildSuccessResponse(tabId, cdpResult, startTime);
+        return args.requireResult && !cdpResult.returned
+          ? this.buildNoResultResponse(tabId, url, cdpResult.engine, startTime)
+          : this.buildSuccessResponse(tabId, url, cdpResult, startTime);
       }
 
       // If not a debugger conflict, return the CDP error
       if (cdpResult.error.kind !== 'debugger_conflict') {
-        return this.buildErrorResponse(tabId, cdpResult, startTime);
+        return this.buildErrorResponse(tabId, url, cdpResult, startTime);
       }
 
       // Debugger conflict - fallback to scripting API
@@ -457,10 +467,12 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
       const scriptingResult = await executeViaScripting(tabId, code, options);
 
       if (scriptingResult.ok) {
-        return this.buildSuccessResponse(tabId, scriptingResult, startTime, warnings);
+        return args.requireResult && !scriptingResult.returned
+          ? this.buildNoResultResponse(tabId, url, scriptingResult.engine, startTime, warnings)
+          : this.buildSuccessResponse(tabId, url, scriptingResult, startTime, warnings);
       }
 
-      return this.buildErrorResponse(tabId, scriptingResult, startTime, warnings);
+      return this.buildErrorResponse(tabId, url, scriptingResult, startTime, warnings);
     } catch (error) {
       console.error('JavaScriptTool.execute error:', error);
       return createErrorResponse(
@@ -482,6 +494,7 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
 
   private buildSuccessResponse(
     tabId: number,
+    url: string,
     result: ExecutionSuccess,
     startTime: number,
     warnings?: string[],
@@ -489,8 +502,10 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
     const payload: JavaScriptToolResult = {
       success: true,
       tabId,
+      url,
       engine: result.engine,
-      result: result.output,
+      returned: result.returned,
+      result: result.returned ? result.output : undefined,
       truncated: result.truncated || undefined,
       redacted: result.redacted || undefined,
       warnings: warnings?.length ? warnings : undefined,
@@ -505,6 +520,7 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
 
   private buildErrorResponse(
     tabId: number,
+    url: string,
     result: ExecutionFailure,
     startTime: number,
     warnings?: string[],
@@ -512,8 +528,37 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
     const payload: JavaScriptToolResult = {
       success: false,
       tabId,
+      url,
       engine: result.engine,
+      returned: false,
       error: result.error,
+      warnings: warnings?.length ? warnings : undefined,
+      metrics: { elapsedMs: Math.round(performance.now() - startTime) },
+    };
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(payload) }],
+      isError: true,
+    };
+  }
+
+  private buildNoResultResponse(
+    tabId: number,
+    url: string,
+    engine: ExecutionEngine,
+    startTime: number,
+    warnings?: string[],
+  ): ToolResult {
+    const payload: JavaScriptToolResult = {
+      success: false,
+      tabId,
+      url,
+      engine,
+      returned: false,
+      error: {
+        kind: 'no_result',
+        message: 'Script completed without returning a value. Add an explicit return statement.',
+      },
       warnings: warnings?.length ? warnings : undefined,
       metrics: { elapsedMs: Math.round(performance.now() - startTime) },
     };

@@ -30,7 +30,7 @@ export {
 } from './performance';
 export { gifRecorderTool } from './gif-recorder';
 export { getTabUrlTool } from './get-tab-url';
-export { scrollTool } from './scroll';
+export { scrollStateTool, scrollTool } from './scroll';
 export { waitTool } from './wait';
 export { extractTool } from './extract';
 export { pageTextTool } from './get-page-text';

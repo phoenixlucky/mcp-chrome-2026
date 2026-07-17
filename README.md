@@ -121,6 +121,9 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 - **CDP 图片拦截** — 新增 `chrome_block_images`，在导航或刷新前阻止后续图片 HTTP 请求
 - **操作叠层安全加固** — 参数严格校验（selector/coordinates 类型检查），渲染异常不再导致工具调用失败
 - **辅助脚本改进** — web-fetcher-helper 和 base-browser 工具优化
+- **滚动状态查询** — 新增 `chrome_get_scroll_state`，获取页面/容器原生滚动位置、最大滚动距离、是否到达顶部/底部
+- **`chrome_javascript` 新参数 `requireResult`** — 要求脚本必须有返回值，避免无返回脚本误判为成功
+- **McpToolsPage 组件** — Popup 新增工具搜索页面
 
 ### v1.3.2（2026-07-17）
 

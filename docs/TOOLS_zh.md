@@ -567,6 +567,35 @@
 }
 ```
 
+### `chrome_get_scroll_state`
+
+获取页面或可滚动容器的原生滚动状态。在滚动前后调用，判断是否到达底部或顶部，适合懒加载页面分步滚动控制。
+
+**参数**：
+
+- `containerSelector` (字符串，可选)：可滚动容器的 CSS 选择器，自动检测主容器
+- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器
+- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+
+**示例**：
+
+```json
+{}
+```
+
+**响应**：
+
+```json
+{
+  "target": "document.scrollingElement",
+  "y": 1500,
+  "maxY": 4500,
+  "atTop": false,
+  "atBottom": false
+}
+```
+
 ### `chrome_wait`
 
 等待 DOM 元素或 JavaScript 条件变为真。以可配置的间隔轮询页面，超时不抛异常，返回 `{ found: false }`。

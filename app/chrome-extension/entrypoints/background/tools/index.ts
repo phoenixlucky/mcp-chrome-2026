@@ -137,6 +137,8 @@ function operationDetail(param: ToolCallParam): string {
       return `${compact(args.action) || '开始'} GIF 录制${args.durationMs ? `（${duration(args.durationMs, 0)}）` : ''}`;
     case 'chrome_get_tab_url':
       return '读取当前标签页地址';
+    case 'chrome_get_scroll_state':
+      return '读取滚动状态';
     case 'record_replay_flow_run':
       return '运行录制流程';
     case 'record_replay_list_published':
@@ -257,6 +259,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           performance_analyze_insight: '分析性能',
           chrome_gif_recorder: 'GIF 录制',
           chrome_get_tab_url: '读取地址',
+          chrome_get_scroll_state: '读取滚动状态',
           record_replay_flow_run: '运行流程',
           record_replay_list_published: '读取流程',
         };

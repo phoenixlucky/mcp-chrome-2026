@@ -42,6 +42,7 @@ export const TOOL_NAMES = {
     GIF_RECORDER: 'chrome_gif_recorder',
     // Scraping tools
     GET_TAB_URL: 'chrome_get_tab_url',
+    GET_SCROLL_STATE: 'chrome_get_scroll_state',
     SCROLL: 'chrome_scroll',
     WAIT: 'chrome_wait',
     EXTRACT: 'chrome_extract',
@@ -887,6 +888,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'Maximum output size in bytes after sanitization (default: 51200). Output exceeding this limit will be truncated.',
         },
+        requireResult: {
+          type: 'boolean',
+          description:
+            'Require the script to return a value. When true, a script that completes with undefined returns a no_result error; default false keeps action-only scripts successful.',
+        },
       },
       required: ['code'],
     },
@@ -1456,6 +1462,35 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: {
           type: 'number',
           description: 'Target tab ID (default: active tab in current window).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_SCROLL_STATE,
+    description:
+      'Get the native state of the page or a scrollable container. Returns target, y, maxY, atTop, and atBottom. Fails explicitly when a requested scroll container cannot be found.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        containerSelector: {
+          type: 'string',
+          description:
+            'CSS selector of the scroll container. Auto-detects the main container if omitted.',
+        },
+        frameSelector: {
+          type: 'string',
+          description:
+            'Optional CSS selector for a same-origin iframe containing the scroll container.',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: active tab).',
         },
         windowId: {
           type: 'number',

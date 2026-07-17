@@ -55,6 +55,13 @@ interface ScrollToolParams {
   windowId?: number;
 }
 
+interface ScrollStateToolParams {
+  containerSelector?: string;
+  frameSelector?: string;
+  tabId?: number;
+  windowId?: number;
+}
+
 // ============================================================================
 // JS Injection Helpers
 // ============================================================================
@@ -64,6 +71,31 @@ interface ScrollToolParams {
  * The expression returns { scrollTop, scrollHeight, clientHeight, scrolled }
  * or an error object.
  */
+function buildScrollContainerExpression(containerSelector?: string): string {
+  return containerSelector
+    ? `doc.querySelector(${JSON.stringify(containerSelector)})`
+    : `(() => {
+    const candidates = [];
+    const body = doc.body;
+    if (body) {
+      let p = body.parentElement;
+      while (p && p !== doc.documentElement) {
+        const cs = win.getComputedStyle(p);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') candidates.push(p);
+        p = p.parentElement;
+      }
+    }
+    for (const sel of ['#root', '#app', '#__next', '#__nuxt', '[data-reactroot]', 'main', '[role="main"]']) {
+      const el = doc.querySelector(sel);
+      if (el) {
+        const cs = win.getComputedStyle(el);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') candidates.push(el);
+      }
+    }
+    return candidates[0] || doc.scrollingElement || doc.documentElement;
+  })()`;
+}
+
 function buildScrollExpression(params: ScrollToolParams): string {
   const {
     amount,
@@ -91,38 +123,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
     : 'const doc = document; const win = window;';
 
   // Determine the container element expression
-  const containerExpr = containerSelector
-    ? `doc.querySelector(${JSON.stringify(containerSelector)})`
-    : `(() => {
-    // Auto-detect main scroll container (X Collector pattern)
-    const el = doc.scrollingElement || doc.documentElement;
-    // Try to find a better scrollable ancestor
-    const candidates = [];
-    // Walk up from body
-    const body = doc.body;
-    if (body) {
-      let p = body.parentElement;
-      while (p && p !== doc.documentElement) {
-        const cs = win.getComputedStyle(p);
-        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
-          candidates.push(p);
-        }
-        p = p.parentElement;
-      }
-    }
-    // Also check common SPA root containers
-    for (const sel of ['#root', '#app', '#__next', '#__nuxt', '[data-reactroot]', 'main', '[role="main"]']) {
-      const el2 = doc.querySelector(sel);
-      if (el2) {
-        const cs = win.getComputedStyle(el2);
-        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
-          candidates.push(el2);
-        }
-      }
-    }
-    if (candidates.length > 0) return candidates[0];
-    return doc.scrollingElement || doc.documentElement;
-  })()`;
+  const containerExpr = buildScrollContainerExpression(containerSelector);
 
   // Build scroll action
   const actions: string[] = [];
@@ -296,3 +297,78 @@ class ScrollTool extends BaseBrowserToolExecutor {
 }
 
 export const scrollTool = new ScrollTool();
+
+function buildScrollStateExpression(params: ScrollStateToolParams): string {
+  const framePrelude = params.frameSelector
+    ? `const frame = document.querySelector(${JSON.stringify(params.frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${params.frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${params.frameSelector}');
+       const win = frame.contentWindow || window;`
+    : 'const doc = document; const win = window;';
+  const containerExpr = buildScrollContainerExpression(params.containerSelector);
+
+  return `(async () => {
+    try {
+      ${framePrelude}
+      const c = ${containerExpr};
+      if (!c) return JSON.stringify({ success: false, error: 'Scroll container not found' });
+      const maxY = Math.max(0, c.scrollHeight - c.clientHeight);
+      return JSON.stringify({
+        success: true,
+        target: c === doc.scrollingElement ? 'document.scrollingElement' : c.id ? '#' + c.id : c.tagName.toLowerCase(),
+        y: c.scrollTop,
+        maxY,
+        atTop: c.scrollTop <= 0,
+        atBottom: c.scrollTop >= maxY,
+      });
+    } catch (e) {
+      return JSON.stringify({ success: false, error: e.message || String(e) });
+    }
+  })()`;
+}
+
+class ScrollStateTool extends BaseBrowserToolExecutor {
+  name = TOOL_NAMES.BROWSER.GET_SCROLL_STATE;
+
+  async execute(args: ScrollStateToolParams): Promise<ToolResult> {
+    try {
+      const tab = args.tabId
+        ? await this.tryGetTab(args.tabId)
+        : args.windowId
+          ? await this.getActiveTabInWindow(args.windowId)
+          : await this.getActiveTabOrThrow();
+      if (!tab?.id)
+        return createErrorResponse(
+          args.tabId ? `Tab ${args.tabId} not found` : 'No active tab found',
+        );
+
+      const response = await cdpSessionManager.withSession(tab.id, CDP_SESSION_KEY, () =>
+        cdpSessionManager.sendCommand(tab.id!, 'Runtime.evaluate', {
+          expression: buildScrollStateExpression(args),
+          returnByValue: true,
+          awaitPromise: true,
+          timeout: DEFAULT_TIMEOUT_MS,
+        }),
+      );
+      if (response?.exceptionDetails) {
+        return createErrorResponse(
+          `Get scroll state failed: ${response.exceptionDetails.text || 'execution failed'}`,
+        );
+      }
+      if (typeof response?.result?.value !== 'string') {
+        return createErrorResponse('Get scroll state returned unexpected result');
+      }
+
+      const result = JSON.parse(response.result.value);
+      if (!result.success) return createErrorResponse(`Get scroll state failed: ${result.error}`);
+      return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: false };
+    } catch (error) {
+      return createErrorResponse(
+        `Get scroll state failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+}
+
+export const scrollStateTool = new ScrollStateTool();

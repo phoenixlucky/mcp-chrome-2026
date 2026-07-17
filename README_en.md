@@ -121,6 +121,9 @@ The native host listens for connections from the Chrome extension and starts an 
 - **CDP image blocking** — New `chrome_block_images` prevents future image HTTP requests before navigation or reload.
 - **Operation overlay hardening** — Strict parameter validation (selector/coordinates type checks); rendering errors no longer break tool calls.
 - **Helper script improvements** — web-fetcher-helper and base-browser tool optimizations.
+- **Scroll state query** — New `chrome_get_scroll_state` returns native scroll position, max scroll distance, and whether at top/bottom.
+- **`chrome_javascript` new param `requireResult`** — Requires the script to return a value, preventing no-return scripts from being mistaken as successful.
+- **McpToolsPage component** — New tool search page in the popup.
 
 ### v1.3.2 (2026-07-17)
 
