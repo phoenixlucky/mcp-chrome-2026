@@ -163,7 +163,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
       args: [
         param.name,
         param.args?.selector ??
-          (param.name === 'chrome_scroll' ? param.args?.containerSelector : null),
+          (param.name === 'chrome_scroll' ? (param.args?.containerSelector ?? null) : null),
         param.args?.ref ?? null,
         param.args?.coordinates ?? null,
         state,

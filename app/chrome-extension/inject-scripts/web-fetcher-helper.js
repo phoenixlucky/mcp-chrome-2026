@@ -2675,7 +2675,11 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
 
   // Listen for messages from the extension
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    const pingActions = ['search_tabs_content_ping', 'chrome_web_fetcher_ping'];
+    const pingActions = [
+      'search_tabs_content_ping',
+      'chrome_web_fetcher_ping',
+      'chrome_get_web_content_ping',
+    ];
     // Respond to ping message
     if (pingActions.includes(request.action)) {
       sendResponse({ status: 'pong' });
