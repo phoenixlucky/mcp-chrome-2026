@@ -102,14 +102,5 @@ export default defineContentScript({
 
     // Register message listener
     chrome.runtime.onMessage.addListener(handleMessage);
-
-    // Cleanup on page unload
-    window.addEventListener('unload', () => {
-      chrome.runtime.onMessage.removeListener(handleMessage);
-      if (controller) {
-        controller.dispose();
-        controller = null;
-      }
-    });
   },
 });

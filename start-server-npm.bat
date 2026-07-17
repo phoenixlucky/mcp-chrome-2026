@@ -4,7 +4,7 @@ title Chrome MCP Server - npm Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.3.1 -- npm
+echo   Chrome MCP Server v1.3.2 -- npm
 echo ========================================
 echo.
 
@@ -33,6 +33,7 @@ echo Done.
 echo.
 
 echo [3/4] Building and registering native-server...
+echo [Tip] If native-server\dist reports EPERM, close Chrome and rerun this script.
 call npm run -w @ethanwilkins/mcp-chrome-bridge-2026 build
 if %ERRORLEVEL% NEQ 0 (
     echo Build native-server failed

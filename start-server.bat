@@ -4,7 +4,7 @@ title Chrome MCP Server - Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.3.1
+echo   Chrome MCP Server v1.3.2
 echo ========================================
 echo.
 
@@ -23,6 +23,7 @@ echo Done.
 echo.
 
 echo [2/4] Building packages (shared + native-server)...
+echo [Tip] If native-server\dist reports EPERM, close Chrome and rerun this script.
 call pnpm run build:shared
 if %ERRORLEVEL% NEQ 0 (
     echo Build shared failed, check dependencies

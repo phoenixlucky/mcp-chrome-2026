@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.2] - 2026-07-17
+
+### Fixed
+
+- Content scripts no longer register `unload` listeners, avoiding Permissions Policy errors.
+- Startup scripts warn when Chrome locks `app/native-server/dist` during a rebuild.
+
+### Changed
+
+- Operation overlay now shows the target, wait limit, selection range, and expanded/collapsed element name when available.
+
 ## [v1.3.1] - 2026-07-16
 
 ### Added

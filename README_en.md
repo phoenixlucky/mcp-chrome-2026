@@ -117,6 +117,12 @@ The native host listens for connections from the Chrome extension and starts an 
 
 ## What's New
 
+### v1.3.2 (2026-07-17)
+
+- **Permissions Policy fix** — Content scripts no longer register `unload` listeners.
+- **Build-lock guidance** — Startup scripts warn when Chrome may lock the native-host `dist` directory.
+- **Detailed operation overlay** — Shows targets, wait limits, selection ranges, and recognizable expanded/collapsed elements.
+
 ### v1.3.1 (2026-07-16)
 
 - **Operation overlay** — Shows the active MCP operation in the page bottom-left and highlights the target when available.
