@@ -32,6 +32,10 @@
                   {{ new Date(serverStatus.lastUpdated).toLocaleTimeString() }}
                 </div>
               </div>
+              <div v-if="packageVersions" class="package-versions">
+                <span>chrome-mcp-shared-2026 v{{ packageVersions.shared }}</span>
+                <span>mcp-chrome-bridge-2026 v{{ packageVersions.bridge }}</span>
+              </div>
             </div>
 
             <div
@@ -586,6 +590,7 @@ const serverStatus = ref<{
   isRunning: false,
   lastUpdated: Date.now(),
 });
+const packageVersions = ref<{ shared: string; bridge: string } | null>(null);
 
 const showMcpConfig = computed(() => {
   return nativeConnectionStatus.value === 'connected' && serverStatus.value.isRunning;
@@ -1086,6 +1091,7 @@ const checkServerStatus = async () => {
     });
     if (response?.success && response.serverStatus) {
       serverStatus.value = response.serverStatus;
+      await loadPackageVersions();
     }
 
     if (response?.connected !== undefined) {
@@ -1104,6 +1110,7 @@ const refreshServerStatus = async () => {
     });
     if (response?.success && response.serverStatus) {
       serverStatus.value = response.serverStatus;
+      await loadPackageVersions();
     }
 
     if (response?.connected !== undefined) {
@@ -1111,6 +1118,30 @@ const refreshServerStatus = async () => {
     }
   } catch (error) {
     console.error('刷新服务器状态失败:', error);
+  }
+};
+
+const loadPackageVersions = async () => {
+  if (!serverStatus.value.isRunning) {
+    packageVersions.value = null;
+    return;
+  }
+  try {
+    const port = serverStatus.value.port || nativeServerPort.value;
+    const status = await fetch(`http://127.0.0.1:${port}/status`).then((response) =>
+      response.json(),
+    );
+    const packages = status?.packages;
+    packageVersions.value =
+      typeof packages?.['chrome-mcp-shared-2026'] === 'string' &&
+      typeof packages?.['mcp-chrome-bridge-2026'] === 'string'
+        ? {
+            shared: packages['chrome-mcp-shared-2026'],
+            bridge: packages['mcp-chrome-bridge-2026'],
+          }
+        : null;
+  } catch {
+    packageVersions.value = null;
   }
 };
 
@@ -1598,6 +1629,7 @@ const setupServerStatusListener = () => {
     // Server status changes
     if (message.type === BACKGROUND_MESSAGE_TYPES.SERVER_STATUS_CHANGED && message.payload) {
       serverStatus.value = message.payload as any;
+      void loadPackageVersions();
       console.log('Server status updated:', message.payload);
     }
     // Flows changed - refresh list (IndexedDB-based notification)
@@ -2137,6 +2169,14 @@ onUnmounted(() => {
   font-size: 11px;
   color: #94a3b8;
   white-space: nowrap;
+}
+
+.package-versions {
+  display: grid;
+  gap: 2px;
+  padding: 8px 2px 0;
+  font-size: 11px;
+  color: #64748b;
 }
 
 .mcp-config-section {

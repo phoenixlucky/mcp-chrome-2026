@@ -29,6 +29,10 @@ describe('服务器测试', () => {
     const response = await supertest(Server.getInstance().server).get('/status').expect(200);
 
     expect(response.body.server.version).toBe('1.3.3');
+    expect(response.body.packages).toEqual({
+      'chrome-mcp-shared-2026': '1.3.3',
+      'mcp-chrome-bridge-2026': '1.3.3',
+    });
     expect(response.body.mcp).toMatchObject({ activeSessions: 0, streamableHttp: true });
     expect(response.body.tools.count).toBeGreaterThan(0);
   });
