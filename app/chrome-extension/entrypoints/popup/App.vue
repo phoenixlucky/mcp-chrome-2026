@@ -292,6 +292,39 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
+            <button class="entry-item" @click="currentView = 'mcp-tools'">
+              <div class="entry-icon tools">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 6h16M4 12h16M4 18h10"
+                  />
+                </svg>
+              </div>
+              <div class="entry-content">
+                <span class="entry-title">MCP 工具清单</span>
+                <span class="entry-desc">查询可用工具与参数</span>
+              </div>
+              <svg
+                class="entry-arrow"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -354,6 +387,8 @@
       @clear-all-cache="clearAllCache"
     />
 
+    <McpToolsPage v-show="currentView === 'mcp-tools'" @back="currentView = 'home'" />
+
     <ConfirmDialog
       :visible="showClearConfirmation"
       :title="getMessage('confirmClearDataTitle')"
@@ -413,6 +448,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue';
 import ProgressIndicator from './components/ProgressIndicator.vue';
 import ModelCacheManagement from './components/ModelCacheManagement.vue';
 import LocalModelPage from './components/LocalModelPage.vue';
+import McpToolsPage from './components/McpToolsPage.vue';
 import {
   DocumentIcon,
   DatabaseIcon,
@@ -433,7 +469,7 @@ import {
 const { theme: agentTheme, initTheme } = useAgentTheme();
 
 // 当前视图状态：首页 or 本地模型页
-const currentView = ref<'home' | 'local-model'>('home');
+const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
 
 // Coming Soon Toast
 const comingSoonToast = ref<{ show: boolean; feature: string }>({ show: false, feature: '' });
@@ -2824,6 +2860,11 @@ onUnmounted(() => {
 .entry-icon.model {
   background: rgba(139, 92, 246, 0.12);
   color: #8b5cf6;
+}
+
+.entry-icon.tools {
+  background: rgba(14, 116, 144, 0.12);
+  color: #0e7490;
 }
 
 .entry-content {
