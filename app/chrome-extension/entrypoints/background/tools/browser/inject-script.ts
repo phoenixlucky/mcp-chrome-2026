@@ -25,7 +25,7 @@ class InjectScriptTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.INJECT_SCRIPT;
   async execute(args: InjectScriptParam & ScriptConfig): Promise<ToolResult> {
     try {
-      const { url, type, jsScript, tabId, windowId, background } = args;
+      const { url, type, jsScript, tabId, windowId, background = true } = args;
       let tab: chrome.tabs.Tab | undefined;
 
       if (!type || !jsScript) {

@@ -209,7 +209,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Avoid focusing/activating tab/window for certain operations (best-effort). Default: false',
+            'Avoid focusing/activating tab/window for certain operations (best-effort). Default: true; set false only when foreground interaction is required.',
         },
         action: {
           type: 'string',
@@ -430,7 +430,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Perform the operation without stealing focus (do not activate the tab or focus the window). Default: false',
+            'Perform the operation without stealing focus (do not activate the tab or focus the window). Default: true; set false only when foreground interaction is required.',
         },
         width: {
           type: 'number',
@@ -546,7 +546,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         background: {
           type: 'boolean',
-          description: 'Do not activate tab/focus window while fetching (default: false)',
+          description: 'Do not activate tab/focus window while fetching (default: true)',
         },
         htmlContent: {
           type: 'boolean',
@@ -1097,7 +1097,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         background: {
           type: 'boolean',
-          description: 'Do not activate tab/focus window when capturing via CDP. Default: false',
+          description: 'Do not activate tab/focus window when capturing via CDP. Default: true',
         },
         includeExceptions: {
           type: 'boolean',

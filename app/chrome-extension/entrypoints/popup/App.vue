@@ -113,6 +113,17 @@
               </button>
             </div>
             <div class="extension-id">扩展 ID: {{ extensionId }}</div>
+            <label class="background-operations-switch">
+              <span>
+                <strong>后台操作</strong>
+                <small>打开页面和自动化操作时不抢占前台</small>
+              </span>
+              <input
+                v-model="backgroundOperations"
+                type="checkbox"
+                @change="saveBackgroundOperations"
+              />
+            </label>
           </div>
         </div>
 
@@ -563,6 +574,7 @@ const runFlow = async (flowId: string) => {
 const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('unknown');
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
+const backgroundOperations = ref(true);
 const extensionId = chrome.runtime.id;
 const extensionLogoUrl = chrome.runtime.getURL('icon/128.png');
 
@@ -1279,6 +1291,16 @@ const loadPortPreference = async () => {
   }
 };
 
+const loadBackgroundOperations = async () => {
+  const { backgroundOperations: stored = true } =
+    await chrome.storage.local.get('backgroundOperations');
+  backgroundOperations.value = stored !== false;
+};
+
+const saveBackgroundOperations = async () => {
+  await chrome.storage.local.set({ backgroundOperations: backgroundOperations.value });
+};
+
 const saveModelState = async () => {
   try {
     const modelState = {
@@ -1592,6 +1614,7 @@ onMounted(async () => {
   // 初始化主题
   await initTheme();
   await loadPortPreference();
+  await loadBackgroundOperations();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();
@@ -2184,6 +2207,33 @@ onUnmounted(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+
+.background-operations-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.background-operations-switch span {
+  display: grid;
+  gap: 2px;
+}
+
+.background-operations-switch small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.background-operations-switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ac-accent, #d97757);
 }
 
 .port-section {

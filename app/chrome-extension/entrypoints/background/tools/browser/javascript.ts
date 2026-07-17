@@ -307,31 +307,34 @@ async function executeViaScripting(
   options: ExecutionOptions,
 ): Promise<ExecutionResult> {
   const innerExecute = async (): Promise<ExecutionResult> => {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      world: 'ISOLATED',
-      func: async (userCode: string): Promise<ScriptingExecutionResult> => {
-        try {
-          // Use AsyncFunction constructor to support top-level await
-
-          const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-          const fn = new AsyncFunction(userCode);
-          const value = await fn();
-          return { ok: true, value };
-        } catch (err: unknown) {
-          const error = err as Error;
-          return {
-            ok: false,
-            error: {
-              name: error?.name ?? undefined,
-              message: error?.message ?? String(err),
-              stack: error?.stack ?? undefined,
-            },
-          };
-        }
-      },
-      args: [code],
-    });
+    const run = () =>
+      chrome.scripting.executeScript({
+        target: { tabId },
+        world: 'ISOLATED',
+        func: async (userCode: string): Promise<ScriptingExecutionResult> => {
+          try {
+            const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+            const fn = new AsyncFunction(userCode);
+            return { ok: true, value: await fn() };
+          } catch (err: unknown) {
+            const error = err as Error;
+            return {
+              ok: false,
+              error: {
+                name: error?.name,
+                message: error?.message ?? String(err),
+                stack: error?.stack,
+              },
+            };
+          }
+        },
+        args: [code],
+      });
+    let results = await run();
+    if (!results?.some((frame) => Object.prototype.hasOwnProperty.call(frame, 'result'))) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      results = await run();
+    }
 
     // Extract the first result
     const firstFrame = results?.[0];

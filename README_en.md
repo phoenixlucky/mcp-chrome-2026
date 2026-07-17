@@ -121,6 +121,10 @@ The native host listens for connections from the Chrome extension and starts an 
 
 - **Operation overlay** — Shows the active MCP operation in the page bottom-left and highlights the target when available.
 - **Bounded lazy scrolling** — Returns after each paced step so callers can continue without exceeding request limits.
+- **Background operation toggle** — New switch in the popup to control whether automation takes focus.
+- **CDP session auto-recovery** — Listens for debugger detach events and automatically reconnects on failure.
+- **executeScript idle retry** — Retries after 100ms when the first execution returns no result, improving first-run reliability.
+- **Default background mode** — navigate, console, injectScript, webFetcher tools now open pages in the background by default.
 
 ### v1.3.0 (2026-07-16)
 

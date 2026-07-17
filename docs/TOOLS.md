@@ -52,7 +52,7 @@ Navigate to a URL with optional viewport control.
 - `url` (string, optional): URL to navigate to (omit when `refresh=true`)
 - `newWindow` (boolean, optional): Create new window (default: false)
 - `tabId` (number, optional): Target an existing tab by ID (navigate/refresh that tab)
-- `background` (boolean, optional): Do not activate the tab or focus the window (default: false)
+- `background` (boolean, optional): Do not activate the tab or focus the window (default: true; set `false` for foreground interaction)
 - `width` (number, optional): Viewport width in pixels (default: 1280)
 - `height` (number, optional): Viewport height in pixels (default: 720)
 
@@ -322,7 +322,7 @@ Extract HTML or text content from web pages.
 - `format` (string, optional): "html" or "text" (default: "text")
 - `selector` (string, optional): CSS selector for specific elements
 - `tabId` (number, optional): Specific tab ID (default: active tab)
-- `background` (boolean, optional): Do not activate tab/focus window while fetching (default: false)
+- `background` (boolean, optional): Do not activate tab/focus window while fetching (default: true)
 
 **Example**:
 

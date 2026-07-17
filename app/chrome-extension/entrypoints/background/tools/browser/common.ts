@@ -46,7 +46,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
       url,
       refresh = false,
       tabId,
-      background,
+      background = true,
       windowId,
     } = args;
 
@@ -389,7 +389,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
             url: url,
             width: DEFAULT_WINDOW_WIDTH,
             height: DEFAULT_WINDOW_HEIGHT,
-            focused: true,
+            focused: background !== true,
           });
 
           if (fallbackWindow && fallbackWindow.id !== undefined) {

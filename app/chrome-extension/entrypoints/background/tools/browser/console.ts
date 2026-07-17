@@ -147,7 +147,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
       url,
       tabId,
       windowId,
-      background = false,
+      background = true,
       includeExceptions = true,
       maxMessages = DEFAULT_MAX_MESSAGES,
       mode = 'snapshot',
@@ -310,7 +310,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
 
   private async navigateToUrl(
     url: string,
-    background = false,
+    background = true,
     windowId?: number,
   ): Promise<chrome.tabs.Tab> {
     // Check if URL is already open

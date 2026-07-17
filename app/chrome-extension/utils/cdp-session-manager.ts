@@ -13,6 +13,10 @@ const DEBUGGER_PROTOCOL_VERSION = '1.3';
 class CDPSessionManager {
   private sessions = new Map<number, TabSessionState>();
 
+  constructor() {
+    chrome.debugger.onDetach.addListener(({ tabId }) => this.sessions.delete(tabId));
+  }
+
   private getState(tabId: number): TabSessionState | undefined {
     return this.sessions.get(tabId);
   }
@@ -96,13 +100,25 @@ class CDPSessionManager {
    */
   async sendCommand<T = any>(tabId: number, method: string, params?: object): Promise<T> {
     const state = this.getState(tabId);
-    if (state && state.attachedByUs) {
-      return (await chrome.debugger.sendCommand({ tabId }, method, params)) as T;
+    try {
+      if (state && state.attachedByUs) {
+        return (await chrome.debugger.sendCommand({ tabId }, method, params)) as T;
+      }
+      // Fallback: temporary session
+      return await this.withSession<T>(tabId, `send:${method}`, async () => {
+        return (await chrome.debugger.sendCommand({ tabId }, method, params)) as T;
+      });
+    } catch (error) {
+      if (
+        !/Debugger is not attached/i.test(error instanceof Error ? error.message : String(error))
+      ) {
+        throw error;
+      }
+      this.sessions.delete(tabId);
+      return await this.withSession<T>(tabId, `retry:${method}`, async () => {
+        return (await chrome.debugger.sendCommand({ tabId }, method, params)) as T;
+      });
     }
-    // Fallback: temporary session
-    return await this.withSession<T>(tabId, `send:${method}`, async () => {
-      return (await chrome.debugger.sendCommand({ tabId }, method, params)) as T;
-    });
   }
 }
 

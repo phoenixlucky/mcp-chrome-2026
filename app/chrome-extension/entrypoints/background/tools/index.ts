@@ -149,8 +149,14 @@ export const handleCallTool = async (param: ToolCallParam, signal?: AbortSignal)
     if (signal?.aborted) return createErrorResponse('Tool call cancelled');
     const urlError = await checkExpectedUrl(param);
     if (urlError) return createErrorResponse(urlError);
+    const args = { ...(param.args || {}) };
+    if (args.background === undefined) {
+      const { backgroundOperations = true } =
+        await chrome.storage.local.get('backgroundOperations');
+      args.background = backgroundOperations;
+    }
     await showOperation(param, '执行中');
-    const result = await tool.execute(param.args, signal);
+    const result = await tool.execute(args, signal);
     void showOperation(param, result.isError ? '失败' : '完成');
     return result;
   } catch (error) {
