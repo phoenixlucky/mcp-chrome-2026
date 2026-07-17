@@ -49,3 +49,5 @@ CLAUDE.md
 .claude/
 
 .pnpm-store/
+# Reasonix agent state.reasonix/
+reasonix.toml
