@@ -14,6 +14,7 @@ export const TOOL_NAMES = {
     REQUEST_ELEMENT_SELECTION: 'chrome_request_element_selection',
     GET_INTERACTIVE_ELEMENTS: 'chrome_get_interactive_elements',
     NETWORK_CAPTURE: 'chrome_network_capture',
+    BLOCK_IMAGES: 'chrome_block_images',
     // Legacy tool names (kept for internal use, not exposed in TOOL_SCHEMAS)
     NETWORK_CAPTURE_START: 'chrome_network_capture_start',
     NETWORK_CAPTURE_STOP: 'chrome_network_capture_stop',
@@ -636,6 +637,26 @@ export const TOOL_SCHEMAS: Tool[] = [
         includeStatic: {
           type: 'boolean',
           description: 'Include static resources like images/scripts/styles (default: false)',
+        },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.BLOCK_IMAGES,
+    description:
+      'Block image network requests in a tab using Chrome DevTools Protocol. Start this before navigating or reloading to prevent future image downloads; stop restores normal image loading.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['start', 'stop'],
+          description: '"start" blocks future image requests; "stop" restores image loading',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID. Defaults to the active tab.',
         },
       },
       required: ['action'],

@@ -7,6 +7,7 @@ export { clickTool, fillTool } from './interaction';
 export { elementPickerTool } from './element-picker';
 export { networkRequestTool } from './network-request';
 export { networkCaptureTool } from './network-capture';
+export { blockImagesTool } from './block-images';
 // Legacy exports (for internal use by networkCaptureTool)
 export { networkDebuggerStartTool, networkDebuggerStopTool } from './network-capture-debugger';
 export { networkCaptureStartTool, networkCaptureStopTool } from './network-capture-web-request';

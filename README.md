@@ -117,6 +117,10 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 
 ## 更新日志
 
+### v1.3.3（2026-07-17）
+
+- **CDP 图片拦截** — 新增 `chrome_block_images`，在导航或刷新前阻止后续图片 HTTP 请求
+
 ### v1.3.2（2026-07-17）
 
 - **卸载策略错误修复** — 内容脚本不再注册 `unload` 事件，避免 Permissions Policy 报错

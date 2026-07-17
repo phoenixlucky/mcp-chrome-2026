@@ -117,6 +117,10 @@ The native host listens for connections from the Chrome extension and starts an 
 
 ## What's New
 
+### v1.3.3 (2026-07-17)
+
+- **CDP image blocking** — New `chrome_block_images` prevents future image HTTP requests before navigation or reload.
+
 ### v1.3.2 (2026-07-17)
 
 - **Permissions Policy fix** — Content scripts no longer register `unload` listeners.

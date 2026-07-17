@@ -94,6 +94,8 @@ function operationDetail(param: ToolCallParam): string {
       return `前往：${compact(args.url) || '目标页面'}`;
     case 'chrome_network_capture':
       return `${args.action === 'start' ? '开始' : '停止'}网络抓包`;
+    case 'chrome_block_images':
+      return args.action === 'start' ? '阻止图片网络请求' : '恢复图片网络请求';
     case 'chrome_network_capture_start':
     case 'chrome_network_debugger_start':
       return '开始网络抓包';
