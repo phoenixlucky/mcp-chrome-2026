@@ -35,6 +35,7 @@
 > - 🔌 Plugin system refactored into `action-node-adapter` + `register-action-nodes`
 > - 📦 New `public-api` / `builder-types` / `utils` modules
 > - 📉 Net reduction of ~12,300 lines of legacy code
+> - 📦 Pre-v1.5.0 legacy source code has been archived in the `V2toV3` branch
 
 ---
 

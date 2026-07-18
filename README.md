@@ -35,6 +35,7 @@
 > - 🔌 插件系统重构为 `action-node-adapter` + `register-action-nodes`
 > - 📦 新增 `public-api` / `builder-types` / `utils` 公共模块
 > - 📉 净减少 ~12,300 行旧代码
+> - 📦 v1.5.0 之前的旧版本源码已归档至 `V2toV3` 分支
 
 ---
 
