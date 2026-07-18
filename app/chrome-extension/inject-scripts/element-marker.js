@@ -20,9 +20,12 @@
   const CONFIG = {
     DEFAULTS: {
       PREFS: {
+        preferTestId: true,
+        preferAria: true,
+        preferText: false,
         preferId: true,
         preferStableAttr: true,
-        preferClass: true,
+        preferClass: false,
       },
       SELECTOR_TYPE: 'css',
       LIST_MODE: false,
@@ -41,6 +44,17 @@
       VERIFY: '#3b82f6',
     },
   };
+
+  const TEST_ID_ATTRIBUTES = [
+    'data-testid',
+    'data-testId',
+    'data-test',
+    'data-qa',
+    'data-cy',
+    'data-pw',
+  ];
+  const ACCESSIBLE_ATTRIBUTES = ['aria-label', 'aria-labelledby'];
+  const STABLE_ATTRIBUTES = ['name', 'placeholder', 'title', 'alt'];
 
   // ============================================================================
   // Panel Host Module - Shadow DOM Management
@@ -706,7 +720,7 @@
               <option value="xpath">XPath 定位</option>
             </select>
           </div>
-          <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素 (仅支持CSS)">
+          <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -775,6 +789,18 @@
           <div class="em-settings">
             <div class="em-checkbox-group">
               <label class="em-checkbox-label">
+                <input type="checkbox" id="__em_pref_testid" checked />
+                <span>优先使用测试标识</span>
+              </label>
+              <label class="em-checkbox-label">
+                <input type="checkbox" id="__em_pref_aria" checked />
+                <span>优先使用无障碍标签</span>
+              </label>
+              <label class="em-checkbox-label">
+                <input type="checkbox" id="__em_pref_text" />
+                <span>优先使用可见文本（XPath）</span>
+              </label>
+              <label class="em-checkbox-label">
                 <input type="checkbox" id="__em_pref_id" checked />
                 <span>优先使用 ID</span>
               </label>
@@ -783,10 +809,11 @@
                 <span>优先使用稳定属性</span>
               </label>
               <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_class" checked />
-                <span>优先使用类名</span>
+                <input type="checkbox" id="__em_pref_class" />
+                <span>备用使用类名</span>
               </label>
             </div>
+            <div class="em-field-label">顺序：测试标识 → 无障碍标签 → 可见文本 → ID → 稳定属性 → 类名 → 结构路径</div>
           </div>
 
           <div class="em-actions">
@@ -1216,106 +1243,73 @@
   // Selector Engine - Heuristic Selector Generation
   // ============================================================================
 
+  function findUniqueCssAttributeSelector(el, attributes) {
+    const tag = el.tagName.toLowerCase();
+    for (const attribute of attributes) {
+      const value = el.getAttribute(attribute);
+      if (!value) continue;
+      const escapedValue = CSS.escape(value);
+      if (attribute === 'aria-label' && el.getAttribute('role')) {
+        const roleSelector = `[role="${CSS.escape(el.getAttribute('role'))}"][aria-label="${escapedValue}"]`;
+        if (isDeepSelectorUnique(roleSelector, el)) return roleSelector;
+      }
+      const selector = `[${attribute}="${escapedValue}"]`;
+      const candidate = /^(input|textarea|select)$/i.test(tag) ? `${tag}${selector}` : selector;
+      if (isDeepSelectorUnique(candidate, el)) return candidate;
+    }
+    return '';
+  }
+
+  function findUniqueCssClassSelector(el) {
+    const tag = el.tagName.toLowerCase();
+    const classes = Array.from(el.classList || []).filter((c) => /^[a-zA-Z0-9_-]+$/.test(c));
+    for (const cls of classes) {
+      const selector = `.${CSS.escape(cls)}`;
+      if (isDeepSelectorUnique(selector, el)) return selector;
+    }
+    for (const cls of classes) {
+      const selector = `${tag}.${CSS.escape(cls)}`;
+      if (isDeepSelectorUnique(selector, el)) return selector;
+    }
+    return '';
+  }
+
+  function findPreferredCssSelector(el, prefs) {
+    if (prefs.preferTestId) {
+      const selector = findUniqueCssAttributeSelector(el, TEST_ID_ATTRIBUTES);
+      if (selector) return selector;
+    }
+    if (prefs.preferAria) {
+      const selector = findUniqueCssAttributeSelector(el, ACCESSIBLE_ATTRIBUTES);
+      if (selector) return selector;
+    }
+    if (prefs.preferId && el.id) {
+      const selector = `#${CSS.escape(el.id)}`;
+      if (isDeepSelectorUnique(selector, el)) return selector;
+    }
+    if (prefs.preferStableAttr) {
+      const selector = findUniqueCssAttributeSelector(el, STABLE_ATTRIBUTES);
+      if (selector) return selector;
+    }
+    return prefs.preferClass ? findUniqueCssClassSelector(el) : '';
+  }
+
   function generateSelector(el) {
     if (!(el instanceof Element)) return '';
 
     const prefs = StateStore.get('prefs');
 
-    if (prefs.preferId && el.id) {
-      const idSel = `#${CSS.escape(el.id)}`;
-      if (isDeepSelectorUnique(idSel, el)) return idSel;
-    }
+    const directSelector = findPreferredCssSelector(el, prefs);
+    if (directSelector) return directSelector;
 
-    if (prefs.preferStableAttr) {
-      const attrNames = [
-        'data-testid',
-        'data-testId',
-        'data-test',
-        'data-qa',
-        'data-cy',
-        'name',
-        'title',
-        'alt',
-        'aria-label',
-      ];
-      const tag = el.tagName.toLowerCase();
-
-      for (const attr of attrNames) {
-        const v = el.getAttribute(attr);
-        if (!v) continue;
-        const attrSel = `[${attr}="${CSS.escape(v)}"]`;
-        const testSel = /^(input|textarea|select)$/i.test(tag) ? `${tag}${attrSel}` : attrSel;
-        if (isDeepSelectorUnique(testSel, el)) return testSel;
-      }
-    }
-
-    if (prefs.preferClass) {
-      try {
-        const classes = Array.from(el.classList || []).filter(
-          (c) => c && /^[a-zA-Z0-9_-]+$/.test(c),
-        );
-        const tag = el.tagName.toLowerCase();
-
-        for (const cls of classes) {
-          const sel = `.${CSS.escape(cls)}`;
-          if (isDeepSelectorUnique(sel, el)) return sel;
-        }
-
-        for (const cls of classes) {
-          const sel = `${tag}.${CSS.escape(cls)}`;
-          if (isDeepSelectorUnique(sel, el)) return sel;
-        }
-
-        for (let i = 0; i < Math.min(classes.length, 3); i++) {
-          for (let j = i + 1; j < Math.min(classes.length, 3); j++) {
-            const sel = `.${CSS.escape(classes[i])}.${CSS.escape(classes[j])}`;
-            if (isDeepSelectorUnique(sel, el)) return sel;
-          }
-        }
-      } catch {}
-    }
-
-    if (prefs.preferStableAttr) {
-      try {
-        let cur = el;
-        const anchorAttrs = [
-          'id',
-          'data-testid',
-          'data-testId',
-          'data-test',
-          'data-qa',
-          'data-cy',
-          'name',
-        ];
-
-        // Detect shadow DOM boundary
-        const root = el.getRootNode();
-        const isShadowElement = root instanceof ShadowRoot;
-        const boundary = isShadowElement ? root.host : document.body;
-
-        while (cur && cur !== boundary) {
-          if (cur.id) {
-            const anchor = `#${CSS.escape(cur.id)}`;
-            if (isDeepSelectorUnique(anchor, cur)) {
-              const rel = buildPathFromAncestor(cur, el);
-              const composed = rel ? `${anchor} ${rel}` : anchor;
-              if (isDeepSelectorUnique(composed, el)) return composed;
-            }
-          }
-
-          for (const attr of anchorAttrs) {
-            const val = cur.getAttribute(attr);
-            if (!val) continue;
-            const aSel = `[${attr}="${CSS.escape(val)}"]`;
-            if (isDeepSelectorUnique(aSel, cur)) {
-              const rel = buildPathFromAncestor(cur, el);
-              const composed = rel ? `${aSel} ${rel}` : aSel;
-              if (isDeepSelectorUnique(composed, el)) return composed;
-            }
-          }
-          cur = cur.parentElement;
-        }
-      } catch {}
+    const root = el.getRootNode();
+    const boundary = root instanceof ShadowRoot ? root.host : document.body;
+    for (let cur = el.parentElement; cur && cur !== boundary; cur = cur.parentElement) {
+      const anchor = findPreferredCssSelector(cur, prefs);
+      if (!anchor) continue;
+      const relative = buildPathFromAncestor(cur, el);
+      const selector = relative ? `${anchor} ${relative}` : anchor;
+      if (isDeepSelectorUnique(selector, el)) return selector;
     }
 
     return buildFullPath(el);
@@ -1394,9 +1388,36 @@
     return path ? `body > ${path}` : 'body';
   }
 
-  function generateXPath(el) {
+  function generateXPath(el, { skipText = false } = {}) {
     if (!(el instanceof Element)) return '';
-    if (el.id) return `//*[@id="${el.id}"]`;
+    const prefs = StateStore.get('prefs');
+
+    if (prefs.preferTestId) {
+      const selector = findUniqueAttributeXPath(el, TEST_ID_ATTRIBUTES);
+      if (selector) return selector;
+    }
+
+    if (prefs.preferAria) {
+      const selector = findUniqueAttributeXPath(el, ACCESSIBLE_ATTRIBUTES);
+      if (selector) return selector;
+    }
+
+    if (prefs.preferText && !skipText) {
+      const selector = findUniqueTextXPath(el);
+      if (selector) return selector;
+    }
+
+    if (prefs.preferId && el.id) return `//*[@id=${xpathLiteral(el.id)}]`;
+
+    if (prefs.preferStableAttr) {
+      const attrXPath = findUniqueAttributeXPath(el, STABLE_ATTRIBUTES);
+      if (attrXPath) return attrXPath;
+    }
+
+    if (prefs.preferClass) {
+      const classXPath = findUniqueClassXPath(el);
+      if (classXPath) return classXPath;
+    }
 
     const segs = [];
     let cur = el;
@@ -1404,9 +1425,41 @@
     while (cur && cur.nodeType === 1 && cur !== document.documentElement) {
       const tag = cur.tagName.toLowerCase();
 
-      if (cur.id) {
-        segs.unshift(`//*[@id="${cur.id}"]`);
+      if (prefs.preferTestId) {
+        const selector = findUniqueAttributeXPath(cur, TEST_ID_ATTRIBUTES);
+        if (selector) {
+          segs.unshift(selector);
+          break;
+        }
+      }
+
+      if (prefs.preferAria) {
+        const selector = findUniqueAttributeXPath(cur, ACCESSIBLE_ATTRIBUTES);
+        if (selector) {
+          segs.unshift(selector);
+          break;
+        }
+      }
+
+      if (prefs.preferId && cur.id) {
+        segs.unshift(`//*[@id=${xpathLiteral(cur.id)}]`);
         break;
+      }
+
+      if (prefs.preferStableAttr) {
+        const attrXPath = findUniqueAttributeXPath(cur, STABLE_ATTRIBUTES);
+        if (attrXPath) {
+          segs.unshift(attrXPath);
+          break;
+        }
+      }
+
+      if (prefs.preferClass) {
+        const classXPath = findUniqueClassXPath(cur);
+        if (classXPath) {
+          segs.unshift(classXPath);
+          break;
+        }
       }
 
       let i = 1;
@@ -1422,6 +1475,44 @@
     return segs[0]?.startsWith('//*') ? segs.join('/') : '//' + segs.join('/');
   }
 
+  function xpathLiteral(value) {
+    const text = String(value);
+    if (!text.includes('"')) return `"${text}"`;
+    if (!text.includes("'")) return `'${text}'`;
+    return `concat(${text
+      .split('"')
+      .map((part) => `"${part}"`)
+      .join(", '\"', ")})`;
+  }
+
+  function findUniqueAttributeXPath(el, attributes) {
+    for (const name of attributes) {
+      const value = el.getAttribute(name);
+      if (!value) continue;
+      const selector = `//*[@${name}=${xpathLiteral(value)}]`;
+      if (evaluateXPathAll(selector).length === 1) return selector;
+    }
+    return '';
+  }
+
+  function findUniqueTextXPath(el) {
+    const text = String(el.innerText || el.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!text || text.length > 80) return '';
+    const selector = `//${el.tagName.toLowerCase()}[normalize-space(.)=${xpathLiteral(text)}]`;
+    return evaluateXPathAll(selector).length === 1 ? selector : '';
+  }
+
+  function findUniqueClassXPath(el) {
+    for (const className of Array.from(el.classList || [])) {
+      if (!/^[a-zA-Z0-9_-]+$/.test(className)) continue;
+      const selector = `//*[contains(concat(' ', normalize-space(@class), ' '), ${xpathLiteral(` ${className} `)})]`;
+      if (evaluateXPathAll(selector).length === 1) return selector;
+    }
+    return '';
+  }
+
   function generateListSelector(target) {
     const list = computeElementList(target);
     const selected = list?.[0] || target;
@@ -1430,59 +1521,18 @@
     if (!parent) return generateSelector(target);
 
     const parentSel = generateSelector(parent);
-    const childRel = generateSelectorWithinRoot(selected, parent);
-
-    return parentSel && childRel ? `${parentSel} ${childRel}` : generateSelector(target);
+    return parentSel
+      ? `${parentSel} > ${selected.tagName.toLowerCase()}`
+      : generateSelector(target);
   }
 
-  function generateSelectorWithinRoot(el, root) {
-    if (!(el instanceof Element)) return '';
+  function generateListXPath(target) {
+    const list = computeElementList(target);
+    const selected = list?.[0] || target;
+    const parent = selected.parentElement;
+    if (!parent) return generateXPath(target);
 
-    const tag = el.tagName.toLowerCase();
-
-    // Use isDeepSelectorUnique for ID to support shadow DOM elements
-    if (el.id) {
-      const idSel = `#${CSS.escape(el.id)}`;
-      if (isDeepSelectorUnique(idSel, el)) return idSel;
-    }
-
-    const attrNames = [
-      'data-testid',
-      'data-testId',
-      'data-test',
-      'data-qa',
-      'data-cy',
-      'name',
-      'title',
-      'alt',
-      'aria-label',
-    ];
-
-    // Use isDeepSelectorUnique for attributes to support shadow DOM elements
-    for (const attr of attrNames) {
-      const v = el.getAttribute(attr);
-      if (!v) continue;
-      const aSel = `[${attr}="${CSS.escape(v)}"]`;
-      const testSel = /^(input|textarea|select)$/i.test(tag) ? `${tag}${aSel}` : aSel;
-      if (isDeepSelectorUnique(testSel, el)) return testSel;
-    }
-
-    try {
-      const classes = Array.from(el.classList || []).filter((c) => c && /^[a-zA-Z0-9_-]+$/.test(c));
-
-      // Use isDeepSelectorUnique for classes to support shadow DOM elements
-      for (const cls of classes) {
-        const sel = `.${CSS.escape(cls)}`;
-        if (isDeepSelectorUnique(sel, el)) return sel;
-      }
-
-      for (const cls of classes) {
-        const sel = `${tag}.${CSS.escape(cls)}`;
-        if (isDeepSelectorUnique(sel, el)) return sel;
-      }
-    } catch {}
-
-    return buildPathFromAncestor(root, el);
+    return `${generateXPath(parent, { skipText: true })}/${selected.tagName.toLowerCase()}`;
   }
 
   function getAccessibleName(el) {
@@ -2094,12 +2144,13 @@
         const selectorType = StateStore.get('selectorType');
         const listMode = StateStore.get('listMode');
 
-        const sel =
-          selectorType === 'xpath'
+        const sel = listMode
+          ? selectorType === 'xpath'
+            ? generateListXPath(target)
+            : generateListSelector(target)
+          : selectorType === 'xpath'
             ? generateXPath(target)
-            : listMode
-              ? generateListSelector(target)
-              : generateSelector(target);
+            : generateSelector(target);
 
         window.top.postMessage({ type: 'em_click', innerSel: sel }, '*');
       } catch {}
@@ -2162,12 +2213,13 @@
     const selectorType = StateStore.get('selectorType');
     const listMode = StateStore.get('listMode');
 
-    const sel =
-      selectorType === 'xpath'
+    const sel = listMode
+      ? selectorType === 'xpath'
+        ? generateListXPath(el)
+        : generateListSelector(el)
+      : selectorType === 'xpath'
         ? generateXPath(el)
-        : listMode
-          ? generateListSelector(el)
-          : generateSelector(el);
+        : generateSelector(el);
 
     const name = getAccessibleName(el) || el.tagName.toLowerCase();
 
@@ -2180,6 +2232,10 @@
     if (inputName && !inputName.value) inputName.value = name;
 
     moveHighlighterTo(el);
+  }
+
+  function refreshSelectedSelector() {
+    if (STATE.selectedEl) setSelection(STATE.selectedEl);
   }
 
   // ============================================================================
@@ -2199,8 +2255,7 @@
       });
 
       const selectorType = StateStore.get('selectorType');
-      const listMode = StateStore.get('listMode');
-      const effectiveType = listMode ? 'css' : selectorType;
+      const effectiveType = selectorType;
 
       // Query for matches
       const matches =
@@ -2268,7 +2323,7 @@
       const selectorType = StateStore.get('selectorType');
       const listMode = StateStore.get('listMode');
 
-      const effectiveType = listMode ? 'css' : selectorType;
+      const effectiveType = selectorType;
 
       const matches =
         effectiveType === 'xpath' ? evaluateXPathAll(selector) : queryAllDeep(selector);
@@ -2466,7 +2521,7 @@
       }
 
       // Handle normal selector (non-iframe)
-      const effectiveType = listMode ? 'css' : selectorType;
+      const effectiveType = selectorType;
       const matches =
         effectiveType === 'xpath' ? evaluateXPathAll(normalized) : queryAllDeep(normalized);
 
@@ -2532,9 +2587,8 @@
     const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
     if (!selector) return null;
 
-    let selectorType = StateStore.get('selectorType');
+    const selectorType = StateStore.get('selectorType');
     const listMode = StateStore.get('listMode');
-    if (listMode && selectorType === 'xpath') selectorType = 'css';
 
     const selected = STATE.selectedEl;
     return {
@@ -2726,14 +2780,8 @@
     // Selector type
     host.querySelector('#__em_selector_type')?.addEventListener('change', (e) => {
       const newType = e.target.value;
-      const listMode = StateStore.get('listMode');
 
-      // If switching to XPath while in list mode, disable list mode
-      if (newType === 'xpath' && listMode) {
-        StateStore.set({ selectorType: newType, listMode: false });
-      } else {
-        StateStore.set({ selectorType: newType });
-      }
+      StateStore.set({ selectorType: newType });
 
       // Regenerate selector for the currently selected element
       if (STATE.selectedEl) {
@@ -2748,11 +2796,8 @@
       const listMode = StateStore.get('listMode');
       const newListMode = !listMode;
 
-      // If enabling list mode, force CSS selector type
       if (newListMode) {
-        StateStore.set({ listMode: true, selectorType: 'css' });
-        const selectorTypeSelect = host.querySelector('#__em_selector_type');
-        if (selectorTypeSelect) selectorTypeSelect.value = 'css';
+        StateStore.set({ listMode: true });
       } else {
         StateStore.set({ listMode: false });
       }
@@ -2801,17 +2846,40 @@
     });
 
     // Preferences
+    host.querySelector('#__em_pref_testid')?.addEventListener('change', (e) => {
+      const prefs = { ...StateStore.get('prefs'), preferTestId: !!e.target.checked };
+      StateStore.set({ prefs });
+      refreshSelectedSelector();
+    });
+    host.querySelector('#__em_pref_aria')?.addEventListener('change', (e) => {
+      const prefs = { ...StateStore.get('prefs'), preferAria: !!e.target.checked };
+      StateStore.set({ prefs });
+      refreshSelectedSelector();
+    });
+    host.querySelector('#__em_pref_text')?.addEventListener('change', (e) => {
+      const prefs = { ...StateStore.get('prefs'), preferText: !!e.target.checked };
+      StateStore.set({ prefs });
+      if (e.target.checked && StateStore.get('selectorType') !== 'xpath') {
+        StateStore.set({ selectorType: 'xpath' });
+        const typeSelect = host.querySelector('#__em_selector_type');
+        if (typeSelect) typeSelect.value = 'xpath';
+      }
+      refreshSelectedSelector();
+    });
     host.querySelector('#__em_pref_id')?.addEventListener('change', (e) => {
       const prefs = { ...StateStore.get('prefs'), preferId: !!e.target.checked };
       StateStore.set({ prefs });
+      refreshSelectedSelector();
     });
     host.querySelector('#__em_pref_attr')?.addEventListener('change', (e) => {
       const prefs = { ...StateStore.get('prefs'), preferStableAttr: !!e.target.checked };
       StateStore.set({ prefs });
+      refreshSelectedSelector();
     });
     host.querySelector('#__em_pref_class')?.addEventListener('change', (e) => {
       const prefs = { ...StateStore.get('prefs'), preferClass: !!e.target.checked };
       StateStore.set({ prefs });
+      refreshSelectedSelector();
     });
 
     // Drag - use entire header as drag handle
@@ -2878,8 +2946,14 @@
     }
 
     const prefId = host.querySelector('#__em_pref_id');
+    const prefTestId = host.querySelector('#__em_pref_testid');
+    const prefAria = host.querySelector('#__em_pref_aria');
+    const prefText = host.querySelector('#__em_pref_text');
     const prefAttr = host.querySelector('#__em_pref_attr');
     const prefClass = host.querySelector('#__em_pref_class');
+    if (prefTestId) prefTestId.checked = state.prefs.preferTestId;
+    if (prefAria) prefAria.checked = state.prefs.preferAria;
+    if (prefText) prefText.checked = state.prefs.preferText;
     if (prefId) prefId.checked = state.prefs.preferId;
     if (prefAttr) prefAttr.checked = state.prefs.preferStableAttr;
     if (prefClass) prefClass.checked = state.prefs.preferClass;
