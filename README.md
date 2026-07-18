@@ -26,6 +26,18 @@
 
 ---
 
+## 📢 v1.5.0 更新内容
+
+> **工作流引擎 v3 架构统一** — 旧版 record-replay v2 代码已全面迁移至 v3 统一架构。
+>
+> - 🧹 移除 v2 旧引擎、旧录制模块、旧节点系统（共 50+ 文件）
+> - 🏗️ 动作处理器统一为 `record-replay-v3/actions` 模块
+> - 🔌 插件系统重构为 `action-node-adapter` + `register-action-nodes`
+> - 📦 新增 `public-api` / `builder-types` / `utils` 公共模块
+> - 📉 净减少 ~12,300 行旧代码
+
+---
+
 ## ✨ 核心特性
 
 |                                                                     |                                                                    |                                                               |                                                               |
@@ -160,7 +172,7 @@ start-server.bat
 | **智能助手** — Claude / Codex / DeepSeek | **实时监控仪表盘** — Web 面板查看调用、性能、错误 |
 | **语义搜索** — 向量数据库 + 本地嵌入     | **跨平台安装体验** — macOS / Linux 一键脚本       |
 | **SIMD 加速** — WASM 引擎 4-8× 更快      |                                                   |
-| **工作流录制与回放** — v2 / v3 双引擎    |                                                   |
+| **工作流录制与回放** — v3 统一架构（v2 已完全迁移）     |                                                   |
 | **可视化编辑器** — 拖拽搭建工作流        |                                                   |
 | **Native Messaging 自动注册**            |                                                   |
 
