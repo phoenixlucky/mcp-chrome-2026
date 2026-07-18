@@ -26,6 +26,15 @@
 
 ---
 
+## 📢 What's New in v1.5.1
+
+> **Element Marker Overhaul** — After marking an element, preview and copy locator code directly in the dialog — no more JSON file downloads.
+>
+> - 🪟 **Code Dialog UI** — Inline popup shows generated locator code with a single click to copy
+> - 🌐 **Multi-language code generation** — JavaScript (querySelector / XPath) and Python (Selenium By)
+> - 📋 **Smart Copy** — Clipboard API + fallback, works everywhere
+> - ⌨️ **Escape to close** — Press Esc to dismiss the code dialog instantly
+
 ## 📢 What's New in v1.5.0
 
 > **Workflow Engine v3 Architecture Unification** — All legacy record-replay v2 code has been fully migrated to the v3 unified architecture.
@@ -166,16 +175,16 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 ## 🗺️ Roadmap
 
-| ✅ Done                                            | 🎯 Planned                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------ |
-| **40+ MCP Tools** — Full browser API coverage      | **Auth & Permission** — API Key / OAuth                      |
-| **Streamable HTTP + STDIO** — Dual transport       | **Tool-level ACL** — Per-client tool permissions             |
-| **Smart Assistant** — Claude / Codex / DeepSeek    | **Monitoring Dashboard** — Web panel for calls, perf, errors |
-| **Semantic Search** — Vector DB + local embeddings | **Cross-platform Setup** — macOS / Linux one-click scripts   |
-| **SIMD Acceleration** — WASM engine 4-8× faster    |                                                              |
+| ✅ Done                                                                       | 🎯 Planned                                                   |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **40+ MCP Tools** — Full browser API coverage                                 | **Auth & Permission** — API Key / OAuth                      |
+| **Streamable HTTP + STDIO** — Dual transport                                  | **Tool-level ACL** — Per-client tool permissions             |
+| **Smart Assistant** — Claude / Codex / DeepSeek                               | **Monitoring Dashboard** — Web panel for calls, perf, errors |
+| **Semantic Search** — Vector DB + local embeddings                            | **Cross-platform Setup** — macOS / Linux one-click scripts   |
+| **SIMD Acceleration** — WASM engine 4-8× faster                               |                                                              |
 | **Workflow Recording & Replay** — v3 unified architecture (v2 fully migrated) |                                                              |
-| **Visual Editor** — Drag-and-drop workflow builder |                                                              |
-| **Native Messaging Auto-registration**             |                                                              |
+| **Visual Editor** — Drag-and-drop workflow builder                            |                                                              |
+| **Native Messaging Auto-registration**                                        |                                                              |
 
 ---
 

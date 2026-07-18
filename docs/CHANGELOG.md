@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.5.1] - 2026-07-19
+
+### Added
+
+- **元素代码生成弹窗**: 标记元素后弹窗展示定位代码，替代原有 JSON 文件导出。
+  - 🪟 内联代码弹窗 UI，支持一键复制到剪贴板
+  - 🌐 支持 JavaScript（querySelector / XPath）和 Python（Selenium By）两种代码格式
+  - 📋 使用 Clipboard API + fallback 兼容，确保所有环境下可用
+  - ⌨️ Escape 键快捷关闭弹窗
+  - 📑 代码标签页切换（JS / Python），复制按钮标题跟随语言同步更新
+
+### Changed
+
+- 所有包版本统一为 v1.5.1
+
 ## [v1.5.0] - 2026-07-19
 
 ### Breaking
