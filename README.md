@@ -1,94 +1,88 @@
-# Chrome MCP Server
+<p align="center">
+  <img src="app/chrome-extension/public/icon/128.png" alt="Chrome MCP Server" width="96" height="96" />
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://developer.chrome.com/docs/extensions/)
+<h1 align="center">Chrome MCP Server</h1>
 
-> **让 AI 直接操控你的 Chrome 浏览器** — 一个基于 Model Context Protocol (MCP) 的服务器，向 AI 助手开放浏览器能力，实现浏览器自动化、内容分析和数据提取。
+<p align="center">
+  <b>让 AI 直接操控你的 Chrome 浏览器</b><br />
+  基于 Model Context Protocol，向 AI 助手开放 40+ 浏览器能力
+</p>
 
-**📖 Language**: [中文](README.md) | [English](README_en.md)
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8+-blue.svg?style=flat-square" alt="TypeScript" /></a>
+  <a href="https://developer.chrome.com/docs/extensions/"><img src="https://img.shields.io/badge/Chrome-Extension-green.svg?style=flat-square" alt="Chrome Extension" /></a>
+  <a href="https://www.npmjs.com/package/@ethanwilkins/mcp-chrome-bridge-2026"><img src="https://img.shields.io/npm/v/@ethanwilkins/mcp-chrome-bridge-2026?style=flat-square" alt="npm" /></a>
+  <a href="https://github.com/phoenixlucky/mcp-chrome-2026/releases"><img src="https://img.shields.io/github/v/release/phoenixlucky/mcp-chrome-2026?style=flat-square" alt="GitHub Release" /></a>
+</p>
+
+<p align="center">
+  <b>
+    <a href="README.md">🇨🇳 中文</a> ·
+    <a href="README_en.md">🇬🇧 English</a>
+  </b>
+</p>
 
 ---
 
-## 概述
+## ✨ 核心特性
 
-Chrome MCP Server 是一个基于 Chrome 扩展的 **MCP 服务器**。它向 AI 助手提供 **40 多个工具**，使其能够直接操控浏览器——导航页面、提取数据、截取屏幕、监控网络、管理书签等。
+|                                                                     |                                                                    |                                                               |                                                               |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| **🤖 AI 原生控制**<br/>Claude / Cursor / VS Code<br/>直接操控浏览器 | **🔐 零配置即用**<br/>复用现有 Chrome<br/>登录态 / Cookie 即刻继承 | **🛡️ 纯本地运行**<br/>数据不出环境<br/>隐私安全有保障         | **🚄 Streamable HTTP**<br/>实时流式响应<br/>现代 MCP 传输协议 |
+| **🧠 语义搜索**<br/>向量数据库 + 本地嵌入<br/>跨标签页内容发现      | **⚡ SIMD 加速**<br/>WASM 优化引擎<br/>向量运算 4-8× 更快          | **📊 40+ 工具**<br/>导航 / 截图 / 表单<br/>书签 / 历史 / 网络 | **🔄 跨标签页操作**<br/>多标签 / 多窗口<br/>无缝协同管理      |
 
-与基于 Playwright 的 MCP 服务不同，本扩展直接在您**正在使用的 Chrome 浏览器**上运行，保留所有登录态、Cookie、扩展和用户偏好。无需启动独立浏览器进程，无需重新登录。
+---
 
-## 核心特性
+## ⚔️ 与 Playwright 对比
 
-- **🤖 AI 原生浏览器控制** — 让任何兼容 MCP 的客户端（Claude、Cursor、VS Code 扩展等）操控您的浏览器
-- **🔐 零配置，复用现有浏览器** — 直接使用您的 Chrome，所有登录态、书签和设置即刻可用
-- **🛡️ 纯本地运行** — 所有处理都在本地完成，数据不会离开您的环境
-- **🚄 Streamable HTTP 传输** — 现代 MCP 传输协议，支持实时流式响应
-- **🧠 语义搜索** — 内置向量数据库和本地嵌入模型，支持跨标签页内容发现
-- **📊 40+ 工具** — 全面的浏览器 API 覆盖：导航、截图、网络捕获、内容分析、表单交互、书签/历史管理、结构化数据提取
-- **⚡ SIMD 加速** — 自定义 WebAssembly SIMD 优化，向量运算速度提升 4-8 倍
-- **🔄 跨标签页上下文** — 无缝操作多个标签页和窗口
+| 维度           | Playwright MCP              | Chrome 扩展 MCP（本项目）                    |
+| -------------- | --------------------------- | -------------------------------------------- |
+| **浏览器进程** | 需启动独立实例 + 下载二进制 | **直接使用你现有的 Chrome**                  |
+| **登录态**     | 每个站点重新登录            | **自动继承**，即开即用                       |
+| **用户环境**   | 干净配置文件，无扩展无设置  | **完整用户配置**，一切保留                   |
+| **API 能力**   | 限于 Playwright API         | **完整 Chrome API**（标签页/书签/历史/下载） |
+| **启动速度**   | 需初始化新浏览器（数秒）    | **即刻激活**（< 1s）                         |
+| **通信延迟**   | 50–200ms                    | **更低延迟**，进程内通信                     |
 
-## 与 Playwright 方案对比
+---
 
-| 对比维度       | 基于 Playwright 的 MCP                                     | 基于 Chrome 扩展的 MCP（本项目）                         |
-| -------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
-| **浏览器进程** | 需启动独立浏览器实例；需安装 Playwright + 下载浏览器二进制 | 直接使用用户现有的 Chrome                                |
-| **登录态**     | 每个站点需要重新登录                                       | 自动继承已有登录态                                       |
-| **用户环境**   | 干净配置文件——无扩展、无设置                               | 完整用户配置——扩展、Cookie、偏好全部保留                 |
-| **API 能力**   | 受限于 Playwright API                                      | 完整的 Chrome 扩展 API（标签页、书签、历史记录、下载等） |
-| **启动速度**   | 需启动并初始化新浏览器                                     | 扩展即刻激活                                             |
-| **通信延迟**   | 50–200ms（浏览器协议）                                     | 更低延迟（进程内通信）                                   |
+## 🚀 5 分钟上手
 
-## 快速开始
+### 1️⃣ 安装 Chrome 扩展
 
-### 环境要求
+从 [Releases 页面](https://github.com/phoenixlucky/mcp-chrome-2026/releases) 下载 `chrome-mcp-server-*.zip`。
 
-- Node.js >= 20.0.0（本仓库使用 Corepack 固定 pnpm 11.14.0）
-- Chrome 或 Chromium 浏览器
+打开 `chrome://extensions/` → 开启 **开发者模式** → 拖入 `.zip` 安装。
 
-### 安装步骤
-
-#### 1. 安装 Chrome 扩展
-
-从 [Releases 页面](https://github.com/phoenixlucky/mcp-chrome-2026/releases) 下载最新的 `chrome-mcp-server-*.zip`。
-
-在 Chrome 中加载：
-
-1. 打开 `chrome://extensions/`
-2. 开启右上角的**开发者模式**
-3. 将下载的 `.zip` 文件拖入页面即可安装
-4. 扩展图标显示在工具栏中
-
-#### 2. 安装 Native Host
+### 2️⃣ 安装 Native Host
 
 ```bash
-# npm（安装后自动注册 Native Messaging Host）
+# npm（推荐，自动注册）
 npm install -g @ethanwilkins/mcp-chrome-bridge-2026
 
 # pnpm
 pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 ```
 
-安装后 `postinstall` 脚本会自动注册 Native Messaging Host。如果注册未成功，可手动运行：
+> `postinstall` 自动注册 Native Messaging Host。如需手动注册：`mcp-chrome-bridge register`
 
-```bash
-mcp-chrome-bridge register
-```
-
-#### 3. 启动服务
+### 3️⃣ 启动服务
 
 ```bash
 # 一键启动（推荐）
 mcp-chrome-bridge start
 
-# 或克隆仓库后通过脚本启动
+# 或克隆仓库后用脚本
 start-server.bat
 ```
 
-Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mcp` 上启动 MCP HTTP 服务。
+服务将在 `http://127.0.0.1:12306/mcp` 监听。
 
-### 配置 MCP 客户端
+### 4️⃣ 配置客户端
 
-#### Streamable HTTP（推荐）
+**Streamable HTTP（推荐）**
 
 ```json
 {
@@ -101,7 +95,7 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 }
 ```
 
-#### STDIO（备选）
+**STDIO（备选）**
 
 ```json
 {
@@ -114,96 +108,77 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 }
 ```
 
-> 完整更新历史请查看 [CHANGELOG](docs/CHANGELOG.md)
+---
 
-## 工具一览
+## 🛠️ 工具一览
 
-| 分类           | 数量 | 说明                                                               |
-| -------------- | ---- | ------------------------------------------------------------------ |
-| **浏览器管理** | 7    | 窗口/标签页列表、导航、切换、关闭、前进后退、脚本注入              |
-| **截图**       | 1    | 元素级、全页面、自定义视口截图                                     |
-| **网络监控**   | 4    | 请求捕获（webRequest/Debugger API）、自定义 HTTP 请求              |
-| **内容分析**   | 4    | 语义搜索、HTML/文本提取、交互元素检测、控制台输出捕获              |
-| **交互操作**   | 3    | 点击、表单填充、键盘输入                                           |
-| **数据管理**   | 4    | 历史记录搜索、书签增删查                                           |
-| **采集提取**   | 6+   | 标签页 URL、滚动、等待、结构化提取、Readability 提取、点击等待组合 |
+| 分类              | 数量 | 覆盖能力                                              |
+| ----------------- | :--: | ----------------------------------------------------- |
+| 🖥️ **浏览器管理** |  7   | 窗口/标签页列表、导航、切换、关闭、前进后退、脚本注入 |
+| 📷 **截图**       |  1   | 元素级、全页面、自定义视口                            |
+| 🌐 **网络监控**   |  4   | 请求捕获（webRequest / CDP）、自定义 HTTP             |
+| 📝 **内容分析**   |  4   | 语义搜索、HTML / 文本提取、交互元素检测、控制台日志   |
+| 🖱️ **交互操作**   |  3   | 点击、表单填充、键盘输入                              |
+| 📑 **数据管理**   |  4   | 历史搜索、书签增删查                                  |
+| 📡 **采集提取**   |  6+  | 滚动、等待、结构化提取、Readability、点击等待组合     |
 
-完整 API 参考：[中文](docs/TOOLS_zh.md) | [English](docs/TOOLS.md)
+📖 完整 API 参考：[中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
-## 使用指南
+---
 
-- [智能助手指南](docs/SMART_ASSISTANT_zh.md) | [English](docs/SMART_ASSISTANT.md)：Claude、Codex、DeepSeek 会话与 API 配置。
-- [快捷工具指南](docs/QUICK_TOOLS_zh.md) | [English](docs/QUICK_TOOLS.md)：页面 Quick Panel 和插件弹窗 MCP 工具目录。
+## 📚 使用指南
 
-## 使用示例
+| 指南                                          | 说明                                      |
+| --------------------------------------------- | ----------------------------------------- |
+| 🤖 [智能助手指南](docs/SMART_ASSISTANT_zh.md) | Claude / Codex / DeepSeek 会话与 API 配置 |
+| ⚡ [快捷工具指南](docs/QUICK_TOOLS_zh.md)     | 页面 Quick Panel 和插件弹窗 MCP 工具目录  |
 
-### AI 总结网页 + Excalidraw 可视化
+---
 
-**Prompt**: [excalidraw-prompt](prompt/excalidraw-prompt.md)  
-**指令**: 总结当前页面内容，画图帮助理解。  
-[演示视频](https://www.youtube.com/watch?v=3fBPdUBWVz0)
+## 🎬 使用场景
 
-### AI 分析图片并用 Excalidraw 重建
+| 场景                               | 操作                    | 演示                                                                            |
+| ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
+| 📄 **AI 总结 + Excalidraw 可视化** | 总结页面内容并画图      | [视频](https://www.youtube.com/watch?v=3fBPdUBWVz0)                             |
+| 🖼️ **图片分析 + Excalidraw 复现**  | 分析图片内容并重建      | [视频](https://www.youtube.com/watch?v=tEPdHZBzbZk)                             |
+| 🎨 **样式注入与网页修改**          | 修改页面样式去广告      | [视频](https://youtu.be/twI6apRKHsk)                                            |
+| 📡 **网络请求捕获分析**            | 查找 API 端点与响应结构 | [视频](https://youtu.be/1hHKr7XKqnQ)                                            |
+| 📊 **浏览历史分析**                | 分析近一个月浏览记录    | [视频](https://youtu.be/jf2UZfrR2Vk)                                            |
+| 💬 **网页对话**                    | 翻译并总结当前页面      | [视频](https://youtu.be/FlJKS9UQyC8)                                            |
+| 📸 **页面与元素截图**              | 截取首页 / 捕获图标     | [视频 1](https://youtu.be/7ycK6iksWi4) · [视频 2](https://youtu.be/ev8VivANIrk) |
+| 🔖 **书签管理**                    | 将当前页添加到书签      | [视频](https://youtu.be/R_83arKmFTo)                                            |
+| 🗑️ **批量关闭标签页**              | 关闭匹配关键词的标签页  | [视频](https://youtu.be/2wzUT6eNVg4)                                            |
 
-**Prompt**: [excalidraw-prompt](prompt/excalidraw-prompt.md) | [content-analize](prompt/content-analize.md)  
-**指令**: 分析图片内容，使用 Excalidraw 复现。  
-[演示视频](https://www.youtube.com/watch?v=tEPdHZBzbZk)
+---
 
-### 样式注入与网页修改
+## 🗺️ 路线图
 
-**Prompt**: [modify-web-prompt](prompt/modify-web.md)  
-**指令**: 修改当前页面样式，去除广告。  
-[演示视频](https://youtu.be/twI6apRKHsk)
+- ☐ 认证与权限管理
+- ☐ 浏览器工作流录制与回放
+- ☐ 可视化工作流自动化编辑器
+- ☐ Firefox 扩展支持
 
-### 网络请求捕获与分析
+---
 
-**指令**: 找出搜索 API 端点，查看响应结构。  
-[演示视频](https://youtu.be/1hHKr7XKqnQ)
+## 🤝 贡献
 
-### 浏览历史分析
+欢迎贡献！提交 PR 前请阅读 [CONTRIBUTING_zh.md](docs/CONTRIBUTING_zh.md)。
 
-**指令**: 分析近一个月的浏览记录。  
-[演示视频](https://youtu.be/jf2UZfrR2Vk)
+---
 
-### 网页对话
-
-**指令**: 翻译并总结当前网页。  
-[演示视频](https://youtu.be/FlJKS9UQyC8)
-
-### 页面与元素截图
-
-**指令**: 截取 Hugging Face 首页 / 捕获特定图标元素。  
-[演示视频：页面](https://youtu.be/7ycK6iksWi4) | [演示视频：元素](https://youtu.be/ev8VivANIrk)
-
-### 书签管理
-
-**指令**: 将当前页面添加到书签，放入合适的文件夹。  
-[演示视频](https://youtu.be/R_83arKmFTo)
-
-### 批量关闭标签页
-
-**指令**: 关闭所有匹配关键词的标签页。  
-[演示视频](https://youtu.be/2wzUT6eNVg4)
-
-## 路线图
-
-- [ ] 认证与权限管理
-- [ ] 浏览器工作流录制与回放
-- [ ] 可视化工作流自动化编辑器
-- [ ] Firefox 扩展支持
-
-## 贡献
-
-欢迎贡献代码。提交 Pull Request 前请阅读 [CONTRIBUTING_zh.md](docs/CONTRIBUTING_zh.md)。
-
-## 许可证
+## 📄 许可证
 
 MIT — 详见 [LICENSE](LICENSE) 文件。
 
-## 更多文档
+---
 
-- [架构设计](docs/ARCHITECTURE_zh.md)
-- [工具 API 参考](docs/TOOLS_zh.md)
-- [智能助手指南](docs/SMART_ASSISTANT_zh.md)
-- [快捷工具指南](docs/QUICK_TOOLS_zh.md)
-- [故障排除](docs/TROUBLESHOOTING_zh.md)
+## 📖 更多文档
+
+| 文档             | 链接                                                |
+| ---------------- | --------------------------------------------------- |
+| 🏗️ 架构设计      | [ARCHITECTURE_zh.md](docs/ARCHITECTURE_zh.md)       |
+| 🔧 工具 API 参考 | [TOOLS_zh.md](docs/TOOLS_zh.md)                     |
+| 🤖 智能助手指南  | [SMART_ASSISTANT_zh.md](docs/SMART_ASSISTANT_zh.md) |
+| ⚡ 快捷工具指南  | [QUICK_TOOLS_zh.md](docs/QUICK_TOOLS_zh.md)         |
+| 🔍 故障排除      | [TROUBLESHOOTING_zh.md](docs/TROUBLESHOOTING_zh.md) |
+| 📋 更新日志      | [CHANGELOG.md](docs/CHANGELOG.md)                   |

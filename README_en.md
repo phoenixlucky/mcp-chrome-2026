@@ -1,94 +1,88 @@
-# Chrome MCP Server
+<p align="center">
+  <img src="app/chrome-extension/public/icon/128.png" alt="Chrome MCP Server" width="96" height="96" />
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://developer.chrome.com/docs/extensions/)
+<h1 align="center">Chrome MCP Server</h1>
 
-> **Bridge AI agents with your Chrome browser** — A Model Context Protocol (MCP) server that exposes Chrome browser capabilities to AI assistants for browser automation, content analysis, and data extraction.
+<p align="center">
+  <b>Bridge AI agents with your Chrome browser</b><br />
+  A Model Context Protocol server that exposes 40+ browser capabilities to AI assistants
+</p>
 
-**📖 Language**: [中文](README.md) | [English](README_en.md)
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.8+-blue.svg?style=flat-square" alt="TypeScript" /></a>
+  <a href="https://developer.chrome.com/docs/extensions/"><img src="https://img.shields.io/badge/Chrome-Extension-green.svg?style=flat-square" alt="Chrome Extension" /></a>
+  <a href="https://www.npmjs.com/package/@ethanwilkins/mcp-chrome-bridge-2026"><img src="https://img.shields.io/npm/v/@ethanwilkins/mcp-chrome-bridge-2026?style=flat-square" alt="npm" /></a>
+  <a href="https://github.com/phoenixlucky/mcp-chrome-2026/releases"><img src="https://img.shields.io/github/v/release/phoenixlucky/mcp-chrome-2026?style=flat-square" alt="GitHub Release" /></a>
+</p>
+
+<p align="center">
+  <b>
+    <a href="README.md">🇨🇳 中文</a> ·
+    <a href="README_en.md">🇬🇧 English</a>
+  </b>
+</p>
 
 ---
 
-## Overview
+## ✨ Features
 
-Chrome MCP Server is a **Model Context Protocol (MCP) server** built as a Chrome extension. It grants AI assistants direct control over your browser through **40+ tools** — navigate pages, extract data, take screenshots, monitor networks, manage bookmarks, and more.
+|                                                                                           |                                                                               |                                                                                 |                                                                              |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 40+ Tools**<br/>Navigation / forms<br/>bookmarks / history / network       | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
-Unlike Playwright-based MCP servers, this extension operates on your **existing Chrome instance**, preserving your login sessions, cookies, extensions, and user preferences. No separate browser process, no re-authentication.
+---
 
-## Features
+## ⚔️ vs Playwright-based Alternatives
 
-- **🤖 AI-Native Browser Control** — Let any MCP-compatible client (Claude, Cursor, VS Code extensions, etc.) automate your browser
-- **🔐 Zero Setup, Reuse Your Browser** — Works with your existing Chrome — all login sessions, bookmarks, and settings are immediately available
-- **🛡️ Fully Local** — All processing stays on your machine; no data leaves your environment
-- **🚄 Streamable HTTP Transport** — Modern MCP transport for real-time streaming responses
-- **🧠 Semantic Search** — Built-in vector database with local embedding models for cross-tab content discovery
-- **📊 40+ Tools** — Comprehensive browser API coverage: navigation, screenshots, network capture, content analysis, form interaction, bookmark/history management, and structured data extraction
-- **⚡ SIMD Acceleration** — Custom WebAssembly SIMD optimizations deliver 4–8× faster vector operations for AI workloads
-- **🔄 Cross-Tab Context** — Operate across multiple tabs and windows seamlessly
+| Dimension            | Playwright MCP                                | Chrome Extension MCP (This Project)                       |
+| -------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| **Browser Process**  | Launches separate instance + downloads binary | **Uses your existing Chrome**                             |
+| **Login Sessions**   | Re-authenticate every site                    | **Automatically inherited**                               |
+| **User Environment** | Clean profile — no extensions, no settings    | **Full user profile** — everything intact                 |
+| **API Surface**      | Limited to Playwright API                     | **Full Chrome API** (tabs, bookmarks, history, downloads) |
+| **Startup Time**     | Initialize new browser (seconds)              | **Instant** (< 1s)                                        |
+| **Latency**          | 50–200ms                                      | **Lower** — in-process communication                      |
 
-## Comparison with Playwright-based Alternatives
+---
 
-| Dimension                 | Playwright-based MCP                                                                | Chrome Extension MCP (This Project)                                          |
-| ------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Browser Process**       | Launches a separate browser instance; requires Playwright + browser binary download | Uses your existing Chrome directly                                           |
-| **Login Sessions**        | Requires re-authentication to every site                                            | Automatically inherits existing sessions                                     |
-| **User Environment**      | Clean profile — no extensions, no settings                                          | Full user profile — extensions, cookies, preferences intact                  |
-| **API Surface**           | Limited to Playwright's API                                                         | Full Chrome extension API access (tabs, bookmarks, history, downloads, etc.) |
-| **Startup Time**          | Must launch and initialize a new browser                                            | Extension activates instantly                                                |
-| **Inter-Process Latency** | 50–200ms (browser protocol)                                                         | Lower latency (in-process communication)                                     |
+## 🚀 5-Minute Setup
 
-## Quick Start
+### 1️⃣ Install the Chrome Extension
 
-### Prerequisites
+Download `chrome-mcp-server-*.zip` from the [Releases page](https://github.com/phoenixlucky/mcp-chrome-2026/releases).
 
-- Node.js >= 20.0.0 (this repository pins pnpm 11.14.0 through Corepack)
-- Chrome or Chromium browser
+Open `chrome://extensions/` → enable **Developer mode** → drag & drop the `.zip` to install.
 
-### Installation
-
-#### 1. Install the Chrome Extension
-
-Download the latest `chrome-mcp-server-*.zip` from the [Releases page](https://github.com/phoenixlucky/mcp-chrome-2026/releases).
-
-Load it in Chrome:
-
-1. Open `chrome://extensions/`
-2. Enable **Developer mode** (toggle in the top-right corner)
-3. Drag and drop the `.zip` file onto the page to install
-4. The extension icon appears in the toolbar
-
-#### 2. Install the Native Host
+### 2️⃣ Install the Native Host
 
 ```bash
-# npm (auto-registers Native Messaging Host via postinstall)
+# npm (recommended — auto-registers)
 npm install -g @ethanwilkins/mcp-chrome-bridge-2026
 
 # pnpm
 pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 ```
 
-The `postinstall` script automatically registers the Native Messaging Host. If registration fails, run manually:
+> `postinstall` auto-registers Native Messaging Host. Manual: `mcp-chrome-bridge register`
 
-```bash
-mcp-chrome-bridge register
-```
-
-#### 3. Start the Service
+### 3️⃣ Start the Service
 
 ```bash
 # One-click start (recommended)
 mcp-chrome-bridge start
 
-# Or via the startup script after cloning the repo
+# Or via the startup script after cloning
 start-server.bat
 ```
 
-The native host listens for connections from the Chrome extension and starts an MCP HTTP server on `http://127.0.0.1:12306/mcp`.
+The service listens on `http://127.0.0.1:12306/mcp`.
 
-### Configure Your MCP Client
+### 4️⃣ Configure Your MCP Client
 
-#### Streamable HTTP (Recommended)
+**Streamable HTTP (Recommended)**
 
 ```json
 {
@@ -101,7 +95,7 @@ The native host listens for connections from the Chrome extension and starts an 
 }
 ```
 
-#### STDIO (Alternative)
+**STDIO (Alternative)**
 
 ```json
 {
@@ -114,96 +108,77 @@ The native host listens for connections from the Chrome extension and starts an 
 }
 ```
 
-> Full changelog at [CHANGELOG](docs/CHANGELOG.md)
+---
 
-## Tools
+## 🛠️ Tools at a Glance
 
-| Category               | Tools | Description                                                                                  |
-| ---------------------- | ----- | -------------------------------------------------------------------------------------------- |
-| **Browser Management** | 7     | Window/tab listing, navigation, switch, close, go back/forward, script injection             |
-| **Screenshots**        | 1     | Element-level, full-page, and custom-viewport screenshots                                    |
-| **Network Monitoring** | 4     | Request capture (webRequest/Debugger API), custom HTTP requests                              |
-| **Content Analysis**   | 4     | Semantic search, HTML/text extraction, interactive element detection, console output capture |
-| **Interaction**        | 3     | Click, fill forms, keyboard input                                                            |
-| **Data Management**    | 4     | History search, bookmark CRUD                                                                |
-| **Scraping**           | 6+    | Tab URL, scroll, wait, structured extraction, Readability extraction, click-and-wait         |
+| Category                  | Count | Coverage                                                                              |
+| ------------------------- | :---: | ------------------------------------------------------------------------------------- |
+| 🖥️ **Browser Management** |   7   | Window/tab listing, navigation, switch, close, go back/forward, script injection      |
+| 📷 **Screenshots**        |   1   | Element-level, full-page, custom viewport                                             |
+| 🌐 **Network Monitoring** |   4   | Request capture (webRequest / CDP), custom HTTP                                       |
+| 📝 **Content Analysis**   |   4   | Semantic search, HTML/text extraction, interactive element detection, console capture |
+| 🖱️ **Interaction**        |   3   | Click, fill forms, keyboard input                                                     |
+| 📑 **Data Management**    |   4   | History search, bookmark CRUD                                                         |
+| 📡 **Scraping**           |  6+   | Scroll, wait, structured extraction, Readability, click-and-wait                      |
 
-Full API reference: [中文](docs/TOOLS_zh.md) | [English](docs/TOOLS.md)
+📖 Full API reference: [中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
-## Usage Guides
+---
 
-- [Smart Assistant Guide](docs/SMART_ASSISTANT.md) | [中文](docs/SMART_ASSISTANT_zh.md): Claude, Codex, DeepSeek sessions, and API configuration.
-- [Quick Tools Guide](docs/QUICK_TOOLS.md) | [中文](docs/QUICK_TOOLS_zh.md): the page Quick Panel and popup MCP tool catalog.
+## 📚 Usage Guides
 
-## Usage Examples
+| Guide                                               | Description                                            |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| 🤖 [Smart Assistant Guide](docs/SMART_ASSISTANT.md) | Claude / Codex / DeepSeek sessions & API configuration |
+| ⚡ [Quick Tools Guide](docs/QUICK_TOOLS.md)         | Page Quick Panel & popup MCP tool catalog              |
 
-### AI-Powered Page Summarization + Excalidraw Visualization
+---
 
-**Prompt**: [excalidraw-prompt](prompt/excalidraw-prompt.md)  
-**Instruction**: Summarize the current page and draw a diagram to illustrate the content.  
-[Demo video](https://www.youtube.com/watch?v=3fBPdUBWVz0)
+## 🎬 Use Cases
 
-### AI-Driven Image Reconstruction in Excalidraw
+| Scenario                           | Prompt                                                                                           | Demo                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| 📄 **AI Summary + Excalidraw Viz** | [excalidraw-prompt](prompt/excalidraw-prompt.md)                                                 | [Video](https://www.youtube.com/watch?v=3fBPdUBWVz0)                              |
+| 🖼️ **Image Analysis + Excalidraw** | [excalidraw-prompt](prompt/excalidraw-prompt.md) \| [content-analize](prompt/content-analize.md) | [Video](https://www.youtube.com/watch?v=tEPdHZBzbZk)                              |
+| 🎨 **Style Injection & Web Mod**   | [modify-web-prompt](prompt/modify-web.md)                                                        | [Video](https://youtu.be/twI6apRKHsk)                                             |
+| 📡 **Network Request Analysis**    | —                                                                                                | [Video](https://youtu.be/1hHKr7XKqnQ)                                             |
+| 📊 **Browsing History Analysis**   | —                                                                                                | [Video](https://youtu.be/jf2UZfrR2Vk)                                             |
+| 💬 **Web Page Conversation**       | —                                                                                                | [Video](https://youtu.be/FlJKS9UQyC8)                                             |
+| 📸 **Page & Element Screenshots**  | —                                                                                                | [Video 1](https://youtu.be/7ycK6iksWi4) · [Video 2](https://youtu.be/ev8VivANIrk) |
+| 🔖 **Bookmark Management**         | —                                                                                                | [Video](https://youtu.be/R_83arKmFTo)                                             |
+| 🗑️ **Batch Tab Closure**           | —                                                                                                | [Video](https://youtu.be/2wzUT6eNVg4)                                             |
 
-**Prompt**: [excalidraw-prompt](prompt/excalidraw-prompt.md) | [content-analize](prompt/content-analize.md)  
-**Instruction**: Analyze the image content and replicate it using Excalidraw.  
-[Demo video](https://www.youtube.com/watch?v=tEPdHZBzbZk)
+---
 
-### Style Injection & Webpage Modification
+## 🗺️ Roadmap
 
-**Prompt**: [modify-web-prompt](prompt/modify-web.md)  
-**Instruction**: Modify the current page styles and remove advertisements.  
-[Demo video](https://youtu.be/twI6apRKHsk)
+- ☐ Authentication & permission management
+- ☐ Browser workflow recording & playback
+- ☐ Visual workflow automation builder
+- ☐ Firefox extension support
 
-### Network Request Capture & Analysis
+---
 
-**Instruction**: Identify search API endpoints and inspect response structures.  
-[Demo video](https://youtu.be/1hHKr7XKqnQ)
+## 🤝 Contributing
 
-### Browsing History Analysis
+Contributions welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) before submitting a PR.
 
-**Instruction**: Analyze the past month's browsing history.  
-[Demo video](https://youtu.be/jf2UZfrR2Vk)
+---
 
-### Web Page Conversation
-
-**Instruction**: Translate and summarize the current web page.  
-[Demo video](https://youtu.be/FlJKS9UQyC8)
-
-### Page & Element Screenshots
-
-**Instruction**: Screenshot Hugging Face's homepage / capture a specific icon element.  
-[Demo video: page](https://youtu.be/7ycK6iksWi4) | [Demo video: element](https://youtu.be/ev8VivANIrk)
-
-### Bookmark Management
-
-**Instruction**: Add the current page to bookmarks in the appropriate folder.  
-[Demo video](https://youtu.be/R_83arKmFTo)
-
-### Batch Tab Closure
-
-**Instruction**: Close all tabs matching a keyword.  
-[Demo video](https://youtu.be/2wzUT6eNVg4)
-
-## Project Roadmap
-
-- [ ] Authentication & permission management
-- [ ] Recording and playback of browser workflows
-- [ ] Visual workflow automation builder
-- [ ] Firefox extension support
-
-## Contributing
-
-Contributions are welcome. Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) before submitting a pull request.
-
-## License
+## 📄 License
 
 MIT — see [LICENSE](LICENSE) for details.
 
-## Documentation
+---
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Tool API Reference](docs/TOOLS.md)
-- [Smart Assistant Guide](docs/SMART_ASSISTANT.md)
-- [Quick Tools Guide](docs/QUICK_TOOLS.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+## 📖 Documentation
+
+| Document                 | Link                                          |
+| ------------------------ | --------------------------------------------- |
+| 🏗️ Architecture          | [ARCHITECTURE.md](docs/ARCHITECTURE.md)       |
+| 🔧 Tool API Reference    | [TOOLS.md](docs/TOOLS.md)                     |
+| 🤖 Smart Assistant Guide | [SMART_ASSISTANT.md](docs/SMART_ASSISTANT.md) |
+| ⚡ Quick Tools Guide     | [QUICK_TOOLS.md](docs/QUICK_TOOLS.md)         |
+| 🔍 Troubleshooting       | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| 📋 Changelog             | [CHANGELOG.md](docs/CHANGELOG.md)             |
