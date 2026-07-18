@@ -58,6 +58,7 @@
       }
 
       .em-panel {
+        position: relative;
         width: 400px;
         background: #ffffff;
         border-radius: 12px;
@@ -474,6 +475,79 @@
         background: #e5e5e5;
       }
 
+      .em-code-dialog {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.28);
+        border-radius: 12px;
+      }
+
+      .em-code-dialog.open {
+        display: flex;
+      }
+
+      .em-code-card {
+        width: 100%;
+        max-height: calc(100vh - 48px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+      }
+
+      .em-code-header, .em-code-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .em-code-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #262626;
+      }
+
+      .em-code-tabs {
+        display: flex;
+        gap: 4px;
+      }
+
+      .em-code-tab {
+        padding: 6px 10px;
+        border: 0;
+        border-radius: 6px;
+        background: #f5f5f5;
+        color: #525252;
+        cursor: pointer;
+      }
+
+      .em-code-tab.active {
+        background: #2563eb;
+        color: #ffffff;
+      }
+
+      .em-code-output {
+        min-height: 160px;
+        max-height: 50vh;
+        margin: 0;
+        padding: 12px;
+        overflow: auto;
+        background: #171717;
+        border-radius: 8px;
+        color: #e5e5e5;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        white-space: pre-wrap;
+        user-select: text;
+      }
+
       /* Footer */
       .em-footer {
         font-size: 12px;
@@ -827,6 +901,24 @@
         <!-- Footer -->
         <div class="em-footer">
           点击元素，或按 <kbd>空格</kbd> 进行标记
+        </div>
+
+        <div class="em-code-dialog" id="__em_code_dialog" role="dialog" aria-modal="true" aria-label="元素定位代码">
+          <div class="em-code-card">
+            <div class="em-code-header">
+              <span class="em-code-title">元素定位代码</span>
+              <button class="em-icon-btn" id="__em_code_close" title="关闭">×</button>
+            </div>
+            <div class="em-code-tabs">
+              <button class="em-code-tab active" data-code-language="javascript">JavaScript</button>
+              <button class="em-code-tab" data-code-language="python">Python (Selenium)</button>
+            </div>
+            <pre class="em-code-output" id="__em_code_output"></pre>
+            <div class="em-code-actions">
+              <span id="__em_code_hint">可直接复制到自动化脚本</span>
+              <button class="em-btn em-btn-primary" id="__em_code_copy">复制 JavaScript</button>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -2020,6 +2112,13 @@
   function onKeyDown(e) {
     if (!STATE.active) return;
 
+    const codeDialog = STATE.box?.querySelector('#__em_code_dialog');
+    if (codeDialog?.classList.contains('open') && e.key === 'Escape') {
+      e.preventDefault();
+      codeDialog.classList.remove('open');
+      return;
+    }
+
     // Check if the focused element is inside the panel - if so, don't handle selection keys
     if (isInsidePanel(e.target)) {
       // Key event is from panel, don't interfere
@@ -2455,19 +2554,59 @@
     const marker = getMarkerData();
     if (!marker) return;
 
-    const blob = new Blob(
-      [JSON.stringify({ ...marker, exportedAt: new Date().toISOString() }, null, 2)],
-      {
-        type: 'application/json',
-      },
-    );
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${marker.name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60) || 'element-marker'}.json`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-    StateStore.set({ validation: { status: 'success', message: '✓ 定位信息已导出' } });
+    const dialog = STATE.box?.querySelector('#__em_code_dialog');
+    if (!dialog) return;
+    dialog.dataset.javascript = makeLocatorCode(marker, 'javascript');
+    dialog.dataset.python = makeLocatorCode(marker, 'python');
+    showLocatorCode('javascript');
+    dialog.classList.add('open');
+  }
+
+  function makeLocatorCode(marker, language) {
+    const selector = JSON.stringify(marker.selector);
+    const multiple = !!marker.listMode;
+    if (language === 'python') {
+      const by = marker.selectorType === 'xpath' ? 'XPATH' : 'CSS_SELECTOR';
+      return `from selenium.webdriver.common.by import By\n\n${multiple ? 'elements' : 'element'} = driver.find_${multiple ? 'elements' : 'element'}(By.${by}, ${selector})`;
+    }
+    if (marker.selectorType === 'xpath') {
+      if (multiple) {
+        return `const result = document.evaluate(${selector}, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);\nconst elements = Array.from({ length: result.snapshotLength }, (_, index) => result.snapshotItem(index));`;
+      }
+      return `const element = document.evaluate(${selector}, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;`;
+    }
+    return `const ${multiple ? 'elements' : 'element'} = document.querySelector${multiple ? 'All' : ''}(${selector});`;
+  }
+
+  function showLocatorCode(language) {
+    const dialog = STATE.box?.querySelector('#__em_code_dialog');
+    const output = STATE.box?.querySelector('#__em_code_output');
+    const copyButton = STATE.box?.querySelector('#__em_code_copy');
+    if (!dialog || !output || !copyButton) return;
+    const code = dialog.dataset[language] || '';
+    output.textContent = code;
+    copyButton.textContent = `复制 ${language === 'python' ? 'Python' : 'JavaScript'}`;
+    dialog.dataset.codeLanguage = language;
+    dialog.querySelectorAll('[data-code-language]').forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.codeLanguage === language);
+    });
+  }
+
+  async function copyLocatorCode() {
+    const dialog = STATE.box?.querySelector('#__em_code_dialog');
+    const code = dialog?.dataset[dialog.dataset.codeLanguage || 'javascript'];
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = code;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    StateStore.set({ validation: { status: 'success', message: '✓ 定位代码已复制到剪贴板' } });
   }
 
   async function save() {
@@ -2560,6 +2699,16 @@
     // Save
     host.querySelector('#__em_save')?.addEventListener('click', save);
     host.querySelector('#__em_export')?.addEventListener('click', exportMarker);
+    host.querySelector('#__em_code_close')?.addEventListener('click', () => {
+      host.querySelector('#__em_code_dialog')?.classList.remove('open');
+    });
+    host.querySelector('#__em_code_dialog')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+    });
+    host.querySelectorAll('[data-code-language]').forEach((tab) => {
+      tab.addEventListener('click', () => showLocatorCode(tab.dataset.codeLanguage));
+    });
+    host.querySelector('#__em_code_copy')?.addEventListener('click', copyLocatorCode);
 
     // Verify (highlight only) & Execute (real action)
     host.querySelector('#__em_verify')?.addEventListener('click', verifyHighlightOnly);
