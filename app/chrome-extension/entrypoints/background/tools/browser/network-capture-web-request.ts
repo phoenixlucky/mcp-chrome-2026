@@ -99,6 +99,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   private requestCounters: Map<number, number> = new Map(); // tabId -> count of captured requests
   public static MAX_REQUESTS_PER_CAPTURE = LIMITS.MAX_NETWORK_REQUESTS; // Maximum capture request count
   private listeners: { [key: string]: (details: any) => void } = {};
+  private listenersReady = false;
 
   // Static resource MIME types list (for filtering)
   private static STATIC_MIME_TYPES_TO_FILTER = [
@@ -349,7 +350,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
    */
   private setupListeners(): void {
     // Skip if listeners are already set up
-    if (this.listeners.onBeforeRequest) {
+    if (this.listenersReady) {
       return;
     }
 
@@ -501,6 +502,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     chrome.webRequest.onErrorOccurred.addListener(this.listeners.onErrorOccurred, {
       urls: ['<all_urls>'],
     });
+    this.listenersReady = true;
   }
 
   /**
@@ -540,6 +542,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
 
     // Clear listener object
     this.listeners = {};
+    this.listenersReady = false;
   }
 
   /**

@@ -181,6 +181,10 @@ export function initElementMarkerListeners() {
               offsetX?: number;
               offsetY?: number;
               relativeTo?: 'element' | 'viewport';
+              waitForNavigation?: boolean;
+              timeoutMs?: number;
+              scrollDirection?: 'up' | 'down' | 'left' | 'right';
+              scrollAmount?: number;
             };
             // enrich typing with optional nav + scroll params
             (req as any).waitForNavigation = (message as any).waitForNavigation;
@@ -255,10 +259,14 @@ export function initElementMarkerListeners() {
             try {
               switch (action) {
                 case 'hover': {
+                  // The marker just resolved this element, so its viewport center is more reliable
+                  // than asking the hover tool to resolve the short-lived ref a second time.
                   const r = await computerTool.execute(
                     coords
                       ? { action: 'hover', coordinates: coords }
-                      : ({ action: 'hover', ref: ensured.ref } as any),
+                      : ensured.center
+                        ? { action: 'hover', coordinates: ensured.center }
+                        : ({ action: 'hover', ref: ensured.ref } as any),
                   );
                   const error = r.isError ? extractToolError(r) : undefined;
                   base.tool = { name: 'computer.hover', ok: !r.isError, error };

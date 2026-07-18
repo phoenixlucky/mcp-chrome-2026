@@ -144,9 +144,9 @@ function isGifMessage(message: unknown): message is GifMessage {
     OFFSCREEN_MESSAGE_TYPES.GIF_ADD_FRAME,
     OFFSCREEN_MESSAGE_TYPES.GIF_FINISH,
     OFFSCREEN_MESSAGE_TYPES.GIF_RESET,
-  ];
+  ] as const;
 
-  return gifTypes.includes(msg.type as string);
+  return gifTypes.includes(msg.type as (typeof gifTypes)[number]);
 }
 
 export function handleGifMessage(

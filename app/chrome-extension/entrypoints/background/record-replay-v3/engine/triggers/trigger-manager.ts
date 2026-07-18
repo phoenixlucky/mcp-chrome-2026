@@ -26,9 +26,9 @@ import type { TriggerFireCallback, TriggerHandler, TriggerHandlerFactory } from 
 /**
  * Handler 工厂映射
  */
-export type TriggerHandlerFactories = Partial<{
-  [K in TriggerKind]: TriggerHandlerFactory<K>;
-}>;
+// The factory map is dynamically indexed by trigger kind, so its key/value correlation
+// cannot survive Object.entries() at runtime.
+export type TriggerHandlerFactories = Partial<Record<TriggerKind, TriggerHandlerFactory<any>>>;
 
 /**
  * 防风暴配置
@@ -159,7 +159,7 @@ export function createTriggerManager(deps: TriggerManagerDeps): TriggerManager {
   let pendingRefresh = false;
 
   // Handler 实例
-  const handlers = new Map<TriggerKind, TriggerHandler<TriggerKind>>();
+  const handlers = new Map<TriggerKind, TriggerHandler<any>>();
 
   // 触发回调
   const fireCallback: TriggerFireCallback = {
@@ -175,7 +175,7 @@ export function createTriggerManager(deps: TriggerManagerDeps): TriggerManager {
 
   // 初始化 Handler 实例
   for (const [kind, factory] of Object.entries(deps.handlerFactories) as Array<
-    [TriggerKind, TriggerHandlerFactory<TriggerKind> | undefined]
+    [TriggerKind, TriggerHandlerFactory<any> | undefined]
   >) {
     if (!factory) continue; // Skip undefined factory values
 

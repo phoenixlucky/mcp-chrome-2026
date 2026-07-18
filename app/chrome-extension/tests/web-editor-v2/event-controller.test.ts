@@ -12,7 +12,7 @@ import {
   createEventController,
   type EventController,
   type EventControllerOptions,
-  type Modifiers,
+  type EventModifiers,
 } from '@/entrypoints/web-editor-v2/core/event-controller';
 
 import type { RestoreFn } from './test-utils/dom';
@@ -22,7 +22,7 @@ import { mockBoundingClientRect } from './test-utils/dom';
 // Test Utilities
 // =============================================================================
 
-const NO_MODIFIERS: Modifiers = { alt: false, shift: false, ctrl: false, meta: false };
+const NO_MODIFIERS: EventModifiers = { alt: false, shift: false, ctrl: false, meta: false };
 
 /**
  * Check if an element is part of the editor overlay.
@@ -113,9 +113,7 @@ describe('event-controller: selecting mode click behavior', () => {
 
     const options: EventControllerOptions = {
       isOverlayElement,
-      isEditorUiElement: () => false,
       getSelectedElement: () => selected,
-      getEditingElement: () => null,
       findTargetForSelect: () => child,
       onHover: vi.fn(),
       onSelect,
@@ -159,9 +157,7 @@ describe('event-controller: selecting mode click behavior', () => {
 
     const options: EventControllerOptions = {
       isOverlayElement,
-      isEditorUiElement: () => false,
       getSelectedElement: () => selected,
-      getEditingElement: () => null,
       findTargetForSelect: () => other, // Returns the "other" element as target
       onHover: vi.fn(),
       onSelect,
@@ -206,9 +202,7 @@ describe('event-controller: selecting mode click behavior', () => {
 
     const options: EventControllerOptions = {
       isOverlayElement,
-      isEditorUiElement: () => false,
       getSelectedElement: () => selected,
-      getEditingElement: () => null,
       findTargetForSelect: () => null, // No valid target found
       onHover: vi.fn(),
       onSelect,

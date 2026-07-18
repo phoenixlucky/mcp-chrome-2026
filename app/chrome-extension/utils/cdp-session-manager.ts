@@ -14,7 +14,9 @@ class CDPSessionManager {
   private sessions = new Map<number, TabSessionState>();
 
   constructor() {
-    chrome.debugger.onDetach.addListener(({ tabId }) => this.sessions.delete(tabId));
+    chrome.debugger.onDetach.addListener(({ tabId }) => {
+      if (typeof tabId === 'number') this.sessions.delete(tabId);
+    });
   }
 
   private getState(tabId: number): TabSessionState | undefined {

@@ -21,9 +21,11 @@ export const cssPathStrategy: SelectorStrategy = {
 
       let segment = tag;
 
-      const parent = current.parentElement;
+      const parent: Element | null = current.parentElement;
       if (parent) {
-        const siblings = Array.from(parent.children).filter((c) => c.tagName === current!.tagName);
+        const siblings = Array.from(parent.children).filter(
+          (c: Element) => c.tagName === current!.tagName,
+        );
         if (siblings.length > 1) {
           const index = siblings.indexOf(current) + 1;
           if (index > 0) segment += `:nth-of-type(${index})`;

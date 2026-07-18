@@ -11,7 +11,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FlowV3 } from '@/entrypoints/background/record-replay-v3/domain/flow';
-import type { RunRecordV3 } from '@/entrypoints/background/record-replay-v3/domain/events';
+import type {
+  RunEvent,
+  RunRecordV3,
+} from '@/entrypoints/background/record-replay-v3/domain/events';
 import type {
   TriggerKind,
   TriggerSpec,
@@ -173,7 +176,7 @@ describe('V3 TriggerManager', () => {
     } as Pick<StoragePort, 'triggers' | 'flows' | 'runs' | 'queue'>;
 
     events = {
-      append: vi.fn(async (event) => ({ ...event, ts: time, seq: 1 }) as unknown),
+      append: vi.fn(async (event) => ({ ...event, ts: time, seq: 1 }) as RunEvent),
     };
 
     scheduler = {

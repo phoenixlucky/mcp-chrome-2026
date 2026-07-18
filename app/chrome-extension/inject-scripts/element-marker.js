@@ -613,10 +613,10 @@
     const PANEL_TEMPLATE = `
       <div class="em-panel" id="em_panel_root">
         <!-- Header -->
-        <div class="em-header em-drag-handle" id="__em_drag_handle" title="Drag to move">
+        <div class="em-header em-drag-handle" id="__em_drag_handle" title="拖动移动">
           <h2 class="em-title">元素标注</h2>
           <div class="em-header-actions">
-            <button class="em-icon-btn" id="__em_close" title="Close">
+            <button class="em-icon-btn" id="__em_close" title="关闭">
               <svg viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
               </svg>
@@ -628,8 +628,8 @@
         <div class="em-controls">
           <div class="em-select-wrapper">
             <select class="em-select" id="__em_selector_type">
-              <option value="css">CSS Selector</option>
-              <option value="xpath">XPath</option>
+              <option value="css">CSS 定位</option>
+              <option value="xpath">XPath 定位</option>
             </select>
           </div>
           <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素 (仅支持CSS)">
@@ -637,7 +637,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <button class="em-square-btn" id="__em_toggle_tab" title="Toggle Execute tab">
+          <button class="em-square-btn" id="__em_toggle_tab" title="切换执行面板">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -647,17 +647,17 @@
 
         <!-- Selector Display -->
         <div class="em-selector-display">
-          <svg viewBox="0 0 24 24" id="__em_copy_selector" title="Copy selector">
+          <svg viewBox="0 0 24 24" id="__em_copy_selector" title="复制定位">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
-          <span class="em-selector-text" id="__em_selector_text">Click an element to select</span>
+          <span class="em-selector-text" id="__em_selector_text">点击页面元素进行标记</span>
           <div class="em-selector-nav">
-            <button class="em-nav-btn" id="__em_nav_up" title="Select parent">
+            <button class="em-nav-btn" id="__em_nav_up" title="选择父元素">
               <svg viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
               </svg>
             </button>
-            <button class="em-nav-btn" id="__em_nav_down" title="Select child">
+            <button class="em-nav-btn" id="__em_nav_down" title="选择子元素">
               <svg viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
               </svg>
@@ -667,8 +667,8 @@
 
         <!-- Tabs -->
         <div class="em-tabs">
-          <button class="em-tab active" data-tab="attributes">Attributes</button>
-          <button class="em-tab" data-tab="execute">Execute</button>
+          <button class="em-tab active" data-tab="attributes">标记</button>
+          <button class="em-tab" data-tab="execute">验证</button>
         </div>
 
         <!-- Status -->
@@ -676,20 +676,20 @@
 
         <!-- Content: Attributes Tab -->
         <div class="em-content" id="__em_tab_attributes">
-          <h3 class="em-section-title">#1 Element</h3>
+          <h3 class="em-section-title">已选元素</h3>
           
           <div class="em-attributes">
             <div class="em-attribute">
-              <div class="em-attribute-label">name</div>
+              <div class="em-attribute-label">名称</div>
               <div class="em-attribute-value editable">
-                <input class="em-input" id="__em_name" placeholder="Element name" />
+                <input class="em-input" id="__em_name" placeholder="元素名称" />
               </div>
             </div>
 
             <div class="em-attribute">
-              <div class="em-attribute-label">selector</div>
+              <div class="em-attribute-label">定位</div>
               <div class="em-attribute-value">
-                <svg class="copy-icon" viewBox="0 0 24 24" id="__em_copy" title="Copy">
+                <svg class="copy-icon" viewBox="0 0 24 24" id="__em_copy" title="复制定位">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                 </svg>
                 <span class="em-attribute-text" id="__em_selector">-</span>
@@ -697,31 +697,32 @@
             </div>
           </div>
 
-          <h3 class="em-section-title">Selector Preferences</h3>
+          <h3 class="em-section-title">定位偏好</h3>
           <div class="em-settings">
             <div class="em-checkbox-group">
               <label class="em-checkbox-label">
                 <input type="checkbox" id="__em_pref_id" checked />
-                <span>Prefer ID</span>
+                <span>优先使用 ID</span>
               </label>
               <label class="em-checkbox-label">
                 <input type="checkbox" id="__em_pref_attr" checked />
-                <span>Prefer stable attributes</span>
+                <span>优先使用稳定属性</span>
               </label>
               <label class="em-checkbox-label">
                 <input type="checkbox" id="__em_pref_class" checked />
-                <span>Prefer class names</span>
+                <span>优先使用类名</span>
               </label>
             </div>
           </div>
 
           <div class="em-actions">
-            <button class="em-btn em-btn-primary" id="__em_verify">Verify (Highlight Only)</button>
+            <button class="em-btn em-btn-primary" id="__em_verify">验证定位</button>
           </div>
 
           <div class="em-actions">
-            <button class="em-btn em-btn-success" id="__em_save">Save</button>
-            <button class="em-btn em-btn-ghost" id="__em_cancel">Cancel</button>
+            <button class="em-btn em-btn-success" id="__em_save">保存标记</button>
+            <button class="em-btn em-btn-ghost" id="__em_export">导出定位</button>
+            <button class="em-btn em-btn-ghost" id="__em_cancel">取消</button>
           </div>
         </div>
 
@@ -729,43 +730,43 @@
         <div class="em-content" id="__em_tab_execute" style="display: none;">
           <div class="em-settings">
             <div class="em-settings-group">
-              <div class="em-settings-label">Action</div>
+              <div class="em-settings-label">验证动作</div>
               <div class="em-select-wrapper">
                 <select class="em-select" id="__em_action">
-                  <option value="hover">Hover</option>
-                  <option value="left_click">Left click</option>
-                  <option value="double_click">Double click</option>
-                  <option value="right_click">Right click</option>
-                  <option value="scroll">Scroll</option>
-                  <option value="type_text">Type text</option>
-                  <option value="press_keys">Press keys</option>
+                  <option value="hover">悬停</option>
+                  <option value="left_click">左键点击</option>
+                  <option value="double_click">双击</option>
+                  <option value="right_click">右键点击</option>
+                  <option value="scroll">滚动</option>
+                  <option value="type_text">输入文本</option>
+                  <option value="press_keys">按键</option>
                 </select>
               </div>
             </div>
 
             <!-- Action-specific inputs (dynamically shown/hidden) -->
             <div class="em-settings-group" id="__em_action_text_group" style="display: none;">
-              <div class="em-settings-label">Text</div>
-              <input class="em-field-input" id="__em_action_text" placeholder="Text to type" />
+              <div class="em-settings-label">文本</div>
+              <input class="em-field-input" id="__em_action_text" placeholder="要输入的文本" />
             </div>
 
             <div class="em-settings-group" id="__em_action_keys_group" style="display: none;">
-              <div class="em-settings-label">Keys</div>
-              <input class="em-field-input" id="__em_action_keys" placeholder="Keys to press (e.g., Enter, Ctrl+C)" />
+              <div class="em-settings-label">按键</div>
+              <input class="em-field-input" id="__em_action_keys" placeholder="如 Enter、Ctrl+C" />
             </div>
 
             <div class="em-settings-group" id="__em_scroll_options" style="display: none;">
-              <div class="em-settings-label">Scroll Direction</div>
+              <div class="em-settings-label">滚动方向</div>
               <div class="em-select-wrapper">
                 <select class="em-select" id="__em_scroll_direction">
-                  <option value="down">Down</option>
-                  <option value="up">Up</option>
-                  <option value="left">Left</option>
-                  <option value="right">Right</option>
+                  <option value="down">向下</option>
+                  <option value="up">向上</option>
+                  <option value="left">向左</option>
+                  <option value="right">向右</option>
                 </select>
               </div>
               <div class="em-field" style="margin-top: 8px;">
-                <div class="em-field-label">Amount (1-10, ~100px each)</div>
+                <div class="em-field-label">次数（1–10，每次约 100px）</div>
                 <input class="em-field-input" id="__em_scroll_distance" type="number" min="1" max="10" step="1" value="3" />
               </div>
             </div>
@@ -774,15 +775,15 @@
             <div id="__em_click_options" style="display: none;">
               <div class="em-grid">
                 <div class="em-field">
-                  <div class="em-field-label">Button</div>
+                  <div class="em-field-label">鼠标按键</div>
                   <select class="em-select" id="__em_btn">
-                    <option value="left">Left</option>
-                    <option value="middle">Middle</option>
-                    <option value="right">Right</option>
+                    <option value="left">左键</option>
+                    <option value="middle">中键</option>
+                    <option value="right">右键</option>
                   </select>
                 </div>
                 <div class="em-field">
-                  <div class="em-field-label">Timeout (ms)</div>
+                  <div class="em-field-label">超时（毫秒）</div>
                   <input class="em-field-input" id="__em_nav_timeout" type="number" value="3000" />
                 </div>
               </div>
@@ -790,34 +791,34 @@
               <div class="em-checkbox-group" style="margin-top: 12px;">
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_wait_nav" />
-                  <span>Wait for navigation</span>
+                  <span>等待页面跳转</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_alt" />
-                  <span>Alt key</span>
+                  <span>Alt 键</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_ctrl" />
-                  <span>Ctrl key</span>
+                  <span>Ctrl 键</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_meta" />
-                  <span>Meta key</span>
+                  <span>Meta 键</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_shift" />
-                  <span>Shift key</span>
+                  <span>Shift 键</span>
                 </label>
               </div>
             </div>
 
             <div class="em-actions" style="margin-top: 16px;">
-              <button class="em-btn em-btn-primary" id="__em_execute">Execute</button>
+              <button class="em-btn em-btn-primary" id="__em_execute">执行验证</button>
             </div>
 
             <!-- Execution History -->
             <div id="__em_execution_history" style="margin-top: 16px; display: none;">
-              <div class="em-settings-label">Recent Executions</div>
+              <div class="em-settings-label">最近执行</div>
               <div id="__em_history_list" style="font-size: 12px; color: #737373; margin-top: 8px;"></div>
             </div>
           </div>
@@ -825,7 +826,7 @@
 
         <!-- Footer -->
         <div class="em-footer">
-          Click or press <kbd>Space</kbd> to select an element
+          点击元素，或按 <kbd>空格</kbd> 进行标记
         </div>
       </div>
     `;
@@ -1021,9 +1022,19 @@
           const icon = entry.success ? '✓' : '✗';
           const color = entry.success ? '#10b981' : '#ef4444';
           const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+          const actionName =
+            {
+              hover: '悬停',
+              left_click: '左键点击',
+              double_click: '双击',
+              right_click: '右键点击',
+              scroll: '滚动',
+              type_text: '输入文本',
+              press_keys: '按键',
+            }[entry.action] || entry.action;
           return `<div style="padding: 6px 0; border-bottom: 1px solid #f5f5f5;">
             <span style="color: ${color}; font-weight: 600;">${icon}</span>
-            <span style="margin-left: 6px;">${entry.action}</span>
+            <span style="margin-left: 6px;">${actionName}</span>
             <span style="float: right; color: #a3a3a3; font-size: 11px;">${timestamp}</span>
           </div>`;
         })
@@ -2085,7 +2096,7 @@
       if (!selector) return;
 
       StateStore.set({
-        validation: { status: 'running', message: 'Verifying selector...' },
+        validation: { status: 'running', message: '正在验证定位…' },
       });
 
       const selectorType = StateStore.get('selectorType');
@@ -2101,7 +2112,7 @@
 
       if (!filteredMatches || filteredMatches.length === 0) {
         StateStore.set({
-          validation: { status: 'failure', message: 'No elements found' },
+          validation: { status: 'failure', message: '未找到匹配元素' },
         });
         return;
       }
@@ -2138,7 +2149,7 @@
     } catch (error) {
       console.error('[verifyHighlightOnly] error:', error);
       StateStore.set({
-        validation: { status: 'failure', message: error.message || 'Verification failed' },
+        validation: { status: 'failure', message: error.message || '验证失败' },
       });
     }
   }
@@ -2152,7 +2163,7 @@
       if (!selector) return;
 
       StateStore.set({
-        validation: { status: 'running', message: 'Executing action...' },
+        validation: { status: 'running', message: '正在执行验证…' },
       });
 
       const selectorType = StateStore.get('selectorType');
@@ -2168,7 +2179,7 @@
 
       if (!filteredMatches || filteredMatches.length === 0) {
         StateStore.set({
-          validation: { status: 'failure', message: 'No elements found' },
+          validation: { status: 'failure', message: '未找到匹配元素' },
         });
         return;
       }
@@ -2259,7 +2270,7 @@
         StateStore.set({
           validation: {
             status: 'failure',
-            message: res?.tool?.error || '验证失败',
+            message: formatValidationError(res?.tool?.error),
           },
           validationHistory: history,
         });
@@ -2409,34 +2420,72 @@
     } catch {}
   }
 
+  function formatValidationError(error) {
+    const message = String(error || '验证失败');
+    if (message.includes('Provide ref or selector or coordinates for hover')) {
+      return '无法定位元素，请重新选择后验证';
+    }
+    return message;
+  }
+
+  function getMarkerData() {
+    const name = STATE.box?.querySelector('#__em_name')?.value?.trim();
+    const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
+    if (!selector) return null;
+
+    let selectorType = StateStore.get('selectorType');
+    const listMode = StateStore.get('listMode');
+    if (listMode && selectorType === 'xpath') selectorType = 'css';
+
+    const selected = STATE.selectedEl;
+    return {
+      name: name || selector,
+      url: location.href,
+      selector,
+      selectorType,
+      listMode,
+      locator: {
+        preferred: { type: selectorType, value: selector },
+        ...(selected ? { css: generateSelector(selected), xpath: generateXPath(selected) } : {}),
+      },
+    };
+  }
+
+  function exportMarker() {
+    const marker = getMarkerData();
+    if (!marker) return;
+
+    const blob = new Blob(
+      [JSON.stringify({ ...marker, exportedAt: new Date().toISOString() }, null, 2)],
+      {
+        type: 'application/json',
+      },
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${marker.name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60) || 'element-marker'}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    StateStore.set({ validation: { status: 'success', message: '✓ 定位信息已导出' } });
+  }
+
   async function save() {
     try {
-      const name = STATE.box?.querySelector('#__em_name')?.value?.trim();
-      const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
-
-      if (!selector) return;
-
-      const url = location.href;
-      let selectorType = StateStore.get('selectorType');
-      const listMode = StateStore.get('listMode');
-
-      if (listMode && selectorType === 'xpath') {
-        selectorType = 'css';
-      }
-
-      await chrome.runtime.sendMessage({
+      const marker = getMarkerData();
+      if (!marker) return;
+      const response = await chrome.runtime.sendMessage({
         type: 'element_marker_save',
-        marker: {
-          url,
-          name: name || selector,
-          selector,
-          selectorType,
-          listMode,
-        },
+        marker,
       });
-    } catch {}
-
-    stop();
+      StateStore.set({
+        validation: response?.success
+          ? { status: 'success', message: '✓ 标记已保存' }
+          : { status: 'failure', message: response?.error || '保存失败' },
+      });
+    } catch (error) {
+      StateStore.set({ validation: { status: 'failure', message: error?.message || '保存失败' } });
+    }
   }
 
   // ============================================================================
@@ -2510,6 +2559,7 @@
 
     // Save
     host.querySelector('#__em_save')?.addEventListener('click', save);
+    host.querySelector('#__em_export')?.addEventListener('click', exportMarker);
 
     // Verify (highlight only) & Execute (real action)
     host.querySelector('#__em_verify')?.addEventListener('click', verifyHighlightOnly);

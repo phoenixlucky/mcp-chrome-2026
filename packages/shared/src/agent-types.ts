@@ -82,6 +82,9 @@ export interface AgentAttachment {
 
 export type AgentCliPreference = 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm';
 
+/** Extension-provided presentation metadata stored with a user request. */
+export type AgentActRequestClientMeta = Record<string, unknown>;
+
 export interface AgentActRequest {
   instruction: string;
   cliPreference?: AgentCliPreference;
@@ -112,7 +115,7 @@ export interface AgentActRequest {
    * Optional client metadata to store with the user message.
    * For extension-specific context that should be preserved.
    */
-  clientMeta?: Record<string, unknown>;
+  clientMeta?: AgentActRequestClientMeta;
   /**
    * Optional display text override for the instruction.
    * When set, UI should display this instead of raw instruction.
@@ -235,6 +238,8 @@ export interface AgentSession {
   name?: string;
   /** Preview text from first user message, for display in session list */
   preview?: string;
+  /** Optional structured preview data for special session-list rendering. */
+  previewMeta?: Record<string, unknown>;
   model?: string;
   permissionMode: string;
   allowDangerouslySkipPermissions: boolean;
@@ -393,6 +398,11 @@ export interface AttachmentMetadata {
   originalName: string;
   /** Timestamp when attachment was created */
   createdAt: string;
+}
+
+/** Message metadata shape used when extracting persisted attachments. */
+export interface AgentMessageAttachmentMetadata {
+  attachments?: unknown[];
 }
 
 /**

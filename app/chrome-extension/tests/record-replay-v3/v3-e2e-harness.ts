@@ -17,7 +17,7 @@
 import { vi } from 'vitest';
 import { z } from 'zod';
 
-import type { JsonObject } from '@/entrypoints/background/record-replay-v3/domain/json';
+import type { JsonObject, JsonValue } from '@/entrypoints/background/record-replay-v3/domain/json';
 import type { RunId } from '@/entrypoints/background/record-replay-v3/domain/ids';
 import type {
   RunEvent,
@@ -66,11 +66,11 @@ import { isTerminalStatus } from '@/entrypoints/background/record-replay-v3/doma
 
 type Logger = Pick<Console, 'debug' | 'info' | 'warn' | 'error'>;
 
-interface TestNodeConfig {
+type TestNodeConfig = JsonObject & {
   action: 'succeed' | 'fail';
   outputs?: JsonObject;
   delayMs?: number;
-}
+};
 
 /**
  * E2E Harness 配置选项

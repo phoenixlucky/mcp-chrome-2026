@@ -3,6 +3,7 @@ import { blockImagesTool } from '@/entrypoints/background/tools/browser/block-im
 
 describe('chrome_block_images', () => {
   beforeEach(() => {
+    (chrome.tabs.get as any).mockResolvedValue({ id: 42, url: 'https://example.com' });
     (chrome.debugger.getTargets as any).mockResolvedValue([]);
     (chrome.debugger.attach as any).mockResolvedValue(undefined);
     (chrome.debugger.detach as any).mockResolvedValue(undefined);
@@ -26,6 +27,20 @@ describe('chrome_block_images', () => {
       { tabId: 42 },
       'Fetch.disable',
       undefined,
+    );
+  });
+
+  it('refuses a browser-internal tab instead of falling back to the active page', async () => {
+    (chrome.tabs.get as any).mockResolvedValue({ id: 42, url: 'chrome://extensions/' });
+
+    const result = await blockImagesTool.execute({ action: 'start', tabId: 42 });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('Pass the collector page tabId');
+    expect(chrome.debugger.sendCommand).not.toHaveBeenCalledWith(
+      { tabId: 42 },
+      'Fetch.enable',
+      expect.anything(),
     );
   });
 });

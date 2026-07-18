@@ -166,7 +166,7 @@ describe('token-resolver: resolveToken', () => {
     // Mock getComputedStyle
     vi.spyOn(window, 'getComputedStyle').mockReturnValue({
       getPropertyValue: (name: string) => (name === '--color' ? 'red' : ''),
-    } as CSSStyleDeclaration);
+    } as unknown as CSSStyleDeclaration);
 
     const resolver = createTokenResolver();
     const result = resolver.resolveToken(div, '--color');
@@ -182,7 +182,7 @@ describe('token-resolver: resolveToken', () => {
 
     vi.spyOn(window, 'getComputedStyle').mockReturnValue({
       getPropertyValue: () => '',
-    } as CSSStyleDeclaration);
+    } as unknown as CSSStyleDeclaration);
 
     const resolver = createTokenResolver();
     const result = resolver.resolveToken(div, '--missing');
@@ -344,7 +344,7 @@ describe('design-tokens-service: basic operations', () => {
     // Mock to return no tokens
     vi.spyOn(window, 'getComputedStyle').mockReturnValue({
       getPropertyValue: () => '',
-    } as CSSStyleDeclaration);
+    } as unknown as CSSStyleDeclaration);
 
     const service = createDesignTokensService();
     const result = service.getContextTokens(div);

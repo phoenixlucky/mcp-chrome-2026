@@ -41,8 +41,17 @@ class BlockImagesTool extends BaseBrowserToolExecutor {
       return createErrorResponse('Parameter [action] is required and must be one of: start, stop');
     }
 
-    const tabId = args.tabId ?? (await this.getActiveTabOrThrow()).id;
-    if (typeof tabId !== 'number') return createErrorResponse('Target tab not found');
+    const tab =
+      typeof args.tabId === 'number'
+        ? await this.tryGetTab(args.tabId)
+        : await this.getActiveTabOrThrow();
+    if (!tab?.id) return createErrorResponse('Target tab not found');
+    if (!/^https?:/i.test(tab.url || '')) {
+      return createErrorResponse(
+        `chrome_block_images requires an http(s) tab; got ${tab.url || 'an unknown URL'}. Pass the collector page tabId.`,
+      );
+    }
+    const tabId = tab.id;
 
     if (args.action === 'start') return this.start(tabId);
     return this.stop(tabId);

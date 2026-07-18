@@ -680,7 +680,7 @@ export function createPropsPanel(options: PropsPanelOptions): PropsPanel {
           select.dataset.propKind = 'enum';
           select.setAttribute('aria-label', `Select prop ${entry.key}`);
 
-          const currentValue = entry.value.value ?? '';
+          const currentValue = entry.value.kind === 'string' ? entry.value.value : '';
           const seen = new Set<string>();
 
           // Add current value first if not in enum list

@@ -432,7 +432,12 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Perform the operation without stealing focus (do not activate the tab or focus the window). Default: true; set false only when foreground interaction is required.',
+            'Perform the operation without stealing focus. Default: true; set false only when foreground interaction is required.',
+        },
+        activateTab: {
+          type: 'boolean',
+          description:
+            'Keep the target tab active within its own window while background=true, without focusing that window. Use for pages that must continue rendering virtualized content.',
         },
         width: {
           type: 'number',

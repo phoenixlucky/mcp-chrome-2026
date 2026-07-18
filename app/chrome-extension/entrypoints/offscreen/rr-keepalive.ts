@@ -251,9 +251,7 @@ export function initKeepalive(): void {
   });
 
   // Also establish initial Port connection for backwards compatibility.
-  if (chrome.runtime?.connect) {
-    keepalivePort = connectToBackground();
-  }
+  keepalivePort = connectToBackground();
 
   console.log('[rr-keepalive] Keepalive initialized');
 }

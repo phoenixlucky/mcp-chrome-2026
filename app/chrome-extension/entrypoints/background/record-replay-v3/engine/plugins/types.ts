@@ -92,8 +92,15 @@ export type NodeExecutionResult =
       outputs?: JsonObject;
       /** 变量修改 */
       varsPatch?: VarsPatchOp[];
+      error?: undefined;
     }
-  | { status: 'failed'; error: RRError };
+  | {
+      status: 'failed';
+      error: RRError;
+      next?: undefined;
+      outputs?: undefined;
+      varsPatch?: undefined;
+    };
 
 /**
  * 节点定义

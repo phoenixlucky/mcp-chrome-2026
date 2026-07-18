@@ -433,7 +433,7 @@ describe('adaptV2ActionHandlerToV3NodeDefinition', () => {
         status: 'success',
         control: {
           kind: 'while' as const,
-          condition: { left: 'a', op: '==', right: 'b' },
+          condition: { kind: 'compare', left: 'a', op: 'eq', right: 'b' },
           subflowId: 'subflow-1',
           maxIterations: 10,
         },
