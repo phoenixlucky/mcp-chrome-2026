@@ -271,7 +271,7 @@
 <script lang="ts" setup>
 // Dedicated full-page builder using the same inner components as popup modal
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import type { Flow as FlowV2 } from '@/entrypoints/background/record-replay/types';
+import type { Flow as BuilderFlow } from '@/entrypoints/background/record-replay-v3/builder-types';
 import type { FlowV3 } from '@/entrypoints/background/record-replay-v3/domain/flow';
 import type {
   FlowId,
@@ -282,8 +282,8 @@ import type { JsonObject } from '@/entrypoints/background/record-replay-v3/domai
 import type { TriggerSpec } from '@/entrypoints/background/record-replay-v3/domain/triggers';
 import { useRRV3Rpc } from '@/entrypoints/shared/composables';
 import {
-  flowV2ToV3ForRpc,
-  flowV3ToV2ForBuilder,
+  builderFlowToV3,
+  flowV3ToBuilder,
   isFlowV3,
   extractFlowCandidates,
 } from '@/entrypoints/shared/utils';
@@ -356,10 +356,10 @@ async function bootstrap() {
       })) as FlowV3 | null;
 
       if (flowV3) {
-        const { flow: flowV2, warnings } = flowV3ToV2ForBuilder(flowV3);
+        const { flow: builderFlow, warnings } = flowV3ToBuilder(flowV3);
         warnings.forEach((w) => pushToast(w, 'warn'));
-        store.initFromFlow(flowV2);
-        title.value = `编辑：${flowV2.name || flowV2.id}`;
+        store.initFromFlow(builderFlow);
+        title.value = `编辑：${builderFlow.name || builderFlow.id}`;
 
         if (q.focus) {
           setTimeout(() => {
@@ -389,11 +389,10 @@ async function bootstrap() {
  */
 function initEmptyFlow() {
   const now = Date.now();
-  const empty: FlowV2 = {
+  const empty: BuilderFlow = {
     id: `flow_${now}`,
     name: '新建工作流',
     version: 1,
-    steps: [],
     variables: [],
     meta: {
       createdAt: new Date(now).toISOString(),
@@ -485,11 +484,11 @@ async function save(): Promise<FlowV3 | null> {
     // - Flushes current canvas state back to flowLocal (including subflow edits)
     // - Returns deep copy with correct nodes/edges from flowLocal
     // Note: steps are NOT generated - nodes/edges are the source of truth
-    const flowV2 = store.exportFlowForSave();
+    const builderFlow = store.exportFlowForSave();
     await rpc.ensureConnected();
 
-    // Convert V2 -> V3 for RPC
-    const { flow: flowV3, warnings: convWarnings } = flowV2ToV3ForRpc(flowV2);
+    // Convert the editor model to V3 for RPC
+    const { flow: flowV3, warnings: convWarnings } = builderFlowToV3(builderFlow);
     convWarnings.forEach((w) => pushToast(w, 'warn'));
 
     // Save via RPC (cast FlowV3 to JsonObject for RPC compatibility)
@@ -506,7 +505,7 @@ async function save(): Promise<FlowV3 | null> {
 
     // Sync triggers (best-effort, don't block save result)
     try {
-      await syncTriggersAndSchedules(flowV2.id, flowV2.nodes || []);
+      await syncTriggersAndSchedules(builderFlow.id, builderFlow.nodes || []);
     } catch {}
 
     return saved;
@@ -527,7 +526,7 @@ function schId(flowId: string, nodeId: string, idx: number): TriggerId {
 }
 
 /**
- * 将 V2 schedule 配置转换为 cron 表达式
+ * 将计划配置转换为 cron 表达式
  * @returns cron 表达式或 null（如果无法转换）
  */
 function scheduleToCron(schedule: { type?: string; when?: string }): string | null {
@@ -561,7 +560,7 @@ function scheduleToCron(schedule: { type?: string; when?: string }): string | nu
 
 /**
  * 从 trigger 节点配置同步触发器到 V3 存储
- * @description V2 schedules 会转换为 V3 cron triggers
+ * @description 计划配置会转换为 V3 cron triggers
  */
 async function syncTriggersAndSchedules(flowId: string, nodes: unknown[]) {
   const triggersNeeded: TriggerSpec[] = [];
@@ -738,29 +737,17 @@ async function onImport(e: Event) {
         flow: first as unknown as JsonObject,
       })) as unknown as FlowV3;
 
-      const { flow: flowV2, warnings } = flowV3ToV2ForBuilder(saved);
+      const { flow: builderFlow, warnings } = flowV3ToBuilder(saved);
       warnings.forEach((w) => pushToast(w, 'warn'));
-      store.initFromFlow(flowV2);
-      title.value = `编辑：${flowV2.name || flowV2.id}`;
+      store.initFromFlow(builderFlow);
+      title.value = `编辑：${builderFlow.name || builderFlow.id}`;
 
       // Sync triggers
       try {
-        await syncTriggersAndSchedules(flowV2.id, flowV2.nodes || []);
+        await syncTriggersAndSchedules(builderFlow.id, builderFlow.nodes || []);
       } catch {}
     } else {
-      // V2 format: load directly, then save to convert to V3
-      store.initFromFlow(first as FlowV2);
-
-      // If V2 flow has steps but no nodes, trigger conversion
-      if (
-        Array.isArray((first as any)?.steps) &&
-        (!Array.isArray((first as any)?.nodes) || (first as any).nodes.length === 0)
-      ) {
-        store.importFromSteps();
-      }
-
-      title.value = `编辑：${store.flowLocal.name || store.flowLocal.id}`;
-      await save(); // Convert and save as V3
+      throw new Error('仅支持 V3 工作流文件');
     }
   } catch (e) {
     pushToast(`导入失败：${e instanceof Error ? e.message : String(e)}`, 'error');

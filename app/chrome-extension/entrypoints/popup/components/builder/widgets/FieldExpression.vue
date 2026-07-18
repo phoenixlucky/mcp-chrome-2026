@@ -7,7 +7,7 @@
 
 <script lang="ts" setup>
 import { ref, watchEffect } from 'vue';
-import { evalExpression } from '@/entrypoints/background/record-replay/engine/utils/expression';
+import { evalExpression } from '@/entrypoints/background/record-replay-v3/utils/expression';
 
 const props = defineProps<{ modelValue?: string; field?: any }>();
 const emit = defineEmits<{ (e: 'update:modelValue', v?: string): void }>();

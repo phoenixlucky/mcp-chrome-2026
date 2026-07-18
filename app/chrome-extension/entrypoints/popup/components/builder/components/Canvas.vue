@@ -36,7 +36,7 @@ import '@vue-flow/core/dist/theme-default.css';
 // Note: background package doesn't expose style.css via exports in Vite 6.
 // The component works without its dedicated CSS; keep core/minimap/controls styles.
 
-import type { NodeBase, Edge as EdgeV2 } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase, Edge as BuilderEdge } from '@/entrypoints/background/record-replay-v3/builder-types';
 import NodeCard from './nodes/NodeCard.vue';
 import NodeIf from './nodes/NodeIf.vue';
 import { NODE_UI_LIST, canvasTypeKey } from '@/entrypoints/popup/components/builder/model/ui-nodes';
@@ -44,7 +44,7 @@ import { EDGE_LABELS } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 const props = defineProps<{
   nodes: NodeBase[];
-  edges: EdgeV2[];
+  edges: BuilderEdge[];
   nodeErrors?: Record<string, string[]>;
   focusNodeId?: string | null;
   fitSeq?: number;

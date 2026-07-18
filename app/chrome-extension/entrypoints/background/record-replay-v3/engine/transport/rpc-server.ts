@@ -7,7 +7,7 @@ import type { ISODateTimeString, JsonObject, JsonValue } from '../../domain/json
 import type { EdgeId, FlowId, NodeId, RunId, TriggerId } from '../../domain/ids';
 import type { DebuggerCommand } from '../../domain/debug';
 import type { RunEvent } from '../../domain/events';
-import type { FlowV3, NodeV3, EdgeV3 } from '../../domain/flow';
+import type { FlowV3, NodeV3, EdgeV3, SubflowV3 } from '../../domain/flow';
 import { FLOW_SCHEMA_VERSION as CURRENT_FLOW_SCHEMA_VERSION } from '../../domain/flow';
 import type { VariableDefinition } from '../../domain/variables';
 import type { TriggerKind, TriggerSpec } from '../../domain/triggers';
@@ -590,6 +590,40 @@ export class RpcServer {
       nodes,
       edges,
     };
+
+    if (raw.subflows !== undefined && raw.subflows !== null) {
+      if (typeof raw.subflows !== 'object' || Array.isArray(raw.subflows)) {
+        throw new Error('flow.subflows must be an object');
+      }
+      const subflows: Record<string, SubflowV3> = {};
+      for (const [subflowId, value] of Object.entries(raw.subflows as Record<string, unknown>)) {
+        if (!subflowId.trim() || !value || typeof value !== 'object' || Array.isArray(value)) {
+          throw new Error(`Invalid subflow "${subflowId}"`);
+        }
+        const rawSubflow = value as JsonObject;
+        if (!Array.isArray(rawSubflow.nodes) || !Array.isArray(rawSubflow.edges)) {
+          throw new Error(`Subflow "${subflowId}" requires nodes and edges arrays`);
+        }
+        const subNodes = rawSubflow.nodes.map((node, index) => this.normalizeNode(node, index));
+        const subNodeIds = new Set(subNodes.map((node) => node.id));
+        if (subNodeIds.size !== subNodes.length) throw new Error(`Duplicate node ID in subflow "${subflowId}"`);
+        if (typeof rawSubflow.entryNodeId !== 'string' || !subNodeIds.has(rawSubflow.entryNodeId)) {
+          throw new Error(`Subflow "${subflowId}" has an invalid entryNodeId`);
+        }
+        const subEdges = rawSubflow.edges.map((edge, index) => this.normalizeEdge(edge, index));
+        for (const edge of subEdges) {
+          if (!subNodeIds.has(edge.from) || !subNodeIds.has(edge.to)) {
+            throw new Error(`Subflow "${subflowId}" edge "${edge.id}" references a missing node`);
+          }
+        }
+        subflows[subflowId] = {
+          entryNodeId: rawSubflow.entryNodeId as NodeId,
+          nodes: subNodes,
+          edges: subEdges,
+        };
+      }
+      if (Object.keys(subflows).length) flow.subflows = subflows;
+    }
 
     // 可选字段
     if (description !== undefined) {

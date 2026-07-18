@@ -295,6 +295,7 @@ class StorageBackedRunRunner implements RunRunner {
   private outputs: JsonObject = {};
   private cancelReason: string | undefined;
   private pauseWaiter: Deferred<void> | null = null;
+  private readonly subflowStack: string[] = [];
 
   constructor(runId: RunId, config: RunnerConfig, env: RunnerEnv) {
     this.runId = runId;
@@ -591,7 +592,12 @@ class StorageBackedRunRunner implements RunRunner {
     return this.finishSucceeded(startedAt);
   }
 
-  private async runNode(flow: FlowV3, node: NodeV3, nodeStartAt: number): Promise<NodeRunResult> {
+  private async runNode(
+    flow: FlowV3,
+    node: NodeV3,
+    nodeStartAt: number,
+    vars: Record<string, JsonValue> = this.state.vars,
+  ): Promise<NodeRunResult> {
     let attempt = 1;
 
     for (;;) {
@@ -611,13 +617,13 @@ class StorageBackedRunRunner implements RunRunner {
         } as RunEventInput),
       );
 
-      const exec = await this.executeNodeAttempt(flow, node);
+      const exec = await this.executeNodeAttempt(flow, node, vars);
       if (exec.status === 'succeeded') {
         const tookMs = this.env.now() - nodeStartAt;
 
         // Apply vars patch
         if (exec.varsPatch && exec.varsPatch.length > 0) {
-          applyVarsPatch(this.state.vars, exec.varsPatch);
+          applyVarsPatch(vars, exec.varsPatch);
           await this.queue.run(() =>
             this.env.events.append({
               runId: this.runId,
@@ -713,6 +719,73 @@ class StorageBackedRunRunner implements RunRunner {
     return mergeNodePolicy(merged1, node.policy);
   }
 
+  /** Execute a named child DAG against an isolated variable snapshot. */
+  private async executeSubflow(
+    parentFlow: FlowV3,
+    subflowId: string,
+    vars: Record<string, JsonValue>,
+  ): Promise<{ ok: true } | { ok: false; error: RRError }> {
+    const subflow = parentFlow.subflows?.[subflowId];
+    if (!subflow) {
+      return {
+        ok: false,
+        error: createRRError(RR_ERROR_CODES.VALIDATION_ERROR, `Subflow "${subflowId}" not found`),
+      };
+    }
+    if (this.subflowStack.includes(subflowId)) {
+      return {
+        ok: false,
+        error: createRRError(RR_ERROR_CODES.DAG_CYCLE, `Recursive subflow "${subflowId}" is not allowed`),
+      };
+    }
+
+    const flow: FlowV3 = {
+      ...parentFlow,
+      entryNodeId: subflow.entryNodeId,
+      nodes: subflow.nodes,
+      edges: subflow.edges,
+    };
+    const validation = validateFlowDAG(flow);
+    if (!validation.ok) return { ok: false, error: validation.errors[0] };
+
+    this.subflowStack.push(subflowId);
+    try {
+      let currentNodeId: NodeId | null = flow.entryNodeId;
+      while (currentNodeId) {
+        if (this.state.canceled) {
+          return {
+            ok: false,
+            error: createRRError(RR_ERROR_CODES.INTERNAL, 'Run canceled while executing subflow'),
+          };
+        }
+        await this.waitIfPaused();
+        const node = findNodeById(flow, currentNodeId);
+        if (!node) {
+          return {
+            ok: false,
+            error: createRRError(RR_ERROR_CODES.DAG_INVALID, `Subflow node "${currentNodeId}" not found`),
+          };
+        }
+        if (node.disabled) {
+          currentNodeId = findNextNode(flow, node.id);
+          continue;
+        }
+        const result = await this.runNode(flow, node, this.env.now(), vars);
+        if ('terminal' in result) {
+          if (result.terminal === 'failed') return { ok: false, error: result.error };
+          return {
+            ok: false,
+            error: createRRError(RR_ERROR_CODES.INTERNAL, 'Run canceled while executing subflow'),
+          };
+        }
+        currentNodeId = result.nextNodeId;
+      }
+      return { ok: true };
+    } finally {
+      this.subflowStack.pop();
+    }
+  }
+
   private decideOnError(
     flow: FlowV3,
     node: NodeV3,
@@ -749,7 +822,11 @@ class StorageBackedRunRunner implements RunRunner {
     return { kind: 'retry', retryPolicy };
   }
 
-  private async executeNodeAttempt(flow: FlowV3, node: NodeV3): Promise<NodeExecutionResult> {
+  private async executeNodeAttempt(
+    flow: FlowV3,
+    node: NodeV3,
+    vars: Record<string, JsonValue> = this.state.vars,
+  ): Promise<NodeExecutionResult> {
     const def = this.env.plugins.getNode(node.kind);
     if (!def) {
       return {
@@ -779,7 +856,7 @@ class StorageBackedRunRunner implements RunRunner {
       flow,
       nodeId: node.id,
       tabId: this.config.tabId,
-      vars: this.state.vars,
+      vars,
       log: (level, message, data) => {
         void this.queue
           .run(() =>
@@ -794,6 +871,7 @@ class StorageBackedRunRunner implements RunRunner {
           .catch(() => {});
       },
       chooseNext: (label) => ({ kind: 'edgeLabel', label }),
+      executeSubflow: (subflowId, subflowVars) => this.executeSubflow(flow, subflowId, subflowVars),
       artifacts: {
         screenshot: () => this.env.artifactService.screenshot(this.config.tabId),
       },

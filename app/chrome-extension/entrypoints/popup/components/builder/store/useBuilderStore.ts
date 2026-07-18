@@ -1,9 +1,9 @@
 import { reactive, ref } from 'vue';
 import type {
-  Flow as FlowV2,
+  Flow as BuilderFlow,
   NodeBase,
-  Edge as EdgeV2,
-} from '@/entrypoints/background/record-replay/types';
+  Edge as BuilderEdge,
+} from '@/entrypoints/background/record-replay-v3/builder-types';
 import {
   autoChainEdges,
   cloneFlow,
@@ -15,10 +15,10 @@ import {
 import { defaultConfigOf, getIoConstraint } from '../model/ui-nodes';
 import { toast } from '../model/toast';
 
-export function useBuilderStore(initial?: FlowV2 | null) {
-  const flowLocal = reactive<FlowV2>({ id: '', name: '', version: 1, steps: [], variables: [] });
+export function useBuilderStore(initial?: BuilderFlow | null) {
+  const flowLocal = reactive<BuilderFlow>({ id: '', name: '', version: 3, variables: [] });
   const nodes = reactive<NodeBase[]>([]);
-  const edges = reactive<EdgeV2[]>([]);
+  const edges = reactive<BuilderEdge[]>([]);
   const activeNodeId = ref<string | null>(null);
   const activeEdgeId = ref<string | null>(null);
   const pendingFrom = ref<string | null>(null);
@@ -43,10 +43,8 @@ export function useBuilderStore(initial?: FlowV2 | null) {
     'screenshot',
     'triggerEvent',
     'setAttribute',
-    'loopElements',
     'switchFrame',
     'handleDownload',
-    'executeFlow',
     'openTab',
     'switchTab',
     'closeTab',
@@ -54,9 +52,9 @@ export function useBuilderStore(initial?: FlowV2 | null) {
 
   // --- history (undo/redo) ---
   type Snapshot = {
-    flow: Pick<FlowV2, 'name' | 'description'>;
+    flow: Pick<BuilderFlow, 'name' | 'description'>;
     nodes: NodeBase[];
-    edges: EdgeV2[];
+    edges: BuilderEdge[];
   };
   const HISTORY_MAX = 50;
   const past: Snapshot[] = [];
@@ -104,7 +102,7 @@ export function useBuilderStore(initial?: FlowV2 | null) {
     });
   }
 
-  function initFromFlow(flow: FlowV2) {
+  function initFromFlow(flow: BuilderFlow) {
     const deep = cloneFlow(flow);
     Object.assign(flowLocal, deep);
     // DAG is required - flow-store guarantees nodes/edges via normalization
@@ -331,47 +329,36 @@ export function useBuilderStore(initial?: FlowV2 | null) {
     return result;
   }
 
-  function importFromSteps() {
-    const arr = stepsToNodes(flowLocal.steps || []);
-    nodes.splice(0, nodes.length, ...arr);
-    edges.splice(0, edges.length, ...autoChainEdges(arr));
-    layoutIfNeeded();
-    recordChange();
-  }
-
   // --- subflow management ---
   const currentSubflowId = ref<string | null>(null);
   function ensureSubflows() {
-    if (!flowLocal.subflows) (flowLocal as any).subflows = {} as any;
+    if (!flowLocal.subflows) flowLocal.subflows = {};
   }
   function listSubflowIds(): string[] {
     ensureSubflows();
-    return Object.keys((flowLocal as any).subflows || {});
+    return Object.keys(flowLocal.subflows || {});
   }
   function addSubflow(id: string) {
     ensureSubflows();
-    const sf = (flowLocal as any).subflows as any;
-    if (!id || sf[id]) return;
-    sf[id] = { nodes: [], edges: [] };
+    if (!id || flowLocal.subflows![id]) return;
+    flowLocal.subflows![id] = { nodes: [], edges: [] };
     recordChange();
   }
   function removeSubflow(id: string) {
     ensureSubflows();
-    const sf = (flowLocal as any).subflows as any;
-    if (!sf[id]) return;
-    delete sf[id];
+    if (!flowLocal.subflows![id]) return;
+    delete flowLocal.subflows![id];
     if (currentSubflowId.value === id) switchToMain();
     recordChange();
   }
   function flushCurrent() {
     if (!currentSubflowId.value) {
-      // write back main
-      (flowLocal as any).nodes = JSON.parse(JSON.stringify(nodes));
-      (flowLocal as any).edges = JSON.parse(JSON.stringify(edges));
+      flowLocal.nodes = JSON.parse(JSON.stringify(nodes));
+      flowLocal.edges = JSON.parse(JSON.stringify(edges));
       return;
     }
     ensureSubflows();
-    (flowLocal as any).subflows[currentSubflowId.value] = {
+    flowLocal.subflows![currentSubflowId.value] = {
       nodes: JSON.parse(JSON.stringify(nodes)),
       edges: JSON.parse(JSON.stringify(edges)),
     };
@@ -379,17 +366,16 @@ export function useBuilderStore(initial?: FlowV2 | null) {
   function switchToMain() {
     flushCurrent();
     currentSubflowId.value = null;
-    nodes.splice(0, nodes.length, ...JSON.parse(JSON.stringify((flowLocal.nodes || []) as any)));
-    edges.splice(0, edges.length, ...JSON.parse(JSON.stringify((flowLocal.edges || []) as any)));
-    layoutIfNeeded();
+    nodes.splice(0, nodes.length, ...JSON.parse(JSON.stringify(flowLocal.nodes || [])));
+    edges.splice(0, edges.length, ...JSON.parse(JSON.stringify(flowLocal.edges || [])));
   }
   function switchToSubflow(id: string) {
+    ensureSubflows();
+    if (!flowLocal.subflows![id]) return;
     flushCurrent();
     currentSubflowId.value = id;
-    ensureSubflows();
-    const sf = (flowLocal as any).subflows[id] || { nodes: [], edges: [] };
-    nodes.splice(0, nodes.length, ...JSON.parse(JSON.stringify(sf.nodes || [])));
-    edges.splice(0, edges.length, ...JSON.parse(JSON.stringify(sf.edges || [])));
+    nodes.splice(0, nodes.length, ...JSON.parse(JSON.stringify(flowLocal.subflows![id].nodes || [])));
+    edges.splice(0, edges.length, ...JSON.parse(JSON.stringify(flowLocal.subflows![id].edges || [])));
     layoutIfNeeded();
   }
   const isEditingMain = () => currentSubflowId.value == null;
@@ -405,7 +391,7 @@ export function useBuilderStore(initial?: FlowV2 | null) {
    * NOTE: flow.steps is no longer written here. The storage layer (flow-store.ts)
    * will strip steps on save. Only nodes/edges are the source of truth.
    */
-  function exportFlowForSave(): FlowV2 {
+  function exportFlowForSave(): BuilderFlow {
     // Step 1: Flush current canvas state to flowLocal
     flushCurrent();
 
@@ -424,8 +410,8 @@ export function useBuilderStore(initial?: FlowV2 | null) {
     nodes.forEach((n) => idMap.set(n.id, n));
 
     // Build graph using all edges (include branches like case:/else/onError)
-    const inEdges = new Map<string, EdgeV2[]>();
-    const outEdges = new Map<string, EdgeV2[]>();
+    const inEdges = new Map<string, BuilderEdge[]>();
+    const outEdges = new Map<string, BuilderEdge[]>();
     for (const n of nodes) {
       inEdges.set(n.id, []);
       outEdges.set(n.id, []);
@@ -608,7 +594,6 @@ export function useBuilderStore(initial?: FlowV2 | null) {
     switchToMain,
     switchToSubflow,
     isEditingMain,
-    importFromSteps,
     exportFlowForSave,
     summarize,
     layoutAuto,

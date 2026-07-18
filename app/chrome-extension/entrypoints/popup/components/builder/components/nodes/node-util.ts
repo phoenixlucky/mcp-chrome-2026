@@ -1,7 +1,7 @@
 // node-util.ts - shared UI helpers for node components
 // Note: comments in English
 
-import type { NodeBase } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import { summarizeNode as summarize } from '../../model/transforms';
 import ILucideMousePointerClick from '~icons/lucide/mouse-pointer-click';
 import ILucideEdit3 from '~icons/lucide/edit-3';

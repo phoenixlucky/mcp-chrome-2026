@@ -28,8 +28,7 @@ export interface FlowLite {
     domain?: string;
     tags?: string[];
     bindings?: Array<{
-      kind?: string; // V3 uses 'kind'
-      type?: string; // V2 uses 'type'
+      kind?: string;
       value: string;
     }>;
   };
@@ -75,7 +74,6 @@ function mapFlowV3ToLite(flow: FlowV3): FlowLite {
       tags: flow.meta?.tags,
       bindings: flow.meta?.bindings?.map((b) => ({
         kind: b.kind,
-        type: b.kind, // For V2 compatibility
         value: b.value,
       })),
     },

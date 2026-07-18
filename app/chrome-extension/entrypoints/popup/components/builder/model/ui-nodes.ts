@@ -2,7 +2,7 @@
 // Comments in English to explain intent.
 
 import { markRaw, type Component } from 'vue';
-import type { NodeBase, NodeType } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase, NodeType } from '@/entrypoints/background/record-replay-v3/builder-types';
 import { NODE_TYPES } from '@/common/node-types';
 import { defaultConfigFor as fallbackDefaultConfig } from '@/entrypoints/popup/components/builder/model/transforms';
 import { validateNode as fallbackValidateNode } from '@/entrypoints/popup/components/builder/model/validation';

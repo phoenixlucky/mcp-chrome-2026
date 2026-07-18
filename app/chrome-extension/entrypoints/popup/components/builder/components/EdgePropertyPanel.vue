@@ -54,9 +54,9 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { Edge as EdgeV2, NodeBase } from '@/entrypoints/background/record-replay/types';
+import type { Edge as BuilderEdge, NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 
-const props = defineProps<{ edge: EdgeV2 | null; nodes: NodeBase[] }>();
+const props = defineProps<{ edge: BuilderEdge | null; nodes: NodeBase[] }>();
 const emit = defineEmits<{ (e: 'remove-edge', id: string): void }>();
 
 const src = computed(() => props.nodes?.find?.((n) => n.id === (props.edge as any)?.from) || null);

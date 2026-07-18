@@ -2,6 +2,7 @@ import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { captureFrameOnAction, isAutoCaptureActive } from './gif-recorder';
+import { cdpSessionManager } from '@/utils/cdp-session-manager';
 
 // Default window dimensions
 const DEFAULT_WINDOW_WIDTH = 1280;
@@ -25,6 +26,19 @@ interface NavigateToolParams {
  */
 class NavigateTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NAVIGATE;
+
+  private async keepTabRendering(tabId: number): Promise<void> {
+    try {
+      await cdpSessionManager.sendCommand(tabId, 'Emulation.setFocusEmulationEnabled', { enabled: true });
+    } catch (error) {
+      console.warn('[NavigateTool] Focus emulation unavailable:', error);
+    }
+    try {
+      await cdpSessionManager.sendCommand(tabId, 'Page.setWebLifecycleState', { state: 'active' });
+    } catch (error) {
+      console.warn('[NavigateTool] Lifecycle activation unavailable:', error);
+    }
+  }
 
   private waitForTabReady(tabId: number): Promise<boolean> {
     return new Promise((resolve) => {
@@ -296,6 +310,9 @@ class NavigateTool extends BaseBrowserToolExecutor {
           activate: background !== true || activateTab,
           focusWindow: background !== true,
         });
+        if (activateTab && typeof existingTab.id === 'number') {
+          await this.keepTabRendering(existingTab.id);
+        }
 
         console.log(`Activated existing Tab ID: ${existingTab.id}`);
         const pageReady = await this.waitForTabReady(existingTab.id);

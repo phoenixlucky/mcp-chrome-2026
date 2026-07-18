@@ -50,6 +50,13 @@ export interface NodeV3 {
   ui?: { x: number; y: number };
 }
 
+/** 可被 foreach/while 原生调用的局部 DAG。 */
+export interface SubflowV3 {
+  entryNodeId: NodeId;
+  nodes: NodeV3[];
+  edges: EdgeV3[];
+}
+
 /**
  * Flow 元数据绑定
  * @description 定义 Flow 与特定域名/路径/URL 的关联
@@ -83,6 +90,9 @@ export interface FlowV3 {
   nodes: NodeV3[];
   /** 边列表 */
   edges: EdgeV3[];
+
+  /** 命名子流程；子流程本身仍是无环 DAG。 */
+  subflows?: Record<string, SubflowV3>;
 
   /** 变量定义 */
   variables?: VariableDefinition[];

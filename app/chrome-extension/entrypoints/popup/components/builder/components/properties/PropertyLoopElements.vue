@@ -26,7 +26,7 @@
 
 <script lang="ts" setup>
 /* eslint-disable vue/no-mutating-props */
-import type { NodeBase } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 
 const props = defineProps<{ node: NodeBase }>();
 const emit = defineEmits<{ (e: 'create-subflow', id: string): void }>();

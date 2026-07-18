@@ -116,12 +116,12 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import type { Flow as FlowV2, NodeBase } from '@/entrypoints/background/record-replay/types';
+import type { Flow as BuilderFlow, NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import { NODE_UI_LIST } from '@/entrypoints/popup/components/builder/model/ui-nodes';
 import { iconComp } from './nodes/node-util';
 
 const props = defineProps<{
-  flow: FlowV2;
+  flow: BuilderFlow;
   paletteTypes: NodeBase['type'][];
   subflowIds?: string[];
   currentSubflowId?: string | null;

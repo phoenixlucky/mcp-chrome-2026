@@ -50,14 +50,14 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { NodeBase, Edge as EdgeV2 } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase, Edge as BuilderEdge } from '@/entrypoints/background/record-replay-v3/builder-types';
 import { Handle, Position } from '@vue-flow/core';
 import { iconComp, getTypeLabel, nodeSubtitle } from './node-util';
 import ILucideShieldX from '~icons/lucide/shield-x';
 
 const props = defineProps<{
   id: string;
-  data: { node: NodeBase; edges: EdgeV2[]; onSelect: (id: string) => void; errors?: string[] };
+  data: { node: NodeBase; edges: BuilderEdge[]; onSelect: (id: string) => void; errors?: string[] };
   selected?: boolean;
 }>();
 

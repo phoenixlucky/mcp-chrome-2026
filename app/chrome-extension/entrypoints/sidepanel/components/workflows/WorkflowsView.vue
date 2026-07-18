@@ -258,19 +258,6 @@
                         >
                       </div>
                     </div>
-                    <!-- V2: Show entries -->
-                    <div
-                      v-for="(entry, idx) in run.entries"
-                      :key="idx"
-                      class="text-xs py-1"
-                      :style="{
-                        color:
-                          entry.status === 'failed' ? 'var(--ac-danger)' : 'var(--ac-text-muted)',
-                      }"
-                    >
-                      #{{ idx + 1 }} {{ entry.status }} - step={{ entry.stepId }}
-                      <span v-if="entry.tookMs" class="ml-2">{{ entry.tookMs }}ms</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -500,38 +487,27 @@ function getFlowName(flowId: string): string {
  * - Failed/canceled: red/danger
  */
 function getRunStatusColor(run: RunLite): string {
-  // V3 style: check isInProgress first
   if (run.isInProgress) {
     return 'var(--ac-primary, #3b82f6)';
   }
-  // V3 style: check status
-  if (run.status) {
-    if (run.status === 'succeeded') return 'var(--ac-success, #22c55e)';
-    if (run.status === 'failed' || run.status === 'canceled') return 'var(--ac-danger, #ef4444)';
-    // queued/running/paused - should be caught by isInProgress but just in case
-    return 'var(--ac-primary, #3b82f6)';
-  }
-  // V2 fallback: use success boolean
-  return run.success ? 'var(--ac-success, #22c55e)' : 'var(--ac-danger, #ef4444)';
+  if (run.status === 'succeeded') return 'var(--ac-success, #22c55e)';
+  if (run.status === 'failed' || run.status === 'canceled') return 'var(--ac-danger, #ef4444)';
+  return 'var(--ac-primary, #3b82f6)';
 }
 
 /**
  * Get the status text for a run
  */
 function getRunStatusText(run: RunLite): string {
-  if (run.status) {
-    const statusMap: Record<string, string> = {
-      queued: '排队中',
-      running: '运行中',
-      paused: '已暂停',
-      succeeded: '成功',
-      failed: '失败',
-      canceled: '已取消',
-    };
-    return statusMap[run.status] || run.status;
-  }
-  // V2 fallback
-  return run.success ? '成功' : '失败';
+  const statusMap: Record<string, string> = {
+    queued: '排队中',
+    running: '运行中',
+    paused: '已暂停',
+    succeeded: '成功',
+    failed: '失败',
+    canceled: '已取消',
+  };
+  return statusMap[run.status] || run.status;
 }
 
 function formatTime(dateStr: string): string {

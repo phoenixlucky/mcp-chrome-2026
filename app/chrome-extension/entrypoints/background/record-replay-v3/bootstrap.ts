@@ -44,9 +44,9 @@ import {
 
 import { PluginRegistry } from './engine/plugins/registry';
 import {
-  registerV2ReplayNodesAsV3Nodes,
-  DEFAULT_V2_EXCLUDE_LIST,
-} from './engine/plugins/register-v2-replay-nodes';
+  registerActionNodes,
+  UNSUPPORTED_ACTION_KINDS,
+} from './engine/plugins/register-action-nodes';
 
 import { acquireKeepalive } from '../keepalive-manager';
 import { createStoragePort } from './index';
@@ -77,6 +77,21 @@ let runtime: V3Runtime | null = null;
 let bootstrapPromise: Promise<V3Runtime> | null = null;
 
 // ==================== Utilities ====================
+
+async function purgeRetiredData(): Promise<void> {
+  await chrome.storage.local.remove([
+    'rr_flows',
+    'rr_runs',
+    'rr_published_flows',
+    'rr_schedules',
+    'rr_triggers',
+    'rr_idb_migrated',
+  ]);
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase('rr_storage');
+    request.onsuccess = request.onerror = request.onblocked = () => resolve();
+  });
+}
 
 function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -286,6 +301,7 @@ export async function bootstrapV3(): Promise<V3Runtime> {
     const now = (): UnixMillis => Date.now();
 
     logger.info('[RR-V3] Bootstrapping...');
+    await purgeRetiredData().catch((error) => logger.warn('[RR-V3] Retired data cleanup failed:', error));
 
     // 1) Storage
     const storage = createStoragePort();
@@ -309,13 +325,12 @@ export async function bootstrapV3(): Promise<V3Runtime> {
       acquire: (tag: string) => acquireKeepalive(`rr_v3:${tag}`),
     };
 
-    // 7) PluginRegistry - register V2 action handlers as V3 nodes
+    // 7) PluginRegistry - register action handlers as V3 nodes
     const plugins = new PluginRegistry();
-    const registeredNodes = registerV2ReplayNodesAsV3Nodes(plugins, {
-      // Exclude control directives that V3 runner doesn't support
-      exclude: [...DEFAULT_V2_EXCLUDE_LIST],
+    const registeredNodes = registerActionNodes(plugins, {
+      exclude: [...UNSUPPORTED_ACTION_KINDS],
     });
-    logger.debug(`[RR-V3] Registered ${registeredNodes.length} V2 action handlers as V3 nodes`);
+    logger.debug(`[RR-V3] Registered ${registeredNodes.length} action handlers as V3 nodes`);
 
     // 8) RunExecutor via RunRunnerFactory
     const runnerFactory = createRunRunnerFactory({

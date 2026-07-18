@@ -2,7 +2,7 @@ import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { NATIVE_HOST, STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/common/constants';
 import { handleCallTool } from './tools';
-import { listPublished, getFlow } from './record-replay/flow-store';
+import { getFlow, listFlows } from './record-replay-v3/public-api';
 import { acquireKeepalive } from './keepalive-manager';
 
 const LOG_PREFIX = '[NativeHost]';
@@ -394,15 +394,15 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
       } else if (message.type === 'rr_list_published_flows' && message.requestId) {
         const requestId = message.requestId;
         try {
-          const published = await listPublished();
+          const published = await listFlows();
           const items = [] as any[];
           for (const p of published) {
             const flow = await getFlow(p.id);
             if (!flow) continue;
             items.push({
               id: p.id,
-              slug: p.slug,
-              version: p.version,
+              slug: p.id,
+              version: p.schemaVersion,
               name: p.name,
               description: p.description || flow.description || '',
               variables: flow.variables || [],

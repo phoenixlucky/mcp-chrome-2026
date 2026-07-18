@@ -50,6 +50,12 @@ export interface NodeExecutionContext {
    */
   chooseNext: (label: string) => { kind: 'edgeLabel'; label: string };
 
+  /** 执行当前 Flow 中的命名子流程，变量作用域与当前节点共享。 */
+  executeSubflow: (
+    subflowId: string,
+    vars: Record<string, JsonValue>,
+  ) => Promise<{ ok: true } | { ok: false; error: RRError }>;
+
   /**
    * 工件操作
    */

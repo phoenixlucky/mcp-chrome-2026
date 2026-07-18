@@ -1,8 +1,6 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
-import { listPublished } from '../record-replay/flow-store';
-import { getFlow } from '../record-replay/flow-store';
-import { runFlow } from '../record-replay/flow-runner';
+import { enqueueFlow, getFlow, listFlows } from '../record-replay-v3/public-api';
 
 class FlowRunTool {
   name = TOOL_NAMES.RECORD_REPLAY.FLOW_RUN;
@@ -10,25 +8,11 @@ class FlowRunTool {
     const {
       flowId,
       args: vars,
-      tabTarget,
-      refresh,
-      captureNetwork,
-      returnLogs,
-      timeoutMs,
-      startUrl,
     } = args || {};
     if (!flowId) return createErrorResponse('flowId is required');
     const flow = await getFlow(flowId);
     if (!flow) return createErrorResponse(`Flow not found: ${flowId}`);
-    const result = await runFlow(flow, {
-      tabTarget,
-      refresh,
-      captureNetwork,
-      returnLogs,
-      timeoutMs,
-      startUrl,
-      args: vars,
-    });
+    const result = await enqueueFlow(flowId, vars);
     return {
       content: [
         {
@@ -44,7 +28,7 @@ class FlowRunTool {
 class ListPublishedTool {
   name = TOOL_NAMES.RECORD_REPLAY.LIST_PUBLISHED;
   async execute(): Promise<ToolResult> {
-    const list = await listPublished();
+    const list = await listFlows();
     return {
       content: [
         {

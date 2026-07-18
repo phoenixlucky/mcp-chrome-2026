@@ -91,7 +91,7 @@
 <script lang="ts" setup>
 /* eslint-disable vue/no-mutating-props */
 import { computed, watch, onMounted, ref } from 'vue';
-import type { NodeBase } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import { validateNodeWithRegistry } from '@/entrypoints/popup/components/builder/model/ui-nodes';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import PropertyFromSpec from '@/entrypoints/popup/components/builder/components/properties/PropertyFromSpec.vue';

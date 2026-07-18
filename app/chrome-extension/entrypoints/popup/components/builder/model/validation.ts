@@ -1,4 +1,4 @@
-import type { NodeBase } from '@/entrypoints/background/record-replay/types';
+import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import { STEP_TYPES } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 export function validateNode(n: NodeBase): string[] {

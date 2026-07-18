@@ -57,6 +57,21 @@ function validateFlow(flow: FlowV3): void {
       );
     }
   }
+
+  for (const [subflowId, subflow] of Object.entries(flow.subflows || {})) {
+    const subNodeIds = new Set(subflow.nodes.map((node) => node.id));
+    if (!subflowId || !subNodeIds.has(subflow.entryNodeId)) {
+      throw createRRError(RR_ERROR_CODES.VALIDATION_ERROR, `Invalid subflow "${subflowId}" entry node`);
+    }
+    for (const edge of subflow.edges) {
+      if (!subNodeIds.has(edge.from) || !subNodeIds.has(edge.to)) {
+        throw createRRError(
+          RR_ERROR_CODES.VALIDATION_ERROR,
+          `Subflow "${subflowId}" edge "${edge.id}" references a non-existent node`,
+        );
+      }
+    }
+  }
 }
 
 /**

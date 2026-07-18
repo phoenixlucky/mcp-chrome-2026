@@ -401,8 +401,7 @@ function isBoundToCurrent(f: FlowLite) {
     if (!currentUrl.value) return true;
     const u = new URL(currentUrl.value);
     return bindings.some((b: any) => {
-      // Support both V3 'kind' and V2 'type' field names
-      const bindingType = b.kind || b.type;
+      const bindingType = b.kind;
       if (bindingType === 'domain') return u.hostname.includes(b.value);
       if (bindingType === 'path') return u.pathname.startsWith(b.value);
       if (bindingType === 'url') return (u.href || '').startsWith(b.value);
@@ -746,7 +745,7 @@ onMounted(async () => {
   // V3 workflows data is auto-refreshed by useWorkflowsV3 composable
   // No need to manually call refresh here
 
-  // V2 push-based refresh is no longer needed - V3 uses event subscription
+  // V3 refreshes through its event subscription.
   // Keeping commented for reference:
   // const onMessage = (message: { type?: string }) => {
   //   if (message?.type === BACKGROUND_MESSAGE_TYPES.RR_FLOWS_CHANGED) refresh();
