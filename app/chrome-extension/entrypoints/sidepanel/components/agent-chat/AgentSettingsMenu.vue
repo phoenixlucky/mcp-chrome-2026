@@ -95,6 +95,14 @@
       Clear Attachment Cache
     </button>
 
+    <button
+      class="w-full px-3 py-2 text-left text-sm ac-menu-item"
+      :style="{ color: 'var(--ac-text, #1a1a1a)' }"
+      @click="$emit('deepseek:open')"
+    >
+      DeepSeek API Settings
+    </button>
+
     <!-- Divider -->
     <div
       class="my-2"
@@ -128,6 +136,7 @@ defineEmits<{
   'theme:set': [theme: AgentThemeId];
   reconnect: [];
   'attachments:open': [];
+  'deepseek:open': [];
   'fakeCaret:toggle': [enabled: boolean];
 }>();
 

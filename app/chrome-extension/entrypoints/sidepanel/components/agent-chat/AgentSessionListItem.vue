@@ -233,6 +233,8 @@ const engineAbbrev = computed(() => {
       return 'CL';
     case 'codex':
       return 'CX';
+    case 'deepseek':
+      return 'DS';
     case 'cursor':
       return 'CR';
     case 'qwen':
@@ -320,6 +322,7 @@ const engineBadgeStyle = computed(() => {
   const colors: Record<string, string> = {
     claude: '#c87941',
     codex: '#10a37f',
+    deepseek: '#4f46e5',
     cursor: '#8b5cf6',
     qwen: '#6366f1',
     glm: '#ef4444',

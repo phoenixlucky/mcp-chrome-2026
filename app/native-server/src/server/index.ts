@@ -27,6 +27,7 @@ import { AgentStreamManager } from '../agent/stream-manager';
 import { AgentChatService } from '../agent/chat-service';
 import { CodexEngine } from '../agent/engines/codex';
 import { ClaudeEngine } from '../agent/engines/claude';
+import { DeepSeekEngine } from '../agent/engines/deepseek';
 import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
 import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
@@ -76,7 +77,7 @@ export class Server {
     this.fastify = Fastify({ logger: SERVER_CONFIG.LOGGER_ENABLED });
     this.agentStreamManager = new AgentStreamManager();
     this.agentChatService = new AgentChatService({
-      engines: [new CodexEngine(), new ClaudeEngine()],
+      engines: [new CodexEngine(), new ClaudeEngine(), new DeepSeekEngine()],
       streamManager: this.agentStreamManager,
     });
     this.setupPlugins();

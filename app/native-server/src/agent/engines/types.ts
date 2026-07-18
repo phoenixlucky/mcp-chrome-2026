@@ -95,7 +95,7 @@ export interface ClaudeManagementInfo {
  */
 export type ManagementInfoPersistCallback = (info: ClaudeManagementInfo) => Promise<void>;
 
-export type EngineName = 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm';
+export type EngineName = 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm';
 
 export interface EngineExecutionContext {
   /**

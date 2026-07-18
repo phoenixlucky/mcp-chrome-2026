@@ -139,6 +139,7 @@
       @theme:set="handleThemeChange"
       @reconnect="handleReconnect"
       @attachments:open="handleOpenAttachmentCache"
+      @deepseek:open="handleOpenDeepSeekSettings"
       @fake-caret:toggle="handleFakeCaretToggle"
     />
 
@@ -162,6 +163,12 @@
 
     <!-- Attachment Cache Panel -->
     <AttachmentCachePanel :open="attachmentCacheOpen" @close="handleCloseAttachmentCache" />
+
+    <DeepSeekSettingsPanel
+      :open="deepseekSettingsOpen"
+      :server-port="server.serverPort.value"
+      @close="deepseekSettingsOpen = false"
+    />
   </div>
 </template>
 
@@ -208,6 +215,7 @@ import {
 } from './agent-chat';
 import type { SessionSettings } from './agent-chat/AgentSessionSettingsPanel.vue';
 import AttachmentCachePanel from './agent-chat/AttachmentCachePanel.vue';
+import DeepSeekSettingsPanel from './agent-chat/DeepSeekSettingsPanel.vue';
 
 // Model utilities
 import {
@@ -268,12 +276,13 @@ const openProjectContext = ref<{ type: 'session' | 'project'; id: string } | nul
 const sessionSettingsOpen = ref(false);
 const sessionSettingsLoading = ref(false);
 const sessionSettingsSaving = ref(false);
-const currentManagementInfo = ref<import('@ethanwilkins/chrome-mcp-shared-2026').AgentManagementInfo | null>(
-  null,
-);
+const currentManagementInfo = ref<
+  import('@ethanwilkins/chrome-mcp-shared-2026').AgentManagementInfo | null
+>(null);
 
 // Attachment cache panel state
 const attachmentCacheOpen = ref(false);
+const deepseekSettingsOpen = ref(false);
 
 // Initialize composables - sessions must be declared first for sessionId access
 const sessions = useAgentSessions({
@@ -402,6 +411,8 @@ const engineDisplayName = computed(() => {
       return 'Claude Code';
     case 'codex':
       return 'Codex';
+    case 'deepseek':
+      return 'DeepSeek';
     case 'cursor':
       return 'Cursor';
     case 'qwen':
@@ -666,7 +677,7 @@ async function handleNewSession(): Promise<void> {
   clearRequestState();
 
   const engineName =
-    (selectedCli.value as 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm') || 'claude';
+    (selectedCli.value as 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm') || 'claude';
 
   // Include codex config if using codex engine
   const optionsConfig =
@@ -794,6 +805,11 @@ function handleCloseSessionSettings(): void {
   currentManagementInfo.value = null;
 }
 
+function handleOpenDeepSeekSettings(): void {
+  settingsMenuOpen.value = false;
+  deepseekSettingsOpen.value = true;
+}
+
 async function handleSaveSessionSettings(settings: SessionSettings): Promise<void> {
   const sessionId = sessions.selectedSessionId.value;
   if (!sessionId) return;
@@ -839,7 +855,7 @@ async function handleProjectSelect(projectId: string): Promise<void> {
   // Load sessions for the new project
   await sessions.ensureDefaultSession(
     projectId,
-    (selectedCli.value as 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm') || 'claude',
+    (selectedCli.value as 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm') || 'claude',
   );
 
   // Guard again after ensureDefaultSession
@@ -872,7 +888,8 @@ async function handleNewProject(): Promise<void> {
 
         // Ensure a default session exists for the new project
         const engineName =
-          (selectedCli.value as 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm') || 'claude';
+          (selectedCli.value as 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm') ||
+          'claude';
         await sessions.ensureDefaultSession(project.id, engineName);
 
         // Reconnect SSE and load session history
@@ -914,7 +931,8 @@ async function handleSaveSettings(): Promise<void> {
     // If CLI changed, create a new empty session with the new CLI
     const cliChanged = previousCli !== selectedCli.value;
     if (cliChanged && selectedCli.value) {
-      const engineName = selectedCli.value as 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm';
+      const engineName = selectedCli.value as
+        'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm';
 
       // Include codex config if using codex engine
       const optionsConfig =
@@ -1026,7 +1044,7 @@ async function handleNewSessionAndNavigate(): Promise<void> {
   clearRequestState();
 
   const engineName =
-    (selectedCli.value as 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm') || 'claude';
+    (selectedCli.value as 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm') || 'claude';
   const optionsConfig =
     engineName === 'codex'
       ? {
@@ -1355,7 +1373,8 @@ onMounted(async () => {
       // Note: This won't fetch sessions again since we already did above
       await sessions.ensureDefaultSession(
         projects.selectedProjectId.value,
-        (selectedCli.value as 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm') || 'claude',
+        (selectedCli.value as 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm') ||
+          'claude',
       );
 
       // Only open SSE and load history if we're in chat view with a valid session

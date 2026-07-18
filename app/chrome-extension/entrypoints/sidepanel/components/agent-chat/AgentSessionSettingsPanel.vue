@@ -488,6 +488,7 @@ function getEngineColor(engineName: string): string {
   const colors: Record<string, string> = {
     claude: '#c87941',
     codex: '#10a37f',
+    deepseek: '#4f46e5',
     cursor: '#8b5cf6',
     qwen: '#6366f1',
     glm: '#ef4444',

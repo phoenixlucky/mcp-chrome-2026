@@ -47,6 +47,7 @@ import { openDirectoryPicker } from '../../agent/directory-picker';
 import type { EngineName } from '../../agent/engines/types';
 import { attachmentService } from '../../agent/attachment-service';
 import { openProjectDirectory, openFileInVSCode } from '../../agent/open-project';
+import { getDeepSeekSettings, updateDeepSeekSettings } from '../../agent/settings-service';
 import type {
   AttachmentStatsResponse,
   AttachmentCleanupRequest,
@@ -56,7 +57,14 @@ import type {
 } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 // Valid engine names for validation
-const VALID_ENGINE_NAMES: readonly EngineName[] = ['claude', 'codex', 'cursor', 'qwen', 'glm'];
+const VALID_ENGINE_NAMES: readonly EngineName[] = [
+  'claude',
+  'codex',
+  'deepseek',
+  'cursor',
+  'qwen',
+  'glm',
+];
 
 function isValidEngineName(name: string): name is EngineName {
   return VALID_ENGINE_NAMES.includes(name as EngineName);
@@ -105,6 +113,64 @@ export function registerAgentRoutes(fastify: FastifyInstance, options: AgentRout
       }
     }
   });
+
+  fastify.get('/agent/settings/deepseek', async (_request, reply) => {
+    try {
+      const settings = await getDeepSeekSettings();
+      const envApiKey = process.env.DEEPSEEK_API_KEY?.trim();
+      const envBaseUrl = process.env.DEEPSEEK_BASE_URL?.trim();
+      return reply.send({
+        configured: Boolean(settings.apiKey || envApiKey),
+        source: settings.apiKey ? 'plugin' : envApiKey ? 'environment' : null,
+        baseUrl: settings.baseUrl || envBaseUrl || 'https://api.deepseek.com',
+      });
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to get DeepSeek settings');
+      return reply
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .send({ error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+    }
+  });
+
+  fastify.put(
+    '/agent/settings/deepseek',
+    async (
+      request: FastifyRequest<{
+        Body: { apiKey?: unknown; baseUrl?: unknown; clearApiKey?: unknown };
+      }>,
+      reply,
+    ) => {
+      const body = request.body || {};
+      if (
+        (body.apiKey !== undefined && typeof body.apiKey !== 'string') ||
+        (body.baseUrl !== undefined && typeof body.baseUrl !== 'string') ||
+        (body.clearApiKey !== undefined && typeof body.clearApiKey !== 'boolean')
+      ) {
+        return reply.status(HTTP_STATUS.BAD_REQUEST).send({ error: 'Invalid DeepSeek settings' });
+      }
+
+      try {
+        await updateDeepSeekSettings({
+          apiKey: typeof body.apiKey === 'string' ? body.apiKey : undefined,
+          baseUrl: typeof body.baseUrl === 'string' ? body.baseUrl : undefined,
+          clearApiKey: typeof body.clearApiKey === 'boolean' ? body.clearApiKey : undefined,
+        });
+        const settings = await getDeepSeekSettings();
+        const envApiKey = process.env.DEEPSEEK_API_KEY?.trim();
+        const envBaseUrl = process.env.DEEPSEEK_BASE_URL?.trim();
+        return reply.send({
+          configured: Boolean(settings.apiKey || envApiKey),
+          source: settings.apiKey ? 'plugin' : envApiKey ? 'environment' : null,
+          baseUrl: settings.baseUrl || envBaseUrl || 'https://api.deepseek.com',
+        });
+      } catch (error) {
+        fastify.log.error({ err: error }, 'Failed to update DeepSeek settings');
+        return reply
+          .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+          .send({ error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+      }
+    },
+  );
 
   // ============================================================
   // Project Routes

@@ -42,7 +42,7 @@ Unlike Playwright-based MCP servers, this extension operates on your **existing 
 
 ### Prerequisites
 
-- Node.js >= 20.0.0 (npm or pnpm)
+- Node.js >= 20.0.0 (this repository pins pnpm 11.14.0 through Corepack)
 - Chrome or Chromium browser
 
 ### Installation
@@ -115,6 +115,12 @@ The native host listens for connections from the Chrome extension and starts an 
 ```
 
 ## What's New
+
+### v1.4.0 (2026-07-18)
+
+- **Cat-girl assistant** — Claude and Codex now share a warm, professional cat-girl persona while keeping tool execution reliable.
+- **Node 24 SQLite compatibility** — Upgraded `better-sqlite3` so the native database module loads on Node 24.
+- **DeepSeek API** — The assistant now includes a streaming DeepSeek engine; set `DEEPSEEK_API_KEY` and select DeepSeek from the CLI menu.
 
 ### v1.3.3 (2026-07-17)
 
@@ -208,6 +214,11 @@ The native host listens for connections from the Chrome extension and starts an 
 
 Full API reference: [中文](docs/TOOLS_zh.md) | [English](docs/TOOLS.md)
 
+## Usage Guides
+
+- [Smart Assistant Guide](docs/SMART_ASSISTANT.md) | [中文](docs/SMART_ASSISTANT_zh.md): Claude, Codex, DeepSeek sessions, and API configuration.
+- [Quick Tools Guide](docs/QUICK_TOOLS.md) | [中文](docs/QUICK_TOOLS_zh.md): the page Quick Panel and popup MCP tool catalog.
+
 ## Usage Examples
 
 ### AI-Powered Page Summarization + Excalidraw Visualization
@@ -277,4 +288,6 @@ MIT — see [LICENSE](LICENSE) for details.
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Tool API Reference](docs/TOOLS.md)
+- [Smart Assistant Guide](docs/SMART_ASSISTANT.md)
+- [Quick Tools Guide](docs/QUICK_TOOLS.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)

@@ -152,18 +152,21 @@
             <button
               class="rr-icon-btn rr-icon-btn-edit has-tooltip"
               @click="toggleWebEditor"
-              data-tooltip="开启页面编辑模式"
+              data-tooltip="页面编辑：可视化调整元素，并将选中元素交给助手修改"
             >
               <EditIcon />
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-marker has-tooltip"
               @click="toggleElementMarker"
-              data-tooltip="开启元素标注"
+              data-tooltip="元素标注：保存关键元素，供 MCP 读取与助手定位"
             >
               <MarkerIcon />
             </button>
           </div>
+          <p class="quick-tools-help"
+            >页面编辑用于可视化调整与精确提问；元素标注用于保存页面关键元素，供 MCP 和助手复用。</p
+          >
         </div>
 
         <!-- 管理入口卡片 -->
@@ -2642,6 +2645,13 @@ onUnmounted(() => {
   background: var(--ac-surface, white);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.quick-tools-help {
+  margin: 8px 4px 0;
+  color: var(--ac-text-muted, #6e6e6e);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .rr-icon-btn {

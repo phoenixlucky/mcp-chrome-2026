@@ -42,7 +42,7 @@ Chrome MCP Server 是一个基于 Chrome 扩展的 **MCP 服务器**。它向 AI
 
 ### 环境要求
 
-- Node.js >= 20.0.0（npm 或 pnpm）
+- Node.js >= 20.0.0（本仓库使用 Corepack 固定 pnpm 11.14.0）
 - Chrome 或 Chromium 浏览器
 
 ### 安装步骤
@@ -115,6 +115,12 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 ```
 
 ## 更新日志
+
+### v1.4.0（2026-07-18）
+
+- **萌萌猫娘助手** — Claude 与 Codex 助手统一使用温柔、专业的猫娘人格，同时保持工具执行可靠
+- **Node 24 SQLite 兼容** — 升级 `better-sqlite3`，解决原生数据库模块在 Node 24 下无法加载的问题
+- **DeepSeek API** — 智能助手新增 DeepSeek 流式对话引擎；设置 `DEEPSEEK_API_KEY` 后，在 CLI 下拉列表选择 DeepSeek
 
 ### v1.3.3（2026-07-17）
 
@@ -208,6 +214,11 @@ Native Host 会监听 Chrome 扩展的连接，并在 `http://127.0.0.1:12306/mc
 
 完整 API 参考：[中文](docs/TOOLS_zh.md) | [English](docs/TOOLS.md)
 
+## 使用指南
+
+- [智能助手指南](docs/SMART_ASSISTANT_zh.md) | [English](docs/SMART_ASSISTANT.md)：Claude、Codex、DeepSeek 会话与 API 配置。
+- [快捷工具指南](docs/QUICK_TOOLS_zh.md) | [English](docs/QUICK_TOOLS.md)：页面 Quick Panel 和插件弹窗 MCP 工具目录。
+
 ## 使用示例
 
 ### AI 总结网页 + Excalidraw 可视化
@@ -277,4 +288,6 @@ MIT — 详见 [LICENSE](LICENSE) 文件。
 
 - [架构设计](docs/ARCHITECTURE_zh.md)
 - [工具 API 参考](docs/TOOLS_zh.md)
+- [智能助手指南](docs/SMART_ASSISTANT_zh.md)
+- [快捷工具指南](docs/QUICK_TOOLS_zh.md)
 - [故障排除](docs/TROUBLESHOOTING_zh.md)

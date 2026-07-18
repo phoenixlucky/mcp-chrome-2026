@@ -20,7 +20,7 @@ export interface ModelDefinition {
   supportedReasoningEfforts?: readonly CodexReasoningEffort[];
 }
 
-export type AgentCliType = 'claude' | 'codex' | 'cursor' | 'qwen' | 'glm';
+export type AgentCliType = 'claude' | 'codex' | 'deepseek' | 'cursor' | 'qwen' | 'glm';
 
 // ============================================================
 // Claude Models
@@ -92,6 +92,25 @@ export const CODEX_MODELS: ModelDefinition[] = [
 ];
 
 export const CODEX_DEFAULT_MODEL = 'gpt-5.1';
+
+// ============================================================
+// DeepSeek Models
+// ============================================================
+
+export const DEEPSEEK_MODELS: ModelDefinition[] = [
+  {
+    id: 'deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash',
+    description: 'Fast, cost-efficient DeepSeek API model',
+  },
+  {
+    id: 'deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro',
+    description: 'Higher-quality DeepSeek API model',
+  },
+];
+
+export const DEEPSEEK_DEFAULT_MODEL = 'deepseek-v4-flash';
 
 // Codex model alias normalization
 const CODEX_ALIAS_MAP: Record<string, string> = {
@@ -221,6 +240,7 @@ export const GLM_DEFAULT_MODEL = 'glm-4.6';
 export const CLI_MODEL_DEFINITIONS: Record<AgentCliType, ModelDefinition[]> = {
   claude: CLAUDE_MODELS,
   codex: CODEX_MODELS,
+  deepseek: DEEPSEEK_MODELS,
   cursor: CURSOR_MODELS,
   qwen: QWEN_MODELS,
   glm: GLM_MODELS,
@@ -229,6 +249,7 @@ export const CLI_MODEL_DEFINITIONS: Record<AgentCliType, ModelDefinition[]> = {
 export const CLI_DEFAULT_MODELS: Record<AgentCliType, string> = {
   claude: CLAUDE_DEFAULT_MODEL,
   codex: CODEX_DEFAULT_MODEL,
+  deepseek: DEEPSEEK_DEFAULT_MODEL,
   cursor: CURSOR_DEFAULT_MODEL,
   qwen: QWEN_DEFAULT_MODEL,
   glm: GLM_DEFAULT_MODEL,
