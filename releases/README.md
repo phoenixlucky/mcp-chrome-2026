@@ -26,8 +26,6 @@
 | `start-server-1.4.0.bat`             | v1.4.0 (pnpm 一键启动脚本) |
 | `start-server-npm-1.4.0.bat`         | v1.4.0 (npm 一键启动脚本)  |
 | `chrome-mcp-server-1.5.0-chrome.zip` | v1.5.0                     |
-| `start-server-1.5.0.bat`             | v1.5.0 (pnpm 一键启动脚本) |
-| `start-server-npm-1.5.0.bat`         | v1.5.0 (npm 一键启动脚本)  |
 
 ### v1.5.0 变更说明
 
