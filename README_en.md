@@ -153,10 +153,16 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 ## 🗺️ Roadmap
 
-- ☐ Authentication & permission management
-- ☐ Browser workflow recording & playback
-- ☐ Visual workflow automation builder
-- ☐ Firefox extension support
+| ✅ Done                                            | 🎯 Planned                                                   |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| **40+ MCP Tools** — Full browser API coverage      | **Auth & Permission** — API Key / OAuth                      |
+| **Streamable HTTP + STDIO** — Dual transport       | **Tool-level ACL** — Per-client tool permissions             |
+| **Smart Assistant** — Claude / Codex / DeepSeek    | **Monitoring Dashboard** — Web panel for calls, perf, errors |
+| **Semantic Search** — Vector DB + local embeddings | **Cross-platform Setup** — macOS / Linux one-click scripts   |
+| **SIMD Acceleration** — WASM engine 4-8× faster    |                                                              |
+| **Workflow Recording & Replay** — v2 / v3 engines  |                                                              |
+| **Visual Editor** — Drag-and-drop workflow builder |                                                              |
+| **Native Messaging Auto-registration**             |                                                              |
 
 ---
 
