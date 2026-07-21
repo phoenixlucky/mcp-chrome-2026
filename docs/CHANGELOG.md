@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.5.3] - 2026-07-21
+
+### Fixed
+
+- **可靠滚动容器识别**: `chrome_scroll` 和 `chrome_get_scroll_state` 使用同一真实容器解析，修复虚拟列表上回执成功但未移动的问题。
+
+### Added
+
+- `anchorSelector` 参数可将自动识别锁定到嵌套或虚拟列表中的内容锚点。
+- 滚动结果新增目标容器和实际位移回执。
+- 所有发布包版本统一为 v1.5.3。
+
 ## [v1.5.2] - 2026-07-21
 
 ### Added

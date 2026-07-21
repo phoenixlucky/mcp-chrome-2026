@@ -543,6 +543,7 @@
 - `block` (字符串，可选)：`start` | `center` | `end` | `nearest`（默认：`center`）
 - `behavior` (字符串，可选)：`auto` | `smooth`（默认：`auto`）
 - `containerSelector` (字符串，可选)：滚动容器的 CSS 选择器（省略时自动检测主滚动容器）
+- `anchorSelector`（字符串，可选）：嵌套或虚拟列表中内容的 CSS 选择器，用于提升自动检测准确性
 - `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于在其中执行滚动
 - `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
 - `windowId` (数字，可选)：目标窗口 ID
@@ -574,6 +575,7 @@
 **参数**：
 
 - `containerSelector` (字符串，可选)：可滚动容器的 CSS 选择器，自动检测主容器
+- `anchorSelector`（字符串，可选）：目标滚动容器内内容的 CSS 选择器；应与 `chrome_scroll` 使用相同值
 - `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器
 - `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
 - `windowId` (数字，可选)：目标窗口 ID

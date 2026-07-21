@@ -595,6 +595,7 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 - `block` (string, optional): `start` | `center` | `end` | `nearest` (default: `center`)
 - `behavior` (string, optional): `auto` | `smooth` (default: `auto`)
 - `containerSelector` (string, optional): CSS selector of scroll container (auto-detected if omitted)
+- `anchorSelector` (string, optional): CSS selector for content inside a nested or virtualized scroll container; improves auto-detection
 - `tabId` (number, optional): Target tab ID (default: active tab)
 - `windowId` (number, optional): Target window ID
 
@@ -625,6 +626,7 @@ Get the native scroll state of the page or a scrollable container. Useful to cal
 **Parameters**:
 
 - `containerSelector` (string, optional): CSS selector of the scroll container. Auto-detects main container if omitted.
+- `anchorSelector` (string, optional): CSS selector for content inside the intended scroll container; use the same value as `chrome_scroll`.
 - `frameSelector` (string, optional): CSS selector for a same-origin iframe containing the scroll container.
 - `tabId` (number, optional): Target tab ID (default: active tab).
 - `windowId` (number, optional): Target window ID to pick active tab from.

@@ -50,6 +50,7 @@ interface ScrollToolParams {
   block?: ScrollBlock;
   behavior?: ScrollBehavior;
   containerSelector?: string;
+  anchorSelector?: string;
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
@@ -57,6 +58,7 @@ interface ScrollToolParams {
 
 interface ScrollStateToolParams {
   containerSelector?: string;
+  anchorSelector?: string;
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
@@ -71,28 +73,29 @@ interface ScrollStateToolParams {
  * The expression returns { scrollTop, scrollHeight, clientHeight, scrolled }
  * or an error object.
  */
-function buildScrollContainerExpression(containerSelector?: string): string {
+function buildScrollContainerExpression(
+  containerSelector?: string,
+  anchorSelector?: string,
+): string {
   return containerSelector
     ? `doc.querySelector(${JSON.stringify(containerSelector)})`
     : `(() => {
-    const candidates = [];
-    const body = doc.body;
-    if (body) {
-      let p = body.parentElement;
-      while (p && p !== doc.documentElement) {
-        const cs = win.getComputedStyle(p);
-        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') candidates.push(p);
-        p = p.parentElement;
+    const selected = ${anchorSelector ? `Array.from(doc.querySelectorAll(${JSON.stringify(anchorSelector)}))` : '[]'};
+    const anchors = [...selected, doc.activeElement,
+      ...[0.35, 0.5, 0.65].map(x => doc.elementFromPoint(win.innerWidth * x, win.innerHeight / 2))].filter(Boolean);
+    const isScrollable = el => el?.isConnected && el.scrollHeight > el.clientHeight
+      && (el === doc.scrollingElement || /auto|scroll/.test(win.getComputedStyle(el).overflowY));
+    const cached = win.__mcpChromeScrollRoot;
+    let container = cached !== doc.scrollingElement && isScrollable(cached)
+      && anchors.some(anchor => cached.contains(anchor)) ? cached : null;
+    for (const anchor of anchors) {
+      for (let el = anchor; !container && el && el !== doc.body; el = el.parentElement) {
+        if (isScrollable(el)) container = el;
       }
     }
-    for (const sel of ['#root', '#app', '#__next', '#__nuxt', '[data-reactroot]', 'main', '[role="main"]']) {
-      const el = doc.querySelector(sel);
-      if (el) {
-        const cs = win.getComputedStyle(el);
-        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') candidates.push(el);
-      }
-    }
-    return candidates[0] || doc.scrollingElement || doc.documentElement;
+    container ||= doc.scrollingElement || doc.documentElement;
+    win.__mcpChromeScrollRoot = container;
+    return container;
   })()`;
 }
 
@@ -111,6 +114,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
     block,
     behavior,
     containerSelector,
+    anchorSelector,
     frameSelector,
   } = params;
 
@@ -123,7 +127,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
     : 'const doc = document; const win = window;';
 
   // Determine the container element expression
-  const containerExpr = buildScrollContainerExpression(containerSelector);
+  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
 
   // Build scroll action
   const actions: string[] = [];
@@ -139,7 +143,6 @@ function buildScrollExpression(params: ScrollToolParams): string {
       Math.max(1, Math.floor(MAX_LAZY_LOAD_DURATION_MS / Math.max(waitMs, 1))),
     );
     actions.push(`await (async () => {
-      const c = ${containerExpr};
       let bottomChecks = 0;
       for (let i = 0; i < ${maxSteps}; i++) {
         const heightBefore = c.scrollHeight;
@@ -152,40 +155,36 @@ function buildScrollExpression(params: ScrollToolParams): string {
     })()`);
   } else if (toBottom) {
     // Scroll to bottom
-    actions.push(`${containerExpr}.scrollTop = ${containerExpr}.scrollHeight`);
+    actions.push(`c.scrollTop = c.scrollHeight`);
   } else if (toTop) {
     // Scroll to top
-    actions.push(`${containerExpr}.scrollTop = 0`);
+    actions.push(`c.scrollTop = 0`);
   } else if (selector && scrollIntoView !== false) {
     // Scroll element into view
-    const elExpr = containerSelector
-      ? `${containerExpr}.querySelector(${JSON.stringify(selector)})`
-      : `doc.querySelector(${JSON.stringify(selector)})`;
+    const elExpr = `c.querySelector(${JSON.stringify(selector)})`;
     actions.push(`(($el) => {
       if (!$el) throw new Error('Element not found: ${JSON.stringify(selector)}');
       $el.scrollIntoView({ behavior: ${JSON.stringify(behavior || 'auto')}, block: ${JSON.stringify(block || 'center')} });
     })(${elExpr})`);
   } else if (selector) {
     // Set scrollTop to element's offsetTop
-    const elExpr = containerSelector
-      ? `${containerExpr}.querySelector(${JSON.stringify(selector)})`
-      : `doc.querySelector(${JSON.stringify(selector)})`;
+    const elExpr = `c.querySelector(${JSON.stringify(selector)})`;
     actions.push(`(($el, $container) => {
       if (!$el) throw new Error('Element not found: ${JSON.stringify(selector)}');
       $container.scrollTop = $el.offsetTop - $container.offsetTop;
-    })(${elExpr}, ${containerExpr})`);
+    })(${elExpr}, c)`);
   } else {
     // Pixel scroll
     const px = typeof amount === 'number' ? amount : DEFAULT_SCROLL_AMOUNT;
     const dir = direction || 'down';
     if (dir === 'down') {
-      actions.push(`${containerExpr}.scrollTop += ${px}`);
+      actions.push(`c.scrollTop += ${px}`);
     } else if (dir === 'up') {
-      actions.push(`${containerExpr}.scrollTop -= ${Math.abs(px)}`);
+      actions.push(`c.scrollTop -= ${Math.abs(px)}`);
     } else if (dir === 'left') {
-      actions.push(`${containerExpr}.scrollLeft -= ${Math.abs(px)}`);
+      actions.push(`c.scrollLeft -= ${Math.abs(px)}`);
     } else if (dir === 'right') {
-      actions.push(`${containerExpr}.scrollLeft += ${px}`);
+      actions.push(`c.scrollLeft += ${px}`);
     }
   }
 
@@ -194,10 +193,15 @@ function buildScrollExpression(params: ScrollToolParams): string {
  (async () => {
   try {
     ${framePrelude}
-    ${actions.join(';\n    ')};
     const c = ${containerExpr};
+    if (!c) return JSON.stringify({ success: false, error: 'Scroll container not found' });
+    const beforeTop = c.scrollTop;
+    const beforeLeft = c.scrollLeft;
+    ${actions.join(';\n    ')};
     return JSON.stringify({
       success: true,
+      target: c === doc.scrollingElement ? 'document.scrollingElement' : c.id ? '#' + c.id : c.tagName.toLowerCase(),
+      moved: c.scrollTop !== beforeTop || c.scrollLeft !== beforeLeft,
       scrollTop: c.scrollTop,
       scrollHeight: c.scrollHeight,
       clientHeight: c.clientHeight,
@@ -276,6 +280,8 @@ class ScrollTool extends BaseBrowserToolExecutor {
           {
             type: 'text',
             text: JSON.stringify({
+              target: result.target,
+              moved: result.moved,
               scrollTop: result.scrollTop,
               scrollHeight: result.scrollHeight,
               clientHeight: result.clientHeight,
@@ -306,7 +312,10 @@ function buildScrollStateExpression(params: ScrollStateToolParams): string {
        if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${params.frameSelector}');
        const win = frame.contentWindow || window;`
     : 'const doc = document; const win = window;';
-  const containerExpr = buildScrollContainerExpression(params.containerSelector);
+  const containerExpr = buildScrollContainerExpression(
+    params.containerSelector,
+    params.anchorSelector,
+  );
 
   return `(async () => {
     try {

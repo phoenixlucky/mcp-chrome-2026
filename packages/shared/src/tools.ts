@@ -1488,6 +1488,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'CSS selector of the scroll container. Auto-detects the main container if omitted.',
         },
+        anchorSelector: {
+          type: 'string',
+          description:
+            'Optional CSS selector for content inside the intended scroll container. Improves auto-detection for nested or virtualized lists.',
+        },
         frameSelector: {
           type: 'string',
           description:
@@ -1508,7 +1513,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCROLL,
     description:
-      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to take one paced step so lazy content can render, then repeat until atBottom=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the main scrollable container by walking the DOM tree.',
+      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to take one paced step so lazy content can render, then repeat until atBottom=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the visible scrollable container; anchorSelector can identify content inside a nested or virtualized list.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1575,7 +1580,12 @@ export const TOOL_SCHEMAS: Tool[] = [
         containerSelector: {
           type: 'string',
           description:
-            'CSS selector of the scroll container. When omitted, auto-detects the main scrollable container by inspecting overflow styles on ancestor elements.',
+            'CSS selector of the scroll container. When omitted, auto-detects the visible scrollable container.',
+        },
+        anchorSelector: {
+          type: 'string',
+          description:
+            'Optional CSS selector for content inside the intended scroll container. Improves auto-detection for nested or virtualized lists.',
         },
         frameSelector: {
           type: 'string',

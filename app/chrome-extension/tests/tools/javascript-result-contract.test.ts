@@ -10,7 +10,7 @@ vi.mock('@/utils/cdp-session-manager', () => ({
 }));
 
 import { javascriptTool } from '@/entrypoints/background/tools/browser/javascript';
-import { scrollStateTool } from '@/entrypoints/background/tools/browser/scroll';
+import { scrollStateTool, scrollTool } from '@/entrypoints/background/tools/browser/scroll';
 
 function payload(result: Awaited<ReturnType<typeof javascriptTool.execute>>) {
   return JSON.parse(result.content[0].text);
@@ -75,6 +75,56 @@ describe('browser result contracts', () => {
       atTop: false,
       atBottom: false,
       success: true,
+    });
+  });
+
+  it('uses the same anchored container resolver for scroll and state', async () => {
+    sendCommand
+      .mockResolvedValueOnce({
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: '[data-testid="primaryColumn"]',
+            moved: true,
+            scrollTop: 600,
+            scrollHeight: 1800,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 900,
+            clientWidth: 900,
+          }),
+        },
+      })
+      .mockResolvedValueOnce({
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: '[data-testid="primaryColumn"]',
+            y: 600,
+            maxY: 900,
+            atTop: false,
+            atBottom: false,
+          }),
+        },
+      });
+
+    const args = { tabId: 12, anchorSelector: '[data-testid="cellInnerDiv"]' };
+    const scroll = await scrollTool.execute({ ...args, amount: 300 });
+    const state = await scrollStateTool.execute(args);
+    const expressions = sendCommand.mock.calls.map(([, , params]) => params.expression);
+
+    expect(expressions).toHaveLength(2);
+    expressions.forEach((expression) => {
+      expect(expression).toContain('doc.querySelectorAll("[data-testid=\\"cellInnerDiv\\"]")');
+      expect(expression).toContain('win.__mcpChromeScrollRoot');
+    });
+    expect(JSON.parse(scroll.content[0].text)).toMatchObject({
+      target: '[data-testid="primaryColumn"]',
+      moved: true,
+    });
+    expect(JSON.parse(state.content[0].text)).toMatchObject({
+      target: '[data-testid="primaryColumn"]',
+      y: 600,
     });
   });
 });
