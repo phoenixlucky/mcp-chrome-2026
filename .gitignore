@@ -52,3 +52,6 @@ CLAUDE.md
 # Reasonix agent state
 .reasonix/
 reasonix.toml
+
+# Release artifacts (use GitHub Releases instead)
+releases/
