@@ -34,16 +34,7 @@
 > - 🖥️ **Status overlay** — Displays `Intent: xxx` in real-time on the browser page
 > - 🔒 **Type safety** — Model selection migrated to `ModelPreset` enum, eliminating runtime risks
 
-## 📢 What's New in v1.5.0
-
-> **Workflow Engine v3 Architecture Unification** — All legacy record-replay v2 code has been fully migrated to the v3 unified architecture.
->
-> - 🧹 Removed v2 legacy engine, recording module, and node system (50+ files)
-> - 🏗️ Action handlers unified under `record-replay-v3/actions` module
-> - 🔌 Plugin system refactored into `action-node-adapter` + `register-action-nodes`
-> - 📦 New `public-api` / `builder-types` / `utils` modules
-> - 📉 Net reduction of ~12,300 lines of legacy code
-> - 📦 Pre-v1.5.0 legacy source code has been archived in the `V2toV3` branch
+> See the [full changelog](docs/CHANGELOG.md) for changes in v1.5.0 and earlier versions.
 
 ---
 

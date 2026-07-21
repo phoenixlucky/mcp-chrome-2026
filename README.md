@@ -34,16 +34,7 @@
 > - 🖥️ **状态叠加层** — 实时显示"意图：xxx"，执行过程透明可见
 > - 🔒 **类型安全** — 模型选择改用 `ModelPreset` 枚举，消除运行时隐患
 
-## 📢 v1.5.0 更新内容
-
-> **工作流引擎 v3 架构统一** — 旧版 record-replay v2 代码已全面迁移至 v3 统一架构。
->
-> - 🧹 移除 v2 旧引擎、旧录制模块、旧节点系统（共 50+ 文件）
-> - 🏗️ 动作处理器统一为 `record-replay-v3/actions` 模块
-> - 🔌 插件系统重构为 `action-node-adapter` + `register-action-nodes`
-> - 📦 新增 `public-api` / `builder-types` / `utils` 公共模块
-> - 📉 净减少 ~12,300 行旧代码
-> - 📦 v1.5.0 之前的旧版本源码已归档至 `V2toV3` 分支
+> 查看 [完整更新日志](docs/CHANGELOG.md) 了解 v1.5.0 及更早版本的更新内容。
 
 ---
 
