@@ -507,7 +507,7 @@ function getRunStatusText(run: RunLite): string {
     failed: '失败',
     canceled: '已取消',
   };
-  return statusMap[run.status] || run.status;
+  return run.status ? statusMap[run.status] || run.status : '';
 }
 
 function formatTime(dateStr: string): string {

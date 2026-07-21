@@ -189,6 +189,7 @@
 <script lang="ts" setup>
 import { ref, computed, nextTick, watch } from 'vue';
 import type { AgentSession } from '@ethanwilkins/chrome-mcp-shared-2026';
+import type { WebEditorApplyMeta } from '../../composables/useAgentThreads';
 
 // =============================================================================
 // Props & Emits
@@ -290,23 +291,37 @@ const displayProjectPath = computed(() => {
 
 const hasPreview = computed(() => !!props.session.preview || !!props.session.previewMeta);
 
-const isWebEditorApplyPreview = computed(() => {
+function getPreviewMeta(): { displayText?: string; clientMeta?: WebEditorApplyMeta } {
   const meta = props.session.previewMeta;
-  if (!meta?.clientMeta?.kind) return false;
-  return (
-    meta.clientMeta.kind === 'web_editor_apply_batch' ||
-    meta.clientMeta.kind === 'web_editor_apply_single'
-  );
+  const rawClientMeta = meta?.clientMeta;
+  if (!rawClientMeta || typeof rawClientMeta !== 'object') {
+    return { displayText: typeof meta?.displayText === 'string' ? meta.displayText : undefined };
+  }
+  const clientMeta = rawClientMeta as Record<string, unknown>;
+  const kind = clientMeta.kind;
+  if (kind !== 'web_editor_apply_batch' && kind !== 'web_editor_apply_single') {
+    return { displayText: typeof meta?.displayText === 'string' ? meta.displayText : undefined };
+  }
+  return {
+    displayText: typeof meta?.displayText === 'string' ? meta.displayText : undefined,
+    clientMeta: {
+      kind,
+      elementCount:
+        typeof clientMeta.elementCount === 'number' ? clientMeta.elementCount : undefined,
+    },
+  };
+}
+
+const isWebEditorApplyPreview = computed(() => {
+  return !!getPreviewMeta().clientMeta;
 });
 
 const previewDisplayText = computed(() => {
-  const meta = props.session.previewMeta;
-  return meta?.displayText || props.session.preview || '';
+  return getPreviewMeta().displayText || props.session.preview || '';
 });
 
 const previewElementCount = computed(() => {
-  const meta = props.session.previewMeta;
-  return meta?.clientMeta?.elementCount;
+  return getPreviewMeta().clientMeta?.elementCount;
 });
 
 // =============================================================================

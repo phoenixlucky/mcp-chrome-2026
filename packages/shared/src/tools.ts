@@ -1770,6 +1770,11 @@ export const TOOL_SCHEMAS: Tool[] = [
 ];
 
 for (const tool of TOOL_SCHEMAS) {
+  (tool.inputSchema as any).properties.intent = {
+    type: 'string',
+    description:
+      'Optional current-phase intent shown with this operation in the browser status overlay.',
+  };
   if (
     [
       TOOL_NAMES.BROWSER.NAVIGATE,

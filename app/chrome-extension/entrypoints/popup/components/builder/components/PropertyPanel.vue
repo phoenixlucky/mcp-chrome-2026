@@ -95,12 +95,13 @@ import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder
 import { validateNodeWithRegistry } from '@/entrypoints/popup/components/builder/model/ui-nodes';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import PropertyFromSpec from '@/entrypoints/popup/components/builder/components/properties/PropertyFromSpec.vue';
+import type { VariableOption } from '@/entrypoints/popup/components/builder/model/variables';
 
 const props = defineProps<{
   node: NodeBase | null;
   highlightField?: string | null;
   subflowIds?: string[];
-  variables?: Array<{ key: string }>;
+  variables?: VariableOption[];
 }>();
 const emit = defineEmits<{
   // Use kebab-case event names to match parent listeners

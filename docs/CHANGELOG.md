@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.5.2] - 2026-07-21
+
+### Added
+
+- **操作意图显示**: 在浏览器状态叠加层显示当前步骤的 `intent` 信息，AI 执行时用户可清晰了解每一步的意图。
+  - 🏷️ 所有工具输入新增可选 `intent` 字段
+  - 🖥️ 状态叠加层 (`chrome_operation_status`) 显示"意图：xxx"行
+  - 🔄 自动截断长意图文本至 160 字符
+
+### Changed
+
+- **类型安全增强**: 模型选择接口从 `string` 迁移至 `ModelPreset` 枚举，消除运行时类型风险。
+- **预览元数据结构优化**: `AgentSessionListItem` 中预览元数据解析逻辑重构，增强 `WebEditorApply` 类型的健壮性。
+- 所有包版本统一为 v1.5.2
+
 ## [v1.5.1] - 2026-07-19
 
 ### Added

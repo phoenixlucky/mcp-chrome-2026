@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, watch, defineComponent, h, ref } from 'vue';
+import { computed, onMounted, reactive, watch, defineComponent, h, ref, type Component } from 'vue';
 import type { FieldSpec, NodeSpec } from '@/entrypoints/popup/components/builder/model/node-spec';
 import { getNodeSpec } from '@/entrypoints/popup/components/builder/model/node-spec-registry';
 import {
@@ -78,7 +78,7 @@ const errors = computed(() => {
   return out;
 });
 
-function resolveField(field: FieldSpec) {
+function resolveField(field: FieldSpec): Component {
   const w = getWidget((field as any).widget);
   if (w) return w as any;
   switch (field.type) {
@@ -209,13 +209,13 @@ const JsonField = defineComponent({
   },
 });
 
-const ObjectField = defineComponent({
+const ObjectField: Component = defineComponent({
   name: 'ObjectField',
   props: ['field', 'modelValue'],
   emits: ['update:modelValue'],
   setup(props: any, { emit }) {
     const local = ref<Record<string, any>>({ ...(props.modelValue || {}) });
-    const compOf = (f: any) => {
+    const compOf = (f: any): Component => {
       const w = getWidget(f.widget);
       if (w) return w as any;
       if (f.type === 'string') return StringField;
@@ -251,7 +251,7 @@ const ObjectField = defineComponent({
   },
 });
 
-const ArrayField = defineComponent({
+const ArrayField: Component = defineComponent({
   name: 'ArrayField',
   props: ['field', 'modelValue'],
   emits: ['update:modelValue'],
@@ -275,7 +275,7 @@ const ArrayField = defineComponent({
       items.value.splice(i, 1);
       update();
     };
-    const compOf = (f: any) => {
+    const compOf = (f: any): Component => {
       const w = getWidget(f.widget);
       if (w) return w as any;
       if (f.type === 'string') return StringField;

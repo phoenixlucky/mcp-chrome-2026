@@ -166,7 +166,7 @@
 
     <DeepSeekSettingsPanel
       :open="deepseekSettingsOpen"
-      :server-port="server.serverPort.value"
+      :server-port="server.serverPort.value ?? 0"
       @close="deepseekSettingsOpen = false"
     />
   </div>

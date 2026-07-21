@@ -11,10 +11,11 @@
 import { computed } from 'vue';
 import PropertyFormRenderer from './PropertyFormRenderer.vue';
 import { getNodeSpec } from '@/entrypoints/popup/components/builder/model/node-spec-registry';
+import type { VariableOption } from '@/entrypoints/popup/components/builder/model/variables';
 
 const props = defineProps<{
   node: any;
-  variables?: Array<{ key: string; origin?: string; nodeId?: string; nodeName?: string }>;
+  variables?: VariableOption[];
 }>();
 const hasSpec = computed(() => !!getNodeSpec(props.node?.type));
 </script>

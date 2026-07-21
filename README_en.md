@@ -26,14 +26,13 @@
 
 ---
 
-## 📢 What's New in v1.5.1
+## 📢 What's New in v1.5.2
 
-> **Element Marker Overhaul** — After marking an element, preview and copy locator code directly in the dialog — no more JSON file downloads.
+> **Intent Display** — The browser status overlay now shows the intent behind each AI step, making execution fully transparent.
 >
-> - 🪟 **Code Dialog UI** — Inline popup shows generated locator code with a single click to copy
-> - 🌐 **Multi-language code generation** — JavaScript (querySelector / XPath) and Python (Selenium By)
-> - 📋 **Smart Copy** — Clipboard API + fallback, works everywhere
-> - ⌨️ **Escape to close** — Press Esc to dismiss the code dialog instantly
+> - 🏷️ **Intent field** — All tools now accept an optional `intent` parameter
+> - 🖥️ **Status overlay** — Displays `Intent: xxx` in real-time on the browser page
+> - 🔒 **Type safety** — Model selection migrated to `ModelPreset` enum, eliminating runtime risks
 
 ## 📢 What's New in v1.5.0
 

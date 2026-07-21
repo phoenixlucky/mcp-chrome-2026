@@ -365,7 +365,6 @@
 import { computed, inject, onUnmounted, ref, watch } from 'vue';
 import type {
   AttachmentCleanupResponse,
-  AttachmentProjectStats,
   AttachmentStatsResponse,
 } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { AGENT_SERVER_PORT_KEY } from '../../composables';
@@ -404,15 +403,16 @@ const totalBytes = computed(() => stats.value?.totalBytes ?? 0);
 const totalFiles = computed(() => stats.value?.totalFiles ?? 0);
 const orphanProjectIds = computed(() => stats.value?.orphanProjectIds ?? []);
 const projects = computed(() => stats.value?.projects ?? []);
+type AttachmentProject = AttachmentStatsResponse['projects'][number];
 
-const projectsSorted = computed<AttachmentProjectStats[]>(() => {
+const projectsSorted = computed<AttachmentProject[]>(() => {
   return [...projects.value].sort((a, b) => (b.totalBytes ?? 0) - (a.totalBytes ?? 0));
 });
 
 /**
  * Check if a project can be selected (has files that exist).
  */
-function isSelectable(p: AttachmentProjectStats): boolean {
+function isSelectable(p: AttachmentProject): boolean {
   return p.exists === true && p.fileCount > 0;
 }
 
@@ -470,7 +470,7 @@ function formatBytes(bytes: number): string {
 /**
  * Get display title for a project.
  */
-function projectTitle(p: AttachmentProjectStats): string {
+function projectTitle(p: AttachmentProject): string {
   return p.projectName?.trim() || p.projectId;
 }
 

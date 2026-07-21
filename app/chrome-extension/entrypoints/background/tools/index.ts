@@ -169,6 +169,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
     Number.isFinite(coordinates.y)
       ? { x: coordinates.x, y: coordinates.y }
       : null;
+  const intent = compact(param.args?.intent, 160) || null;
 
   try {
     await chrome.scripting.executeScript({
@@ -183,6 +184,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
         safeCoordinates,
         state,
         operationDetail(param),
+        intent,
       ],
       func: (
         name: string,
@@ -191,6 +193,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
         coordinates: { x: number; y: number } | null,
         state: '执行中' | '完成' | '失败',
         detail: string,
+        intent: string | null,
       ) => {
         const statusId = '__mcp_operation_status__';
         const highlightId = '__mcp_operation_highlight__';
@@ -307,7 +310,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           };
           if (targetLabels[name]) detail = `${targetLabels[name]}：${elementName}`;
         }
-        status.textContent = `${state}：${actionLabels[name] || String(name).replace(/^chrome_/, '')}${detail ? `\n${detail}` : ''}`;
+        status.textContent = `${state}：${actionLabels[name] || String(name).replace(/^chrome_/, '')}${detail ? `\n${detail}` : ''}${intent ? `\n意图：${intent}` : ''}`;
 
         const rect = target?.getBoundingClientRect();
         const x = rect?.left ?? Number((coordinates as any)?.x);

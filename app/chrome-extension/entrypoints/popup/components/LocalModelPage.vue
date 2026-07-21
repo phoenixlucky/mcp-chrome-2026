@@ -194,6 +194,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import type { ModelPreset } from '@/utils/semantic-similarity-engine';
 import { getMessage } from '@/utils/i18n';
 import ProgressIndicator from './ProgressIndicator.vue';
 import ModelCacheManagement from './ModelCacheManagement.vue';
@@ -215,12 +216,12 @@ interface Props {
   semanticEngineLastUpdated: number | null;
   // 模型
   availableModels: Array<{
-    preset: string;
+    preset: ModelPreset;
     performance: string;
     size: string;
     dimension: number;
   }>;
-  currentModel: string | null;
+  currentModel: ModelPreset | null;
   isModelSwitching: boolean;
   isModelDownloading: boolean;
   modelDownloadProgress: number;
@@ -247,7 +248,7 @@ const props = defineProps<Props>();
 defineEmits<{
   (e: 'back'): void;
   (e: 'initializeSemanticEngine'): void;
-  (e: 'switchModel', preset: string): void;
+  (e: 'switchModel', preset: ModelPreset): void;
   (e: 'retryModelInitialization'): void;
   (e: 'showClearConfirmation'): void;
   (e: 'cleanupCache'): void;
