@@ -26,13 +26,15 @@
 
 ---
 
-## 📢 v1.5.3 更新内容
+## 📢 v1.6.0 更新内容
 
-> **可靠滚动** — `chrome_scroll` 自动识别真实滚动容器，适配嵌套和虚拟列表。
+> **猫娘毛玻璃 UI** — 扩展弹窗和 Builder 界面全面采用毛玻璃视觉效果，配合柔和猫娘主题色调。
 >
-> - 🎯 **anchorSelector** — 为内容锚点指定选择器，精确定位嵌套滚动容器
-> - ↕️ **状态一致** — `chrome_scroll` 与 `chrome_get_scroll_state` 复用同一容器解析
-> - ✅ **移动回执** — 滚动结果返回目标容器和是否真实移动
+> - 🪟 **毛玻璃美学** — 弹窗、Builder 界面采用毛玻璃背景 + 柔和渐变
+> - 🔧 **启动脚本优化** — `start-server.bat` / `start-server-npm.bat` 从 4 步精简为 3 步
+> - 🧩 **内嵌 Shared Runtime** — native-server 安装时自动安装 bundled shared runtime
+> - 🎨 **Builder/Popup UI 重构** — 大幅重写 `App.vue`，优化工作流编辑器界面
+> - ⌨️ **页面录制快捷键** — `Ctrl+Shift+1/2/3` 控制录制开始/暂停/停止
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解 v1.5.0 及更早版本的更新内容。
 

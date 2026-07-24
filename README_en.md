@@ -26,13 +26,15 @@
 
 ---
 
-## 📢 What's New in v1.5.3
+## 📢 What's New in v1.6.0
 
-> **Reliable Scrolling** — `chrome_scroll` now detects the real scroll container for nested and virtualized lists.
+> **Catgirl Frosted Glass UI** — The extension popup and Builder now feature a frosted-glass visual with a soft catgirl-themed palette.
 >
-> - 🎯 **anchorSelector** — Anchor auto-detection to content inside the intended container
-> - ↕️ **Consistent state** — `chrome_scroll` and `chrome_get_scroll_state` share one resolver
-> - ✅ **Movement receipt** — Scroll results identify the target and whether it moved
+> - 🪟 **Frosted Glass Aesthetic** — Popup and Builder with glassmorphism backgrounds and soft gradients
+> - 🔧 **Optimized Startup** — `start-server.bat` / `start-server-npm.bat` simplified from 4 to 3 steps
+> - 🧩 **Bundled Shared Runtime** — native-server now auto-installs the shared runtime during postinstall
+> - 🎨 **Builder/Popup UI Rewrite** — Major `App.vue` overhaul improving the workflow editor
+> - ⌨️ **Page Recording Shortcuts** — `Ctrl+Shift+1/2/3` for start/pause/stop recording
 
 > See the [full changelog](docs/CHANGELOG.md) for changes in v1.5.0 and earlier versions.
 

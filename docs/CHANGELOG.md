@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.0] - 2026-07-24
+
+### Added
+
+- **猫娘毛玻璃 UI** — 扩展弹窗和 Builder 界面全面采用毛玻璃视觉效果，配合柔和猫娘主题色调。
+- **品牌更名** — 项目视觉标识统一更新。
+- **页面录制快捷键** — `Ctrl+Shift+1/2/3` 分别控制开始/暂停/停止录制。
+- **内嵌 Shared Runtime** — native-server postinstall 自动安装 bundled shared runtime，减少手动构建步骤。
+- **页面录制器新架构** — 新增 `page-recorder.ts`、`page-picker.ts`、`tabs.test.ts`。
+
+### Changed
+
+- **启动脚本优化** — `start-server.bat` / `start-server-npm.bat` 从 4 步精简为 3 步，移除独立 shared build 步骤。
+- **错误日志系统重构** — 错误日志从行内展示改为弹窗 Modal，提升查看体验；新增网络捕获 URL 安全检查。
+- **Builder/Popup UI 重构** — 大幅重写 `App.vue`，优化工作流编辑器界面。
+- **导航容错增强** — 页面导航失败时提供更清晰的错误回退。
+- **依赖升级** — pnpm 从 11.15.1 升级至 11.17.0。
+
+### Fixed
+
+- **Native Messaging 注册容错** — 检测到 `EPERM` 时给出明确提示，建议关闭 Chrome 后重试。
+
+- 所有包版本统一为 v1.6.0。
+
 ## [v1.5.3] - 2026-07-21
 
 ### Fixed
