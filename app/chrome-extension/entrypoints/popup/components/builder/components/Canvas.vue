@@ -36,7 +36,10 @@ import '@vue-flow/core/dist/theme-default.css';
 // Note: background package doesn't expose style.css via exports in Vite 6.
 // The component works without its dedicated CSS; keep core/minimap/controls styles.
 
-import type { NodeBase, Edge as BuilderEdge } from '@/entrypoints/background/record-replay-v3/builder-types';
+import type {
+  NodeBase,
+  Edge as BuilderEdge,
+} from '@/entrypoints/background/record-replay-v3/builder-types';
 import NodeCard from './nodes/NodeCard.vue';
 import NodeIf from './nodes/NodeIf.vue';
 import { NODE_UI_LIST, canvasTypeKey } from '@/entrypoints/popup/components/builder/model/ui-nodes';
@@ -255,20 +258,20 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 .canvas {
   position: relative;
   overflow: hidden;
-  /* Use fixed background as requested */
-  background: #ededed;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.72), rgba(244, 238, 248, 0.58)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
   /* Ensure VueFlow gets a non-zero layout size */
   width: 100%;
   height: 100%;
 }
 
 :deep(.workflow-node) {
-  max-width: 400px;
+  max-width: 320px;
   background: #fff;
   border: 1px solid var(--rr-border);
-  border-radius: 16px;
-  /* Requested node spacing */
-  padding: 10px 16px 10px 10px;
+  border-radius: 12px;
+  padding: 7px 12px 7px 7px;
   /* Text look */
   color: #8f8f8f;
   font-size: 12px;
@@ -334,22 +337,22 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 :deep(.node-container) {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
   /* Padding moved to .workflow-node to match requested style */
   padding: 0;
 }
 
 /* Node icon: keep container size; shrink inner icon via font-size */
 :deep(.node-icon) {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: #fff;
-  font-size: 14px; /* inner svg is 1em; smaller but container unchanged */
+  font-size: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -456,7 +459,7 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 }
 
 :deep(.node-name) {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #0d0d0d;
   overflow: hidden;
@@ -467,7 +470,7 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 }
 
 :deep(.node-subtitle) {
-  font-size: 10px;
+  font-size: 9px;
   color: #8f8f8f;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -477,8 +480,8 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 
 /* Connection handles */
 :deep(.node-handle.vue-flow__handle) {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 0 0 1px #cdcdcd;
@@ -522,7 +525,7 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 
 /* 背景网格 */
 :deep(.vue-flow__background) {
-  background-color: #ededed;
+  background-color: transparent;
 }
 
 /* Override default VueFlow node box to avoid extra white box behind custom node */
@@ -542,18 +545,18 @@ defineExpose({ zoomIn, zoomOut, fitAll });
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 :deep(.case-row) {
   position: relative;
-  height: 26px;
+  height: 22px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.03);
   color: #8f8f8f;
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 6px;
 }
 
 :deep(.case-row.else-row) {
@@ -561,7 +564,7 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 }
 
 :deep(.case-label) {
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

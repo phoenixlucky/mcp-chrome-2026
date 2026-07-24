@@ -13,6 +13,7 @@ import { initQuickPanelTabsHandler } from './quick-panel/tabs-handler';
 import { initErrorLog } from './error-log';
 
 import { bootstrapV3 } from './record-replay-v3/bootstrap';
+import { initPageRecorder } from './record-replay-v3/page-recorder';
 
 /**
  * Background script entry point
@@ -41,6 +42,7 @@ export default defineBackground(() => {
     .catch((error) => {
       console.error('[RR-V3] Bootstrap failed:', error);
     });
+  initPageRecorder();
 
   // Element marker: context menu + CRUD listeners
   initElementMarkerListeners();

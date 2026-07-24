@@ -33,8 +33,7 @@
                 </div>
               </div>
               <div v-if="packageVersions" class="package-versions">
-                <span>chrome-mcp-shared-2026 v{{ packageVersions.shared }}</span>
-                <span>mcp-chrome-bridge-2026 v{{ packageVersions.bridge }}</span>
+                <span>mcp-chrome-bridge-2026 v{{ packageVersions }}</span>
               </div>
             </div>
 
@@ -157,16 +156,34 @@
               <ErrorLogIcon />
             </button>
             <button
-              class="rr-icon-btn rr-icon-btn-disabled has-tooltip"
-              disabled
-              data-tooltip="录制功能开发中"
+              class="rr-icon-btn rr-icon-btn-record has-tooltip"
+              :disabled="rrRecording"
+              @click="startRecording"
+              data-tooltip="开始录制（Ctrl+Shift+1）"
             >
-              <RecordIcon :recording="false" />
+              <RecordIcon :recording="rrRecording" />
             </button>
             <button
-              class="rr-icon-btn rr-icon-btn-disabled has-tooltip"
-              disabled
-              data-tooltip="录制功能开发中"
+              class="rr-icon-btn rr-icon-btn-pause has-tooltip"
+              :disabled="!rrRecording"
+              @click="togglePauseRecording"
+              :data-tooltip="rrPaused ? '继续录制（Ctrl+Shift+2）' : '暂停录制（Ctrl+Shift+2）'"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M6 4h4v16H6zm8 0h4v16h-4z" />
+              </svg>
+            </button>
+            <button
+              class="rr-icon-btn rr-icon-btn-stop has-tooltip"
+              :disabled="!rrRecording"
+              @click="stopRecording"
+              data-tooltip="停止录制（Ctrl+Shift+3）"
             >
               <StopIcon />
             </button>
@@ -174,6 +191,7 @@
           <p class="quick-tools-help"
             >页面编辑用于可视化调整与精确提问；元素标注用于保存页面关键元素，供 MCP 和助手复用。</p
           >
+          <p v-if="rrError" class="quick-tools-error">{{ rrError }}</p>
         </div>
 
         <!-- 管理入口卡片 -->
@@ -213,15 +231,12 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button class="entry-item entry-item-coming-soon" @click="openWorkflowSidepanel">
+            <button class="entry-item" @click="openWorkflowSidepanel">
               <div class="entry-icon workflow">
                 <WorkflowIcon />
               </div>
               <div class="entry-content">
-                <span class="entry-title">
-                  工作流管理
-                  <span class="coming-soon-badge">Coming Soon</span>
-                </span>
+                <span class="entry-title"> 工作流管理 </span>
                 <span class="entry-desc">录制与回放自动化流程</span>
               </div>
               <svg
@@ -335,6 +350,44 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
+            <button class="entry-item" @click="openRecentRecordedScripts">
+              <div class="entry-icon recordings">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14 2v6h6M8 13h8M8 17h5"
+                  />
+                </svg>
+              </div>
+              <div class="entry-content">
+                <span class="entry-title">最近录制脚本</span>
+                <span class="entry-desc">查询、打开或复制页面录制流程</span>
+              </div>
+              <svg
+                class="entry-arrow"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -386,6 +439,47 @@
           </button>
           <button class="copy-config-button" @click="clearErrorLogs">清空日志</button>
         </footer>
+      </section>
+    </div>
+
+    <div
+      v-if="showRecentRecordedScripts"
+      class="error-log-modal"
+      @click.self="showRecentRecordedScripts = false"
+    >
+      <section
+        class="error-log-dialog recent-scripts-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="最近录制脚本"
+      >
+        <header class="error-log-header">
+          <strong>最近录制的页面脚本</strong>
+          <button class="copy-config-button" @click="showRecentRecordedScripts = false"
+            >关闭</button
+          >
+        </header>
+        <p v-if="recentRecordedFlows.length === 0" class="recent-scripts-empty"
+          >暂无页面录制脚本。</p
+        >
+        <div v-else class="recent-scripts-list">
+          <article v-for="flow in recentRecordedFlows" :key="flow.id" class="recent-script-item">
+            <div class="recent-script-info">
+              <strong>{{ flow.name }}</strong>
+              <span>{{ formatRecordedFlowTime(flow.updatedAt || flow.createdAt) }}</span>
+            </div>
+            <div class="recent-script-actions">
+              <button class="copy-config-button" @click="openBuilderWindow(flow.id)">打开</button>
+              <button class="copy-config-button" @click="runRecordedScript(flow.id)">运行</button>
+              <button
+                class="copy-config-button danger-action"
+                @click="deleteRecordedScript(flow.id)"
+                >删除</button
+              >
+            </div>
+          </article>
+        </div>
+        <p v-if="recentScriptsMessage" class="recent-scripts-message">{{ recentScriptsMessage }}</p>
       </section>
     </div>
 
@@ -473,6 +567,7 @@ import {
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { LINKS } from '@/common/constants';
 import { getMessage } from '@/utils/i18n';
+import { useRRV3Rpc } from '@/entrypoints/shared/composables';
 import { useAgentTheme, type AgentThemeId } from '../sidepanel/composables/useAgentTheme';
 
 import ConfirmDialog from './components/ConfirmDialog.vue';
@@ -498,6 +593,7 @@ import {
 
 // AgentChat theme - 从preload中获取，保持与sidepanel一致
 const { theme: agentTheme, initTheme } = useAgentTheme();
+const rrRpc = useRRV3Rpc();
 
 // 当前视图状态：首页 or 本地模型页
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
@@ -581,12 +677,36 @@ function showComingSoonToast(feature: string) {
 
 // Record & Replay state
 const rrRecording = ref(false);
+const rrPaused = ref(false);
+const rrError = ref('');
 const rrFlows = ref<
-  Array<{ id: string; name: string; description?: string; meta?: any; variables?: any[] }>
+  Array<{
+    id: string;
+    name: string;
+    description?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    meta?: any;
+    variables?: any[];
+  }>
 >([]);
+const showRecentRecordedScripts = ref(false);
+const recentScriptsMessage = ref('');
 const rrOnlyBound = ref(false);
 const rrSearch = ref('');
 const currentTabUrl = ref<string>('');
+const recentRecordedFlows = computed(() =>
+  rrFlows.value
+    .filter(
+      (flow) => flow.meta?.tags?.includes('页面录制') || flow.description?.startsWith('录制自 '),
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt || 0).getTime() -
+        new Date(a.updatedAt || a.createdAt || 0).getTime(),
+    )
+    .slice(0, 10),
+);
 const filteredRrFlows = computed(() => {
   const base = rrOnlyBound.value ? rrFlows.value.filter(isFlowBoundToCurrent) : rrFlows.value;
   const q = rrSearch.value.trim().toLowerCase();
@@ -609,6 +729,76 @@ const loadFlows = async () => {
     /* ignore */
   }
 };
+
+async function openRecentRecordedScripts() {
+  recentScriptsMessage.value = '';
+  await loadFlows();
+  showRecentRecordedScripts.value = true;
+}
+
+async function runRecordedScript(flowId: string) {
+  try {
+    await rrRpc.ensureConnected();
+    await rrRpc.request('rr_v3.enqueueRun', { flowId });
+    recentScriptsMessage.value = '已开始运行录制脚本。';
+  } catch (error) {
+    recentScriptsMessage.value = error instanceof Error ? error.message : '运行脚本失败。';
+  }
+}
+
+async function deleteRecordedScript(flowId: string) {
+  if (!window.confirm('确定删除这条录制脚本吗？此操作无法撤销。')) return;
+  try {
+    await rrRpc.ensureConnected();
+    await rrRpc.request('rr_v3.deleteFlow', { flowId });
+    recentScriptsMessage.value = '录制脚本已删除。';
+    await loadFlows();
+  } catch (error) {
+    recentScriptsMessage.value = error instanceof Error ? error.message : '删除脚本失败。';
+  }
+}
+
+function formatRecordedFlowTime(value?: string) {
+  return value ? new Date(value).toLocaleString() : '时间未知';
+}
+
+async function startRecording() {
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.RR_START_RECORDING,
+    });
+    if (!result?.success) {
+      rrError.value = result?.error || '录制操作失败';
+      return;
+    }
+    rrError.value = '';
+    rrRecording.value = true;
+    rrPaused.value = false;
+  } catch (error) {
+    rrError.value = error instanceof Error ? error.message : '无法连接录制服务';
+  }
+}
+
+async function togglePauseRecording() {
+  const result = await chrome.runtime.sendMessage({
+    type: rrPaused.value
+      ? BACKGROUND_MESSAGE_TYPES.RR_RESUME_RECORDING
+      : BACKGROUND_MESSAGE_TYPES.RR_PAUSE_RECORDING,
+  });
+  if (!result?.success) return console.warn(result?.error || '录制操作失败');
+  rrPaused.value = !rrPaused.value;
+}
+
+async function stopRecording() {
+  const result = await chrome.runtime.sendMessage({
+    type: BACKGROUND_MESSAGE_TYPES.RR_STOP_RECORDING,
+  });
+  if (!result?.success) return console.warn(result?.error || '停止录制失败');
+  rrRecording.value = false;
+  rrPaused.value = false;
+  await loadFlows();
+  if (result.flow?.id) openBuilderWindow(result.flow.id);
+}
 
 function isFlowBoundToCurrent(flow: any) {
   try {
@@ -689,7 +879,7 @@ const serverStatus = ref<{
   isRunning: false,
   lastUpdated: Date.now(),
 });
-const packageVersions = ref<{ shared: string; bridge: string } | null>(null);
+const packageVersions = ref<string | null>(null);
 
 const showMcpConfig = computed(() => {
   return nativeConnectionStatus.value === 'connected' && serverStatus.value.isRunning;
@@ -814,9 +1004,7 @@ async function openSidepanelAndClose(tab: string) {
 
 // Open sidepanel from popup for workflow management
 function openWorkflowSidepanel() {
-  // TODO: 工作流功能开发中，暂时拦截
-  showComingSoonToast('工作流管理');
-  // openSidepanelAndClose('workflows');
+  openSidepanelAndClose('workflows');
 }
 
 // Open sidepanel for element marker management
@@ -1232,12 +1420,8 @@ const loadPackageVersions = async () => {
     );
     const packages = status?.packages;
     packageVersions.value =
-      typeof packages?.['chrome-mcp-shared-2026'] === 'string' &&
       typeof packages?.['mcp-chrome-bridge-2026'] === 'string'
-        ? {
-            shared: packages['chrome-mcp-shared-2026'],
-            bridge: packages['mcp-chrome-bridge-2026'],
-          }
+        ? packages['mcp-chrome-bridge-2026']
         : null;
   } catch {
     packageVersions.value = null;
@@ -1752,6 +1936,13 @@ onMounted(async () => {
   await refreshStorageStats();
   await loadCacheStats();
   await loadFlows();
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.RR_GET_RECORDING_STATUS,
+    });
+    rrRecording.value = result?.status === 'recording' || result?.status === 'paused';
+    rrPaused.value = result?.status === 'paused';
+  } catch {}
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     currentTabUrl.value = tab?.url || '';
@@ -2413,6 +2604,59 @@ onUnmounted(() => {
   white-space: pre-wrap;
 }
 
+.recent-scripts-dialog {
+  min-height: 240px;
+}
+
+.recent-scripts-list {
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+}
+
+.recent-script-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.recent-script-info {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.recent-script-info strong {
+  overflow: hidden;
+  color: #374151;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-script-info span,
+.recent-scripts-empty,
+.recent-scripts-message {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.recent-script-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.danger-action {
+  color: #dc2626;
+}
+
 .background-operations-switch {
   display: flex;
   align-items: center;
@@ -2832,13 +3076,34 @@ onUnmounted(() => {
 }
 
 .rr-icon-btn-logs {
-  background: rgba(71, 85, 105, 0.12);
-  color: #475569;
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+.quick-tools-error {
+  margin: 6px 4px 0;
+  color: #dc2626;
+  font-size: 12px;
 }
 
 .rr-icon-btn-logs:hover:not(:disabled) {
-  background: rgba(71, 85, 105, 0.2);
-  color: #334155;
+  background: rgba(124, 58, 237, 0.2);
+  color: #6d28d9;
+}
+
+.rr-icon-btn-record {
+  background: rgba(225, 29, 72, 0.12);
+  color: #e11d48;
+}
+
+.rr-icon-btn-pause {
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+}
+
+.rr-icon-btn-stop {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
 }
 
 .rr-icon-btn-disabled {
@@ -2968,6 +3233,11 @@ onUnmounted(() => {
 .entry-icon.tools {
   background: rgba(14, 116, 144, 0.12);
   color: #0e7490;
+}
+
+.entry-icon.recordings {
+  background: rgba(236, 72, 153, 0.12);
+  color: #db2777;
 }
 
 .entry-content {

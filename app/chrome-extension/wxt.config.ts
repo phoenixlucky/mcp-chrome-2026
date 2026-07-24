@@ -92,12 +92,22 @@ export default defineConfig({
       //   description: 'Open workflow sidepanel',
       // },
       toggle_web_editor: {
-        suggested_key: { default: 'Ctrl+Shift+O', mac: 'Command+Shift+O' },
         description: 'Toggle Web Editor mode',
       },
       toggle_quick_panel: {
-        suggested_key: { default: 'Ctrl+Shift+U', mac: 'Command+Shift+U' },
         description: 'Toggle Quick Panel AI Chat',
+      },
+      start_page_recording: {
+        suggested_key: { default: 'Ctrl+Shift+1', mac: 'Command+Shift+1' },
+        description: 'Start page recording',
+      },
+      toggle_page_recording_pause: {
+        suggested_key: { default: 'Ctrl+Shift+2', mac: 'Command+Shift+2' },
+        description: 'Pause or resume page recording',
+      },
+      stop_page_recording: {
+        suggested_key: { default: 'Ctrl+Shift+3', mac: 'Command+Shift+3' },
+        description: 'Stop page recording',
       },
     },
     web_accessible_resources: [

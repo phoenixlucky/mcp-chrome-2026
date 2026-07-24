@@ -3,14 +3,18 @@
     <div class="row">
       <input class="form-input" :placeholder="placeholder" :value="text" @input="onInput" />
       <button class="btn-mini" type="button" title="从页面拾取" @click="onPick">拾取</button>
+      <button class="btn-mini" type="button" :disabled="validating" @click="onValidate">
+        {{ validating ? '验证中…' : '验证定位' }}
+      </button>
     </div>
     <div class="help">可输入 CSS 选择器，或点击“拾取”在页面中选择元素</div>
-    <div v-if="err" class="error-item">{{ err }}</div>
+    <div v-if="message" :class="validationOk ? 'success-item' : 'error-item'">{{ message }}</div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, watchEffect } from 'vue';
+import { pickElementFromPage, validatePageSelector } from '../components/page-picker';
 const props = defineProps<{ modelValue?: string; field?: any }>();
 const emit = defineEmits<{ (e: 'update:modelValue', v?: string): void }>();
 const text = ref<string>(props.modelValue ?? '');
@@ -22,31 +26,14 @@ function onInput(ev: any) {
 }
 watchEffect(() => (text.value = props.modelValue ?? ''));
 
-const err = ref<string>('');
-async function ensurePickerInjected(tabId: number) {
-  try {
-    const pong = await chrome.tabs.sendMessage(tabId, { action: 'chrome_read_page_ping' } as any);
-    if (pong && pong.status === 'pong') return;
-  } catch {}
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['inject-scripts/accessibility-tree-helper.js'],
-      world: 'ISOLATED',
-    } as any);
-  } catch (e) {
-    console.warn('inject picker helper failed:', e);
-  }
-}
+const message = ref('');
+const validationOk = ref(false);
+const validating = ref(false);
 
 async function onPick() {
   try {
-    err.value = '';
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tabId = tabs?.[0]?.id;
-    if (!tabId) throw new Error('未找到活动页签');
-    await ensurePickerInjected(tabId);
-    const res: any = await chrome.tabs.sendMessage(tabId, { action: 'rr_picker_start' } as any);
+    message.value = '';
+    const res: any = await pickElementFromPage();
     if (!res || !res.success) {
       if (res?.cancelled) return;
       throw new Error(res?.error || '拾取失败');
@@ -66,10 +53,26 @@ async function onPick() {
       text.value = sel;
       emit('update:modelValue', sel);
     } else {
-      err.value = '未生成有效选择器，请手动输入';
+      validationOk.value = false;
+      message.value = '未生成有效选择器，请手动输入';
     }
   } catch (e: any) {
-    err.value = e?.message || String(e);
+    validationOk.value = false;
+    message.value = e?.message || String(e);
+  }
+}
+
+async function onValidate() {
+  validating.value = true;
+  try {
+    await validatePageSelector(text.value);
+    validationOk.value = true;
+    message.value = '定位成功。';
+  } catch (e: any) {
+    validationOk.value = false;
+    message.value = e?.message || String(e);
+  } finally {
+    validating.value = false;
   }
 }
 </script>
@@ -89,6 +92,11 @@ async function onPick() {
 .error-item {
   font-size: 12px;
   color: #ff6666;
+  margin-top: 6px;
+}
+.success-item {
+  font-size: 12px;
+  color: #059669;
   margin-top: 6px;
 }
 </style>

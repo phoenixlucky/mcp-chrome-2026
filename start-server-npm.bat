@@ -4,11 +4,11 @@ title Chrome MCP Server - npm Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.5.3 -- npm
+echo   Chrome MCP Server v1.6.0 -- npm
 echo ========================================
 echo.
 
-echo [1/4] Checking dependencies...
+echo [1/3] Checking dependencies...
 if not exist "node_modules" (
     call pnpm install
     if %ERRORLEVEL% NEQ 0 (
@@ -22,17 +22,7 @@ if not exist "node_modules" (
 echo Done.
 echo.
 
-echo [2/4] Building shared package...
-call pnpm --filter @ethanwilkins/chrome-mcp-shared-2026 build
-if %ERRORLEVEL% NEQ 0 (
-    echo Build shared failed
-    pause
-    exit /b 1
-)
-echo Done.
-echo.
-
-echo [3/4] Building and registering native-server...
+echo [2/3] Building app and embedded bridge package...
 echo [Tip] If native-server\dist reports EPERM, close Chrome and rerun this script.
 call pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 build
 if %ERRORLEVEL% NEQ 0 (
@@ -56,7 +46,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 
-echo [4/4] Clearing stale HTTP processes...
+echo [3/3] Clearing stale HTTP processes...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":12306 " ^| findstr "LISTENING"') do (
     echo   Killing PID %%a ...
     taskkill /F /PID %%a >nul 2>&1

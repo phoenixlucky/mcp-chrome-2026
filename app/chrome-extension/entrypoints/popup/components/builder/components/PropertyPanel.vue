@@ -320,55 +320,6 @@ function swapCand(arr: any[], i: number, j: number) {
   arr[j] = t;
 }
 
-// Element picker integration
-async function ensurePickerInjected(tabId: number) {
-  try {
-    const pong = await chrome.tabs.sendMessage(tabId, { action: 'chrome_read_page_ping' } as any);
-    if (pong && pong.status === 'pong') return;
-  } catch {}
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['inject-scripts/accessibility-tree-helper.js'],
-      world: 'ISOLATED',
-    } as any);
-  } catch (e) {
-    console.warn('inject picker helper failed:', e);
-  }
-}
-
-async function pickFromPage() {
-  try {
-    if (!props.node) return;
-    const t = props.node.type;
-    if (t !== 'click' && t !== 'fill' && t !== 'triggerEvent' && t !== 'setAttribute') return;
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tabId = tabs?.[0]?.id;
-    if (typeof tabId !== 'number') return;
-    await ensurePickerInjected(tabId);
-    const resp: any = await chrome.tabs.sendMessage(tabId, { action: 'rr_picker_start' } as any);
-    if (!resp || !resp.success) return;
-    const n: any = props.node;
-    if (!n.config) n.config = {};
-    if (!n.config.target) n.config.target = { candidates: [] };
-    if (!Array.isArray(n.config.target.candidates)) n.config.target.candidates = [];
-    const arr = Array.isArray(resp.candidates) ? resp.candidates : [];
-    const seen = new Set<string>();
-    const merged: any[] = [];
-    for (const c of arr) {
-      if (!c || !c.type || !c.value) continue;
-      const key = `${c.type}|${c.value}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push({ type: String(c.type), value: String(c.value) });
-      }
-    }
-    n.config.target.candidates = merged;
-  } catch (e) {
-    console.warn('pickFromPage failed:', e);
-  }
-}
-
 // http json helpers
 const headersJson = computed({
   get() {

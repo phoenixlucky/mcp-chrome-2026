@@ -468,9 +468,12 @@
     if (!isVisible(el)) return false;
     if (cfg.filter !== 'all') {
       const r = /** @type {HTMLElement} */ (el).getBoundingClientRect();
-      if (
-        !(r.top < window.innerHeight && r.bottom > 0 && r.left < window.innerWidth && r.right > 0)
-      )
+      if (!(
+        r.top < window.innerHeight &&
+        r.bottom > 0 &&
+        r.left < window.innerWidth &&
+        r.right > 0
+      ))
         return false;
     }
     if (cfg.filter === 'interactive') return isInteractive(el);
@@ -826,13 +829,15 @@
           if (host) host.remove();
           host = document.createElement('div');
           host.id = hostId;
+          const previousCursor = document.documentElement.style.cursor;
           Object.assign(host.style, {
             position: 'fixed',
             inset: '0',
             zIndex: 2147483646,
-            cursor: 'crosshair',
+            pointerEvents: 'none',
             background: 'rgba(0,0,0,0.0)',
           });
+          document.documentElement.style.cursor = 'crosshair';
           const box = document.createElement('div');
           Object.assign(box.style, {
             position: 'fixed',
@@ -861,6 +866,7 @@
             try {
               host.remove();
             } catch {}
+            document.documentElement.style.cursor = previousCursor;
             try {
               document.removeEventListener('mousemove', onMove, true);
             } catch {}
@@ -1306,6 +1312,30 @@
           if (!refId) {
             refId = `ref_${++window.__claudeRefCounter}`;
             window.__claudeElementMap[refId] = new WeakRef(el);
+          }
+          if (request.highlight) {
+            const highlightId = '__rr_picker_validation_highlight__';
+            document.getElementById(highlightId)?.remove();
+            el.scrollIntoView({ block: 'center', inline: 'center' });
+            const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
+            const highlight = document.createElement('div');
+            highlight.id = highlightId;
+            Object.assign(highlight.style, {
+              position: 'fixed',
+              zIndex: 2147483646,
+              pointerEvents: 'none',
+              boxSizing: 'border-box',
+              border: '3px solid #22c55e',
+              borderRadius: '5px',
+              background: 'rgba(34,197,94,.14)',
+              boxShadow: '0 0 0 2px rgba(255,255,255,.9)',
+              left: `${Math.round(rect.left)}px`,
+              top: `${Math.round(rect.top)}px`,
+              width: `${Math.round(rect.width)}px`,
+              height: `${Math.round(rect.height)}px`,
+            });
+            (document.documentElement || document.body).append(highlight);
+            setTimeout(() => highlight.remove(), 2200);
           }
           const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
           sendResponse({

@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 const distDir = path.join(__dirname, '..', '..', 'dist');
+const sharedPackageDir = path.join(__dirname, '..', '..', '..', '..', 'packages', 'shared');
+const sharedPackageDest = path.join(distDir, 'vendor', 'chrome-mcp-shared-2026');
 // 清理上次构建
 console.log('清理上次构建...');
 try {
@@ -39,6 +41,15 @@ try {
 } catch (error) {
   console.error('复制配置文件时出错:', error);
 }
+
+console.log('内嵌共享运行时...');
+fs.cpSync(path.join(sharedPackageDir, 'dist'), path.join(sharedPackageDest, 'dist'), {
+  recursive: true,
+});
+fs.copyFileSync(
+  path.join(sharedPackageDir, 'package.json'),
+  path.join(sharedPackageDest, 'package.json'),
+);
 
 // 复制package.json并更新其内容
 console.log('准备package.json...');

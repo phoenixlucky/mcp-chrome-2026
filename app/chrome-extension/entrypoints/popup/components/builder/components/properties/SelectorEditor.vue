@@ -3,6 +3,9 @@
     <div class="section-header">
       <span class="section-title">{{ title || '选择器' }}</span>
       <button v-if="allowPick" class="btn-sm btn-primary" @click="pickFromPage">从页面选择</button>
+      <button class="btn-sm" :disabled="validating" @click="validateLocator">
+        {{ validating ? '验证中…' : '验证定位' }}
+      </button>
     </div>
     <div class="selector-list" data-field="target.candidates">
       <div class="selector-item" v-for="(c, i) in list" :key="i">
@@ -20,12 +23,20 @@
       </div>
       <button class="btn-sm" @click="add">+ 添加选择器</button>
     </div>
+    <div
+      v-if="validationMessage"
+      :class="['validation-message', validationOk ? 'success' : 'error']"
+    >
+      {{ validationMessage }}
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 /* eslint-disable vue/no-mutating-props */
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
+import { ref } from 'vue';
+import { pickElementFromPage, validatePageSelector } from '../page-picker';
 
 const props = defineProps<{
   node: NodeBase;
@@ -34,6 +45,9 @@ const props = defineProps<{
   title?: string;
 }>();
 const key = (props.targetKey || 'target') as string;
+const validating = ref(false);
+const validationOk = ref(false);
+const validationMessage = ref('');
 
 function ensureTarget() {
   const n: any = props.node;
@@ -70,29 +84,9 @@ function move(i: number, d: number) {
   arr[j] = t;
 }
 
-async function ensurePickerInjected(tabId: number) {
-  try {
-    const pong = await chrome.tabs.sendMessage(tabId, { action: 'chrome_read_page_ping' } as any);
-    if (pong && pong.status === 'pong') return;
-  } catch {}
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['inject-scripts/accessibility-tree-helper.js'],
-      world: 'ISOLATED',
-    } as any);
-  } catch (e) {
-    console.warn('inject picker helper failed:', e);
-  }
-}
-
 async function pickFromPage() {
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tabId = tabs?.[0]?.id;
-    if (typeof tabId !== 'number') return;
-    await ensurePickerInjected(tabId);
-    const resp: any = await chrome.tabs.sendMessage(tabId, { action: 'rr_picker_start' } as any);
+    const resp: any = await pickElementFromPage();
     if (!resp || !resp.success) return;
     ensureTarget();
     const n: any = props.node;
@@ -109,11 +103,42 @@ async function pickFromPage() {
     }
     n.config[key].candidates = merged;
   } catch (e) {
-    console.warn('pickFromPage failed:', e);
+    validationOk.value = false;
+    validationMessage.value = e instanceof Error ? e.message : '拾取失败。';
+  }
+}
+
+async function validateLocator() {
+  ensureTarget();
+  const target: any = (props.node as any).config[key];
+  const candidates = Array.isArray(target?.candidates) ? target.candidates : [];
+  const candidate = target?.selector
+    ? { type: 'css', value: target.selector }
+    : candidates.find((item: any) => ['css', 'attr', 'xpath'].includes(item.type) && item.value);
+  validating.value = true;
+  try {
+    await validatePageSelector(String(candidate?.value || ''), String(candidate?.type || 'css'));
+    validationOk.value = true;
+    validationMessage.value = '定位成功。';
+  } catch (e) {
+    validationOk.value = false;
+    validationMessage.value = e instanceof Error ? e.message : '定位失败。';
+  } finally {
+    validating.value = false;
   }
 }
 </script>
 
 <style scoped>
 /* No local styles; inherit from parent panel via :deep selectors */
+.validation-message {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.validation-message.success {
+  color: #059669;
+}
+.validation-message.error {
+  color: #dc2626;
+}
 </style>

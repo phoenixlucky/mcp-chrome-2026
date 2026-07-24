@@ -114,20 +114,12 @@ async function tabExists(tabId: number): Promise<boolean> {
 }
 
 async function createEphemeralTab(logger: Logger): Promise<number> {
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: true });
   if (tab.id === undefined) {
     throw new Error('chrome.tabs.create returned a tab without id');
   }
   logger.debug(`[RR-V3] Allocated ephemeral tab ${tab.id}`);
   return tab.id;
-}
-
-async function safeRemoveTab(tabId: number, logger: Logger): Promise<void> {
-  try {
-    await chrome.tabs.remove(tabId);
-  } catch (e) {
-    logger.debug(`[RR-V3] Failed to close tab ${tabId}:`, e);
-  }
 }
 
 /**
@@ -139,19 +131,20 @@ async function resolveRunTab(input: {
   queueTabId?: number;
   triggerTabId?: number;
   logger: Logger;
-}): Promise<{ tabId: number; shouldClose: boolean }> {
+}): Promise<{ tabId: number }> {
   const candidates = [input.runTabId, input.queueTabId, input.triggerTabId].filter(
     (x): x is number => isFiniteNumber(x),
   );
 
   for (const tabId of candidates) {
     if (await tabExists(tabId)) {
-      return { tabId, shouldClose: false };
+      return { tabId };
     }
   }
 
   const tabId = await createEphemeralTab(input.logger);
-  return { tabId, shouldClose: true };
+  // Manual runs have no source tab. Keep the new tab so a failed workflow is inspectable.
+  return { tabId };
 }
 
 /**
@@ -233,7 +226,7 @@ function createDefaultRunExecutor(deps: {
     }
 
     // 3. 解析 Tab ID
-    const { tabId, shouldClose } = await resolveRunTab({
+    const { tabId } = await resolveRunTab({
       runTabId: run.tabId,
       queueTabId: item.tabId,
       triggerTabId: item.trigger?.sourceTabId,
@@ -277,11 +270,6 @@ function createDefaultRunExecutor(deps: {
       if (runner) {
         deps.runners.unregister(runId);
       }
-
-      // 7. 清理临时 Tab
-      if (shouldClose) {
-        await safeRemoveTab(tabId, deps.logger);
-      }
     }
   };
 }
@@ -301,7 +289,9 @@ export async function bootstrapV3(): Promise<V3Runtime> {
     const now = (): UnixMillis => Date.now();
 
     logger.info('[RR-V3] Bootstrapping...');
-    await purgeRetiredData().catch((error) => logger.warn('[RR-V3] Retired data cleanup failed:', error));
+    await purgeRetiredData().catch((error) =>
+      logger.warn('[RR-V3] Retired data cleanup failed:', error),
+    );
 
     // 1) Storage
     const storage = createStoragePort();

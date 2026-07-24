@@ -5,7 +5,7 @@ cd /d "%~dp0"
 call pnpm run build:shared
 if errorlevel 1 (
   echo.
-  echo Shared package build failed.
+  echo Extension dependency build failed.
   pause
   exit /b 1
 )

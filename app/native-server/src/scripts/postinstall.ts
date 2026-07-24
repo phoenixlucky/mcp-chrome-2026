@@ -6,6 +6,21 @@ import path from 'path';
 import { COMMAND_NAME } from './constant';
 import { colorText, tryRegisterUserLevelHost, writeNodePathFile } from './utils';
 
+const bundledSharedDir = path.join(__dirname, '..', 'vendor', 'chrome-mcp-shared-2026');
+const installedSharedDir = path.join(
+  __dirname,
+  '..',
+  '..',
+  'node_modules',
+  '@ethanwilkins',
+  'chrome-mcp-shared-2026',
+);
+
+function installBundledSharedRuntime(): void {
+  if (!fs.existsSync(bundledSharedDir)) return;
+  fs.cpSync(bundledSharedDir, installedSharedDir, { recursive: true, force: true });
+}
+
 // Check if this script is run directly
 const isDirectRun = require.main === module;
 
@@ -281,6 +296,8 @@ function printManualInstructions(): void {
  */
 async function main(): Promise<void> {
   console.log(colorText(`Installing ${COMMAND_NAME}...`, 'green'));
+
+  installBundledSharedRuntime();
 
   // Debug information
   console.log(colorText('Installation environment debug info:', 'blue'));

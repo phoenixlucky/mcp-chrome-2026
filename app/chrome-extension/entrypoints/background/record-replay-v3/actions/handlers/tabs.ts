@@ -16,6 +16,8 @@ const DEFAULT_TAB_TIMEOUT_MS = 10000;
 
 /** Default timeout for download operations */
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 60000;
+const RECORDED_OPEN_TAB_ID_VAR = '__rr_v3_recordedOpenTabId';
+const RECORDED_OPEN_TAB_URL_VAR = '__rr_v3_recordedOpenTabUrl';
 
 // ================================
 // openTab Handler
@@ -76,6 +78,8 @@ export const openTabHandler: ActionHandler<'openTab'> = {
       // Wait for tab to be ready if URL was specified
       if (url) {
         await waitForTabComplete(tabId, DEFAULT_TAB_TIMEOUT_MS);
+        ctx.vars[RECORDED_OPEN_TAB_ID_VAR] = tabId;
+        ctx.vars[RECORDED_OPEN_TAB_URL_VAR] = url;
       }
 
       // Return newTabId for ctx.tabId sync
@@ -147,6 +151,21 @@ export const switchTabHandler: ActionHandler<'switchTab'> = {
             (tab) => tab.url && tab.url.toLowerCase().includes(urlPattern),
           );
           targetTabId = matchingTab?.id;
+
+          // Older recordings added switchTab immediately after openTab. Redirects make the
+          // original URL unavailable, but openTab has already selected the correct tab.
+          if (
+            targetTabId === undefined &&
+            ctx.vars[RECORDED_OPEN_TAB_URL_VAR] === urlResult.value.trim() &&
+            typeof ctx.vars[RECORDED_OPEN_TAB_ID_VAR] === 'number'
+          ) {
+            const openedTab = await chrome.tabs
+              .get(ctx.vars[RECORDED_OPEN_TAB_ID_VAR] as number)
+              .catch(() => undefined);
+            targetTabId = openedTab?.id;
+          }
+          delete ctx.vars[RECORDED_OPEN_TAB_ID_VAR];
+          delete ctx.vars[RECORDED_OPEN_TAB_URL_VAR];
         } else if (params.titleContains !== undefined) {
           const titleResult = tryResolveString(params.titleContains, ctx.vars);
           if (!titleResult.ok) {

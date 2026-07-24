@@ -4,11 +4,11 @@ title Chrome MCP Server - Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v1.5.3
+echo   Chrome MCP Server v1.6.0
 echo ========================================
 echo.
 
-echo [1/4] Checking dependencies...
+echo [1/3] Checking dependencies...
 if not exist "node_modules" (
     call pnpm install
     if %ERRORLEVEL% NEQ 0 (
@@ -22,14 +22,8 @@ if not exist "node_modules" (
 echo Done.
 echo.
 
-echo [2/4] Building packages (shared + native-server)...
+echo [2/3] Building app and embedded bridge package...
 echo [Tip] If native-server\dist reports EPERM, close Chrome and rerun this script.
-call pnpm run build:shared
-if %ERRORLEVEL% NEQ 0 (
-    echo Build shared failed, check dependencies
-    pause
-    exit /b 1
-)
 call pnpm run build:native
 if %ERRORLEVEL% NEQ 0 (
     echo Build native-server failed, check dependencies
@@ -45,7 +39,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo Done.
 echo.
 
-echo [3/4] Registering Native Messaging Host...
+echo [3/3] Registering Native Messaging Host...
 call pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 run register:dev
 if %ERRORLEVEL% NEQ 0 (
     echo Register failed - may need admin rights.
@@ -55,7 +49,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 
-echo [4/4] Clearing stale HTTP processes...
+echo Clearing stale HTTP processes...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":12306 " ^| findstr "LISTENING"') do (
     echo   Killing PID %%a ...
     taskkill /F /PID %%a >nul 2>&1

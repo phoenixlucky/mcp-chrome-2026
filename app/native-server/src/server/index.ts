@@ -34,11 +34,6 @@ import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import packageJson from '../../package.json';
 import { getRecentToolCalls } from '../mcp/register-tools';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
-import { dirname, join } from 'node:path';
-
-const sharedPackageJson = require(
-  join(dirname(require.resolve('@ethanwilkins/chrome-mcp-shared-2026')), '..', 'package.json'),
-) as { version: string };
 
 // ============================================================
 // Types
@@ -158,7 +153,6 @@ export class Server {
         return reply.status(HTTP_STATUS.OK).send({
           server: { version: packageJson.version, uptimeMs: Date.now() - this.startedAt },
           packages: {
-            'chrome-mcp-shared-2026': sharedPackageJson.version,
             'mcp-chrome-bridge-2026': packageJson.version,
           },
           mcp: {

@@ -2,15 +2,15 @@
   <!-- rr-theme container provides CSS variables; data-theme for light/dark -->
   <div class="builder-page rr-theme" :data-theme="theme">
     <div v-if="fallbackNotice" class="notice-top">
-      <span>已应用回退建议：提升 {{ fallbackNotice.type }} 优先级</span>
-      <button class="mini" @click="undoFallbackPromotion">撤销</button>
+      <span>{{ t('fallback') }} {{ fallbackNotice.type }} {{ t('priority') }}</span>
+      <button class="mini" @click="undoFallbackPromotion">{{ t('undo') }}</button>
     </div>
 
     <div class="main">
       <Canvas
         :nodes="store.nodes"
         :edges="store.edges"
-        :node-errors="validation.nodeErrors"
+        :node-errors="nodeErrors"
         :focus-node-id="focusNodeId"
         :fit-seq="fitSeq"
         @select-node="store.selectNode"
@@ -26,10 +26,13 @@
       <div class="topbar rr-topbar backdrop-blur">
         <div class="left">
           <strong class="text-[var(--rr-text)]">{{ title }}</strong>
-          <span class="tip">工作流可视化编排</span>
+          <span class="tip">{{ t('subtitle') }}</span>
         </div>
         <div class="right">
-          <button class="top-btn" @click="exportFlow" title="导出 JSON">
+          <button class="top-btn" @click="toggleLocale" :title="t('languageTitle')">
+            {{ locale === 'zh' ? 'EN' : '中文' }}
+          </button>
+          <button class="top-btn" @click="exportFlow" :title="t('exportTitle')">
             <svg
               width="14"
               height="14"
@@ -40,9 +43,10 @@
             >
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
             </svg>
-            导出
+            {{ t('export') }}
           </button>
-          <label class="top-btn import" title="导入 JSON">
+          <button class="top-btn" @click="copyFlow" :title="t('copyTitle')">{{ t('copy') }}</button>
+          <label class="top-btn import" :title="t('importTitle')">
             <svg
               width="14"
               height="14"
@@ -53,10 +57,10 @@
             >
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
             </svg>
-            导入
+            {{ t('import') }}
             <input type="file" accept="application/json" @change="onImport" />
           </label>
-          <button class="top-btn" @click="openRename" title="重命名工作流">
+          <button class="top-btn" @click="openRename" :title="t('renameTitle')">
             <svg
               width="14"
               height="14"
@@ -68,13 +72,30 @@
               <path d="M12 20h9" />
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
             </svg>
-            Rename
+            {{ t('rename') }}
+          </button>
+          <button class="top-btn danger" @click="deleteFlow" :title="t('deleteTitle')">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 6h18M8 6V4h8v2m-7 4v8m4-8v8m4-8v8M5 6l1 15h12l1-15"
+              />
+            </svg>
+            {{ t('delete') }}
           </button>
           <button
             class="top-btn"
             :class="{ active: triggerPanelVisible }"
             @click="triggerPanelVisible = !triggerPanelVisible"
-            title="管理触发器"
+            :title="t('triggersTitle')"
           >
             <svg
               width="14"
@@ -86,14 +107,18 @@
             >
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
-            Triggers
+            {{ t('triggers') }}
           </button>
           <span class="divider-vert" />
+          <label class="run-count" :title="t('runCountTitle')">
+            <span>{{ t('runCount') }}</span>
+            <input v-model.number="runCount" type="number" min="1" step="1" />
+          </label>
           <button
             class="top-btn"
             :disabled="!selectedId"
             @click="runFromSelected"
-            title="从选中节点回放"
+            :title="t('runSelectedTitle')"
           >
             <svg
               width="14"
@@ -105,9 +130,9 @@
             >
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
-            从选中运行
+            {{ t('runSelected') }}
           </button>
-          <button class="top-btn primary" @click="runAll" title="从头回放整流">
+          <button class="top-btn primary" @click="runAll" :title="t('runAllTitle')">
             <svg
               width="14"
               height="14"
@@ -118,7 +143,7 @@
             >
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
-            运行
+            {{ t('run') }}
           </button>
           <span class="divider-vert" />
           <span class="status" :data-state="saveState">{{ saveLabel }}</span>
@@ -136,7 +161,7 @@
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
             </svg>
-            保存
+            {{ t('save') }}
           </button>
         </div>
       </div>
@@ -181,7 +206,7 @@
       />
 
       <div class="bottom-toolbar">
-        <button class="toolbar-btn" @click="store.undo" title="撤销 (⌘/Ctrl+Z)">
+        <button class="toolbar-btn" @click="store.undo" :title="`${t('undo')} (⌘/Ctrl+Z)`">
           <svg
             width="16"
             height="16"
@@ -193,7 +218,7 @@
             <path d="M3 7v6h6M21 17a9 9 0 00-9-9 9 9 0 00-9 9" />
           </svg>
         </button>
-        <button class="toolbar-btn" @click="store.redo" title="重做 (⌘/Ctrl+Shift+Z)">
+        <button class="toolbar-btn" @click="store.redo" :title="`${t('redo')} (⌘/Ctrl+Shift+Z)`">
           <svg
             width="16"
             height="16"
@@ -206,7 +231,7 @@
           </svg>
         </button>
         <span class="toolbar-divider" />
-        <button class="toolbar-btn" @click="store.layoutAuto" title="自动排版">
+        <button class="toolbar-btn" @click="store.layoutAuto" :title="t('autoLayout')">
           <svg
             width="16"
             height="16"
@@ -221,7 +246,7 @@
             <rect x="3" y="14" width="7" height="7" rx="1" />
           </svg>
         </button>
-        <button class="toolbar-btn" @click="fitAll" title="自适应视图">
+        <button class="toolbar-btn" @click="fitAll" :title="t('fitView')">
           <svg
             width="16"
             height="16"
@@ -243,26 +268,29 @@
         {{ t.message }}
       </div>
     </div>
+    <div v-if="lastRunError" class="run-error-banner" role="alert">
+      {{ lastRunError }}
+    </div>
   </div>
   <!-- Rename dialog -->
   <div v-if="renameVisible" class="rr-modal">
     <div class="rr-dialog small">
       <div class="rr-header">
-        <div class="title">重命名工作流</div>
+        <div class="title">{{ t('renameFlow') }}</div>
         <button class="close" @click="renameVisible = false">✕</button>
       </div>
       <div class="rr-body">
         <div class="row">
-          <label>名称</label>
-          <input v-model="renameName" placeholder="工作流名称" />
+          <label>{{ t('name') }}</label>
+          <input v-model="renameName" :placeholder="t('flowName')" />
         </div>
         <div class="row">
-          <label>描述</label>
-          <textarea v-model="renameDesc" placeholder="可选描述"></textarea>
+          <label>{{ t('description') }}</label>
+          <textarea v-model="renameDesc" :placeholder="t('optionalDescription')"></textarea>
         </div>
       </div>
       <div class="rr-footer">
-        <button class="primary" @click="applyRename">保存</button>
+        <button class="primary" @click="applyRename">{{ t('save') }}</button>
       </div>
     </div>
   </div>
@@ -273,6 +301,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import type { Flow as BuilderFlow } from '@/entrypoints/background/record-replay-v3/builder-types';
 import type { FlowV3 } from '@/entrypoints/background/record-replay-v3/domain/flow';
+import type { RunEvent } from '@/entrypoints/background/record-replay-v3/domain/events';
 import type {
   FlowId,
   NodeId,
@@ -296,7 +325,99 @@ import PropertyPanel from '@/entrypoints/popup/components/builder/components/Pro
 import EdgePropertyPanel from '@/entrypoints/popup/components/builder/components/EdgePropertyPanel.vue';
 import TriggerPanel from '@/entrypoints/popup/components/builder/components/TriggerPanel.vue';
 
-const title = ref('工作流编辑器');
+type Locale = 'zh' | 'en';
+const savedLocale = localStorage.getItem('rr-builder-locale');
+const locale = ref<Locale>(savedLocale === 'en' ? 'en' : 'zh');
+const messages = {
+  zh: {
+    fallback: '已应用回退建议：提升',
+    priority: '优先级',
+    undo: '撤销',
+    subtitle: '工作流可视化编排',
+    languageTitle: '切换为 English',
+    exportTitle: '导出 JSON（可另存为）',
+    export: '导出 / 另存为',
+    copyTitle: '复制给 AI 或保存到剪贴板',
+    copy: '复制 JSON',
+    importTitle: '导入 JSON',
+    import: '导入',
+    renameTitle: '重命名工作流',
+    rename: '重命名',
+    triggersTitle: '管理触发器',
+    triggers: '触发器',
+    runSelectedTitle: '从选中节点回放',
+    runSelected: '从选中运行',
+    runAllTitle: '从头回放整流',
+    run: '运行',
+    runCount: '次数',
+    runCountTitle: '运行次数（默认 1 次）',
+    save: '保存',
+    redo: '重做',
+    autoLayout: '自动排版',
+    fitView: '自适应视图',
+    renameFlow: '重命名工作流',
+    name: '名称',
+    flowName: '工作流名称',
+    description: '描述',
+    optionalDescription: '可选描述',
+    editor: '工作流编辑器',
+    edit: '编辑',
+    newFlow: '新建工作流',
+    saving: '保存中…',
+    saved: '已保存',
+    delete: '删除',
+    deleteTitle: '删除当前工作流',
+    deleteConfirm: '确定删除当前工作流吗？此操作无法撤销。',
+  },
+  en: {
+    fallback: 'Fallback applied: raised',
+    priority: 'priority',
+    undo: 'Undo',
+    subtitle: 'Visual workflow builder',
+    languageTitle: '切换为中文',
+    exportTitle: 'Export JSON (Save As)',
+    export: 'Export / Save As',
+    copyTitle: 'Copy JSON for AI or clipboard',
+    copy: 'Copy JSON',
+    importTitle: 'Import JSON',
+    import: 'Import',
+    renameTitle: 'Rename workflow',
+    rename: 'Rename',
+    triggersTitle: 'Manage triggers',
+    triggers: 'Triggers',
+    runSelectedTitle: 'Replay from selected node',
+    runSelected: 'Run Selected',
+    runAllTitle: 'Replay workflow from start',
+    run: 'Run',
+    runCount: 'Runs',
+    runCountTitle: 'Run count (default: 1)',
+    save: 'Save',
+    redo: 'Redo',
+    autoLayout: 'Auto Layout',
+    fitView: 'Fit View',
+    renameFlow: 'Rename Workflow',
+    name: 'Name',
+    flowName: 'Workflow name',
+    description: 'Description',
+    optionalDescription: 'Optional description',
+    editor: 'Workflow Editor',
+    edit: 'Edit',
+    newFlow: 'New Workflow',
+    saving: 'Saving…',
+    saved: 'Saved',
+    delete: 'Delete',
+    deleteTitle: 'Delete current workflow',
+    deleteConfirm: 'Delete this workflow? This cannot be undone.',
+  },
+} as const;
+const t = (key: keyof typeof messages.zh) => messages[locale.value][key];
+const flowTitle = ref('');
+const runCount = ref(1);
+const title = computed(() => (flowTitle.value ? `${t('edit')}: ${flowTitle.value}` : t('editor')));
+function toggleLocale() {
+  locale.value = locale.value === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('rr-builder-locale', locale.value);
+}
 // theme state: persisted in localStorage and default to system preference
 const theme = ref<'light' | 'dark'>(
   (localStorage.getItem('rr-theme') as 'light' | 'dark' | null) ||
@@ -359,7 +480,7 @@ async function bootstrap() {
         const { flow: builderFlow, warnings } = flowV3ToBuilder(flowV3);
         warnings.forEach((w) => pushToast(w, 'warn'));
         store.initFromFlow(builderFlow);
-        title.value = `编辑：${builderFlow.name || builderFlow.id}`;
+        flowTitle.value = builderFlow.name || builderFlow.id;
 
         if (q.focus) {
           setTimeout(() => {
@@ -391,7 +512,7 @@ function initEmptyFlow() {
   const now = Date.now();
   const empty: BuilderFlow = {
     id: `flow_${now}`,
-    name: '新建工作流',
+    name: t('newFlow'),
     version: 1,
     variables: [],
     meta: {
@@ -400,7 +521,7 @@ function initEmptyFlow() {
     } as any,
   } as any;
   store.initFromFlow(empty);
-  title.value = '新建工作流';
+  flowTitle.value = '';
 }
 
 // Builder helpers mostly ported from modal component
@@ -409,6 +530,59 @@ const selectedEdgeId = computed<string | null>(() => (store.activeEdgeId as any)
 const activeNode = computed(() => store.nodes.find((n) => n.id === selectedId.value) || null);
 const activeEdge = computed(() => store.edges.find((e) => e.id === selectedEdgeId.value) || null);
 const validation = computed(() => validateFlow(store.nodes));
+const runtimeNodeErrors = ref<Record<string, string[]>>({});
+const nodeErrors = computed(() => {
+  const merged = { ...validation.value.nodeErrors };
+  for (const [nodeId, errors] of Object.entries(runtimeNodeErrors.value)) {
+    merged[nodeId] = [...(merged[nodeId] || []), ...errors];
+  }
+  return merged;
+});
+const lastRunError = ref('');
+let trackedRunId: string | null = null;
+
+function nodeLabel(nodeId: string) {
+  const node = store.nodes.find((item) => item.id === nodeId);
+  return node?.name || node?.type || nodeId;
+}
+
+function handleRunEvent(event: RunEvent) {
+  if (event.runId !== trackedRunId) return;
+  if (event.type === 'node.started') {
+    delete runtimeNodeErrors.value[event.nodeId];
+    return;
+  }
+  if (event.type === 'node.succeeded') {
+    delete runtimeNodeErrors.value[event.nodeId];
+    return;
+  }
+  if (event.type !== 'node.failed' && event.type !== 'run.failed') return;
+
+  const nodeId = event.type === 'node.failed' ? event.nodeId : event.nodeId;
+  const message = event.error.message;
+  if (nodeId) {
+    runtimeNodeErrors.value[nodeId] = [message];
+    focusNode(nodeId);
+    lastRunError.value = `节点「${nodeLabel(nodeId)}」执行失败：${message}`;
+  } else {
+    lastRunError.value = `工作流执行失败：${message}`;
+  }
+  pushToast(lastRunError.value, 'error');
+}
+
+const stopRunEventListener = rpc.onEvent(handleRunEvent);
+onUnmounted(stopRunEventListener);
+
+async function trackRun(runId: string) {
+  trackedRunId = runId;
+  runtimeNodeErrors.value = {};
+  lastRunError.value = '';
+  await rpc.subscribe(runId as any);
+  const events = (await rpc.request('rr_v3.getEvents', {
+    runId: runId as any,
+  })) as unknown as RunEvent[];
+  events.forEach(handleRunEvent);
+}
 
 // Available variables for the currently selected node (global + previous node outputs)
 const availableVars = computed(() => store.listAvailableVariables(selectedId.value || undefined));
@@ -463,6 +637,7 @@ const triggerPanelVisible = ref(false);
 const renameVisible = ref(false);
 const renameName = ref('');
 const renameDesc = ref('');
+let isDeletingFlow = false;
 function openRename() {
   renameName.value = store.flowLocal.name || '';
   renameDesc.value = (store.flowLocal as any).description || '';
@@ -474,11 +649,27 @@ function applyRename() {
   renameVisible.value = false;
 }
 
+async function deleteFlow() {
+  const flowId = store.flowLocal?.id;
+  if (!flowId || !window.confirm(t('deleteConfirm'))) return;
+  try {
+    isDeletingFlow = true;
+    await rpc.ensureConnected();
+    await rpc.request('rr_v3.deleteFlow', { flowId });
+    pushToast('工作流已删除', 'info');
+    window.close();
+  } catch (e) {
+    isDeletingFlow = false;
+    pushToast(`删除失败：${e instanceof Error ? e.message : String(e)}`, 'error');
+  }
+}
+
 /**
  * 保存 Flow 到 V3 RPC
  * @returns 保存成功返回 FlowV3，失败返回 null
  */
 async function save(): Promise<FlowV3 | null> {
+  if (isDeletingFlow) return null;
   try {
     // Use exportFlowForSave to properly handle subflow editing:
     // - Flushes current canvas state back to flowLocal (including subflow edits)
@@ -713,6 +904,17 @@ async function exportFlow() {
   }
 }
 
+async function copyFlow() {
+  const saved = await save();
+  if (!saved) return;
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(saved, null, 2));
+    pushToast('工作流 JSON 已复制，可直接交给 AI', 'info');
+  } catch (e) {
+    pushToast(`复制失败：${e instanceof Error ? e.message : String(e)}`, 'error');
+  }
+}
+
 async function onImport(e: Event) {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -740,7 +942,7 @@ async function onImport(e: Event) {
       const { flow: builderFlow, warnings } = flowV3ToBuilder(saved);
       warnings.forEach((w) => pushToast(w, 'warn'));
       store.initFromFlow(builderFlow);
-      title.value = `编辑：${builderFlow.name || builderFlow.id}`;
+      flowTitle.value = builderFlow.name || builderFlow.id;
 
       // Sync triggers
       try {
@@ -769,10 +971,7 @@ async function runFromSelected() {
     const node = store.nodes.find((n) => n.id === selectedId.value) || null;
     const startNodeId = node?.type === 'trigger' ? undefined : selectedId.value;
 
-    await rpc.request('rr_v3.enqueueRun', {
-      flowId: saved.id as FlowId,
-      ...(startNodeId ? { startNodeId: startNodeId as NodeId } : {}),
-    });
+    await enqueueRuns(saved.id as FlowId, startNodeId as NodeId | undefined);
   } catch (e) {
     pushToast(`运行失败：${e instanceof Error ? e.message : String(e)}`, 'error');
   }
@@ -786,10 +985,27 @@ async function runAll() {
     if (!saved) return;
 
     await rpc.ensureConnected();
-    await rpc.request('rr_v3.enqueueRun', { flowId: saved.id as FlowId });
+    await enqueueRuns(saved.id as FlowId);
   } catch (e) {
     pushToast(`运行失败：${e instanceof Error ? e.message : String(e)}`, 'error');
   }
+}
+
+async function enqueueRuns(flowId: FlowId, startNodeId?: NodeId) {
+  const count = Math.max(1, Math.floor(Number(runCount.value) || 1));
+  runCount.value = count;
+  const results = await Promise.all(
+    Array.from(
+      { length: count },
+      () =>
+        rpc.request('rr_v3.enqueueRun', {
+          flowId,
+          ...(startNodeId ? { startNodeId } : {}),
+        }) as Promise<{ runId: string }>,
+    ),
+  );
+  await trackRun(results.at(-1)!.runId);
+  if (count > 1) pushToast(`已加入 ${count} 次运行队列`, 'info');
 }
 
 // Hotkeys
@@ -836,7 +1052,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey));
 // Auto save debounced
 const saveState = ref<'idle' | 'saving' | 'saved'>('idle');
 const saveLabel = computed(() =>
-  saveState.value === 'saving' ? '保存中…' : saveState.value === 'saved' ? '已保存' : '',
+  saveState.value === 'saving' ? t('saving') : saveState.value === 'saved' ? t('saved') : '',
 );
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let statusTimer: ReturnType<typeof setTimeout> | null = null;
@@ -950,6 +1166,22 @@ function focusNode(id: string) {
   flex-direction: column;
   gap: 8px;
 }
+.run-error-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 68px;
+  z-index: 1000;
+  max-width: min(560px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(127, 29, 29, 0.15);
+}
 .rr-toast {
   min-width: 180px;
   max-width: 360px;
@@ -980,8 +1212,10 @@ function focusNode(id: string) {
 }
 .topbar .right {
   display: flex;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 4px;
   align-items: center;
+  white-space: nowrap;
 }
 .main {
   flex: 1;
@@ -1056,15 +1290,18 @@ function focusNode(id: string) {
 }
 .top-btn {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 4px;
+  padding: 5px 8px;
   border: 1px solid var(--rr-border);
   background: var(--rr-card);
   color: var(--rr-text);
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -1130,17 +1367,38 @@ function focusNode(id: string) {
   opacity: 0;
   cursor: pointer;
 }
+.run-count {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--rr-border);
+  border-radius: 6px;
+  background: var(--rr-card);
+  color: var(--rr-text);
+  font-size: 12px;
+}
+.run-count input {
+  width: 38px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
 .divider-vert {
   width: 1px;
-  height: 24px;
+  height: 18px;
   background: var(--rr-border);
-  margin: 0 8px;
+  margin: 0 4px;
 }
 .topbar .status {
   color: var(--rr-muted);
-  font-size: 12px;
-  margin-right: 8px;
-  min-width: 48px;
+  font-size: 11px;
+  margin-right: 4px;
+  min-width: 40px;
   display: inline-block;
 }
 .btn.import {

@@ -9,11 +9,9 @@
 
 import { handleCallTool } from '@/entrypoints/background/tools';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
-import { ENGINE_CONSTANTS } from '../constants';
-import { ensureReadPageIfWeb, waitForNavigationDone } from '../policies/wait';
 import { failed, invalid, ok } from '../registry';
 import type { ActionHandler } from '../types';
-import { clampInt, readTabUrl, resolveString } from './common';
+import { resolveString } from './common';
 
 export const navigateHandler: ActionHandler<'navigate'> = {
   type: 'navigate',
@@ -33,22 +31,9 @@ export const navigateHandler: ActionHandler<'navigate'> = {
   run: async (ctx, action) => {
     const vars = ctx.vars;
     const tabId = ctx.tabId;
-    // Check if StepRunner owns nav-wait (skip internal nav-wait logic)
-    const skipNavWait = ctx.execution?.skipNavWait === true;
-
     if (typeof tabId !== 'number') {
       return failed('TAB_NOT_FOUND', 'No active tab found');
     }
-
-    // Only read beforeUrl and calculate waitMs if we need to do nav-wait
-    const beforeUrl = skipNavWait ? '' : await readTabUrl(tabId);
-    const waitMs = skipNavWait
-      ? 0
-      : clampInt(
-          action.policy?.timeout?.ms ?? ENGINE_CONSTANTS.DEFAULT_WAIT_MS,
-          0,
-          ENGINE_CONSTANTS.MAX_WAIT_MS,
-        );
 
     // Handle page refresh
     if (action.params.refresh) {
@@ -63,11 +48,6 @@ export const navigateHandler: ActionHandler<'navigate'> = {
         return failed('NAVIGATION_FAILED', errorMsg);
       }
 
-      // Skip nav-wait if StepRunner handles it
-      if (!skipNavWait) {
-        await waitForNavigationDone(beforeUrl, waitMs);
-        await ensureReadPageIfWeb();
-      }
       return { status: 'success' };
     }
 
@@ -91,12 +71,6 @@ export const navigateHandler: ActionHandler<'navigate'> = {
       const errorContent = (result as { content?: Array<{ text?: string }> })?.content;
       const errorMsg = errorContent?.[0]?.text || `Navigation to ${url} failed`;
       return failed('NAVIGATION_FAILED', errorMsg);
-    }
-
-    // Skip nav-wait if StepRunner handles it
-    if (!skipNavWait) {
-      await waitForNavigationDone(beforeUrl, waitMs);
-      await ensureReadPageIfWeb();
     }
 
     return { status: 'success' };

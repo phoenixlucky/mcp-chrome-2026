@@ -493,7 +493,6 @@
       this._onFocusIn = this._onFocusIn.bind(this);
       this._onFocusOut = this._onFocusOut.bind(this);
       this._onKeyDown = this._onKeyDown.bind(this);
-      this._onKeyUp = this._onKeyUp.bind(this);
       this._onWindowMessage = this._onWindowMessage.bind(this);
       // Page lifecycle handlers for best-effort flush on navigation/close
       this._onPageHide = this._onPageHide.bind(this);
@@ -503,8 +502,6 @@
 
       // Focus tracking for per-element input listening
       this._focusedEl = null;
-      // Keyboard state for combo recording
-      this._pressed = new Set();
       this._lastKeyTs = 0;
       // Map to avoid duplicate switchFrame per iframe source (keyed by frame selector)
       this._frameSwitchMap = new Set();
@@ -823,7 +820,6 @@
       document.addEventListener('scroll', this._onScroll, { capture: true, passive: true });
       // Keyboard: record Enter and modifier combos
       document.addEventListener('keydown', this._onKeyDown, true);
-      document.addEventListener('keyup', this._onKeyUp, true);
       // Page lifecycle: best-effort flush on navigation/close
       window.addEventListener('pagehide', this._onPageHide, true);
       document.addEventListener('visibilitychange', this._onVisibilityChange, true);
@@ -840,7 +836,6 @@
       document.removeEventListener('change', this._onChange, true);
       document.removeEventListener('scroll', this._onScroll, { capture: true });
       document.removeEventListener('keydown', this._onKeyDown, true);
-      document.removeEventListener('keyup', this._onKeyUp, true);
       window.removeEventListener('pagehide', this._onPageHide, true);
       document.removeEventListener('visibilitychange', this._onVisibilityChange, true);
       document.removeEventListener('mousemove', this._onMouseMove, { capture: true });
@@ -999,6 +994,7 @@
       this.sessionBuffer.steps.push(step);
       this.sessionBuffer.meta.updatedAt = new Date().toISOString();
       this.batch.push(step);
+      this.ui.applyTimelineUpdate(this.sessionBuffer.steps);
 
       // Track input activity for fill steps (to enforce flush gate)
       if (step && step.type === 'fill') {
@@ -1227,11 +1223,9 @@
           try {
             const abs = new URL(href, location.href).href;
             this._pushStep({ type: 'openTab', url: abs });
-            this._pushStep({ type: 'switchTab', urlContains: abs });
             return;
           } catch (_) {
             this._pushStep({ type: 'openTab', url: href });
-            this._pushStep({ type: 'switchTab', urlContains: href });
             return;
           }
         }
@@ -1411,6 +1405,7 @@
         this.lastFill.el = el; // Keep DOM reference updated for finalize
         // Keep flush gate aligned to the latest keystroke
         this._updateInputActivity();
+        this.ui.applyTimelineUpdate(this.sessionBuffer.steps);
         // Re-enqueue the updated step for upsert (ensures background gets final value)
         this._enqueueForUpsert(this.lastFill.step);
         return;
@@ -1682,8 +1677,11 @@
             /** @type {HTMLElement} */ (e.target).isContentEditable === true);
         const enterKey = key === 'enter';
 
-        // Track pressed modifiers
-        if (isModifier) this._pressed.add(key);
+        // Modifier-only keydown events are incomplete shortcuts and cannot be replayed.
+        if (isModifier) return;
+
+        // Extension recording shortcuts are controls, not page actions.
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['1', '2', '3'].includes(key)) return;
 
         // Handle Enter in editable contexts (including contenteditable)
         if (isEditable && enterKey) {
@@ -1708,12 +1706,6 @@
           this._lastKeyTs = Date.now();
         }
       } catch {}
-    }
-
-    _onKeyUp(e) {
-      const key = String(e.key || '').toLowerCase();
-      if (key === 'shift' || key === 'control' || key === 'meta' || key === 'alt')
-        this._pressed.delete(key);
     }
 
     _formatKeysCombo(e, mainKey) {
