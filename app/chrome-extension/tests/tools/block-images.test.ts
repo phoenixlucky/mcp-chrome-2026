@@ -43,4 +43,16 @@ describe('chrome_block_images', () => {
       expect.anything(),
     );
   });
+
+  it('falls back to the active tab when the requested tab was closed', async () => {
+    (chrome.tabs.get as any).mockRejectedValue(new Error('No tab with id: 42.'));
+    (chrome.tabs.query as any).mockResolvedValue([{ id: 43, url: 'https://example.com' }]);
+
+    const result = await blockImagesTool.execute({ action: 'start', tabId: 42 });
+
+    expect(result.isError).toBe(false);
+    expect(chrome.debugger.sendCommand).toHaveBeenCalledWith({ tabId: 43 }, 'Fetch.enable', {
+      patterns: [{ resourceType: 'Image', requestStage: 'Request' }],
+    });
+  });
 });

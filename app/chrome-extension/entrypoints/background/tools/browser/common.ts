@@ -29,7 +29,9 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
   private async keepTabRendering(tabId: number): Promise<void> {
     try {
-      await cdpSessionManager.sendCommand(tabId, 'Emulation.setFocusEmulationEnabled', { enabled: true });
+      await cdpSessionManager.sendCommand(tabId, 'Emulation.setFocusEmulationEnabled', {
+        enabled: true,
+      });
     } catch (error) {
       console.warn('[NavigateTool] Focus emulation unavailable:', error);
     }
@@ -483,6 +485,14 @@ class NavigateTool extends BaseBrowserToolExecutor {
       // If all attempts fail, return a generic error
       return createErrorResponse('Failed to open URL: Unknown error occurred');
     } catch (error) {
+      if (
+        typeof tabId === 'number' &&
+        error instanceof Error &&
+        error.message.includes('No tab with id')
+      ) {
+        console.warn(`[NavigateTool] Tab ${tabId} closed during navigation; retrying without it.`);
+        return this.execute({ ...args, tabId: undefined });
+      }
       if (chrome.runtime.lastError) {
         console.error(`Chrome API Error: ${chrome.runtime.lastError.message}`, error);
         return createErrorResponse(`Chrome API Error: ${chrome.runtime.lastError.message}`);

@@ -42,9 +42,8 @@ class BlockImagesTool extends BaseBrowserToolExecutor {
     }
 
     const tab =
-      typeof args.tabId === 'number'
-        ? await this.tryGetTab(args.tabId)
-        : await this.getActiveTabOrThrow();
+      (typeof args.tabId === 'number' ? await this.tryGetTab(args.tabId) : null) ??
+      (await this.getActiveTabInWindow());
     if (!tab?.id) return createErrorResponse('Target tab not found');
     if (!/^https?:/i.test(tab.url || '')) {
       return createErrorResponse(

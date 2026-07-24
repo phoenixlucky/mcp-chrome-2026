@@ -376,6 +376,7 @@
         </header>
         <pre class="error-log-content">{{ errorLogText }}</pre>
         <footer class="error-log-actions">
+          <button class="copy-config-button" @click="copyErrorLogs">{{ errorLogCopyLabel }}</button>
           <button
             class="copy-config-button"
             :disabled="isExportingErrorLogs"
@@ -502,6 +503,7 @@ const { theme: agentTheme, initTheme } = useAgentTheme();
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
 const showErrorLogs = ref(false);
 const isExportingErrorLogs = ref(false);
+const errorLogCopyLabel = ref('复制日志');
 const errorLogs = ref<Array<{ timestamp: string; type: string; message: string; stack?: string }>>(
   [],
 );
@@ -550,6 +552,16 @@ async function exportErrorLogs() {
   } finally {
     isExportingErrorLogs.value = false;
   }
+}
+
+async function copyErrorLogs() {
+  try {
+    await navigator.clipboard.writeText(errorLogText.value);
+    errorLogCopyLabel.value = '已复制';
+  } catch {
+    errorLogCopyLabel.value = '复制失败';
+  }
+  setTimeout(() => (errorLogCopyLabel.value = '复制日志'), 1500);
 }
 
 async function clearErrorLogs() {
@@ -1783,7 +1795,10 @@ onUnmounted(() => {
 <style scoped>
 .popup-container {
   position: relative;
-  background: #f1f5f9;
+  min-height: 100%;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(248, 246, 251, 0.14)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
@@ -1795,6 +1810,9 @@ onUnmounted(() => {
 .header {
   flex-shrink: 0;
   padding-left: 20px;
+  background: rgba(255, 255, 255, 0.28);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.44);
+  backdrop-filter: blur(14px);
 }
 
 .header-content {
@@ -1815,6 +1833,7 @@ onUnmounted(() => {
   height: 40px;
   margin-right: 16px;
   border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(72, 57, 78, 0.16);
 }
 
 .settings-button {
@@ -2178,9 +2197,11 @@ onUnmounted(() => {
 }
 
 .config-card {
-  background: var(--ac-surface, white);
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
+  backdrop-filter: blur(12px);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -2350,7 +2371,7 @@ onUnmounted(() => {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.28);
 }
 
 .error-log-dialog {
@@ -2361,8 +2382,11 @@ onUnmounted(() => {
   gap: 10px;
   padding: 14px;
   border-radius: 12px;
-  background: white;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.42), rgba(246, 243, 250, 0.2)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(16px);
 }
 
 .error-log-header {
@@ -2380,7 +2404,7 @@ onUnmounted(() => {
   padding: 8px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.72);
   color: #374151;
   font:
     11px/1.4 'Monaco',
@@ -2743,9 +2767,10 @@ onUnmounted(() => {
   gap: 12px;
   justify-content: flex-start;
   padding: 16px;
-  background: var(--ac-surface, white);
+  background: rgba(255, 255, 255, 0.48);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
+  backdrop-filter: blur(12px);
 }
 
 .quick-tools-help {
@@ -2807,13 +2832,13 @@ onUnmounted(() => {
 }
 
 .rr-icon-btn-logs {
-  background: rgba(243, 154, 186, 0.16);
-  color: #e692b2;
+  background: rgba(71, 85, 105, 0.12);
+  color: #475569;
 }
 
 .rr-icon-btn-logs:hover:not(:disabled) {
-  background: rgba(243, 154, 186, 0.26);
-  color: #d9789d;
+  background: rgba(71, 85, 105, 0.2);
+  color: #334155;
 }
 
 .rr-icon-btn-disabled {
@@ -2881,10 +2906,11 @@ onUnmounted(() => {
 
 /* 管理入口卡片样式 */
 .entry-card {
-  background: var(--ac-surface, white);
+  background: rgba(255, 255, 255, 0.52);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
   overflow: hidden;
+  backdrop-filter: blur(12px);
 }
 
 .entry-item {

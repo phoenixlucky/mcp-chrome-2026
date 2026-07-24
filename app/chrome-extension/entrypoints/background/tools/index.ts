@@ -150,10 +150,15 @@ function operationDetail(param: ToolCallParam): string {
 
 async function showOperation(param: ToolCallParam, state: '执行中' | '完成' | '失败') {
   const tabId = param.args?.tabId;
-  const tab =
-    typeof tabId === 'number'
-      ? await chrome.tabs.get(tabId)
-      : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+  let tab: chrome.tabs.Tab | undefined;
+  try {
+    tab =
+      typeof tabId === 'number'
+        ? await chrome.tabs.get(tabId)
+        : (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+  } catch {
+    return;
+  }
   if (!tab?.id) return;
 
   // The overlay is best-effort; only pass primitives so malformed tool input cannot block the tool.

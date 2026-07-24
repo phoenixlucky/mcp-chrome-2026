@@ -20,7 +20,7 @@ export default defineConfig({
   zip: {
     name: 'chrome-mcp-server',
   },
-  runner: {
+  webExt: {
     // 方案1: 禁用自动启动（推荐）
     disabled: true,
 

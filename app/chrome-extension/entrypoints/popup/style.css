@@ -78,7 +78,7 @@ body {
   max-height: 600px;
   overflow: hidden;
   font-family: inherit;
-  background: var(--bg-secondary);
+  background: #f3eef2;
   color: var(--text-primary);
 }
 
