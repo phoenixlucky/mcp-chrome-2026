@@ -118,19 +118,8 @@
             </div>
             <div class="extension-id">扩展 ID: {{ extensionId }}</div>
             <div class="error-log-actions">
-              <button class="copy-config-button" @click="toggleErrorLogs">
-                {{ showErrorLogs ? '收起错误日志' : '查看错误日志' }}
-              </button>
-              <button
-                class="copy-config-button"
-                :disabled="isExportingErrorLogs"
-                @click="exportErrorLogs"
-              >
-                {{ isExportingErrorLogs ? '正在导出…' : '导出错误日志' }}
-              </button>
-              <button class="copy-config-button" @click="clearErrorLogs">清空错误日志</button>
+              <button class="copy-config-button" @click="openErrorLogs">查看错误日志</button>
             </div>
-            <pre v-if="showErrorLogs" class="error-log-content">{{ errorLogText }}</pre>
             <label class="background-operations-switch">
               <span>
                 <strong>后台操作</strong>
@@ -375,6 +364,26 @@
       </div>
     </div>
 
+    <div v-if="showErrorLogs" class="error-log-modal" @click.self="showErrorLogs = false">
+      <section class="error-log-dialog" role="dialog" aria-modal="true" aria-label="错误日志">
+        <header class="error-log-header">
+          <strong>错误日志</strong>
+          <button class="copy-config-button" @click="showErrorLogs = false">关闭</button>
+        </header>
+        <pre class="error-log-content">{{ errorLogText }}</pre>
+        <footer class="error-log-actions">
+          <button
+            class="copy-config-button"
+            :disabled="isExportingErrorLogs"
+            @click="exportErrorLogs"
+          >
+            {{ isExportingErrorLogs ? '正在导出…' : '导出 JSON' }}
+          </button>
+          <button class="copy-config-button" @click="clearErrorLogs">清空日志</button>
+        </footer>
+      </section>
+    </div>
+
     <!-- 本地模型二级页面 -->
     <LocalModelPage
       v-show="currentView === 'local-model'"
@@ -510,9 +519,9 @@ async function loadErrorLogs() {
   errorLogs.value = response?.success && Array.isArray(response.logs) ? response.logs : [];
 }
 
-async function toggleErrorLogs() {
-  showErrorLogs.value = !showErrorLogs.value;
-  if (showErrorLogs.value) await loadErrorLogs();
+async function openErrorLogs() {
+  showErrorLogs.value = true;
+  await loadErrorLogs();
 }
 
 async function exportErrorLogs() {
@@ -1804,6 +1813,7 @@ onUnmounted(() => {
 
 <style scoped>
 .popup-container {
+  position: relative;
   background: #f1f5f9;
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -2364,8 +2374,38 @@ onUnmounted(() => {
   gap: 4px;
 }
 
+.error-log-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.error-log-dialog {
+  width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+}
+
+.error-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .error-log-content {
-  max-height: 160px;
+  min-height: 180px;
+  max-height: none;
+  flex: 1;
   overflow: auto;
   margin: 0;
   padding: 8px;
