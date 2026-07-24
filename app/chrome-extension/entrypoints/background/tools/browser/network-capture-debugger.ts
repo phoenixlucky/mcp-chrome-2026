@@ -41,6 +41,10 @@ const MAX_RESPONSE_BODY_SIZE_BYTES = 1 * 1024 * 1024; // 1MB
 const DEFAULT_MAX_CAPTURE_TIME_MS = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_INACTIVITY_TIMEOUT_MS = 60 * 1000; // 1 minute
 
+export function isNetworkCapturableUrl(url?: string): boolean {
+  return /^https?:\/\//i.test(url ?? '');
+}
+
 /**
  * Network capture start tool - uses Chrome Debugger API to start capturing network requests
  */
@@ -107,11 +111,13 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Start capturing requests for the new tab
-      await this.startCaptureForTab(newTabId, {
+      const started = await this.startCaptureForTab(newTabId, {
         maxCaptureTime: openerCaptureInfo.maxCaptureTime,
         inactivityTimeout: openerCaptureInfo.inactivityTimeout,
         includeStatic: openerCaptureInfo.includeStatic,
       });
+
+      if (!started) return;
 
       console.log(`NetworkDebuggerStartTool: Successfully extended capture to new tab ${newTabId}`);
     } catch (error) {
@@ -131,7 +137,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       inactivityTimeout: number;
       includeStatic: boolean;
     },
-  ): Promise<void> {
+  ): Promise<boolean> {
     const { maxCaptureTime, inactivityTimeout, includeStatic } = options;
 
     // If already capturing, stop first
@@ -143,8 +149,8 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      // Get tab information
       const tab = await chrome.tabs.get(tabId);
+      if (!isNetworkCapturableUrl(tab.url)) return false;
 
       // Attach via shared manager (handles conflicts and refcount)
       await cdpSessionManager.attach(tabId, 'network-capture');
@@ -193,6 +199,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
           }, maxCaptureTime),
         );
       }
+      return true;
     } catch (error: any) {
       console.error(`NetworkDebuggerStartTool: Error starting capture for tab ${tabId}:`, error);
 
@@ -810,11 +817,14 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
 
       // Use startCaptureForTab method to start capture
       try {
-        await this.startCaptureForTab(tabId, {
+        const started = await this.startCaptureForTab(tabId, {
           maxCaptureTime,
           inactivityTimeout,
           includeStatic,
         });
+        if (!started) {
+          return createErrorResponse('Network capture requires an http or https tab.');
+        }
       } catch (error: any) {
         return createErrorResponse(
           `Failed to start capture for tab ${tabId}: ${error.message || String(error)}`,

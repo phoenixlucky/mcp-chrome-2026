@@ -10,6 +10,7 @@ import { initWebEditorListeners } from './web-editor';
 import { initQuickPanelAgentHandler } from './quick-panel/agent-handler';
 import { initQuickPanelCommands } from './quick-panel/commands';
 import { initQuickPanelTabsHandler } from './quick-panel/tabs-handler';
+import { initErrorLog } from './error-log';
 
 import { bootstrapV3 } from './record-replay-v3/bootstrap';
 
@@ -18,6 +19,7 @@ import { bootstrapV3 } from './record-replay-v3/bootstrap';
  * Initializes all background services and listeners
  */
 export default defineBackground(() => {
+  initErrorLog();
   // Open welcome page on first install
   chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {

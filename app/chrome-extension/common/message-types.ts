@@ -19,6 +19,8 @@ export const BACKGROUND_MESSAGE_TYPES = {
   UPDATE_MODEL_STATUS: 'update_model_status',
   GET_STORAGE_STATS: 'get_storage_stats',
   CLEAR_ALL_DATA: 'clear_all_data',
+  GET_ERROR_LOGS: 'get_error_logs',
+  CLEAR_ERROR_LOGS: 'clear_error_logs',
   GET_SERVER_STATUS: 'get_server_status',
   REFRESH_SERVER_STATUS: 'refresh_server_status',
   START_NATIVE_SERVER: 'start_native_server',

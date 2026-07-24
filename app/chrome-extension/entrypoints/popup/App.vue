@@ -117,6 +117,20 @@
               </button>
             </div>
             <div class="extension-id">扩展 ID: {{ extensionId }}</div>
+            <div class="error-log-actions">
+              <button class="copy-config-button" @click="toggleErrorLogs">
+                {{ showErrorLogs ? '收起错误日志' : '查看错误日志' }}
+              </button>
+              <button
+                class="copy-config-button"
+                :disabled="isExportingErrorLogs"
+                @click="exportErrorLogs"
+              >
+                {{ isExportingErrorLogs ? '正在导出…' : '导出错误日志' }}
+              </button>
+              <button class="copy-config-button" @click="clearErrorLogs">清空错误日志</button>
+            </div>
+            <pre v-if="showErrorLogs" class="error-log-content">{{ errorLogText }}</pre>
             <label class="background-operations-switch">
               <span>
                 <strong>后台操作</strong>
@@ -473,6 +487,62 @@ const { theme: agentTheme, initTheme } = useAgentTheme();
 
 // 当前视图状态：首页 or 本地模型页
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
+const showErrorLogs = ref(false);
+const isExportingErrorLogs = ref(false);
+const errorLogs = ref<Array<{ timestamp: string; type: string; message: string; stack?: string }>>(
+  [],
+);
+const errorLogText = computed(() =>
+  errorLogs.value.length
+    ? errorLogs.value
+        .map(
+          (log) =>
+            `[${log.timestamp}] ${log.type}: ${log.message}${log.stack ? `\n${log.stack}` : ''}`,
+        )
+        .join('\n\n')
+    : '暂无错误日志。',
+);
+
+async function loadErrorLogs() {
+  const response = await chrome.runtime.sendMessage({
+    type: BACKGROUND_MESSAGE_TYPES.GET_ERROR_LOGS,
+  });
+  errorLogs.value = response?.success && Array.isArray(response.logs) ? response.logs : [];
+}
+
+async function toggleErrorLogs() {
+  showErrorLogs.value = !showErrorLogs.value;
+  if (showErrorLogs.value) await loadErrorLogs();
+}
+
+async function exportErrorLogs() {
+  if (isExportingErrorLogs.value) return;
+  isExportingErrorLogs.value = true;
+  try {
+    await loadErrorLogs();
+    const url = URL.createObjectURL(
+      new Blob(
+        [JSON.stringify({ exportedAt: new Date().toISOString(), logs: errorLogs.value }, null, 2)],
+        {
+          type: 'application/json',
+        },
+      ),
+    );
+    await chrome.downloads.download({
+      url,
+      filename: `mcp-chrome-errors-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+      saveAs: true,
+    });
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  } finally {
+    isExportingErrorLogs.value = false;
+  }
+}
+
+async function clearErrorLogs() {
+  await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.CLEAR_ERROR_LOGS });
+  errorLogs.value = [];
+}
 
 // Coming Soon Toast
 const comingSoonToast = ref<{ show: boolean; feature: string }>({ show: false, feature: '' });
@@ -2286,6 +2356,28 @@ onUnmounted(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+
+.error-log-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.error-log-content {
+  max-height: 160px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #374151;
+  font:
+    11px/1.4 'Monaco',
+    'Menlo',
+    monospace;
+  white-space: pre-wrap;
 }
 
 .background-operations-switch {
