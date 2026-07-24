@@ -4,7 +4,7 @@
     <div v-show="currentView === 'home'" class="home-view">
       <div class="header">
         <div class="header-content">
-          <h1 class="header-title">Chrome MCP Server</h1>
+          <h1 class="header-title">猫娘 Chrome MCP Server</h1>
           <img class="header-logo" :src="extensionLogoUrl" alt="" />
         </div>
       </div>
@@ -117,9 +117,6 @@
               </button>
             </div>
             <div class="extension-id">扩展 ID: {{ extensionId }}</div>
-            <div class="error-log-actions">
-              <button class="copy-config-button" @click="openErrorLogs">查看错误日志</button>
-            </div>
             <label class="background-operations-switch">
               <span>
                 <strong>后台操作</strong>
@@ -139,20 +136,6 @@
           <h2 class="section-title">快捷工具</h2>
           <div class="rr-icon-buttons">
             <button
-              class="rr-icon-btn rr-icon-btn-record rr-icon-btn-coming-soon has-tooltip"
-              @click="startRecording"
-              data-tooltip="录制功能开发中"
-            >
-              <RecordIcon :recording="false" />
-            </button>
-            <button
-              class="rr-icon-btn rr-icon-btn-stop rr-icon-btn-coming-soon has-tooltip"
-              @click="stopRecording"
-              data-tooltip="录制功能开发中"
-            >
-              <StopIcon />
-            </button>
-            <button
               class="rr-icon-btn rr-icon-btn-edit has-tooltip"
               @click="toggleWebEditor"
               data-tooltip="页面编辑：可视化调整元素，并将选中元素交给助手修改"
@@ -165,6 +148,27 @@
               data-tooltip="元素标注：保存关键元素，供 MCP 读取与助手定位"
             >
               <MarkerIcon />
+            </button>
+            <button
+              class="rr-icon-btn rr-icon-btn-logs has-tooltip"
+              @click="openErrorLogs"
+              data-tooltip="查看错误日志"
+            >
+              <ErrorLogIcon />
+            </button>
+            <button
+              class="rr-icon-btn rr-icon-btn-disabled has-tooltip"
+              disabled
+              data-tooltip="录制功能开发中"
+            >
+              <RecordIcon :recording="false" />
+            </button>
+            <button
+              class="rr-icon-btn rr-icon-btn-disabled has-tooltip"
+              disabled
+              data-tooltip="录制功能开发中"
+            >
+              <StopIcon />
             </button>
           </div>
           <p class="quick-tools-help"
@@ -360,7 +364,7 @@
             Docs
           </button>
         </div>
-        <p class="footer-text">chrome mcp server for ai</p>
+        <p class="footer-text">chrome mcp server for anything</p>
       </div>
     </div>
 
@@ -476,7 +480,6 @@ import ModelCacheManagement from './components/ModelCacheManagement.vue';
 import LocalModelPage from './components/LocalModelPage.vue';
 import McpToolsPage from './components/McpToolsPage.vue';
 import {
-  DocumentIcon,
   DatabaseIcon,
   BoltIcon,
   TrashIcon,
@@ -489,6 +492,7 @@ import {
   RefreshIcon,
   EditIcon,
   MarkerIcon,
+  ErrorLogIcon,
 } from './components/icons';
 
 // AgentChat theme - 从preload中获取，保持与sidepanel一致
@@ -610,41 +614,6 @@ function isFlowBoundToCurrent(flow: any) {
     return false;
   }
 }
-
-// 运行记录与覆盖项在侧边栏页面查看
-const startRecording = async () => {
-  // TODO: 录制回放功能开发中，暂时拦截
-  showComingSoonToast('录制回放');
-  return;
-  // if (rrRecording.value) return;
-  // try {
-  //   const res = await chrome.runtime.sendMessage({
-  //     type: BACKGROUND_MESSAGE_TYPES.RR_START_RECORDING,
-  //     meta: { name: '新录制' },
-  //   });
-  //   rrRecording.value = !!(res && res.success);
-  // } catch (e) {
-  //   console.error('开始录制失败:', e);
-  //   rrRecording.value = false;
-  // }
-};
-
-const stopRecording = async () => {
-  // TODO: 录制回放功能开发中，暂时拦截
-  showComingSoonToast('录制回放');
-  return;
-  // if (!rrRecording.value) return;
-  // try {
-  //   const res = await chrome.runtime.sendMessage({
-  //     type: BACKGROUND_MESSAGE_TYPES.RR_STOP_RECORDING,
-  //   });
-  //   rrRecording.value = false;
-  //   if (res && res.success) await loadFlows();
-  // } catch (e) {
-  //   console.error('停止录制失败:', e);
-  //   rrRecording.value = false;
-  // }
-};
 
 const runFlow = async (flowId: string) => {
   try {
@@ -2815,43 +2784,6 @@ onUnmounted(() => {
   height: 24px;
 }
 
-/* 录制按钮 - 红色 */
-.rr-icon-btn-record {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-.rr-icon-btn-record:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-  color: #dc2626;
-}
-
-/* 录制中状态 - 脉冲动画 */
-.rr-icon-btn-recording {
-  animation: pulse-recording 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse-recording {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
-  }
-}
-
-/* 停止按钮 - 深红色 */
-.rr-icon-btn-stop {
-  background: rgba(185, 28, 28, 0.1);
-  color: #b91c1c;
-}
-
-.rr-icon-btn-stop:hover:not(:disabled) {
-  background: rgba(185, 28, 28, 0.2);
-  color: #991b1b;
-}
-
 /* 编辑按钮 - 蓝色 */
 .rr-icon-btn-edit {
   background: rgba(37, 99, 235, 0.1);
@@ -2874,16 +2806,19 @@ onUnmounted(() => {
   color: #059669;
 }
 
-/* Coming Soon 按钮样式 */
-.rr-icon-btn-coming-soon {
-  opacity: 0.5;
-  cursor: default !important;
+.rr-icon-btn-logs {
+  background: rgba(243, 154, 186, 0.16);
+  color: #e692b2;
 }
 
-.rr-icon-btn-coming-soon:hover {
-  transform: none !important;
-  box-shadow: none !important;
-  opacity: 0.6;
+.rr-icon-btn-logs:hover:not(:disabled) {
+  background: rgba(243, 154, 186, 0.26);
+  color: #d9789d;
+}
+
+.rr-icon-btn-disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
 }
 
 /* CSS Tooltip - instant display */

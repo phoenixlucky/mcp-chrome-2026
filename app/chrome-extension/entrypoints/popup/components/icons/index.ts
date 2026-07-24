@@ -1,4 +1,5 @@
 export { default as DocumentIcon } from './DocumentIcon.vue';
+export { default as ErrorLogIcon } from './ErrorLogIcon.vue';
 export { default as DatabaseIcon } from './DatabaseIcon.vue';
 export { default as BoltIcon } from './BoltIcon.vue';
 export { default as TrashIcon } from './TrashIcon.vue';

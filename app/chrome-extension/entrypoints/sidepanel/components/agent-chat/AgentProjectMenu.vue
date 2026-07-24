@@ -179,7 +179,7 @@
       <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"> MCP </span>
       <label
         class="flex items-center gap-2 cursor-pointer"
-        title="Enable local Chrome MCP server integration"
+        title="Enable local 猫娘 Chrome MCP Server integration"
       >
         <input
           type="checkbox"
@@ -191,7 +191,7 @@
           @change="handleChromeMcpChange"
         />
         <span class="text-xs" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
-          Enable Chrome MCP Server
+          Enable 猫娘 Chrome MCP Server
         </span>
       </label>
     </div>
@@ -221,7 +221,11 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { AgentProject, AgentEngineInfo, CodexReasoningEffort } from '@ethanwilkins/chrome-mcp-shared-2026';
+import type {
+  AgentProject,
+  AgentEngineInfo,
+  CodexReasoningEffort,
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 import {
   getModelsForCli,
   getDefaultModelForCli,

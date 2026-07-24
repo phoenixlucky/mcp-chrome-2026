@@ -1,4 +1,4 @@
-import { readdirSync, statSync, cpSync, mkdirSync } from 'fs';
+import { readdirSync, statSync, cpSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -16,23 +16,4 @@ const zips = readdirSync(dir)
 if (zips[0]) {
   cpSync(join(dir, zips[0].name), join(releasesDir, zips[0].name), { force: true });
   console.log('📦 Released: releases/' + zips[0].name);
-}
-
-const version = zips[0]?.name.replace(/^chrome-mcp-server-|(-chrome)?\.zip$/g, '') || 'unknown';
-
-// Copy startup scripts alongside the zip
-const startupFiles = [
-  'start-server.bat',
-  'start-server-npm.bat',
-];
-
-for (const f of startupFiles) {
-  const src = join(rootDir, f);
-  const dst = join(releasesDir, f.replace('.bat', `-${version}.bat`));
-  try {
-    cpSync(src, dst, { force: true });
-    console.log(`📄 Copied: releases/${f.replace('.bat', `-${version}.bat`)}`);
-  } catch (e) {
-    console.warn(`⚠️  Could not copy ${f}: ${e.message}`);
-  }
 }

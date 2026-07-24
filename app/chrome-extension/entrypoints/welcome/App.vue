@@ -85,7 +85,7 @@ async function openDocs(): Promise<void> {
             </div>
             <div class="min-w-0">
               <h1 class="welcome-title text-lg font-medium tracking-tight truncate">
-                Chrome MCP Server
+                猫娘 Chrome MCP Server
               </h1>
               <p class="welcome-muted text-sm truncate">
                 After the extension is installed, this is the only required step.
