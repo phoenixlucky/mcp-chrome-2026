@@ -111,7 +111,7 @@ export function sanitizeText(text: string): { text: string; redacted: boolean } 
   };
 
   // 1. 整体字符串检测（mcp-tools.js 风格）
-  // Cookie/query string 形态检测（包含 = 和 ; 或 &）
+  // Cookie/query string 形态检测（要求敏感 Cookie 键或连续参数，避免误伤普通正文）
   if (out.includes('=') && (out.includes(';') || out.includes('&'))) {
     // 检测 cookie 字符串
     if (looksLikeCookieString(out)) {
@@ -161,21 +161,11 @@ export function sanitizeText(text: string): { text: string; redacted: boolean } 
 }
 
 /**
- * 检测字符串是否像 query string (key=value&key2=value2)
+ * 检测字符串是否像连续的 query string (key=value&key2=value)
  */
 function looksLikeQueryString(text: string): boolean {
   const s = (text || '').trim();
-  if (!s || !s.includes('=') || !s.includes('&')) return false;
-
-  const parts = s.split('&');
-  if (parts.length < 2) return false;
-
-  let pairs = 0;
-  for (const part of parts) {
-    const idx = part.indexOf('=');
-    if (idx > 0) pairs += 1;
-  }
-  return pairs >= 2;
+  return /(?:^|[?&])[A-Za-z][\w.-]*=[^&\s#]+(?:&[A-Za-z][\w.-]*=[^&\s#]+)+/.test(s);
 }
 
 function sanitizeValue(
@@ -276,12 +266,8 @@ function looksLikeCookieString(text: string): boolean {
   const parts = s.split(';');
   if (parts.length < 2) return false;
 
-  let pairs = 0;
-  for (const part of parts) {
-    const idx = part.indexOf('=');
-    if (idx > 0) pairs += 1;
-  }
-  return pairs >= 2;
+  const keys = parts.map((part) => part.slice(0, part.indexOf('=')).trim()).filter(Boolean);
+  return keys.length >= 2 && keys.some(isSensitiveKey);
 }
 
 function formatValueForOutput(value: unknown): string {
