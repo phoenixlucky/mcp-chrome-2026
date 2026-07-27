@@ -26,17 +26,15 @@
 
 ---
 
-## 📢 v1.6.0 更新内容
+## 📢 v1.6.1 更新内容
 
-> **猫娘毛玻璃 UI** — 扩展弹窗和 Builder 界面全面采用毛玻璃视觉效果，配合柔和猫娘主题色调。
+> **output-sanitizer 精简** — 移除冗余分支逻辑，新增单元测试覆盖。
 >
-> - 🪟 **毛玻璃美学** — 弹窗、Builder 界面采用毛玻璃背景 + 柔和渐变
-> - 🔧 **启动脚本优化** — `start-server.bat` / `start-server-npm.bat` 从 4 步精简为 3 步
-> - 🧩 **内嵌 Shared Runtime** — native-server 安装时自动安装 bundled shared runtime
-> - 🎨 **Builder/Popup UI 重构** — 大幅重写 `App.vue`，优化工作流编辑器界面
-> - ⌨️ **页面录制快捷键** — `Ctrl+Shift+1/2/3` 控制录制开始/暂停/停止
+> - 🧹 **代码精简** — 移除 `sanitizeOutput` 中的冗余分支，简化代码结构
+> - ✅ **新增测试** — `output-sanitizer.test.ts` 覆盖核心路径
+> - 🔧 所有包版本统一为 v1.6.1
 
-> 查看 [完整更新日志](docs/CHANGELOG.md) 了解 v1.5.0 及更早版本的更新内容。
+> 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
 ---
 

@@ -26,17 +26,15 @@
 
 ---
 
-## 📢 What's New in v1.6.0
+## 📢 What's New in v1.6.1
 
-> **Catgirl Frosted Glass UI** — The extension popup and Builder now feature a frosted-glass visual with a soft catgirl-themed palette.
+> **output-sanitizer cleanup** — Removed redundant branching logic, added unit test coverage.
 >
-> - 🪟 **Frosted Glass Aesthetic** — Popup and Builder with glassmorphism backgrounds and soft gradients
-> - 🔧 **Optimized Startup** — `start-server.bat` / `start-server-npm.bat` simplified from 4 to 3 steps
-> - 🧩 **Bundled Shared Runtime** — native-server now auto-installs the shared runtime during postinstall
-> - 🎨 **Builder/Popup UI Rewrite** — Major `App.vue` overhaul improving the workflow editor
-> - ⌨️ **Page Recording Shortcuts** — `Ctrl+Shift+1/2/3` for start/pause/stop recording
+> - 🧹 **Code cleanup** — Removed redundant branches in `sanitizeOutput`, simplified structure
+> - ✅ **New tests** — `output-sanitizer.test.ts` covering core paths
+> - 🔧 All packages bumped to v1.6.1
 
-> See the [full changelog](docs/CHANGELOG.md) for changes in v1.5.0 and earlier versions.
+> See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
 ---
 
