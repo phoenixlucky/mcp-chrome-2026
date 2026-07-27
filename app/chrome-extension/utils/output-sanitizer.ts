@@ -263,11 +263,20 @@ function looksLikeCookieString(text: string): boolean {
   if (!s) return false;
   if (!s.includes('=') || !s.includes(';')) return false;
 
-  const parts = s.split(';');
-  if (parts.length < 2) return false;
+  const keys = s
+    .split(';')
+    .map((part) => /^\s*([A-Za-z][\w.-]{0,63})=[^\s;]+\s*$/.exec(part)?.[1])
+    .filter((key): key is string => Boolean(key));
 
-  const keys = parts.map((part) => part.slice(0, part.indexOf('=')).trim()).filter(Boolean);
-  return keys.length >= 2 && keys.some(isSensitiveKey);
+  return (
+    keys.length >= 2 &&
+    keys.some((key) => {
+      const normalized = normalizeKey(key);
+      return SENSITIVE_KEY_MARKERS.some(
+        (marker) => normalized === marker || normalized.endsWith(marker),
+      );
+    })
+  );
 }
 
 function formatValueForOutput(value: unknown): string {

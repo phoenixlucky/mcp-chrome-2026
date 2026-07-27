@@ -13,6 +13,12 @@ describe('output sanitizer query strings', () => {
     );
   });
 
+  it('does not treat prose containing "side" as a SID cookie', () => {
+    expect(
+      sanitizeText('prompt {"layout":"side by side"}; relationship=subject; note=done').redacted,
+    ).toBe(false);
+  });
+
   it('blocks contiguous query parameters', () => {
     expect(sanitizeText('https://example.com/?token=secret&session=value').text).toBe(
       '[BLOCKED: Cookie/query string data]',
@@ -23,5 +29,6 @@ describe('output sanitizer query strings', () => {
     expect(sanitizeText('session=secret; theme=dark').text).toBe(
       '[BLOCKED: Cookie/query string data]',
     );
+    expect(sanitizeText('SID=secret; theme=dark').text).toBe('[BLOCKED: Cookie/query string data]');
   });
 });
