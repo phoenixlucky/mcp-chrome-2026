@@ -48,9 +48,9 @@
       <td align="center" width="33%"><b>Quick Panel</b></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/popup-ui.png" alt="Popup" width="100%"></td>
-      <td align="center"><img src="screenshots/builder-ui.png" alt="Builder" width="100%"></td>
-      <td align="center"><img src="screenshots/quick-panel.png" alt="Quick Panel" width="100%"></td>
+      <td align="center"><img src="screenshots/popup-ui.webp" alt="Popup" width="100%"></td>
+      <td align="center"><img src="screenshots/builder-ui.webp" alt="Builder" width="100%"></td>
+      <td align="center"><img src="screenshots/quick-panel.webp" alt="Quick Panel" width="100%"></td>
     </tr>
     <tr>
       <td align="center">Catgirl frosted glass theme,<br/>MCP tools at a glance</td>

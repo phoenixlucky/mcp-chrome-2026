@@ -48,9 +48,9 @@
       <td align="center" width="33%"><b>Quick Panel 快捷操作</b></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/popup-ui.png" alt="Popup 弹窗" width="100%"></td>
-      <td align="center"><img src="screenshots/builder-ui.png" alt="Builder 工作流编辑器" width="100%"></td>
-      <td align="center"><img src="screenshots/quick-panel.png" alt="Quick Panel 快捷操作" width="100%"></td>
+      <td align="center"><img src="screenshots/popup-ui.webp" alt="Popup 弹窗" width="100%"></td>
+      <td align="center"><img src="screenshots/builder-ui.webp" alt="Builder 工作流编辑器" width="100%"></td>
+      <td align="center"><img src="screenshots/quick-panel.webp" alt="Quick Panel 快捷操作" width="100%"></td>
     </tr>
     <tr>
       <td align="center">猫娘毛玻璃主题，<br/>MCP 工具一览</td>
