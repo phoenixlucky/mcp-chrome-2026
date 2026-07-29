@@ -170,6 +170,11 @@ export default defineConfig({
         } as any,
       }) as any,
     ],
+    resolve: {
+      alias: {
+        '@ethanwilkins/chrome-mcp-shared-2026': resolve(__dirname, '../../packages/shared/src'),
+      },
+    },
     build: {
       // 我们的构建产物需要兼容到es6
       target: 'es2015',

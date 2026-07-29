@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.3] - 2026-07-30
+
+### Added
+
+- **`chrome_spa_fetch` 工具** — 专为 X（推特）、Reddit 等 SPA 网站设计的内容提取工具。自动导航、等待 JS 渲染、滚动触发懒加载、Readability 文本提取。解决普通 HTTP 请求无法获取 SPA 动态内容的问题。
+- 新增 `docs/TOOLS.md`、`docs/TOOLS_zh.md` 中文档。
+
+### Changed
+
+- 所有包版本统一为 v1.6.3。
+
+## [v1.6.2] - 2026-07-30
+
+### Added
+
+- pnpm 版本升级至 11.18.0。
+
 ## [v1.6.1] - 2026-07-24
 
 ### Fixed
