@@ -78,6 +78,8 @@ function operationDetail(param: ToolCallParam): string {
       return args.filter === 'interactive' ? '读取页面交互元素' : '读取页面可见元素';
     case 'chrome_get_page_text':
       return `读取正文：${target(args)}`;
+    case 'chrome_spa_fetch':
+      return `SPA 提取：${compact(args.url) || target(args)}（${args.maxScrolls || 5} 次滚动）`;
     case 'chrome_extract':
       return `提取范围：${target(args)}`;
     case 'chrome_scroll': {
@@ -244,6 +246,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_upload_file: '上传文件',
           chrome_read_page: '读取页面',
           chrome_get_page_text: '读取正文',
+          chrome_spa_fetch: 'SPA 提取',
           chrome_network_capture: '网络抓包',
           chrome_network_capture_start: '开始抓包',
           chrome_network_capture_stop: '停止抓包',
@@ -310,6 +313,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
             chrome_fill_or_select: '目标',
             chrome_extract: '提取范围',
             chrome_get_page_text: '读取正文',
+            chrome_spa_fetch: 'SPA 提取',
             chrome_screenshot: '截取',
             chrome_upload_file: '上传到',
           };

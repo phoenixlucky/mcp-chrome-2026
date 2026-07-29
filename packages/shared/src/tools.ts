@@ -47,6 +47,7 @@ export const TOOL_NAMES = {
     WAIT: 'chrome_wait',
     EXTRACT: 'chrome_extract',
     GET_PAGE_TEXT: 'chrome_get_page_text',
+    SPA_FETCH: 'chrome_spa_fetch',
     CLICK_AND_WAIT: 'chrome_click_and_wait',
   },
   RECORD_REPLAY: {
@@ -1455,6 +1456,57 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.SPA_FETCH,
+    description:
+      'Navigate to a SPA (Single Page Application) URL, wait for JS rendering, auto-scroll to trigger lazy content loading, then extract the full rendered text content. Designed for sites like X/Twitter, Reddit, and other JS-heavy pages where plain HTTP fetch returns no meaningful text.\n\nTypical usage: call once with url and maxScrolls=5-10, the tool handles scrolling and text extraction automatically.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Target SPA URL to fetch content from.',
+        },
+        maxScrolls: {
+          type: 'number',
+          description:
+            'Maximum number of scroll-to-bottom passes (default: 5). Each pass scrolls to the bottom, waits for lazy content to load, then extracts text. Increase for feeds with infinite scroll (e.g. Twitter timeline).',
+          default: 5,
+        },
+        scrollDelay: {
+          type: 'number',
+          description:
+            'Delay in ms between scroll steps (default: 2000). Longer delays give more time for dynamic content to render.',
+          default: 2000,
+        },
+        waitForSelector: {
+          type: 'string',
+          description:
+            'Optional CSS selector to wait for before starting extraction (e.g. "[data-testid="tweet"]" for Twitter). If omitted, waits for body to be present and a 2s stabilization delay.',
+        },
+        waitTimeout: {
+          type: 'number',
+          description: 'Maximum time in ms to wait for waitForSelector (default: 20000).',
+          default: 20000,
+        },
+        extractHtml: {
+          type: 'boolean',
+          description:
+            'Whether to also return the rendered HTML content (default: false). Only text is returned by default.',
+          default: false,
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target an existing tab by ID (default: create new tab).',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID to create or reuse tab in.',
+        },
+      },
+      required: ['url'],
     },
   },
   {

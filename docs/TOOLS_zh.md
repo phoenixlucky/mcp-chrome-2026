@@ -784,6 +784,53 @@
 }
 ```
 
+### `chrome_spa_fetch`
+
+专为 SPA（单页应用）网站设计的内容提取工具。自动导航到目标 URL，等待 JavaScript 渲染完成，多次滚动到底部触发懒加载，然后提取完整的渲染文本。解决 X（推特）、Reddit 等 JS 重型页面用普通 HTTP 请求无法获取内容的问题。
+
+适合场景：需要从动态渲染页面提取推文时间线、帖子列表、动态加载的文章内容等。
+
+**参数**：
+
+- `url` (字符串，必需)：目标 SPA 网址
+- `maxScrolls` (数字，可选)：最大滚动次数（默认：5）。无限滚动页面（如推特时间线）建议设 10-15
+- `scrollDelay` (数字，可选)：每次滚动后等待时间，毫秒（默认：2000）。给动态内容足够的渲染时间
+- `waitForSelector` (字符串，可选)：等待特定 CSS 选择器出现后再开始提取。例如推特可以设为 `[data-testid="tweet"]`
+- `waitTimeout` (数字，可选)：等待选择器的超时时间，毫秒（默认：20000）
+- `extractHtml` (布尔值，可选)：是否同时返回渲染后的 HTML（默认：false）
+- `tabId` (数字，可选)：指定已有标签页（默认：新建标签页）
+- `windowId` (数字，可选)：目标窗口 ID
+
+**示例**：
+
+```json
+{
+  "url": "https://x.com/elonmusk",
+  "maxScrolls": 10,
+  "scrollDelay": 2500,
+  "waitForSelector": "[data-testid=\"tweet\"]"
+}
+```
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "url": "https://x.com/elonmusk",
+  "title": "Elon Musk (@elonmusk) / X",
+  "scrollsPerformed": 8,
+  "reachedMaxScrolls": false,
+  "textContent": "渲染后的完整页面文本...",
+  "article": {
+    "title": "Elon Musk (@elonmusk) / X",
+    "siteName": "X",
+    "excerpt": "...",
+    "lang": "en"
+  }
+}
+```
+
 ## 📋 响应格式
 
 所有工具都返回以下格式的响应：

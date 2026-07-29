@@ -760,6 +760,53 @@ Extract structured data from a web page using CSS selectors. The core tool for w
 }
 ```
 
+### `chrome_spa_fetch`
+
+A dedicated content extraction tool for SPAs (Single Page Applications). Automatically navigates to a URL, waits for JavaScript rendering, scrolls to trigger lazy-loaded content, then extracts the full rendered text. Solves the problem of fetching content from JS-heavy sites like X/Twitter and Reddit where plain HTTP requests return an empty shell.
+
+Best for: extracting tweet timelines, post feeds, dynamically loaded articles, and any content that requires JS execution and scrolling.
+
+**Parameters**:
+
+- `url` (string, required): Target SPA URL
+- `maxScrolls` (number, optional): Maximum scroll-to-bottom passes (default: 5). For infinite-scroll feeds like Twitter timeline, set to 10–15
+- `scrollDelay` (number, optional): Delay between scroll steps in ms (default: 2000). Gives dynamic content time to render
+- `waitForSelector` (string, optional): Wait for a specific CSS selector before starting extraction. For Twitter: `[data-testid="tweet"]`
+- `waitTimeout` (number, optional): Max wait time for selector in ms (default: 20000)
+- `extractHtml` (boolean, optional): Whether to also return rendered HTML (default: false)
+- `tabId` (number, optional): Target an existing tab (default: create new tab)
+- `windowId` (number, optional): Target window ID
+
+**Example**:
+
+```json
+{
+  "url": "https://x.com/elonmusk",
+  "maxScrolls": 10,
+  "scrollDelay": 2500,
+  "waitForSelector": "[data-testid=\"tweet\"]"
+}
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "url": "https://x.com/elonmusk",
+  "title": "Elon Musk (@elonmusk) / X",
+  "scrollsPerformed": 8,
+  "reachedMaxScrolls": false,
+  "textContent": "Full rendered page text...",
+  "article": {
+    "title": "Elon Musk (@elonmusk) / X",
+    "siteName": "X",
+    "excerpt": "...",
+    "lang": "en"
+  }
+}
+```
+
 ## 📋 Response Format
 
 All tools return responses in the following format:

@@ -34,4 +34,5 @@ export { scrollStateTool, scrollTool } from './scroll';
 export { waitTool } from './wait';
 export { extractTool } from './extract';
 export { pageTextTool } from './get-page-text';
+export { spaFetchTool } from './spa-fetch';
 export { clickAndWaitTool } from './click-and-wait';

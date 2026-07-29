@@ -37,14 +37,7 @@ enabled = true   # language server tools; servers launch lazily when used
 # disabled_skills = ["review"]   # hide noisy or unwanted skills
 
 [permissions]
-# Per-call gating. mode = writer fallback when no rule matches: ask|allow|deny.
-# Readers always default to allow. Precedence: deny > ask > allow > fallback.
-# Rules are "Tool" or "Tool(specifier)"; e.g. Bash(go test:*), Edit(src/**).
-mode  = "ask"
-# deny = ["Bash(rm -rf*)", "Bash(git push*)"]   # hard-blocked in every mode
-# allow = ["Bash(go test:*)", "Bash(git status:*)"]   # never prompted
-# ask = ["Edit(src/**)"]   # force a prompt even if otherwise allowed
-
+allow = ["Bash(git remote:*)", "Bash(git branch:*)", "explore", "Bash(git stash:*)", "Bash(Get-Content \"E:\\home\\mcp-chrome-2026\\package.json\" -Raw | Select-String -Pattern \"@modelcontextprotocol\" -Context 0,2)", "Bash(Get-Content \"E:\\home\\mcp-chrome-2026\\node_modules\\@modelcontextprotocol\\sdk\\package.json\" -Raw | Select-String -Pattern '\"version\"')"]
 [sandbox]
 # Confine tool blast radius. File-writers (write_file/edit_file/multi_edit/move_file)
 # may only write under workspace_root (empty = current dir) and allow_write extras.

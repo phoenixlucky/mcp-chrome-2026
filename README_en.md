@@ -154,7 +154,7 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 | 📝 **Content Analysis**   |   4   | Semantic search, HTML/text extraction, interactive element detection, console capture |
 | 🖱️ **Interaction**        |   3   | Click, fill forms, keyboard input                                                     |
 | 📑 **Data Management**    |   4   | History search, bookmark CRUD                                                         |
-| 📡 **Scraping**           |  6+   | Scroll, wait, structured extraction, Readability, click-and-wait                      |
+| 📡 **Scraping**           |  7+   | Scroll, wait, structured extraction, Readability, SPA content fetch, click-and-wait   |
 
 📖 Full API reference: [中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
