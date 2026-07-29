@@ -38,6 +38,28 @@
 
 ---
 
+## 🖼️ Screenshots
+
+<p align="center">
+  <table>
+    <tr>
+      <td align="center" width="33%"><b>Popup Window</b></td>
+      <td align="center" width="33%"><b>Builder Workflow Editor</b></td>
+      <td align="center" width="33%"><b>Quick Panel</b></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="screenshots/popup-ui.png" alt="Popup" width="100%"></td>
+      <td align="center"><img src="screenshots/builder-ui.png" alt="Builder" width="100%"></td>
+      <td align="center"><img src="screenshots/quick-panel.png" alt="Quick Panel" width="100%"></td>
+    </tr>
+    <tr>
+      <td align="center">Catgirl frosted glass theme,<br/>MCP tools at a glance</td>
+      <td align="center">Drag-and-drop workflow builder,<br/>record & replay automation</td>
+      <td align="center">In-page quick tools,<br/>element picker & actions</td>
+    </tr>
+  </table>
+</p>
+
 ## ✨ Features
 
 |                                                                                           |                                                                               |                                                                                 |                                                                              |

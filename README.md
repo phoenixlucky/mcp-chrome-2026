@@ -38,6 +38,28 @@
 
 ---
 
+## 🖼️ 界面预览
+
+<p align="center">
+  <table>
+    <tr>
+      <td align="center" width="33%"><b>Popup 弹窗</b></td>
+      <td align="center" width="33%"><b>Builder 工作流编辑器</b></td>
+      <td align="center" width="33%"><b>Quick Panel 快捷操作</b></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="screenshots/popup-ui.png" alt="Popup 弹窗" width="100%"></td>
+      <td align="center"><img src="screenshots/builder-ui.png" alt="Builder 工作流编辑器" width="100%"></td>
+      <td align="center"><img src="screenshots/quick-panel.png" alt="Quick Panel 快捷操作" width="100%"></td>
+    </tr>
+    <tr>
+      <td align="center">猫娘毛玻璃主题，<br/>MCP 工具一览</td>
+      <td align="center">可视化拖拽搭建，<br/>录制回放工作流</td>
+      <td align="center">页面内快捷工具，<br/>快速选取与操作</td>
+    </tr>
+  </table>
+</p>
+
 ## ✨ 核心特性
 
 |                                                                     |                                                                    |                                                               |                                                               |
