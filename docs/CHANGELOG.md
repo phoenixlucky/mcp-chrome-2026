@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cookie 管理三件套** — 新增 `chrome_cookie_get` / `chrome_cookie_set` / `chrome_cookie_delete` 三个工具，支持按 URL、域名、名称筛选查询、设置和删除 Cookie。
 - **`chrome_get_interactive_elements`** — 恢复该工具（之前被遗漏）。
 - 删除 `start-server-npm.bat`（与 `start-server.bat` 功能重复）。
 - README 路线图更新：移除「工具级 ACL」，新增「待开发工具」计划表。

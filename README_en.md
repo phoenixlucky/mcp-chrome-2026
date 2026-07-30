@@ -28,8 +28,9 @@
 
 ## 📢 What's New in v1.6.4
 
-> **Tool restoration + docs & roadmap update** — A minor iteration.
+> **Cookie management + tool restoration + docs update** — Enhanced browser data control.
 >
+> - 🍪 **Cookie management trio** — New `chrome_cookie_get` / `set` / `delete` tools: query by URL/domain, set, and delete cookies
 > - 🔧 **`chrome_get_interactive_elements`** — Restored this tool (previously omitted)
 > - 🗑️ Removed `start-server-npm.bat` (duplicate of `start-server.bat`)
 > - 📋 Roadmap updated: removed "Tool-level ACL", added "Planned tools" table

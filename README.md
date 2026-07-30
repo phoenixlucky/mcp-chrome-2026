@@ -28,8 +28,9 @@
 
 ## 📢 v1.6.4 更新内容
 
-> **工具恢复 + 文档路线图更新** — 小版本迭代。
+> **Cookie 管理 + 工具恢复 + 文档更新** — 增强浏览器数据管控能力。
 >
+> - 🍪 **Cookie 管理三件套** — 新增 `chrome_cookie_get` / `set` / `delete`，支持按 URL/域名筛选查询、设置和删除 Cookie
 > - 🔧 **`chrome_get_interactive_elements`** — 恢复该工具（之前被遗漏）
 > - 🗑️ 删除 `start-server-npm.bat`（与 `start-server.bat` 功能重复）
 > - 📋 README 路线图更新：移除「工具级 ACL」，新增「待开发工具」计划表
