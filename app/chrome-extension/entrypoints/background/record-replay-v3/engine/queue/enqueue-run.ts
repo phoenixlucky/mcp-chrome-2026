@@ -56,6 +56,8 @@ export interface EnqueueRunInput {
     breakpoints?: NodeId[];
     pauseOnStart?: boolean;
   };
+  /** 当前页面 Tab，未提供时才创建临时页 */
+  tabId?: number;
 }
 
 /**
@@ -153,6 +155,8 @@ export async function enqueueRun(
   // 参数校验
   const priority = validateInt(input.priority, 0, 'priority');
   const maxAttempts = validateInt(input.maxAttempts, 1, 'maxAttempts', { min: 1 });
+  const tabId =
+    input.tabId === undefined ? undefined : validateInt(input.tabId, 0, 'tabId', { min: 0 });
 
   // 验证 Flow 存在
   const flow = await deps.storage.flows.get(flowId);
@@ -184,6 +188,7 @@ export async function enqueueRun(
     args: input.args,
     trigger: input.trigger,
     debug: input.debug,
+    tabId,
     startNodeId: input.startNodeId,
     nextSeq: 0,
   };
@@ -198,6 +203,7 @@ export async function enqueueRun(
     args: input.args,
     trigger: input.trigger,
     debug: input.debug,
+    tabId,
   });
 
   // 3. 发布 run.queued 事件

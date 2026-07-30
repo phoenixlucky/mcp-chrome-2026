@@ -201,21 +201,19 @@ class NavigateTool extends BaseBrowserToolExecutor {
             // Use host-level wildcard to include all paths; we'll do precise selection later
             const pathWildcard = '/*';
 
-            const hostNoWww = u.host.replace(/^www\./, '');
-            const hostWithWww = hostNoWww.startsWith('www.') ? hostNoWww : `www.${hostNoWww}`;
-
-            // Keep original host
-            patterns.add(`${u.protocol}//${u.host}${pathWildcard}`);
-            // Add no-www variant
-            patterns.add(`${u.protocol}//${hostNoWww}${pathWildcard}`);
-            // Add www variant
-            patterns.add(`${u.protocol}//${hostWithWww}${pathWildcard}`);
+            const isIpOrLocalhost =
+              u.hostname === 'localhost' ||
+              u.hostname.includes(':') ||
+              /^\d{1,3}(?:\.\d{1,3}){3}$/.test(u.hostname);
+            const hosts = isIpOrLocalhost
+              ? [u.host]
+              : [u.host, u.host.replace(/^www\./, ''), `www.${u.host.replace(/^www\./, '')}`];
 
             // Add protocol variant to catch http↔https redirects
             const altProtocol = u.protocol === 'https:' ? 'http:' : 'https:';
-            patterns.add(`${altProtocol}//${u.host}${pathWildcard}`);
-            patterns.add(`${altProtocol}//${hostNoWww}${pathWildcard}`);
-            patterns.add(`${altProtocol}//${hostWithWww}${pathWildcard}`);
+            for (const protocol of [u.protocol, altProtocol]) {
+              for (const host of hosts) patterns.add(`${protocol}//${host}${pathWildcard}`);
+            }
           } else {
             patterns.add(input);
           }

@@ -26,6 +26,7 @@ export function useBuilderStore(initial?: BuilderFlow | null) {
   const paletteTypes = [
     'trigger',
     'click',
+    'dblclick',
     'drag',
     'scroll',
     'fill',
@@ -41,6 +42,9 @@ export function useBuilderStore(initial?: BuilderFlow | null) {
     'http',
     'extract',
     'screenshot',
+    'getTabUrl',
+    'readPage',
+    'getWebContent',
     'triggerEvent',
     'setAttribute',
     'switchFrame',
@@ -48,6 +52,8 @@ export function useBuilderStore(initial?: BuilderFlow | null) {
     'openTab',
     'switchTab',
     'closeTab',
+    'loopElements',
+    'executeFlow',
   ] as NodeBase['type'][];
 
   // --- history (undo/redo) ---
@@ -374,8 +380,16 @@ export function useBuilderStore(initial?: BuilderFlow | null) {
     if (!flowLocal.subflows![id]) return;
     flushCurrent();
     currentSubflowId.value = id;
-    nodes.splice(0, nodes.length, ...JSON.parse(JSON.stringify(flowLocal.subflows![id].nodes || [])));
-    edges.splice(0, edges.length, ...JSON.parse(JSON.stringify(flowLocal.subflows![id].edges || [])));
+    nodes.splice(
+      0,
+      nodes.length,
+      ...JSON.parse(JSON.stringify(flowLocal.subflows![id].nodes || [])),
+    );
+    edges.splice(
+      0,
+      edges.length,
+      ...JSON.parse(JSON.stringify(flowLocal.subflows![id].edges || [])),
+    );
     layoutIfNeeded();
   }
   const isEditingMain = () => currentSubflowId.value == null;

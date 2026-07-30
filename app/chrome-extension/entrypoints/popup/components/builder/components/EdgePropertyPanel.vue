@@ -54,7 +54,10 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { Edge as BuilderEdge, NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
+import type {
+  Edge as BuilderEdge,
+  NodeBase,
+} from '@/entrypoints/background/record-replay-v3/builder-types';
 
 const props = defineProps<{ edge: BuilderEdge | null; nodes: NodeBase[] }>();
 const emit = defineEmits<{ (e: 'remove-edge', id: string): void }>();
@@ -96,12 +99,12 @@ function onRemove() {
   background: var(--rr-card);
   border: 1px solid var(--rr-border);
   border-radius: 16px;
-  margin: 16px;
+  margin: 12px;
   padding: 0;
-  width: 380px;
+  width: min(320px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 72px);
+  max-height: calc(100vh - 60px);
   overflow-y: auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
@@ -113,7 +116,7 @@ function onRemove() {
   flex-direction: column;
 }
 .panel-header {
-  padding: 12px 12px 12px 20px;
+  padding: 10px 10px 10px 14px;
   border-bottom: 1px solid var(--rr-border);
   display: flex;
   align-items: center;
@@ -149,10 +152,10 @@ function onRemove() {
   border-color: rgba(239, 68, 68, 0.3);
 }
 .form-section {
-  padding: 16px 20px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 .form-group {
   display: grid;

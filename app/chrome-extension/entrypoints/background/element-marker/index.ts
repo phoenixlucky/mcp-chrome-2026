@@ -110,7 +110,7 @@ export function initElementMarkerListeners() {
   ensureContextMenu().catch(() => {});
 
   // Respond to RR triggers refresh by re-ensuring our menu a bit later
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       switch (message?.type) {
         // Handle element marker start from popup
@@ -195,14 +195,19 @@ export function initElementMarkerListeners() {
             const selectorType = (req.selectorType || 'css') as 'css' | 'xpath';
             const action = req.action as MarkerValidationAction;
             if (!selector) return sendResponse({ success: false, error: 'selector is required' });
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            const tab = tabs[0];
-            if (!tab?.id) return sendResponse({ success: false, error: 'active tab not found' });
+            let tabId = sender.tab?.id ?? message.tabId;
+            if (typeof tabId !== 'number') {
+              const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+              tabId = activeTab?.id;
+            }
+            if (typeof tabId !== 'number') {
+              return sendResponse({ success: false, error: 'active tab not found' });
+            }
 
             // 1) Ensure helper
             try {
               await chrome.scripting.executeScript({
-                target: { tabId: tab.id, allFrames: true },
+                target: { tabId, allFrames: true },
                 files: ['inject-scripts/accessibility-tree-helper.js'],
                 world: 'ISOLATED',
               } as any);
@@ -211,19 +216,23 @@ export function initElementMarkerListeners() {
             // 2) Resolve selector -> ref/center via helper (same as tools)
             let ensured: any;
             try {
-              ensured = await chrome.tabs.sendMessage(tab.id, {
-                action: 'ensureRefForSelector',
-                selector,
-                isXPath: selectorType === 'xpath',
-                allowMultiple: !!req.listMode,
-              } as any);
+              ensured = await chrome.tabs.sendMessage(
+                tabId,
+                {
+                  action: 'ensureRefForSelector',
+                  selector,
+                  isXPath: selectorType === 'xpath',
+                  allowMultiple: !!req.listMode,
+                } as any,
+                { frameId: 0 },
+              );
             } catch (e) {
               return sendResponse({
                 success: false,
                 error: String(e instanceof Error ? e.message : e),
               });
             }
-            if (!ensured || !ensured.success || !ensured.ref) {
+            if (!ensured || !ensured.success) {
               return sendResponse({
                 success: false,
                 error: ensured?.error || 'failed to resolve selector',
@@ -238,7 +247,7 @@ export function initElementMarkerListeners() {
             } as any;
 
             // Compute optional coordinates from offsets
-            let coords: { x: number; y: number } | undefined = undefined;
+            let coords: { x: number; y: number } | undefined = ensured.center;
             if (
               req.coordinates &&
               typeof req.coordinates.x === 'number' &&
@@ -254,27 +263,30 @@ export function initElementMarkerListeners() {
               const dy = Number.isFinite(req.offsetY as any) ? (req.offsetY as number) : 0;
               coords = { x: ensured.center.x + dx, y: ensured.center.y + dy };
             }
+            if (!coords) {
+              return sendResponse({
+                success: false,
+                error: '定位成功但无法获取元素坐标，请重新选择后验证',
+              });
+            }
 
             // 3) Dispatch to appropriate tool for end-to-end validation
             try {
               switch (action) {
                 case 'hover': {
-                  // The marker just resolved this element, so its viewport center is more reliable
-                  // than asking the hover tool to resolve the short-lived ref a second time.
-                  const r = await computerTool.execute(
-                    coords
-                      ? { action: 'hover', coordinates: coords }
-                      : ensured.center
-                        ? { action: 'hover', coordinates: ensured.center }
-                        : ({ action: 'hover', ref: ensured.ref } as any),
-                  );
+                  const r = await computerTool.execute({
+                    action: 'hover',
+                    coordinates: coords,
+                    tabId,
+                  });
                   const error = r.isError ? extractToolError(r) : undefined;
                   base.tool = { name: 'computer.hover', ok: !r.isError, error };
                   break;
                 }
                 case 'left_click': {
                   const r = await clickTool.execute({
-                    ...(coords ? { coordinates: coords } : { ref: ensured.ref }),
+                    coordinates: coords,
+                    tabId,
                     waitForNavigation: !!req.waitForNavigation,
                     timeout: Number.isFinite(req.timeoutMs as any)
                       ? (req.timeoutMs as number)
@@ -288,7 +300,8 @@ export function initElementMarkerListeners() {
                 }
                 case 'double_click': {
                   const r = await clickTool.execute({
-                    ...(coords ? { coordinates: coords } : { ref: ensured.ref }),
+                    coordinates: coords,
+                    tabId,
                     double: true,
                     waitForNavigation: !!req.waitForNavigation,
                     timeout: Number.isFinite(req.timeoutMs as any)
@@ -303,7 +316,8 @@ export function initElementMarkerListeners() {
                 }
                 case 'right_click': {
                   const r = await clickTool.execute({
-                    ...(coords ? { coordinates: coords } : { ref: ensured.ref }),
+                    coordinates: coords,
+                    tabId,
                     waitForNavigation: !!req.waitForNavigation,
                     timeout: Number.isFinite(req.timeoutMs as any)
                       ? (req.timeoutMs as number)
@@ -320,19 +334,13 @@ export function initElementMarkerListeners() {
                   const amount = Number.isFinite((req as any).scrollAmount)
                     ? Number((req as any).scrollAmount)
                     : 300;
-                  const payload = coords
-                    ? {
-                        action: 'scroll',
-                        scrollDirection: direction,
-                        scrollAmount: amount,
-                        coordinates: coords,
-                      }
-                    : ({
-                        action: 'scroll',
-                        scrollDirection: direction,
-                        scrollAmount: amount,
-                        ref: ensured.ref,
-                      } as any);
+                  const payload = {
+                    action: 'scroll',
+                    scrollDirection: direction,
+                    scrollAmount: amount,
+                    coordinates: coords,
+                    tabId,
+                  };
                   const r = await computerTool.execute(payload as any);
                   const error = r.isError ? extractToolError(r) : undefined;
                   base.tool = { name: 'computer.scroll', ok: !r.isError, error };
@@ -340,22 +348,46 @@ export function initElementMarkerListeners() {
                 }
                 case 'type_text': {
                   const text = String(req.text || '');
-                  const r = await computerTool.execute({ action: 'type', ref: ensured.ref, text });
+                  const focus = await clickTool.execute({
+                    coordinates: coords,
+                    tabId,
+                    waitForNavigation: false,
+                    timeout: 2000,
+                  });
+                  if (focus.isError) {
+                    base.tool = {
+                      name: 'interaction.click',
+                      ok: false,
+                      error: extractToolError(focus),
+                    };
+                    break;
+                  }
+                  const r = await computerTool.execute({
+                    action: 'type',
+                    text,
+                    tabId,
+                  });
                   const error = r.isError ? extractToolError(r) : undefined;
                   base.tool = { name: 'computer.type', ok: !r.isError, error };
                   break;
                 }
                 case 'press_keys': {
                   const keys = String(req.keys || '');
-                  // Focus first by ref to ensure key target
-                  try {
-                    await clickTool.execute({
-                      ref: ensured.ref,
-                      waitForNavigation: false,
-                      timeout: 2000,
-                    });
-                  } catch {}
-                  const r = await keyboardTool.execute({ keys, delay: 0 } as any);
+                  const focus = await clickTool.execute({
+                    coordinates: coords,
+                    tabId,
+                    waitForNavigation: false,
+                    timeout: 2000,
+                  });
+                  if (focus.isError) {
+                    base.tool = {
+                      name: 'interaction.click',
+                      ok: false,
+                      error: extractToolError(focus),
+                    };
+                    break;
+                  }
+                  const r = await keyboardTool.execute({ keys, delay: 0, tabId } as any);
                   const error = r.isError ? extractToolError(r) : undefined;
                   base.tool = { name: 'keyboard.simulate', ok: !r.isError, error };
                   break;

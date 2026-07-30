@@ -217,8 +217,11 @@ export function useWorkflowsV3(options: UseWorkflowsV3Options = {}): UseWorkflow
 
   async function runFlow(flowId: string): Promise<{ runId: string } | null> {
     try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (typeof tab?.id !== 'number') throw new Error('请先打开要执行的网页');
       const result = (await rpc.request('rr_v3.enqueueRun', {
         flowId: flowId as FlowId,
+        tabId: tab.id,
       })) as { runId: RunId; position: number } | null;
       // Refresh runs to show the new run
       void refreshRuns();

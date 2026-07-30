@@ -9,12 +9,32 @@
       boxShadow: 'var(--ac-shadow-float, 0 4px 20px -2px rgba(0,0,0,0.1))',
     }"
   >
+    <div
+      class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+      :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
+    >
+      {{ copy.language }}
+    </div>
+    <button
+      class="w-full px-3 py-2 text-left text-sm flex items-center justify-between ac-menu-item"
+      :style="{ color: 'var(--ac-text, #1a1a1a)' }"
+      @click="$emit('locale:set', locale === 'zh' ? 'en' : 'zh')"
+    >
+      <span>{{ copy.switchLanguage }}</span>
+      <span>{{ locale === 'zh' ? 'EN' : '中文' }}</span>
+    </button>
+
+    <div
+      class="my-2"
+      :style="{ borderTop: 'var(--ac-border-width, 1px) solid var(--ac-border, #e5e5e5)' }"
+    />
+
     <!-- Theme Section -->
     <div
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Theme
+      {{ copy.theme }}
     </div>
 
     <button
@@ -51,7 +71,7 @@
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Input
+      {{ copy.input }}
     </div>
 
     <button
@@ -59,7 +79,7 @@
       :style="{ color: 'var(--ac-text, #1a1a1a)' }"
       @click="$emit('fakeCaret:toggle', !fakeCaretEnabled)"
     >
-      <span>Comet caret</span>
+      <span>{{ copy.cometCaret }}</span>
       <svg
         v-if="fakeCaretEnabled"
         class="w-4 h-4"
@@ -84,7 +104,7 @@
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Storage
+      {{ copy.storage }}
     </div>
 
     <button
@@ -92,7 +112,7 @@
       :style="{ color: 'var(--ac-text, #1a1a1a)' }"
       @click="$emit('attachments:open')"
     >
-      Clear Attachment Cache
+      {{ copy.clearAttachmentCache }}
     </button>
 
     <button
@@ -100,7 +120,7 @@
       :style="{ color: 'var(--ac-text, #1a1a1a)' }"
       @click="$emit('deepseek:open')"
     >
-      DeepSeek API Settings
+      {{ copy.deepSeekSettings }}
     </button>
 
     <!-- Divider -->
@@ -117,28 +137,59 @@
       :style="{ color: 'var(--ac-text, #1a1a1a)' }"
       @click="$emit('reconnect')"
     >
-      Reconnect Server
+      {{ copy.reconnectServer }}
     </button>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { type AgentThemeId, THEME_LABELS } from '../../composables';
 
-defineProps<{
+type Locale = 'zh' | 'en';
+
+const props = defineProps<{
   open: boolean;
   theme: AgentThemeId;
+  locale: Locale;
   /** Fake caret (comet effect) enabled state */
   fakeCaretEnabled?: boolean;
 }>();
 
 defineEmits<{
   'theme:set': [theme: AgentThemeId];
+  'locale:set': [locale: Locale];
   reconnect: [];
   'attachments:open': [];
   'deepseek:open': [];
   'fakeCaret:toggle': [enabled: boolean];
 }>();
+
+const copy = computed(() =>
+  props.locale === 'zh'
+    ? {
+        language: '语言',
+        switchLanguage: '切换为 English',
+        theme: '主题',
+        input: '输入',
+        cometCaret: '彗星光标',
+        storage: '存储',
+        clearAttachmentCache: '清除附件缓存',
+        deepSeekSettings: 'DeepSeek API 设置',
+        reconnectServer: '重新连接服务',
+      }
+    : {
+        language: 'Language',
+        switchLanguage: 'Switch to Chinese',
+        theme: 'Theme',
+        input: 'Input',
+        cometCaret: 'Comet caret',
+        storage: 'Storage',
+        clearAttachmentCache: 'Clear Attachment Cache',
+        deepSeekSettings: 'DeepSeek API Settings',
+        reconnectServer: 'Reconnect Server',
+      },
+);
 
 const themes: { id: AgentThemeId; label: string }[] = [
   { id: 'warm-editorial', label: THEME_LABELS['warm-editorial'] },

@@ -24,38 +24,41 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   ): Promise<void> {
     console.log(`Injecting ${files.join(', ')} into tab ${tabId}`);
 
-    // check if script is already injected
-    try {
-      const pingFrameId = frameIds?.[0];
-      const response = await Promise.race([
-        typeof pingFrameId === 'number'
-          ? chrome.tabs.sendMessage(
-              tabId,
-              { action: `${this.name}_ping` },
-              { frameId: pingFrameId },
-            )
-          : chrome.tabs.sendMessage(tabId, { action: `${this.name}_ping` }),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`${this.name} Ping action to tab ${tabId} timed out`)),
-            PING_TIMEOUT_MS,
-          ),
-        ),
-      ]);
+    const isAccessibilityHelper =
+      files.length === 1 && files[0] === 'inject-scripts/accessibility-tree-helper.js';
+    const pingAction = isAccessibilityHelper
+      ? 'accessibility_tree_helper_ping'
+      : `${this.name}_ping`;
 
-      if (response && response.status === 'pong') {
-        console.log(
-          `pong received for action '${this.name}' in tab ${tabId}. Assuming script is active.`,
+    // An all-frame injection must reach every frame; a top-frame pong is not enough.
+    if (!allFrames)
+      try {
+        const pingFrameId = frameIds?.[0];
+        const response = await Promise.race([
+          typeof pingFrameId === 'number'
+            ? chrome.tabs.sendMessage(tabId, { action: pingAction }, { frameId: pingFrameId })
+            : chrome.tabs.sendMessage(tabId, { action: pingAction }, { frameId: 0 }),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`${this.name} Ping action to tab ${tabId} timed out`)),
+              PING_TIMEOUT_MS,
+            ),
+          ),
+        ]);
+
+        if (response && response.status === 'pong') {
+          console.log(
+            `pong received for action '${this.name}' in tab ${tabId}. Assuming script is active.`,
+          );
+          return;
+        } else {
+          console.warn(`Unexpected ping response in tab ${tabId}:`, response);
+        }
+      } catch (error) {
+        console.debug(
+          `ping content script failed: ${error instanceof Error ? error.message : String(error)}`,
         );
-        return;
-      } else {
-        console.warn(`Unexpected ping response in tab ${tabId}:`, response);
       }
-    } catch (error) {
-      console.debug(
-        `ping content script failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
 
     try {
       const target: { tabId: number; allFrames?: boolean; frameIds?: number[] } = { tabId };
@@ -91,7 +94,7 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
       const response =
         typeof frameId === 'number'
           ? await chrome.tabs.sendMessage(tabId, message, { frameId })
-          : await chrome.tabs.sendMessage(tabId, message);
+          : await chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
 
       if (response && response.error) {
         throw new Error(String(response.error));

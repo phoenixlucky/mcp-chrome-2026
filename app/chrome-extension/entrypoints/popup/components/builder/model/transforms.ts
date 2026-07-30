@@ -28,15 +28,21 @@ export function defaultConfigFor(t: NodeType): any {
   if (t === STEP_TYPES.ASSERT) return { assert: { exists: '' } };
   if (t === STEP_TYPES.KEY) return { keys: '' };
   if (t === STEP_TYPES.DELAY) return { ms: 1000 };
-  if (t === STEP_TYPES.HTTP) return { method: 'GET', url: '', headers: {}, body: null, saveAs: '' };
-  if (t === STEP_TYPES.EXTRACT) return { selector: '', attr: 'text', js: '', saveAs: '' };
-  if (t === STEP_TYPES.SCREENSHOT) return { selector: '', fullPage: false, saveAs: 'shot' };
+  if (t === STEP_TYPES.HTTP)
+    return { method: 'GET', url: '', headers: {}, body: null, saveAs: 'response' };
+  if (t === STEP_TYPES.EXTRACT)
+    return { mode: 'selector', selector: '', attr: 'text', js: '', saveAs: 'result' };
+  if (t === STEP_TYPES.SCREENSHOT) return { selector: '', fullPage: false, saveAs: 'screenshot' };
+  if (t === STEP_TYPES.GET_TAB_URL) return { tabId: 0, saveAs: 'tabInfo' };
+  if (t === STEP_TYPES.READ_PAGE) return { filter: 'interactive', saveAs: 'page' };
+  if (t === STEP_TYPES.GET_WEB_CONTENT)
+    return { htmlContent: false, textContent: true, selector: '', saveAs: 'content' };
   if (t === STEP_TYPES.DRAG)
     return { start: { candidates: [] }, end: { candidates: [] }, path: [] };
   if (t === STEP_TYPES.SCROLL)
     return { mode: 'offset', offset: { x: 0, y: 300 }, target: { candidates: [] } };
   if (t === STEP_TYPES.TRIGGER_EVENT)
-    return { target: { candidates: [] }, event: 'input', bubbles: true, cancelable: false };
+    return { target: { candidates: [] }, event: 'click', bubbles: true, cancelable: false };
   if (t === STEP_TYPES.SET_ATTRIBUTE) return { target: { candidates: [] }, name: '', value: '' };
   if (t === STEP_TYPES.LOOP_ELEMENTS)
     return { selector: '', saveAs: 'elements', itemVar: 'item', subflowId: '' };
@@ -101,6 +107,10 @@ export function summarizeNode(n?: NodeBase | null): string {
     return n.config?.selector
       ? `el(${n.config.selector}) -> ${n.config?.saveAs || ''}`
       : `fullPage -> ${n.config?.saveAs || ''}`;
+  if (n.type === STEP_TYPES.GET_TAB_URL) return `-> ${n.config?.saveAs || 'tabInfo'}`;
+  if (n.type === STEP_TYPES.READ_PAGE) return `-> ${n.config?.saveAs || 'page'}`;
+  if (n.type === STEP_TYPES.GET_WEB_CONTENT)
+    return `${n.config?.selector || '页面'} -> ${n.config?.saveAs || 'content'}`;
   if (n.type === STEP_TYPES.TRIGGER_EVENT)
     return `${n.config?.event || ''} ${n.config?.target?.candidates?.[0]?.value || ''}`;
   if (n.type === STEP_TYPES.SET_ATTRIBUTE)

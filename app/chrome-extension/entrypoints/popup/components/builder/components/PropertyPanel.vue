@@ -455,13 +455,13 @@ watch(
   background: var(--rr-card);
   border: 1px solid var(--rr-border);
   border-radius: 16px;
-  margin: 16px;
+  margin: 12px;
   padding: 0;
-  width: 380px;
+  width: min(320px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   /* Cap panel height to viewport to avoid overflow; scroll internally */
-  max-height: calc(100vh - 72px);
+  max-height: calc(100vh - 60px);
   overflow-y: auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
@@ -472,7 +472,7 @@ watch(
 
 /* 头部 */
 .panel-header {
-  padding: 12px 12px 12px 20px;
+  padding: 10px 10px 10px 14px;
   border-bottom: 1px solid var(--rr-border);
   display: flex;
   align-items: center;
@@ -551,10 +551,10 @@ watch(
 
 /* 表单区域 */
 .panel-content :deep(.form-section) {
-  padding: 16px 20px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 /* 区域头部 */
@@ -587,7 +587,7 @@ watch(
 .panel-content :deep(.form-select),
 .panel-content :deep(.form-textarea) {
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--rr-border);
   border-radius: 8px;
   background: var(--rr-card);
@@ -644,7 +644,7 @@ watch(
 }
 .panel-content :deep(.selector-item) {
   display: grid;
-  grid-template-columns: 100px 1fr auto auto auto;
+  grid-template-columns: 84px minmax(0, 1fr) auto auto auto;
   gap: 6px;
   align-items: center;
 }

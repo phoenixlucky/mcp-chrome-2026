@@ -25,6 +25,9 @@ export const STEP_TYPES = {
   SWITCH_TAB: 'switchTab',
   CLOSE_TAB: 'closeTab',
   HANDLE_DOWNLOAD: 'handleDownload',
+  GET_TAB_URL: 'getTabUrl',
+  READ_PAGE: 'readPage',
+  GET_WEB_CONTENT: 'getWebContent',
   EXECUTE_FLOW: 'executeFlow',
   // UI-only helpers
   TRIGGER: 'trigger',

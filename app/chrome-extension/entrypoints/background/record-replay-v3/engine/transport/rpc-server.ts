@@ -200,6 +200,7 @@ export class RpcServer {
         maxAttempts: params?.maxAttempts as number | undefined,
         args: params?.args as JsonObject | undefined,
         debug: params?.debug as { breakpoints?: string[]; pauseOnStart?: boolean } | undefined,
+        tabId: params?.tabId as number | undefined,
       },
     );
 
@@ -606,7 +607,8 @@ export class RpcServer {
         }
         const subNodes = rawSubflow.nodes.map((node, index) => this.normalizeNode(node, index));
         const subNodeIds = new Set(subNodes.map((node) => node.id));
-        if (subNodeIds.size !== subNodes.length) throw new Error(`Duplicate node ID in subflow "${subflowId}"`);
+        if (subNodeIds.size !== subNodes.length)
+          throw new Error(`Duplicate node ID in subflow "${subflowId}"`);
         if (typeof rawSubflow.entryNodeId !== 'string' || !subNodeIds.has(rawSubflow.entryNodeId)) {
           throw new Error(`Subflow "${subflowId}" has an invalid entryNodeId`);
         }

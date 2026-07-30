@@ -82,7 +82,12 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
 
-const props = defineProps<{ open: boolean; serverPort: number }>();
+const props = defineProps<{
+  open: boolean;
+  serverPort: number;
+  ensureServer: () => Promise<boolean>;
+  getServerPort: () => number | null;
+}>();
 defineEmits<{ close: [] }>();
 
 const apiKey = ref('');
@@ -110,7 +115,10 @@ const primaryStyle = computed(() => ({
 }));
 
 async function request(method: 'GET' | 'PUT', body?: Record<string, unknown>): Promise<void> {
-  const response = await fetch(`http://127.0.0.1:${props.serverPort}/agent/settings/deepseek`, {
+  const serverPort = props.getServerPort();
+  if (!Number.isInteger(serverPort) || serverPort <= 0)
+    throw new Error('本地智能助手服务未连接，请稍后重试。');
+  const response = await fetch(`http://127.0.0.1:${serverPort}/agent/settings/deepseek`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -142,6 +150,9 @@ async function save(): Promise<void> {
   saving.value = true;
   error.value = '';
   try {
+    if (!(await props.ensureServer())) {
+      throw new Error('本地智能助手服务未连接，请先点击“重新连接”。');
+    }
     await request('PUT', { apiKey: apiKey.value, baseUrl: baseUrl.value });
     apiKey.value = '';
   } catch (cause) {

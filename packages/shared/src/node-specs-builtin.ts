@@ -62,7 +62,10 @@ export function registerBuiltinSpecs() {
         ],
       },
     ],
-    defaults: { before: { scrollIntoView: true, waitForSelector: true }, after: {} },
+    defaults: {
+      before: { scrollIntoView: true, waitForSelector: true },
+      after: { waitForNavigation: false, waitForNetworkIdle: false },
+    },
   });
   registerNodeSpec({
     type: STEP_TYPES.DBLCLICK,
@@ -90,7 +93,10 @@ export function registerBuiltinSpecs() {
         ],
       },
     ],
-    defaults: { before: { scrollIntoView: true, waitForSelector: true }, after: {} },
+    defaults: {
+      before: { scrollIntoView: true, waitForSelector: true },
+      after: { waitForNavigation: false, waitForNetworkIdle: false },
+    },
   });
 
   // Fill
@@ -139,7 +145,7 @@ export function registerBuiltinSpecs() {
         type: 'select',
         options: [
           { label: '元素', value: 'element' },
-          { label: '偏移', value: 'offset' },
+          { label: '页面偏移（推荐）', value: 'offset' },
           { label: '容器', value: 'container' },
         ] as any,
         default: 'offset',
@@ -242,7 +248,7 @@ export function registerBuiltinSpecs() {
         label: '方法',
         type: 'select',
         options: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => ({
-          label: m,
+          label: m === 'GET' ? 'GET（推荐）' : m,
           value: m,
         })) as any,
         default: 'GET',
@@ -254,7 +260,7 @@ export function registerBuiltinSpecs() {
       { key: 'saveAs', label: '保存为变量', type: 'string' },
       { key: 'assign', label: '映射(JSON)', type: 'json' },
     ],
-    defaults: { method: 'GET' },
+    defaults: { method: 'GET', headers: {}, saveAs: 'response' },
   });
 
   // Extract
@@ -264,13 +270,23 @@ export function registerBuiltinSpecs() {
     display: { label: '提取', iconClass: 'icon-extract', category: 'Tools' },
     ports: { inputs: 1, outputs: [{ label: 'default' }] },
     schema: [
+      {
+        key: 'mode',
+        label: '提取方式',
+        type: 'select',
+        options: [
+          { label: '选择器（推荐）', value: 'selector' },
+          { label: '自定义 JS', value: 'js' },
+        ] as any,
+        default: 'selector',
+      },
       { key: 'selector', label: '选择器', type: 'string', widget: 'selector' },
       {
         key: 'attr',
         label: '属性',
         type: 'select',
         options: [
-          { label: '文本(text)', value: 'text' },
+          { label: '文本（推荐）', value: 'text' },
           { label: '文本(textContent)', value: 'textContent' },
           { label: '自定义属性名', value: 'attr' },
         ] as any,
@@ -278,7 +294,7 @@ export function registerBuiltinSpecs() {
       { key: 'js', label: '自定义JS', type: 'string', help: '在页面中执行并返回值' },
       { key: 'saveAs', label: '保存变量', type: 'string', required: true },
     ],
-    defaults: { saveAs: '' },
+    defaults: { mode: 'selector', attr: 'text', saveAs: 'result' },
   });
 
   // Screenshot
@@ -292,7 +308,55 @@ export function registerBuiltinSpecs() {
       { key: 'fullPage', label: '整页截图', type: 'boolean', default: false },
       { key: 'saveAs', label: '保存变量', type: 'string' },
     ],
-    defaults: { fullPage: false },
+    defaults: { fullPage: false, saveAs: 'screenshot' },
+  });
+
+  registerNodeSpec({
+    type: STEP_TYPES.GET_TAB_URL,
+    version: 1,
+    display: { label: '获取标签信息', iconClass: 'icon-http', category: 'Tools' },
+    ports: { inputs: 1, outputs: [{ label: 'default' }] },
+    schema: [
+      { key: 'tabId', label: '标签页 ID（0 为当前页）', type: 'number', default: 0 },
+      { key: 'saveAs', label: '保存变量', type: 'string', required: true },
+    ],
+    defaults: { tabId: 0, saveAs: 'tabInfo' },
+    validate: (cfg) => (!String(cfg?.saveAs || '').trim() ? ['需填写保存变量名'] : []),
+  });
+
+  registerNodeSpec({
+    type: STEP_TYPES.READ_PAGE,
+    version: 1,
+    display: { label: '获取页面元素', iconClass: 'icon-extract', category: 'Tools' },
+    ports: { inputs: 1, outputs: [{ label: 'default' }] },
+    schema: [
+      {
+        key: 'filter',
+        label: '筛选',
+        type: 'select',
+        options: [{ label: '可交互元素', value: 'interactive' }] as any,
+        default: 'interactive',
+      },
+      { key: 'depth', label: '最大深度（留空不限）', type: 'number', min: 0 },
+      { key: 'saveAs', label: '保存变量', type: 'string', required: true },
+    ],
+    defaults: { filter: 'interactive', saveAs: 'page' },
+    validate: (cfg) => (!String(cfg?.saveAs || '').trim() ? ['需填写保存变量名'] : []),
+  });
+
+  registerNodeSpec({
+    type: STEP_TYPES.GET_WEB_CONTENT,
+    version: 1,
+    display: { label: '获取网页内容', iconClass: 'icon-script', category: 'Tools' },
+    ports: { inputs: 1, outputs: [{ label: 'default' }] },
+    schema: [
+      { key: 'htmlContent', label: '获取 HTML', type: 'boolean', default: false },
+      { key: 'textContent', label: '获取文本', type: 'boolean', default: true },
+      { key: 'selector', label: '范围选择器（可选）', type: 'string', widget: 'selector' },
+      { key: 'saveAs', label: '保存变量', type: 'string', required: true },
+    ],
+    defaults: { htmlContent: false, textContent: true, selector: '', saveAs: 'content' },
+    validate: (cfg) => (!String(cfg?.saveAs || '').trim() ? ['需填写保存变量名'] : []),
   });
 
   // TriggerEvent
@@ -307,7 +371,7 @@ export function registerBuiltinSpecs() {
       { key: 'bubbles', label: '冒泡', type: 'boolean', default: true },
       { key: 'cancelable', label: '可取消', type: 'boolean', default: false },
     ],
-    defaults: { event: '' },
+    defaults: { event: 'click', bubbles: true, cancelable: false },
   });
 
   // SetAttribute
@@ -372,7 +436,7 @@ export function registerBuiltinSpecs() {
       { key: 'timeoutMs', label: '超时(ms)', type: 'number', default: 60000 },
       { key: 'saveAs', label: '保存变量', type: 'string' },
     ],
-    defaults: { waitForComplete: true, timeoutMs: 60000 },
+    defaults: { waitForComplete: true, timeoutMs: 60000, saveAs: 'download' },
   });
 
   // Script
@@ -511,7 +575,7 @@ export function registerBuiltinSpecs() {
         help: '并发执行子流程（浅拷贝变量，不自动合并）',
       },
     ],
-    defaults: { itemVar: 'item' },
+    defaults: { itemVar: 'item', concurrency: 1 },
   });
   registerNodeSpec({
     type: STEP_TYPES.WHILE,

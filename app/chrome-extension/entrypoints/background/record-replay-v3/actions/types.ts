@@ -218,10 +218,7 @@ export interface StringTemplate {
 }
 
 export type Resolvable<T> =
-  | T
-  | VariableValue<T>
-  | ExpressionValue<T>
-  | ([T] extends [string] ? StringTemplate : never);
+  T | VariableValue<T> | ExpressionValue<T> | ([T] extends [string] ? StringTemplate : never);
 
 export type DataPath = string; // dot/bracket path: e.g. "data.items[0].id"
 export type Assignments = Record<VariableName, DataPath>;
@@ -453,6 +450,25 @@ export interface ScreenshotParams {
   saveAs?: VariableName;
 }
 
+export interface GetTabUrlParams {
+  /** 0 or omitted means the workflow's current tab. */
+  tabId?: number;
+  saveAs?: VariableName;
+}
+
+export interface ReadPageParams {
+  filter?: 'interactive';
+  depth?: number;
+  saveAs?: VariableName;
+}
+
+export interface GetWebContentParams {
+  htmlContent?: boolean;
+  textContent?: boolean;
+  selector?: Resolvable<string>;
+  saveAs?: VariableName;
+}
+
 // --- HTTP ---
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -465,8 +481,7 @@ export type HttpBody =
   | { kind: 'json'; json: Resolvable<JsonValue> };
 
 export type HttpOkStatus =
-  | { kind: 'range'; min: number; max: number }
-  | { kind: 'list'; statuses: NonEmptyArray<number> };
+  { kind: 'range'; min: number; max: number } | { kind: 'list'; statuses: NonEmptyArray<number> };
 
 export interface HttpParams {
   method?: HttpMethod;
@@ -664,6 +679,9 @@ export interface ActionParamsByType {
   script: ScriptParams;
   http: HttpParams;
   screenshot: ScreenshotParams;
+  getTabUrl: GetTabUrlParams;
+  readPage: ReadPageParams;
+  getWebContent: GetWebContentParams;
 
   // DOM 工具
   triggerEvent: TriggerEventParams;
@@ -739,6 +757,9 @@ export interface ActionOutputsByType {
   http: { response: HttpResponse };
   handleDownload: { download: DownloadInfo };
   loopElements: { elements: string[] };
+  getTabUrl: { url: string; title: string };
+  readPage: { page: JsonValue };
+  getWebContent: { content: JsonValue };
 }
 
 export type ActionOutput<T extends ActionType> = T extends keyof ActionOutputsByType

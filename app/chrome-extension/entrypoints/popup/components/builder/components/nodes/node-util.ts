@@ -45,6 +45,7 @@ export function iconComp(t?: string) {
     case 'navigate':
       return ILucideCompass;
     case 'http':
+    case 'getTabUrl':
       return ILucideGlobe;
     case 'script':
       return ILucideFileCode2;
@@ -61,7 +62,10 @@ export function iconComp(t?: string) {
     case 'handleDownload':
       return ILucideDownload;
     case 'extract':
+    case 'readPage':
       return ILucideScan;
+    case 'getWebContent':
+      return ILucideFileCode2;
     case 'wait':
       return ILucideHourglass;
     case 'assert':
@@ -80,6 +84,8 @@ export function iconComp(t?: string) {
       return ILucideX;
     case 'delay':
       return ILucideHourglass;
+    case 'executeFlow':
+      return ILucideZap;
     default:
       return ILucideSquare;
   }
@@ -94,6 +100,9 @@ export function getTypeLabel(type?: string) {
     wait: '等待',
     extract: '提取',
     http: 'HTTP',
+    getTabUrl: '获取标签信息',
+    readPage: '获取页面元素',
+    getWebContent: '获取网页内容',
     script: '脚本',
     if: '条件',
     foreach: '循环',
@@ -107,6 +116,8 @@ export function getTypeLabel(type?: string) {
     delay: '延迟',
     scroll: '滚动',
     while: '循环',
+    loopElements: '循环元素',
+    executeFlow: '执行子流程',
   };
   return labels[String(type || '')] || type || '';
 }

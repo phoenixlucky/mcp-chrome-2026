@@ -73,7 +73,9 @@
 
       .em-panel {
         position: relative;
-        width: 400px;
+        width: min(760px, calc(100vw - 48px));
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
         background: #ffffff;
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -300,6 +302,28 @@
         margin-bottom: 0;
       }
 
+      .em-annotation-layout {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .em-annotation-layout .em-section-title {
+        margin-bottom: 12px;
+      }
+
+      @media (max-width: 700px) {
+        .em-panel {
+          width: min(400px, calc(100vw - 24px));
+          max-height: calc(100vh - 24px);
+        }
+
+        .em-annotation-layout {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+      }
+
       #__em_tab_settings {
         max-height: min(60vh, 480px);
         overflow-y: auto;
@@ -340,6 +364,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        min-width: 0;
         min-height: 44px;
         padding: 0 12px 0 16px;
         background: #f5f5f5;
@@ -374,6 +399,10 @@
 
       .em-attribute-text {
         flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: 14px;
         color: #404040;
         user-select: text;
@@ -716,13 +745,18 @@
         <div class="em-controls">
           <div class="em-select-wrapper">
             <select class="em-select" id="__em_selector_type">
-              <option value="css">CSS 定位</option>
+              <option value="css">CSS 定位（推荐）</option>
               <option value="xpath">XPath 定位</option>
             </select>
           </div>
           <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <button class="em-square-btn" id="__em_toggle_box" title="框选定位 - 拖动框选页面区域">
+            <svg viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5h4m8 0h4v4M4 15v4h4m8 0h4v-4M8 8h8v8H8z"/>
             </svg>
           </button>
           <button class="em-square-btn" id="__em_toggle_tab" title="切换执行面板">
@@ -764,56 +798,60 @@
 
         <!-- Content: Attributes Tab -->
         <div class="em-content" id="__em_tab_attributes">
-          <h3 class="em-section-title">已选元素</h3>
-          
-          <div class="em-attributes">
-            <div class="em-attribute">
-              <div class="em-attribute-label">名称</div>
-              <div class="em-attribute-value editable">
-                <input class="em-input" id="__em_name" placeholder="元素名称" />
+          <div class="em-annotation-layout">
+            <section>
+              <h3 class="em-section-title">已选元素</h3>
+              <div class="em-attributes">
+                <div class="em-attribute">
+                  <div class="em-attribute-label">名称</div>
+                  <div class="em-attribute-value editable">
+                    <input class="em-input" id="__em_name" placeholder="元素名称" />
+                  </div>
+                </div>
+                <div class="em-attribute">
+                  <div class="em-attribute-label">定位</div>
+                  <div class="em-attribute-value">
+                    <svg class="copy-icon" viewBox="0 0 24 24" id="__em_copy" title="复制定位">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="em-attribute-text" id="__em_selector">-</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <div class="em-attribute">
-              <div class="em-attribute-label">定位</div>
-              <div class="em-attribute-value">
-                <svg class="copy-icon" viewBox="0 0 24 24" id="__em_copy" title="复制定位">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                </svg>
-                <span class="em-attribute-text" id="__em_selector">-</span>
+            <section>
+              <h3 class="em-section-title">定位偏好</h3>
+              <div class="em-settings">
+                <div class="em-checkbox-group">
+                  <label class="em-checkbox-label">
+                    <input type="checkbox" id="__em_pref_testid" checked />
+                  <span>优先使用测试标识（推荐）</span>
+                  </label>
+                  <label class="em-checkbox-label">
+                    <input type="checkbox" id="__em_pref_aria" checked />
+                  <span>优先使用无障碍标签（推荐）</span>
+                  </label>
+                  <label class="em-checkbox-label">
+                    <input type="checkbox" id="__em_pref_text" />
+                    <span>优先使用可见文本（XPath）</span>
+                  </label>
+                  <label class="em-checkbox-label">
+                    <input type="checkbox" id="__em_pref_id" checked />
+                  <span>优先使用 ID（推荐）</span>
+                  </label>
+                  <label class="em-checkbox-label">
+                    <input type="checkbox" id="__em_pref_attr" checked />
+                  <span>优先使用稳定属性（推荐）</span>
+                  </label>
+                  <label class="em-checkbox-label">
+                    <input type="checkbox" id="__em_pref_class" />
+                    <span>备用使用类名</span>
+                  </label>
+                </div>
+                <div class="em-field-label">顺序：测试标识 → 无障碍标签 → 可见文本 → ID → 稳定属性 → 类名 → 结构路径</div>
               </div>
-            </div>
-          </div>
-
-          <h3 class="em-section-title">定位偏好</h3>
-          <div class="em-settings">
-            <div class="em-checkbox-group">
-              <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_testid" checked />
-                <span>优先使用测试标识</span>
-              </label>
-              <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_aria" checked />
-                <span>优先使用无障碍标签</span>
-              </label>
-              <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_text" />
-                <span>优先使用可见文本（XPath）</span>
-              </label>
-              <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_id" checked />
-                <span>优先使用 ID</span>
-              </label>
-              <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_attr" checked />
-                <span>优先使用稳定属性</span>
-              </label>
-              <label class="em-checkbox-label">
-                <input type="checkbox" id="__em_pref_class" />
-                <span>备用使用类名</span>
-              </label>
-            </div>
-            <div class="em-field-label">顺序：测试标识 → 无障碍标签 → 可见文本 → ID → 稳定属性 → 类名 → 结构路径</div>
+            </section>
           </div>
 
           <div class="em-actions">
@@ -927,7 +965,7 @@
 
         <!-- Footer -->
         <div class="em-footer">
-          点击元素，或按 <kbd>空格</kbd> 进行标记
+          点击元素，或按 <kbd>空格</kbd> 标记；框选按钮可拖动定位
         </div>
 
         <div class="em-code-dialog" id="__em_code_dialog" role="dialog" aria-modal="true" aria-label="元素定位代码">
@@ -1010,6 +1048,7 @@
     const state = {
       selectorType: CONFIG.DEFAULTS.SELECTOR_TYPE,
       listMode: CONFIG.DEFAULTS.LIST_MODE,
+      boxSelect: false,
       prefs: { ...CONFIG.DEFAULTS.PREFS },
       activeTab: 'attributes',
       validation: {
@@ -1049,6 +1088,9 @@
       }
       if (changed.listMode) {
         updateListModeUI();
+      }
+      if (changed.boxSelect) {
+        updateBoxSelectUI();
       }
       if (changed.validationHistory) {
         updateValidationHistoryUI();
@@ -1093,6 +1135,11 @@
       } else {
         btn.classList.remove('active');
       }
+    }
+
+    function updateBoxSelectUI() {
+      const btn = PanelHost.getShadow()?.getElementById('__em_toggle_box');
+      if (btn) btn.classList.toggle('active', state.boxSelect);
     }
 
     function updateTabUI() {
@@ -1539,8 +1586,11 @@
     try {
       const labelledby = el.getAttribute('aria-labelledby');
       if (labelledby) {
-        const labelEl = document.getElementById(labelledby);
-        if (labelEl) return (labelEl.textContent || '').trim();
+        const label = labelledby
+          .split(/\s+/)
+          .map((id) => document.getElementById(id)?.textContent || '')
+          .join(' ');
+        if (label.trim()) return label.trim();
       }
 
       const ariaLabel = el.getAttribute('aria-label');
@@ -1554,15 +1604,38 @@
       const parentLabel = el.closest('label');
       if (parentLabel) return (parentLabel.textContent || '').trim();
 
-      return (
-        el.getAttribute('placeholder') ||
-        el.getAttribute('value') ||
-        el.textContent ||
-        ''
-      ).trim();
+      const label =
+        el.getAttribute('placeholder') || el.getAttribute('alt') || el.getAttribute('title');
+      if (label) return label.trim();
+
+      return /^(A|BUTTON|OPTION|SUMMARY)$/.test(el.tagName)
+        ? (el.innerText || el.textContent || '').trim()
+        : '';
     } catch {
       return '';
     }
+  }
+
+  function getElementName(el) {
+    const inputTypes = {
+      checkbox: '复选框',
+      radio: '单选框',
+      submit: '提交按钮',
+      button: '按钮',
+    };
+    const types = {
+      A: '链接',
+      BUTTON: '按钮',
+      INPUT: inputTypes[el.getAttribute('type')] || '输入框',
+      TEXTAREA: '文本框',
+      SELECT: '下拉框',
+      IMG: '图片',
+    };
+    const type = types[el.tagName] || '元素';
+    const label = getAccessibleName(el).replace(/\s+/g, ' ').slice(0, 40);
+    const peers = Array.from(el.getRootNode().querySelectorAll(el.tagName));
+    const index = Math.max(peers.indexOf(el) + 1, 1);
+    return `${type} #${index}${label ? `：${label}${label.length === 40 ? '…' : ''}` : ''}`;
   }
 
   // ============================================================================
@@ -1739,7 +1812,39 @@
     // DOM pooling for rect elements
     rectPool: [],
     rectPoolUsed: 0,
+    nameElement: null,
+    boxSelectionStart: null,
+    boxSelectionOverlay: null,
+    suppressClick: false,
   };
+
+  function clearBoxSelectionOverlay() {
+    STATE.boxSelectionOverlay?.remove();
+    STATE.boxSelectionOverlay = null;
+  }
+
+  function drawBoxSelection(rect) {
+    const box = STATE.boxSelectionOverlay || document.createElement('div');
+    if (!STATE.boxSelectionOverlay) {
+      box.id = '__element_marker_box_selection';
+      Object.assign(box.style, {
+        position: 'fixed',
+        zIndex: String(CONFIG.Z_INDEX.HIGHLIGHTER),
+        pointerEvents: 'none',
+        border: `2px dashed ${CONFIG.COLORS.PRIMARY}`,
+        background: `${CONFIG.COLORS.PRIMARY}1a`,
+        borderRadius: '4px',
+      });
+      document.documentElement.appendChild(box);
+      STATE.boxSelectionOverlay = box;
+    }
+    Object.assign(box.style, {
+      left: `${rect.left}px`,
+      top: `${rect.top}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+    });
+  }
 
   function ensureHighlighter() {
     if (STATE.highlighter) return STATE.highlighter;
@@ -1992,7 +2097,7 @@
    * Separated from onMouseMove for rAF throttling
    */
   function processMouseMove(ev) {
-    if (!STATE.active) return;
+    if (!STATE.active || STATE.boxSelectionStart) return;
 
     const rawTarget = ev?.target;
     if (!(rawTarget instanceof Element)) {
@@ -2053,7 +2158,7 @@
    * Ensures hover updates are batched to animation frame rate
    */
   function onMouseMove(ev) {
-    if (!STATE.active) return;
+    if (!STATE.active || STATE.boxSelectionStart) return;
 
     // Store the latest event
     pendingHoverEvent = ev;
@@ -2077,6 +2182,7 @@
 
   function attachPointerListeners() {
     if (STATE.listenersAttached) return;
+    window.addEventListener('mousedown', onBoxSelectionStart, true);
     window.addEventListener('mousemove', onMouseMove, true);
     window.addEventListener('click', onClick, true);
     STATE.listenersAttached = true;
@@ -2084,6 +2190,7 @@
 
   function detachPointerListeners() {
     if (!STATE.listenersAttached) return;
+    window.removeEventListener('mousedown', onBoxSelectionStart, true);
     window.removeEventListener('mousemove', onMouseMove, true);
     window.removeEventListener('click', onClick, true);
     STATE.listenersAttached = false;
@@ -2101,6 +2208,7 @@
     if (!STATE.active) return;
     const activeTab = StateStore.get('activeTab');
     if (activeTab === 'execute') {
+      StateStore.set({ boxSelect: false });
       // In execute mode, detach pointer listeners to allow real interactions
       // but keep keyboard listener for Esc key
       detachPointerListeners();
@@ -2118,6 +2226,13 @@
 
   function onClick(ev) {
     if (!STATE.active) return;
+
+    if (STATE.suppressClick) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      STATE.suppressClick = false;
+      return;
+    }
 
     // First, use the raw ev.target to check for overlay UI
     // This ensures panel buttons and other UI elements remain interactive
@@ -2141,7 +2256,10 @@
 
     if (!IS_MAIN) {
       try {
-        const selectorType = StateStore.get('selectorType');
+        const selectorType =
+          StateStore.get('selectorType') === 'xpath' && target.getRootNode() instanceof ShadowRoot
+            ? 'css'
+            : StateStore.get('selectorType');
         const listMode = StateStore.get('listMode');
 
         const sel = listMode
@@ -2152,12 +2270,87 @@
             ? generateXPath(target)
             : generateSelector(target);
 
-        window.top.postMessage({ type: 'em_click', innerSel: sel }, '*');
+        window.top.postMessage(
+          { type: 'em_click', innerSel: sel, name: getElementName(target), selectorType },
+          '*',
+        );
       } catch {}
       return;
     }
 
     setSelection(target);
+  }
+
+  function getBoxSelectionRect(start, event) {
+    const left = Math.min(start.x, event.clientX);
+    const top = Math.min(start.y, event.clientY);
+    return {
+      left,
+      top,
+      width: Math.abs(event.clientX - start.x),
+      height: Math.abs(event.clientY - start.y),
+    };
+  }
+
+  function findBoxSelectionTarget(rect) {
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const candidates = document.elementsFromPoint(x, y).filter((el) => !isOverlayElement(el));
+
+    let target = null;
+    let smallestArea = Infinity;
+    for (const el of candidates) {
+      const bounds = el.getBoundingClientRect();
+      const containsBox =
+        bounds.left <= rect.left &&
+        bounds.top <= rect.top &&
+        bounds.right >= rect.left + rect.width &&
+        bounds.bottom >= rect.top + rect.height;
+      const area = bounds.width * bounds.height;
+      if (containsBox && area < smallestArea) {
+        target = el;
+        smallestArea = area;
+      }
+    }
+    return target || candidates[0] || null;
+  }
+
+  function onBoxSelectionStart(event) {
+    if (!STATE.active || !StateStore.get('boxSelect') || event.button !== 0) return;
+    if (isInsidePanel(event.target)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    STATE.boxSelectionStart = { x: event.clientX, y: event.clientY };
+    drawBoxSelection(getBoxSelectionRect(STATE.boxSelectionStart, event));
+    window.addEventListener('mousemove', onBoxSelectionMove, true);
+    window.addEventListener('mouseup', onBoxSelectionEnd, true);
+  }
+
+  function onBoxSelectionMove(event) {
+    if (!STATE.boxSelectionStart) return;
+    event.preventDefault();
+    event.stopPropagation();
+    drawBoxSelection(getBoxSelectionRect(STATE.boxSelectionStart, event));
+  }
+
+  function onBoxSelectionEnd(event) {
+    const start = STATE.boxSelectionStart;
+    STATE.boxSelectionStart = null;
+    window.removeEventListener('mousemove', onBoxSelectionMove, true);
+    window.removeEventListener('mouseup', onBoxSelectionEnd, true);
+    if (!start) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const target = findBoxSelectionTarget(getBoxSelectionRect(start, event));
+    clearBoxSelectionOverlay();
+    StateStore.set({ boxSelect: false });
+    STATE.suppressClick = true;
+    setTimeout(() => {
+      STATE.suppressClick = false;
+    }, 0);
+    if (target) setSelection(target);
   }
 
   function onKeyDown(e) {
@@ -2210,7 +2403,13 @@
 
     STATE.selectedEl = el;
 
-    const selectorType = StateStore.get('selectorType');
+    let selectorType = StateStore.get('selectorType');
+    if (selectorType === 'xpath' && el.getRootNode() instanceof ShadowRoot) {
+      selectorType = 'css';
+      StateStore.set({ selectorType });
+      const typeSelect = STATE.box?.querySelector('#__em_selector_type');
+      if (typeSelect) typeSelect.value = selectorType;
+    }
     const listMode = StateStore.get('listMode');
 
     const sel = listMode
@@ -2221,15 +2420,22 @@
         ? generateXPath(el)
         : generateSelector(el);
 
-    const name = getAccessibleName(el) || el.tagName.toLowerCase();
+    const name = getElementName(el);
 
     const selectorText = STATE.box?.querySelector('#__em_selector');
     const inputName = STATE.box?.querySelector('#__em_name');
     const selectorDisplay = STATE.box?.querySelector('#__em_selector_text');
 
-    if (selectorText) selectorText.textContent = sel;
-    if (selectorDisplay) selectorDisplay.textContent = sel;
-    if (inputName && !inputName.value) inputName.value = name;
+    if (selectorText) {
+      selectorText.textContent = sel;
+      selectorText.title = sel;
+    }
+    if (selectorDisplay) {
+      selectorDisplay.textContent = sel;
+      selectorDisplay.title = sel;
+    }
+    if (inputName && (STATE.nameElement !== el || !inputName.value)) inputName.value = name;
+    STATE.nameElement = el;
 
     moveHighlighterTo(el);
   }
@@ -2256,6 +2462,17 @@
 
       const selectorType = StateStore.get('selectorType');
       const effectiveType = selectorType;
+      const isComposite = effectiveType === 'css' && selector.includes('|>');
+
+      if (isComposite) {
+        const result = await highlightSelectorExternal({ selector, selectorType: effectiveType });
+        StateStore.set({
+          validation: result.success
+            ? { status: 'success', message: `已定位到 ${result.count || 1} 个元素` }
+            : { status: 'failure', message: result.error || '未找到匹配元素' },
+        });
+        return;
+      }
 
       // Query for matches
       const matches =
@@ -2289,7 +2506,7 @@
       StateStore.set({
         validation: {
           status: 'success',
-          message: `Found ${filteredMatches.length} element${filteredMatches.length > 1 ? 's' : ''}`,
+          message: `已定位到 ${filteredMatches.length} 个元素`,
         },
       });
 
@@ -2324,21 +2541,25 @@
       const listMode = StateStore.get('listMode');
 
       const effectiveType = selectorType;
+      const isComposite = effectiveType === 'css' && selector.includes('|>');
 
-      const matches =
-        effectiveType === 'xpath' ? evaluateXPathAll(selector) : queryAllDeep(selector);
+      const matches = isComposite
+        ? []
+        : effectiveType === 'xpath'
+          ? evaluateXPathAll(selector)
+          : queryAllDeep(selector);
 
       // Additional defense: filter out any overlay elements that might have slipped through
       const filteredMatches = filterOverlayElements(matches);
 
-      if (!filteredMatches || filteredMatches.length === 0) {
+      if (!isComposite && (!filteredMatches || filteredMatches.length === 0)) {
         StateStore.set({
           validation: { status: 'failure', message: '未找到匹配元素' },
         });
         return;
       }
 
-      drawRects(filteredMatches, CONFIG.COLORS.VERIFY, false);
+      if (!isComposite) drawRects(filteredMatches, CONFIG.COLORS.VERIFY, false);
 
       const action = STATE.box?.querySelector('#__em_action')?.value || 'hover';
 
@@ -2403,12 +2624,11 @@
 
       const res = await chrome.runtime.sendMessage(payload);
 
-      const success = !!res?.tool?.ok;
       const newEntry = {
         action,
-        success,
+        success: !!res?.tool?.ok,
         timestamp: Date.now(),
-        matchCount: filteredMatches.length,
+        matchCount: isComposite ? 1 : filteredMatches.length,
       };
       const history = [...(StateStore.get('validationHistory') || []), newEntry].slice(-5);
 
@@ -2416,7 +2636,7 @@
         StateStore.set({
           validation: {
             status: 'success',
-            message: `✓ 验证成功 (匹配 ${filteredMatches.length} 个元素)`,
+            message: `✓ 验证成功 (匹配 ${isComposite ? 1 : filteredMatches.length} 个元素)`,
           },
           validationHistory: history,
         });
@@ -2424,7 +2644,7 @@
         StateStore.set({
           validation: {
             status: 'failure',
-            message: formatValidationError(res?.tool?.error),
+            message: formatValidationError(res?.tool?.error || res?.error),
           },
           validationHistory: history,
         });
@@ -2473,7 +2693,7 @@
           // Find frame element
           let frameEl = null;
           try {
-            frameEl = querySelectorDeepFirst(frameSel) || document.querySelector(frameSel);
+            frameEl = queryAllDeep(frameSel)[0] || document.querySelector(frameSel);
           } catch {}
 
           if (
@@ -2558,11 +2778,24 @@
     }
   }
 
-  function copySelectorNow() {
+  async function copySelectorNow() {
     try {
       const sel = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
       if (!sel) return;
-      navigator.clipboard?.writeText(sel).catch(() => {});
+
+      try {
+        await navigator.clipboard.writeText(sel);
+      } catch {
+        const textarea = document.createElement('textarea');
+        try {
+          textarea.value = sel;
+          document.body.appendChild(textarea);
+          textarea.select();
+          if (!document.execCommand('copy')) throw new Error('浏览器拒绝访问剪贴板');
+        } finally {
+          textarea.remove();
+        }
+      }
 
       StateStore.set({
         validation: { status: 'success', message: '✓ 已复制到剪贴板' },
@@ -2571,7 +2804,11 @@
       setTimeout(() => {
         StateStore.set({ validation: { status: 'idle', message: '' } });
       }, 2000);
-    } catch {}
+    } catch (error) {
+      StateStore.set({
+        validation: { status: 'failure', message: error?.message || '复制定位失败' },
+      });
+    }
   }
 
   function formatValidationError(error) {
@@ -2706,6 +2943,7 @@
 
   function stop() {
     STATE.active = false;
+    StateStore.set({ boxSelect: false });
 
     detachPointerListeners();
     detachKeyboardListener();
@@ -2730,8 +2968,13 @@
     STATE.hoveredList = [];
     STATE.hoverEl = null;
     STATE.selectedEl = null;
+    STATE.nameElement = null;
     STATE.lastHoverTarget = null;
     STATE.verifyRectsActive = false;
+    STATE.boxSelectionStart = null;
+    clearBoxSelectionOverlay();
+    window.removeEventListener('mousemove', onBoxSelectionMove, true);
+    window.removeEventListener('mouseup', onBoxSelectionEnd, true);
 
     // Clear rect pool to release DOM references
     STATE.rectPool.length = 0;
@@ -2818,6 +3061,10 @@
       }
 
       clearHighlighter();
+    });
+
+    host.querySelector('#__em_toggle_box')?.addEventListener('click', () => {
+      StateStore.set({ boxSelect: !StateStore.get('boxSelect') });
     });
 
     // Tab toggle (switch between Attributes and Execute)
@@ -2945,6 +3192,8 @@
       }
     }
 
+    host.querySelector('#__em_toggle_box')?.classList.toggle('active', state.boxSelect);
+
     const prefId = host.querySelector('#__em_pref_id');
     const prefTestId = host.querySelector('#__em_pref_testid');
     const prefAria = host.querySelector('#__em_pref_aria');
@@ -3040,8 +3289,22 @@
           const composite = frameSel ? `${frameSel} |> ${data.innerSel}` : data.innerSel;
           const selectorText = STATE.box?.querySelector('#__em_selector');
           const selectorDisplay = STATE.box?.querySelector('#__em_selector_text');
-          if (selectorText) selectorText.textContent = composite;
-          if (selectorDisplay) selectorDisplay.textContent = composite;
+          const inputName = STATE.box?.querySelector('#__em_name');
+          if (selectorText) {
+            selectorText.textContent = composite;
+            selectorText.title = composite;
+          }
+          if (selectorDisplay) {
+            selectorDisplay.textContent = composite;
+            selectorDisplay.title = composite;
+          }
+          if (inputName) inputName.value = data.name || '元素';
+          if (data.selectorType) {
+            StateStore.set({ selectorType: data.selectorType });
+            const typeSelect = STATE.box?.querySelector('#__em_selector_type');
+            if (typeSelect) typeSelect.value = data.selectorType;
+          }
+          STATE.nameElement = null;
         }
       } catch {}
     },

@@ -145,8 +145,13 @@ class ReadPageTool extends BaseBrowserToolExecutor {
         depth: requestedDepth ?? null,
         focus: focusRefId ? { refId: focusRefId, found: treeOk } : null,
         markedElements,
-        elements: [],
-        count: 0,
+        elements: treeOk
+          ? (Array.isArray(resp?.refMap) ? resp.refMap : []).map((item: any) => ({
+              ...item,
+              refId: item.ref,
+            }))
+          : [],
+        count: treeOk ? refCount : 0,
         fallbackUsed: false,
         fallbackSource: null,
         reason: null,

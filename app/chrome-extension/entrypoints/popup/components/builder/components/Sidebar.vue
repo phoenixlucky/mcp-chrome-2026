@@ -116,7 +116,10 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import type { Flow as BuilderFlow, NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
+import type {
+  Flow as BuilderFlow,
+  NodeBase,
+} from '@/entrypoints/background/record-replay-v3/builder-types';
 import { NODE_UI_LIST } from '@/entrypoints/popup/components/builder/model/ui-nodes';
 import { iconComp } from './nodes/node-util';
 
@@ -172,15 +175,15 @@ const filtered = computed(() => {
   background: var(--rr-card);
   border: 1px solid var(--rr-border);
   border-radius: 16px;
-  padding: 16px 12px;
-  margin: 16px;
-  width: 240px;
+  padding: 12px 10px;
+  margin: 12px;
+  width: min(208px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   overflow-y: auto;
   /* Ensure the sidebar never exceeds viewport height; allow internal scroll */
-  max-height: calc(100vh - 72px);
+  max-height: calc(100vh - 60px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
   /* Always hide scrollbars (Firefox), keep scrolling */
@@ -202,7 +205,7 @@ const filtered = computed(() => {
 }
 .search-input {
   width: 100%;
-  padding: 8px 10px 8px 32px;
+  padding: 7px 9px 7px 30px;
   border: 1px solid var(--rr-border);
   border-radius: 8px;
   background: var(--rr-subtle);
@@ -220,15 +223,15 @@ const filtered = computed(() => {
 .nodes-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 /* 节点按钮 */
 .node-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 7px 8px;
   border: none;
   background: transparent;
   border-radius: 8px;
@@ -248,8 +251,8 @@ const filtered = computed(() => {
 
 /* 节点图标 - 彩色圆形 */
 .btn-icon {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   display: flex;
   align-items: center;

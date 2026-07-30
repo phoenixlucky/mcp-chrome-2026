@@ -23,7 +23,7 @@
       <AgentChatShell
         :error-message="chat.errorMessage.value"
         :usage="chat.lastUsage.value"
-        :footer-label="`${engineDisplayName} Preview`"
+        :footer-label="`${engineDisplayName} ${copy.preview}`"
         @error:dismiss="chat.errorMessage.value = null"
       >
         <!-- Header -->
@@ -63,7 +63,7 @@
             :cancelling="chat.cancelling.value"
             :can-cancel="!!chat.currentRequestId.value"
             :can-send="chat.canSend.value"
-            placeholder="Ask Claude to write code..."
+            :placeholder="copy.composerPlaceholder"
             :engine-name="currentEngineName"
             :selected-model="currentSessionModel"
             :available-models="currentAvailableModels"
@@ -135,8 +135,10 @@
     <AgentSettingsMenu
       :open="settingsMenuOpen"
       :theme="themeState.theme.value"
+      :locale="locale"
       :fake-caret-enabled="inputPreferences.fakeCaretEnabled.value"
       @theme:set="handleThemeChange"
+      @locale:set="setLocale"
       @reconnect="handleReconnect"
       @attachments:open="handleOpenAttachmentCache"
       @deepseek:open="handleOpenDeepSeekSettings"
@@ -167,6 +169,8 @@
     <DeepSeekSettingsPanel
       :open="deepseekSettingsOpen"
       :server-port="server.serverPort.value ?? 0"
+      :ensure-server="() => server.ensureNativeServer({ forceConnect: true })"
+      :get-server-port="() => server.serverPort.value"
       @close="deepseekSettingsOpen = false"
     />
   </div>
@@ -226,6 +230,18 @@ import {
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 
 // Local UI state
+type Locale = 'zh' | 'en';
+const locale = ref<Locale>(localStorage.getItem('agent-chat-locale') === 'en' ? 'en' : 'zh');
+const copy = computed(() =>
+  locale.value === 'zh'
+    ? { preview: '预览', composerPlaceholder: '让智能助手帮你编写代码…' }
+    : { preview: 'Preview', composerPlaceholder: 'Ask the assistant to write code...' },
+);
+function setLocale(next: Locale): void {
+  locale.value = next;
+  localStorage.setItem('agent-chat-locale', next);
+}
+
 const selectedCli = ref('');
 const model = ref('');
 const reasoningEffort = ref<CodexReasoningEffort>('medium');

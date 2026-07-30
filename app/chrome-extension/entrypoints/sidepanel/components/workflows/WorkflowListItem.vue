@@ -34,7 +34,8 @@
           class="workflow-action workflow-action-primary"
           :style="actionPrimaryStyle"
           @click.stop="$emit('run', flow.id)"
-          title="Run workflow"
+          title="在当前页面运行"
+          aria-label="在当前页面运行"
         >
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path d="M8 5v14l11-7z" />

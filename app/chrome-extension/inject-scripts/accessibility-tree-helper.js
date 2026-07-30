@@ -765,7 +765,11 @@
   // Chrome message bridge for ping and tree generation
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     try {
-      if (request && request.action === 'chrome_read_page_ping') {
+      if (
+        request &&
+        (request.action === 'chrome_read_page_ping' ||
+          request.action === 'accessibility_tree_helper_ping')
+      ) {
         sendResponse({ status: 'pong' });
         return false;
       }
@@ -1117,10 +1121,16 @@
                     cleanup();
 
                     if (data.success) {
+                      const frameRect = frameEl.getBoundingClientRect();
                       sendResponse({
                         success: true,
                         ref: data.ref,
-                        center: data.center,
+                        center: data.center
+                          ? {
+                              x: Math.round(frameRect.left + data.center.x),
+                              y: Math.round(frameRect.top + data.center.y),
+                            }
+                          : undefined,
                         href: data.href,
                       });
                     } else {

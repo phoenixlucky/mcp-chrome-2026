@@ -18,6 +18,7 @@ import { fillHandler } from './fill';
 import { httpHandler } from './http';
 import { keyHandler } from './key';
 import { navigateHandler } from './navigate';
+import { getTabUrlHandler, getWebContentHandler, readPageHandler } from './page';
 import { screenshotHandler } from './screenshot';
 import { scriptHandler } from './script';
 import { scrollHandler } from './scroll';
@@ -36,6 +37,7 @@ export { fillHandler } from './fill';
 export { httpHandler } from './http';
 export { keyHandler } from './key';
 export { navigateHandler } from './navigate';
+export { getTabUrlHandler, getWebContentHandler, readPageHandler } from './page';
 export { screenshotHandler } from './screenshot';
 export { scriptHandler } from './script';
 export { scrollHandler } from './scroll';
@@ -81,6 +83,9 @@ const ALL_HANDLERS = [
   scriptHandler,
   httpHandler,
   screenshotHandler,
+  getTabUrlHandler,
+  readPageHandler,
+  getWebContentHandler,
   // DOM Tools
   triggerEventHandler,
   setAttributeHandler,
@@ -115,6 +120,9 @@ export function registerReplayHandlers(registry: ActionRegistry): void {
   registry.register(scriptHandler, { override: true });
   registry.register(httpHandler, { override: true });
   registry.register(screenshotHandler, { override: true });
+  registry.register(getTabUrlHandler, { override: true });
+  registry.register(readPageHandler, { override: true });
+  registry.register(getWebContentHandler, { override: true });
   registry.register(triggerEventHandler, { override: true });
   registry.register(setAttributeHandler, { override: true });
   registry.register(openTabHandler, { override: true });

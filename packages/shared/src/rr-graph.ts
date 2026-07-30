@@ -43,6 +43,9 @@ export const RR_STEP_TYPES = {
   CLOSE_TAB: 'closeTab',
   EXECUTE_FLOW: 'executeFlow',
   HANDLE_DOWNLOAD: 'handleDownload',
+  GET_TAB_URL: 'getTabUrl',
+  READ_PAGE: 'readPage',
+  GET_WEB_CONTENT: 'getWebContent',
   // UI-only, mapped to WAIT
   DELAY: 'delay',
 } as const;
