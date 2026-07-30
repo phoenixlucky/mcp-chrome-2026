@@ -26,13 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.6.1
+## 📢 What's New in v1.6.3
 
-> **output-sanitizer cleanup** — Removed redundant branching logic, added unit test coverage.
+> **SPA content extraction + WebP screenshot compression** — Designed for X, Reddit, and other dynamic websites.
 >
-> - 🧹 **Code cleanup** — Removed redundant branches in `sanitizeOutput`, simplified structure
-> - ✅ **New tests** — `output-sanitizer.test.ts` covering core paths
-> - 🔧 All packages bumped to v1.6.1
+> - 🌐 **`chrome_spa_fetch` tool** — Auto-navigate, wait for JS render, trigger lazy-load on scroll, Readability text extraction. Solves SPA dynamic content challenges
+> - 🖼️ **PNG → WebP screenshots** — Size reduced by 73%–91%, dramatically lowering transfer overhead
+> - 📖 **New TOOLS docs** — Tool API reference in both Chinese and English
+> - 🔧 All packages bumped to v1.6.3
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
