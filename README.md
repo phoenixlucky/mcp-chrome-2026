@@ -28,11 +28,11 @@
 
 ## 📢 v1.6.4 更新内容
 
-> **SPA 内容提取 + 截图 WebP 压缩** — 专为 X/Reddit 等动态网站设计。
+> **工具恢复 + 文档路线图更新** — 小版本迭代。
 >
-> - 🌐 **`chrome_spa_fetch` 工具** — 自动导航、等待 JS 渲染、滚动触发懒加载、Readability 文本提取，解决 SPA 动态内容获取难题
-> - 🖼️ **截图 PNG → WebP** — 体积缩减 73%–91%，大幅降低传输开销
-> - 📖 **新增 TOOLS 文档** — 中英文工具 API 参考
+> - 🔧 **`chrome_get_interactive_elements`** — 恢复该工具（之前被遗漏）
+> - 🗑️ 删除 `start-server-npm.bat`（与 `start-server.bat` 功能重复）
+> - 📋 README 路线图更新：移除「工具级 ACL」，新增「待开发工具」计划表
 > - 🔧 所有包版本统一为 v1.6.4
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。

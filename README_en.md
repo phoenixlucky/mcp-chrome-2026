@@ -28,11 +28,11 @@
 
 ## 📢 What's New in v1.6.4
 
-> **SPA content extraction + WebP screenshot compression** — Designed for X, Reddit, and other dynamic websites.
+> **Tool restoration + docs & roadmap update** — A minor iteration.
 >
-> - 🌐 **`chrome_spa_fetch` tool** — Auto-navigate, wait for JS render, trigger lazy-load on scroll, Readability text extraction. Solves SPA dynamic content challenges
-> - 🖼️ **PNG → WebP screenshots** — Size reduced by 73%–91%, dramatically lowering transfer overhead
-> - 📖 **New TOOLS docs** — Tool API reference in both Chinese and English
+> - 🔧 **`chrome_get_interactive_elements`** — Restored this tool (previously omitted)
+> - 🗑️ Removed `start-server-npm.bat` (duplicate of `start-server.bat`)
+> - 📋 Roadmap updated: removed "Tool-level ACL", added "Planned tools" table
 > - 🔧 All packages bumped to v1.6.4
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
