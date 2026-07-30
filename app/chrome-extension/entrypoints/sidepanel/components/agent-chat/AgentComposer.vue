@@ -11,7 +11,7 @@
       }"
     >
       <span class="text-sm font-medium" :style="{ color: 'var(--ac-accent)' }">
-        Drop images here
+        {{ copy.dropImages }}
       </span>
     </div>
 
@@ -135,7 +135,7 @@
             type="button"
             class="absolute top-2 right-2 p-1.5 transition-all hover:scale-105 cursor-pointer"
             :style="expandButtonStyle"
-            title="Expand editor"
+            :title="copy.expandEditor"
             @click="openDrawer"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -158,7 +158,7 @@
             v-if="supportsImages"
             class="p-1.5 ac-btn"
             :style="{ color: 'var(--ac-text-subtle)', borderRadius: 'var(--ac-radius-button)' }"
-            data-tooltip="Attach image (drag, paste, or click)"
+            :data-tooltip="copy.attachImage"
             @click="$emit('attachment:add')"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,8 +171,31 @@
             </svg>
           </button>
 
+          <button
+            type="button"
+            class="flex items-center gap-1 px-1.5 py-1 ac-btn"
+            :style="{
+              color: isMarkingPage ? 'var(--ac-accent)' : 'var(--ac-text-subtle)',
+              borderRadius: 'var(--ac-radius-button)',
+            }"
+            :title="isMarkingPage ? `${markPageLabel}…` : markPageLabel"
+            @click="$emit('page:mark')"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="m15 15-2 5L9 9l11 4-5 2Zm0 0 5 5"
+              />
+            </svg>
+            <span class="text-[10px]">{{
+              isMarkingPage ? `${markPageLabel}…` : markPageLabel
+            }}</span>
+          </button>
+
           <!-- Model Selector (auto-width) -->
-          <div v-if="availableModels.length > 0" class="relative" data-tooltip="Switch model">
+          <div v-if="availableModels.length > 0" class="relative" :data-tooltip="copy.switchModel">
             <!-- Hidden span to measure text width -->
             <span
               ref="modelWidthRef"
@@ -225,7 +248,7 @@
               fontFamily: 'var(--ac-font-mono)',
               borderRadius: 'var(--ac-radius-button)',
             }"
-            data-tooltip="Reasoning effort"
+            :data-tooltip="copy.reasoningEffort"
             @change="handleReasoningEffortChange"
           >
             <option v-for="effort in availableReasoningEfforts" :key="effort" :value="effort">
@@ -237,7 +260,7 @@
           <button
             class="p-1 ac-btn"
             :style="{ color: 'var(--ac-text-subtle)', borderRadius: 'var(--ac-radius-button)' }"
-            data-tooltip="Reset conversation"
+            :data-tooltip="copy.resetConversation"
             @click="handleReset"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -254,7 +277,7 @@
           <button
             class="p-1 ac-btn"
             :style="{ color: 'var(--ac-text-subtle)', borderRadius: 'var(--ac-radius-button)' }"
-            data-tooltip="Session settings"
+            :data-tooltip="copy.sessionSettings"
             @click="handleOpenSettings"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,8 +309,8 @@
             class="p-1 transition-colors cursor-pointer"
             :style="primaryActionButtonStyle"
             :disabled="primaryActionDisabled"
-            :title="isRequestActive ? 'Stop' : 'Send'"
-            :aria-label="isRequestActive ? 'Stop request' : 'Send message'"
+            :title="isRequestActive ? copy.stop : copy.send"
+            :aria-label="isRequestActive ? copy.stopRequest : copy.sendMessage"
             @click="handlePrimaryAction"
           >
             <!-- Stop icon (square) when request is active -->
@@ -402,6 +425,7 @@ import type { ModelDefinition } from '@/common/agent-models';
 import type { AttachmentWithPreview } from '../../composables/useAttachments';
 import type { RequestState } from '../../composables/useAgentChat';
 import { useTextareaAutoResize } from '../../composables/useTextareaAutoResize';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 import ComposerDrawer from './ComposerDrawer.vue';
 import FakeCaretOverlay from './FakeCaretOverlay.vue';
 
@@ -428,6 +452,10 @@ const props = defineProps<{
   availableReasoningEfforts?: readonly CodexReasoningEffort[];
   // Fake caret feature flag
   enableFakeCaret?: boolean;
+  /** Whether page element marking is awaiting a click. */
+  isMarkingPage?: boolean;
+  /** Label for the page marking control. */
+  markPageLabel?: string;
 }>();
 
 /**
@@ -443,6 +471,36 @@ const isRequestActive = computed(() => {
 });
 
 const isCodexEngine = computed(() => props.engineName === 'codex');
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        dropImages: '将图片拖到这里',
+        expandEditor: '展开编辑器',
+        attachImage: '添加图片（可拖入、粘贴或点击）',
+        switchModel: '切换模型',
+        reasoningEffort: '推理强度',
+        resetConversation: '重置会话',
+        sessionSettings: '会话设置',
+        stop: '停止',
+        send: '发送',
+        stopRequest: '停止请求',
+        sendMessage: '发送消息',
+      }
+    : {
+        dropImages: 'Drop images here',
+        expandEditor: 'Expand editor',
+        attachImage: 'Attach image (drag, paste, or click)',
+        switchModel: 'Switch model',
+        reasoningEffort: 'Reasoning effort',
+        resetConversation: 'Reset conversation',
+        sessionSettings: 'Session settings',
+        stop: 'Stop',
+        send: 'Send',
+        stopRequest: 'Stop request',
+        sendMessage: 'Send message',
+      },
+);
 
 // Image upload is supported for Claude and Codex engines
 const supportsImages = computed(() => {
@@ -474,18 +532,18 @@ watch(
 );
 
 const statusText = computed(() => {
-  if (props.sending) return 'Sending...';
-  if (props.cancelling) return 'Stopping...';
+  if (props.sending) return isChinese.value ? '发送中…' : 'Sending...';
+  if (props.cancelling) return isChinese.value ? '停止中…' : 'Stopping...';
   // Use requestState for more accurate status display
   switch (props.requestState) {
     case 'starting':
-      return 'Starting...';
+      return isChinese.value ? '启动中…' : 'Starting...';
     case 'ready':
-      return 'Preparing...';
+      return isChinese.value ? '准备中…' : 'Preparing...';
     case 'running':
-      return 'Working...';
+      return isChinese.value ? '执行中…' : 'Working...';
     default:
-      return 'Ready';
+      return isChinese.value ? '就绪' : 'Ready';
   }
 });
 
@@ -553,6 +611,7 @@ const emit = defineEmits<{
   'attachment:paste': [event: ClipboardEvent];
   'attachment:dragover': [event: DragEvent];
   'attachment:dragleave': [event: DragEvent];
+  'page:mark': [];
   'model:change': [modelId: string];
   'reasoning-effort:change': [effort: CodexReasoningEffort];
   'session:settings': [];

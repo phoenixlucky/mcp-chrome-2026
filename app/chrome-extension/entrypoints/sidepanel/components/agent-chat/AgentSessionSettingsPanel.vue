@@ -23,7 +23,7 @@
         :style="{ borderBottom: 'var(--ac-border-width, 1px) solid var(--ac-border, #e5e5e5)' }"
       >
         <h2 class="text-sm font-semibold" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
-          Session Settings
+          {{ copy.title }}
         </h2>
         <button
           class="p-1 ac-btn"
@@ -49,7 +49,7 @@
         <!-- Loading State -->
         <div v-if="isLoading" class="py-8 text-center">
           <div class="text-sm" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">
-            Loading session info...
+            {{ copy.loading }}
           </div>
         </div>
 
@@ -60,11 +60,11 @@
               class="text-[10px] font-bold uppercase tracking-wider"
               :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
             >
-              Session Info
+              {{ copy.sessionInfo }}
             </label>
             <div class="text-xs space-y-1" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
               <div class="flex justify-between">
-                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">Engine</span>
+                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{ copy.engine }}</span>
                 <span
                   class="px-1.5 py-0.5 text-[10px]"
                   :style="{
@@ -77,11 +77,13 @@
                 </span>
               </div>
               <div v-if="localModel" class="flex justify-between">
-                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">Model</span>
+                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{ copy.model }}</span>
                 <span class="font-mono text-[10px]">{{ localModel }}</span>
               </div>
               <div v-if="session?.engineSessionId" class="flex justify-between">
-                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">Engine Session</span>
+                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
+                  copy.engineSession
+                }}</span>
                 <span class="font-mono text-[10px] truncate max-w-[180px]">{{
                   session.engineSessionId
                 }}</span>
@@ -95,7 +97,7 @@
               class="text-[10px] font-bold uppercase tracking-wider"
               :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
             >
-              Model
+              {{ copy.model }}
             </label>
             <select
               v-model="localModel"
@@ -107,7 +109,7 @@
                 color: 'var(--ac-text, #1a1a1a)',
               }"
             >
-              <option value="">Default (server setting)</option>
+              <option value="">{{ copy.serverDefault }}</option>
               <option v-for="m in availableModels" :key="m.id" :value="m.id">
                 {{ m.name }}
               </option>
@@ -120,7 +122,7 @@
               class="text-[10px] font-bold uppercase tracking-wider"
               :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
             >
-              Reasoning Effort
+              {{ copy.reasoningEffort }}
             </label>
             <select
               v-model="localReasoningEffort"
@@ -137,9 +139,9 @@
               </option>
             </select>
             <p class="text-[10px]" :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }">
-              Controls the reasoning depth. Higher effort = better quality but slower.
+              {{ copy.reasoningHint }}
               <span v-if="!availableReasoningEfforts.includes('xhigh')" class="block mt-1">
-                Note: xhigh is only available for gpt-5.2 and gpt-5.1-codex-max models.
+                {{ copy.xhighHint }}
               </span>
             </p>
           </div>
@@ -150,7 +152,7 @@
               class="text-[10px] font-bold uppercase tracking-wider"
               :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
             >
-              Permission Mode
+              {{ copy.permissionMode }}
             </label>
             <select
               v-model="localPermissionMode"
@@ -162,15 +164,15 @@
                 color: 'var(--ac-text, #1a1a1a)',
               }"
             >
-              <option value="">Default</option>
-              <option value="default">default - Ask for approval</option>
-              <option value="acceptEdits">acceptEdits - Auto-accept file edits</option>
-              <option value="bypassPermissions">bypassPermissions - Auto-accept all</option>
-              <option value="plan">plan - Plan mode only</option>
-              <option value="dontAsk">dontAsk - No confirmation</option>
+              <option value="">{{ copy.default }}</option>
+              <option value="default">default - {{ copy.askApproval }}</option>
+              <option value="acceptEdits">acceptEdits - {{ copy.acceptEdits }}</option>
+              <option value="bypassPermissions">bypassPermissions - {{ copy.acceptAll }}</option>
+              <option value="plan">plan - {{ copy.planOnly }}</option>
+              <option value="dontAsk">dontAsk - {{ copy.noConfirmation }}</option>
             </select>
             <p class="text-[10px]" :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }">
-              Controls how the Claude SDK handles tool approval requests.
+              {{ copy.permissionHint }}
             </p>
           </div>
 
@@ -180,7 +182,7 @@
               class="text-[10px] font-bold uppercase tracking-wider"
               :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
             >
-              System Prompt
+              {{ copy.systemPrompt }}
             </label>
             <div class="space-y-2">
               <label class="flex items-center gap-2 text-xs cursor-pointer">
@@ -189,14 +191,16 @@
                   :checked="!localUseCustomPrompt"
                   @change="localUseCustomPrompt = false"
                 />
-                <span :style="{ color: 'var(--ac-text, #1a1a1a)' }">Use preset (claude_code)</span>
+                <span :style="{ color: 'var(--ac-text, #1a1a1a)' }"
+                  >{{ copy.usePreset }} (claude_code)</span
+                >
               </label>
               <div v-if="!localUseCustomPrompt" class="pl-5">
                 <label class="flex items-center gap-2 text-[10px]">
                   <input v-model="localAppendToPrompt" type="checkbox" />
-                  <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"
-                    >Append custom text</span
-                  >
+                  <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
+                    copy.appendCustomText
+                  }}</span>
                 </label>
                 <textarea
                   v-if="localAppendToPrompt"
@@ -210,7 +214,7 @@
                     fontFamily: 'var(--ac-font-mono, monospace)',
                   }"
                   rows="3"
-                  placeholder="Additional instructions to append..."
+                  :placeholder="copy.appendPlaceholder"
                 />
               </div>
               <label class="flex items-center gap-2 text-xs cursor-pointer">
@@ -219,7 +223,9 @@
                   :checked="localUseCustomPrompt"
                   @change="localUseCustomPrompt = true"
                 />
-                <span :style="{ color: 'var(--ac-text, #1a1a1a)' }">Use custom prompt</span>
+                <span :style="{ color: 'var(--ac-text, #1a1a1a)' }">{{
+                  copy.useCustomPrompt
+                }}</span>
               </label>
               <textarea
                 v-if="localUseCustomPrompt"
@@ -233,7 +239,7 @@
                   fontFamily: 'var(--ac-font-mono, monospace)',
                 }"
                 rows="4"
-                placeholder="Enter custom system prompt..."
+                :placeholder="copy.customPromptPlaceholder"
               />
             </div>
           </div>
@@ -244,7 +250,7 @@
               class="text-[10px] font-bold uppercase tracking-wider"
               :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
             >
-              SDK Info
+              {{ copy.sdkInfo }}
             </label>
             <div
               class="text-[10px] space-y-1 p-2"
@@ -254,7 +260,9 @@
               }"
             >
               <div v-if="managementInfo.model" class="flex justify-between">
-                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">Active Model</span>
+                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
+                  copy.activeModel
+                }}</span>
                 <span class="font-mono" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
                   managementInfo.model
                 }}</span>
@@ -266,13 +274,15 @@
                 }}</span>
               </div>
               <div v-if="managementInfo.tools?.length" class="flex justify-between">
-                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">Tools</span>
+                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{ copy.tools }}</span>
                 <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
                   managementInfo.tools.length
                 }}</span>
               </div>
               <div v-if="managementInfo.mcpServers?.length" class="flex justify-between">
-                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">MCP Servers</span>
+                <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
+                  copy.mcpServers
+                }}</span>
                 <span :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
                   managementInfo.mcpServers.length
                 }}</span>
@@ -281,7 +291,7 @@
             <!-- Tool List (expandable) -->
             <details v-if="managementInfo.tools?.length" class="text-[10px]">
               <summary class="cursor-pointer" :style="{ color: 'var(--ac-link, #3b82f6)' }">
-                View tools ({{ managementInfo.tools.length }})
+                {{ copy.viewTools }}（{{ managementInfo.tools.length }}）
               </summary>
               <div
                 class="mt-1 p-2 max-h-32 overflow-y-auto ac-scroll"
@@ -303,7 +313,7 @@
             <!-- MCP Server List (expandable) -->
             <details v-if="managementInfo.mcpServers?.length" class="text-[10px]">
               <summary class="cursor-pointer" :style="{ color: 'var(--ac-link, #3b82f6)' }">
-                View MCP servers ({{ managementInfo.mcpServers.length }})
+                {{ copy.viewMcpServers }}（{{ managementInfo.mcpServers.length }}）
               </summary>
               <div
                 class="mt-1 p-2 max-h-32 overflow-y-auto ac-scroll"
@@ -349,7 +359,7 @@
           }"
           @click="handleClose"
         >
-          Cancel
+          {{ copy.cancel }}
         </button>
         <button
           class="px-3 py-1.5 text-xs ac-btn"
@@ -361,7 +371,7 @@
           :disabled="isSaving"
           @click="handleSave"
         >
-          {{ isSaving ? 'Saving...' : 'Save' }}
+          {{ isSaving ? copy.saving : copy.save }}
         </button>
       </div>
     </div>
@@ -382,6 +392,82 @@ import {
   getCodexReasoningEfforts,
   getDefaultModelForCli,
 } from '@/common/agent-models';
+import { useAgentLocale } from '../../composables/useAgentLocale';
+
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        title: '会话设置',
+        loading: '正在加载会话信息…',
+        sessionInfo: '会话信息',
+        engine: '引擎',
+        model: '模型',
+        engineSession: '引擎会话',
+        serverDefault: '默认（服务端设置）',
+        reasoningEffort: '推理强度',
+        reasoningHint: '控制推理深度。强度越高，质量越好但速度越慢。',
+        xhighHint: '提示：xhigh 仅适用于 gpt-5.2 和 gpt-5.1-codex-max 模型。',
+        permissionMode: '权限模式',
+        default: '默认',
+        askApproval: '请求确认',
+        acceptEdits: '自动接受文件修改',
+        acceptAll: '自动接受全部操作',
+        planOnly: '仅规划模式',
+        noConfirmation: '不再确认',
+        permissionHint: '控制 Claude SDK 如何处理工具授权请求。',
+        systemPrompt: '系统提示词',
+        usePreset: '使用预设',
+        appendCustomText: '追加自定义文本',
+        appendPlaceholder: '追加的说明…',
+        useCustomPrompt: '使用自定义提示词',
+        customPromptPlaceholder: '输入自定义系统提示词…',
+        sdkInfo: 'SDK 信息',
+        activeModel: '当前模型',
+        tools: '工具',
+        mcpServers: 'MCP 服务器',
+        viewTools: '查看工具',
+        viewMcpServers: '查看 MCP 服务器',
+        cancel: '取消',
+        saving: '保存中…',
+        save: '保存',
+      }
+    : {
+        title: 'Session Settings',
+        loading: 'Loading session info...',
+        sessionInfo: 'Session Info',
+        engine: 'Engine',
+        model: 'Model',
+        engineSession: 'Engine Session',
+        serverDefault: 'Default (server setting)',
+        reasoningEffort: 'Reasoning Effort',
+        reasoningHint: 'Controls the reasoning depth. Higher effort = better quality but slower.',
+        xhighHint: 'Note: xhigh is only available for gpt-5.2 and gpt-5.1-codex-max models.',
+        permissionMode: 'Permission Mode',
+        default: 'Default',
+        askApproval: 'Ask for approval',
+        acceptEdits: 'Auto-accept file edits',
+        acceptAll: 'Auto-accept all',
+        planOnly: 'Plan mode only',
+        noConfirmation: 'No confirmation',
+        permissionHint: 'Controls how the Claude SDK handles tool approval requests.',
+        systemPrompt: 'System Prompt',
+        usePreset: 'Use preset',
+        appendCustomText: 'Append custom text',
+        appendPlaceholder: 'Additional instructions to append...',
+        useCustomPrompt: 'Use custom prompt',
+        customPromptPlaceholder: 'Enter custom system prompt...',
+        sdkInfo: 'SDK Info',
+        activeModel: 'Active Model',
+        tools: 'Tools',
+        mcpServers: 'MCP Servers',
+        viewTools: 'View tools',
+        viewMcpServers: 'View MCP servers',
+        cancel: 'Cancel',
+        saving: 'Saving...',
+        save: 'Save',
+      },
+);
 
 const props = defineProps<{
   open: boolean;

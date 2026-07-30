@@ -9,7 +9,7 @@
           color: 'var(--ac-text-subtle)',
         }"
       >
-        How can I help you code today?
+        {{ emptyText }}
       </p>
     </div>
 
@@ -19,10 +19,17 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import type { AgentThread } from '../../composables/useAgentThreads';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 import AgentRequestThread from './AgentRequestThread.vue';
 
 defineProps<{
   threads: AgentThread[];
 }>();
+
+const { isChinese } = useAgentLocale();
+const emptyText = computed(() =>
+  isChinese.value ? '今天想让我帮你做什么呢？' : 'How can I help you code today?',
+);
 </script>

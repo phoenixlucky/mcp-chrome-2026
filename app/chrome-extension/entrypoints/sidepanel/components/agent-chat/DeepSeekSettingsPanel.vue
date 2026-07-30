@@ -21,33 +21,33 @@
           class="ac-btn text-sm"
           :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"
           @click="$emit('close')"
-          >Close</button
+          >{{ copy.close }}</button
         >
       </div>
 
       <p class="text-xs" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">
         {{
           configured
-            ? `Configured via ${source === 'plugin' ? 'this plugin' : 'DEEPSEEK_API_KEY'}.`
-            : 'Not configured.'
+            ? copy.configured(source === 'plugin' ? copy.thisPlugin : 'DEEPSEEK_API_KEY')
+            : copy.notConfigured
         }}
-        The key is saved locally and is never returned to the extension.
+        {{ copy.keyHint }}
       </p>
 
       <label class="block text-xs space-y-1" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
-        <span>API Key</span>
+        <span>{{ copy.apiKey }}</span>
         <input
           v-model="apiKey"
           type="password"
           autocomplete="new-password"
-          placeholder="sk-..."
+          :placeholder="configured ? copy.savedKeyPlaceholder : 'sk-...'"
           class="w-full px-2 py-1.5"
           :style="inputStyle"
         />
       </label>
 
       <label class="block text-xs space-y-1" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
-        <span>Base URL (optional)</span>
+        <span>{{ copy.baseUrl }}</span>
         <input
           v-model="baseUrl"
           placeholder="https://api.deepseek.com"
@@ -57,6 +57,7 @@
       </label>
 
       <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+      <p v-else-if="saveSucceeded" class="text-xs text-emerald-600">{{ copy.saved }}</p>
       <div class="flex justify-end gap-2">
         <button
           v-if="configured && source === 'plugin'"
@@ -64,7 +65,7 @@
           :style="secondaryStyle"
           :disabled="saving"
           @click="clearKey"
-          >Remove saved key</button
+          >{{ copy.removeKey }}</button
         >
         <button
           class="px-3 py-1.5 text-xs ac-btn"
@@ -72,7 +73,7 @@
           :disabled="saving || !apiKey.trim()"
           @click="save"
         >
-          {{ saving ? 'Saving...' : 'Save' }}
+          {{ saving ? copy.saving : copy.save }}
         </button>
       </div>
     </div>
@@ -81,6 +82,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 const props = defineProps<{
   open: boolean;
@@ -96,6 +98,39 @@ const configured = ref(false);
 const source = ref<string | null>(null);
 const saving = ref(false);
 const error = ref('');
+const saveSucceeded = ref(false);
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        close: '关闭',
+        apiKey: 'API 密钥',
+        baseUrl: '基础地址（可选）',
+        saved: '已保存到本机。',
+        savedKeyPlaceholder: 'sk-••••••••（已保存）',
+        removeKey: '移除已保存的密钥',
+        saving: '保存中…',
+        save: '保存',
+        thisPlugin: '本插件',
+        configured: (source: string) => `已通过${source}配置。`,
+        notConfigured: '尚未配置。',
+        keyHint: '密钥仅保存在本机，不会返回给扩展。',
+      }
+    : {
+        close: 'Close',
+        apiKey: 'API Key',
+        baseUrl: 'Base URL (optional)',
+        saved: 'Saved locally.',
+        savedKeyPlaceholder: 'sk-•••••••• (saved)',
+        removeKey: 'Remove saved key',
+        saving: 'Saving...',
+        save: 'Save',
+        thisPlugin: 'this plugin',
+        configured: (source: string) => `Configured via ${source}.`,
+        notConfigured: 'Not configured.',
+        keyHint: 'The key is saved locally and is never returned to the extension.',
+      },
+);
 
 const inputStyle = computed(() => ({
   backgroundColor: 'var(--ac-surface, #ffffff)',
@@ -138,6 +173,7 @@ async function request(method: 'GET' | 'PUT', body?: Record<string, unknown>): P
 async function load(): Promise<void> {
   if (!props.open || !props.serverPort) return;
   error.value = '';
+  saveSucceeded.value = false;
   apiKey.value = '';
   try {
     await request('GET');
@@ -155,6 +191,7 @@ async function save(): Promise<void> {
     }
     await request('PUT', { apiKey: apiKey.value, baseUrl: baseUrl.value });
     apiKey.value = '';
+    saveSucceeded.value = configured.value && source.value === 'plugin';
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -167,6 +204,7 @@ async function clearKey(): Promise<void> {
   error.value = '';
   try {
     await request('PUT', { clearApiKey: true, baseUrl: baseUrl.value });
+    saveSucceeded.value = false;
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {

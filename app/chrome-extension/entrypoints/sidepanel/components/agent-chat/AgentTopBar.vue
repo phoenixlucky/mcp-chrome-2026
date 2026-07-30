@@ -1,7 +1,7 @@
 <template>
-  <div class="flex items-center justify-between w-full">
+  <div class="flex min-w-0 w-full items-center gap-2">
     <!-- Brand / Context -->
-    <div class="flex items-center gap-2 overflow-hidden -ml-1">
+    <div class="flex min-w-0 flex-1 items-center gap-1.5 -ml-1">
       <!-- Back Button (when in chat view) -->
       <button
         v-if="showBackButton"
@@ -10,7 +10,7 @@
           color: 'var(--ac-text-muted)',
           borderRadius: 'var(--ac-radius-button)',
         }"
-        title="Back to sessions"
+        :title="copy.backToSessions"
         @click="$emit('back')"
       >
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -25,7 +25,7 @@
 
       <!-- Brand -->
       <h1
-        class="text-lg font-medium tracking-tight flex-shrink-0"
+        class="max-w-[100px] flex-shrink-0 truncate text-base font-medium tracking-tight"
         :style="{
           fontFamily: 'var(--ac-font-heading)',
           color: 'var(--ac-text)',
@@ -42,15 +42,16 @@
 
       <!-- Project Breadcrumb -->
       <button
-        class="flex items-center gap-1.5 text-xs px-2 py-1 truncate group ac-btn"
+        class="flex min-w-0 max-w-[72px] items-center gap-1 px-1.5 py-1 text-xs group ac-btn"
         :style="{
           fontFamily: 'var(--ac-font-mono)',
           color: 'var(--ac-text-muted)',
           borderRadius: 'var(--ac-radius-button)',
         }"
+        :title="projectLabel"
         @click="$emit('toggle:projectMenu')"
       >
-        <span class="truncate">{{ projectLabel }}</span>
+        <span class="min-w-0 truncate">{{ projectLabel }}</span>
         <svg
           class="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity"
           fill="none"
@@ -69,15 +70,16 @@
       <!-- Session Breadcrumb -->
       <div class="h-3 w-[1px] flex-shrink-0" :style="{ backgroundColor: 'var(--ac-border)' }" />
       <button
-        class="flex items-center gap-1.5 text-xs px-2 py-1 truncate group ac-btn"
+        class="flex min-w-0 flex-1 items-center gap-1 px-1.5 py-1 text-xs group ac-btn"
         :style="{
           fontFamily: 'var(--ac-font-mono)',
           color: 'var(--ac-text-subtle)',
           borderRadius: 'var(--ac-radius-button)',
         }"
+        :title="sessionLabel"
         @click="$emit('toggle:sessionMenu')"
       >
-        <span class="truncate">{{ sessionLabel }}</span>
+        <span class="min-w-0 truncate">{{ sessionLabel }}</span>
         <svg
           class="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity"
           fill="none"
@@ -95,7 +97,7 @@
     </div>
 
     <!-- Connection / Status / Settings -->
-    <div class="flex items-center gap-3">
+    <div class="ml-auto flex flex-none items-center gap-1">
       <!-- Connection Indicator -->
       <div class="flex items-center gap-1.5" :title="connectionText">
         <span
@@ -111,7 +113,7 @@
       <button
         class="p-1 ac-btn ac-hover-text"
         :style="{ color: 'var(--ac-text-subtle)', borderRadius: 'var(--ac-radius-button)' }"
-        title="Open project in VS Code or Terminal"
+        :title="copy.openProject"
         @click="$emit('toggle:openProjectMenu')"
       >
         <svg
@@ -159,6 +161,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 export type ConnectionState = 'ready' | 'connecting' | 'disconnected';
 
@@ -171,6 +174,13 @@ const props = defineProps<{
   /** Brand label to display (e.g., "Claude Code", "Codex") */
   brandLabel?: string;
 }>();
+
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? { backToSessions: '返回会话列表', openProject: '在 VS Code 或终端中打开项目' }
+    : { backToSessions: 'Back to sessions', openProject: 'Open project in VS Code or Terminal' },
+);
 
 defineEmits<{
   'toggle:projectMenu': [];
@@ -195,11 +205,11 @@ const connectionColor = computed(() => {
 const connectionText = computed(() => {
   switch (props.connectionState) {
     case 'ready':
-      return 'Connected';
+      return isChinese.value ? '已连接' : 'Connected';
     case 'connecting':
-      return 'Connecting...';
+      return isChinese.value ? '连接中…' : 'Connecting...';
     default:
-      return 'Disconnected';
+      return isChinese.value ? '未连接' : 'Disconnected';
   }
 });
 </script>

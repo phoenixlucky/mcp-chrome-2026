@@ -173,6 +173,61 @@
   }
 
   /* ========================================
+     CATGIRL
+     ======================================== */
+  .agent-theme[data-agent-theme='catgirl'] {
+    --ac-font-body: ui-rounded, 'Microsoft YaHei', 'PingFang SC', var(--ac-font-sans);
+    --ac-font-heading: ui-rounded, 'Microsoft YaHei', 'PingFang SC', var(--ac-font-sans);
+    --ac-bg: #fff7fb;
+    --ac-bg-pattern: url('../../../assets/catgirl-chat-background.webp');
+    --ac-bg-pattern-size: cover;
+    --ac-header-bg: rgba(255, 247, 251, 0.92);
+    --ac-header-border: #f7d9e8;
+    --ac-surface: #ffffff;
+    --ac-surface-muted: #fff0f7;
+    --ac-surface-inset: #fce7f3;
+    --ac-text: #4a2439;
+    --ac-text-muted: #87546f;
+    --ac-text-subtle: #bd8ba3;
+    --ac-text-placeholder: #c69bb0;
+    --ac-border: #f3cfe0;
+    --ac-border-strong: #eeb6d2;
+    --ac-hover-bg: #ffe8f3;
+    --ac-hover-bg-subtle: #fff4f9;
+    --ac-accent: #eb5b98;
+    --ac-accent-hover: #d94380;
+    --ac-accent-subtle: rgba(235, 91, 152, 0.13);
+    --ac-accent-contrast: #ffffff;
+    --ac-accent-2: #9b7bea;
+    --ac-link: #a8558f;
+    --ac-link-hover: #8f3a75;
+    --ac-selection-bg: #ffd9eb;
+    --ac-selection-text: #7b1f53;
+    --ac-focus-ring: rgba(235, 91, 152, 0.35);
+    --ac-timeline-line: #f3cfe0;
+    --ac-timeline-node: #e9bfd4;
+    --ac-timeline-node-hover: #d58cab;
+    --ac-timeline-node-active: var(--ac-accent);
+    --ac-timeline-node-active-border: var(--ac-accent);
+    --ac-timeline-node-tool: #9b7bea;
+    --ac-timeline-node-pulse-shadow:
+      0 0 0 2px rgba(235, 91, 152, 0.2), 0 0 12px rgba(235, 91, 152, 0.2);
+    --ac-chip-bg: #fff0f7;
+    --ac-chip-text: #653149;
+    --ac-chip-border: #f3cfe0;
+    --ac-code-bg: #fffafd;
+    --ac-code-text: #4a2439;
+    --ac-code-border: #f3cfe0;
+    --ac-scrollbar-thumb: #efbdd5;
+    --ac-scrollbar-thumb-hover: #e596bd;
+    --ac-shadow-card: 0 2px 8px rgba(200, 79, 139, 0.1);
+    --ac-shadow-float: 0 8px 24px rgba(200, 79, 139, 0.14);
+    --ac-radius-card: 16px;
+    --ac-radius-inner: 12px;
+    --ac-radius-button: 10px;
+  }
+
+  /* ========================================
      BLUEPRINT ARCHITECT
      ======================================== */
   .agent-theme[data-agent-theme='blueprint-architect'] {

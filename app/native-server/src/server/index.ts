@@ -99,7 +99,7 @@ export class Server {
         );
         cb(null, allowed);
       },
-      methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,
     });
   }

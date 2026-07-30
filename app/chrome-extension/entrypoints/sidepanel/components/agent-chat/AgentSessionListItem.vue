@@ -51,7 +51,7 @@
               class="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide animate-pulse"
               :style="runningBadgeStyle"
             >
-              Running
+              {{ isChinese ? '执行中' : 'Running' }}
             </span>
           </template>
         </div>
@@ -127,7 +127,7 @@
             v-if="!isEditing"
             class="p-1.5 rounded-md transition-colors cursor-pointer"
             :style="actionButtonStyle"
-            title="Open project"
+            :title="isChinese ? '打开项目' : 'Open project'"
             @click.stop="handleOpenProject"
           >
             <svg
@@ -151,7 +151,7 @@
             v-if="!isEditing"
             class="p-1.5 rounded-md transition-colors cursor-pointer"
             :style="actionButtonStyle"
-            title="Rename"
+            :title="isChinese ? '重命名' : 'Rename'"
             @click.stop="startRename"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,7 +168,7 @@
             v-if="!isEditing"
             class="p-1.5 rounded-md transition-colors cursor-pointer"
             :style="deleteButtonStyle"
-            title="Delete"
+            :title="isChinese ? '删除' : 'Delete'"
             @click.stop="handleDelete"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -190,6 +190,7 @@
 import { ref, computed, nextTick, watch } from 'vue';
 import type { AgentSession } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { WebEditorApplyMeta } from '../../composables/useAgentThreads';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 // =============================================================================
 // Props & Emits
@@ -217,6 +218,7 @@ const emit = defineEmits<{
 const isEditing = ref(false);
 const editingName = ref('');
 const renameInputRef = ref<HTMLInputElement | null>(null);
+const { isChinese } = useAgentLocale();
 
 // =============================================================================
 // Computed: Display Values
@@ -224,7 +226,7 @@ const renameInputRef = ref<HTMLInputElement | null>(null);
 
 const displayName = computed(() => {
   if (props.session.name) return props.session.name;
-  return 'Unnamed Session';
+  return isChinese.value ? '未命名会话' : 'Unnamed Session';
 });
 
 const engineAbbrev = computed(() => {
@@ -260,10 +262,10 @@ const formattedDate = computed(() => {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return isChinese.value ? '刚刚' : 'just now';
+  if (diffMins < 60) return isChinese.value ? `${diffMins} 分钟前` : `${diffMins}m ago`;
+  if (diffHours < 24) return isChinese.value ? `${diffHours} 小时前` : `${diffHours}h ago`;
+  if (diffDays < 7) return isChinese.value ? `${diffDays} 天前` : `${diffDays}d ago`;
   return date.toLocaleDateString();
 });
 
@@ -430,8 +432,9 @@ function cancelRename(): void {
 
 function handleDelete(): void {
   // Simple confirmation to prevent accidental deletion
-  const sessionName = props.session.name || props.session.preview || 'this session';
-  if (confirm(`Delete "${sessionName}"?`)) {
+  const sessionName =
+    props.session.name || props.session.preview || (isChinese.value ? '此会话' : 'this session');
+  if (confirm(isChinese.value ? `删除“${sessionName}”吗？` : `Delete "${sessionName}"?`)) {
     emit('delete', props.session.id);
   }
 }

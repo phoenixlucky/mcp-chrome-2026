@@ -22,7 +22,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search sessions..."
+            :placeholder="copy.searchSessions"
             class="w-full pl-9 pr-3 py-2 text-sm"
             :style="inputStyle"
           />
@@ -35,7 +35,7 @@
           :disabled="isCreating"
           @click="handleNewSession"
         >
-          <span v-if="isCreating">Creating...</span>
+          <span v-if="isCreating">{{ copy.creating }}</span>
           <span v-else class="flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -45,7 +45,7 @@
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            New
+            {{ copy.newSession }}
           </span>
         </button>
       </div>
@@ -59,7 +59,7 @@
         class="flex items-center justify-center py-12"
         :style="{ color: 'var(--ac-text-muted)' }"
       >
-        <span class="text-sm">Loading sessions...</span>
+        <span class="text-sm">{{ copy.loadingSessions }}</span>
       </div>
 
       <!-- Empty State -->
@@ -87,10 +87,10 @@
           </svg>
         </div>
         <div class="text-sm font-medium mb-1" :style="{ color: 'var(--ac-text)' }">
-          {{ searchQuery ? 'No matching sessions' : 'No sessions yet' }}
+          {{ searchQuery ? copy.noMatchingSessions : copy.noSessions }}
         </div>
         <div class="text-xs text-center mb-4" :style="{ color: 'var(--ac-text-muted)' }">
-          {{ searchQuery ? 'Try a different search term' : 'Start a new conversation with AI' }}
+          {{ searchQuery ? copy.tryDifferentSearch : copy.startConversation }}
         </div>
         <button
           v-if="!searchQuery"
@@ -98,7 +98,7 @@
           :style="newButtonStyle"
           @click="handleNewSession"
         >
-          Start New Session
+          {{ copy.startNewSession }}
         </button>
       </div>
 
@@ -133,6 +133,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import type { AgentSession, AgentProject } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 import AgentSessionListItem from './AgentSessionListItem.vue';
 
 // =============================================================================
@@ -170,6 +171,32 @@ const emit = defineEmits<{
 // =============================================================================
 
 const searchQuery = ref('');
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        searchSessions: '搜索会话…',
+        creating: '创建中…',
+        newSession: '新建',
+        loadingSessions: '正在加载会话…',
+        noMatchingSessions: '没有匹配的会话',
+        noSessions: '还没有会话',
+        tryDifferentSearch: '换个关键词试试',
+        startConversation: '开始一段新的对话吧',
+        startNewSession: '新建会话',
+      }
+    : {
+        searchSessions: 'Search sessions...',
+        creating: 'Creating...',
+        newSession: 'New',
+        loadingSessions: 'Loading sessions...',
+        noMatchingSessions: 'No matching sessions',
+        noSessions: 'No sessions yet',
+        tryDifferentSearch: 'Try a different search term',
+        startConversation: 'Start a new conversation with AI',
+        startNewSession: 'Start New Session',
+      },
+);
 
 // =============================================================================
 // Computed

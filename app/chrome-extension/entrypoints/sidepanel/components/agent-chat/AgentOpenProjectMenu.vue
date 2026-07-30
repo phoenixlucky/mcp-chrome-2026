@@ -14,7 +14,7 @@
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Open In
+      {{ copy.openIn }}
     </div>
 
     <!-- VS Code Option -->
@@ -67,7 +67,7 @@
           d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
         />
       </svg>
-      <span class="flex-1">Terminal</span>
+      <span class="flex-1">{{ copy.terminal }}</span>
       <!-- Default indicator -->
       <svg
         v-if="defaultTarget === 'terminal'"
@@ -83,7 +83,9 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import type { OpenProjectTarget } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 defineProps<{
   open: boolean;
@@ -94,6 +96,13 @@ const emit = defineEmits<{
   select: [target: OpenProjectTarget];
   close: [];
 }>();
+
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? { openIn: '打开方式', terminal: '终端' }
+    : { openIn: 'Open In', terminal: 'Terminal' },
+);
 
 function handleSelect(target: OpenProjectTarget): void {
   emit('select', target);

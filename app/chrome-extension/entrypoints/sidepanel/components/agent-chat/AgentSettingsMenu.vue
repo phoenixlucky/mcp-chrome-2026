@@ -191,12 +191,19 @@ const copy = computed(() =>
       },
 );
 
-const themes: { id: AgentThemeId; label: string }[] = [
-  { id: 'warm-editorial', label: THEME_LABELS['warm-editorial'] },
-  { id: 'blueprint-architect', label: THEME_LABELS['blueprint-architect'] },
-  { id: 'zen-journal', label: THEME_LABELS['zen-journal'] },
-  { id: 'neo-pop', label: THEME_LABELS['neo-pop'] },
-  { id: 'dark-console', label: THEME_LABELS['dark-console'] },
-  { id: 'swiss-grid', label: THEME_LABELS['swiss-grid'] },
-];
+const themes = computed<{ id: AgentThemeId; label: string }[]>(() => {
+  const chineseLabels: Record<AgentThemeId, string> = {
+    'warm-editorial': '暖调',
+    'blueprint-architect': '蓝图',
+    'zen-journal': '禅意',
+    'neo-pop': '潮流',
+    catgirl: '猫娘',
+    'dark-console': '深色终端',
+    'swiss-grid': '瑞士网格',
+  };
+  return (Object.keys(THEME_LABELS) as AgentThemeId[]).map((id) => ({
+    id,
+    label: props.locale === 'zh' ? chineseLabels[id] : THEME_LABELS[id],
+  }));
+});
 </script>

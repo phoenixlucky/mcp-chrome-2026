@@ -82,6 +82,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch, provide, inject, onMounted, onUnmounted, type Ref } from 'vue';
 import { WEB_EDITOR_TX_STATE_INJECTION_KEY, type WebEditorTxStateReturn } from '../../composables';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import type {
   ElementChangeSummary,
@@ -118,6 +119,7 @@ function injectTxStateOrThrow(): WebEditorTxStateReturn {
 }
 
 const tx = injectTxStateOrThrow();
+const { isChinese } = useAgentLocale();
 
 // =============================================================================
 // Local State
@@ -165,9 +167,9 @@ const selectedKey = computed(() => tx.selectedElement.value?.elementKey ?? null)
 /** Header label - changes based on whether we have edits or just selection */
 const headerLabel = computed(() => {
   if (hasElements.value) {
-    return 'Web Edits';
+    return isChinese.value ? '页面修改' : 'Web Edits';
   }
-  return 'Selected';
+  return isChinese.value ? '已标记' : 'Selected';
 });
 
 /**
@@ -196,26 +198,28 @@ const summaryText = computed(() => {
   if (sel && !tx.isSelectionInEdits.value) {
     const parts = [`${selTag} selected`];
     if (inc > 0 || exc > 0) {
-      parts.push(`${inc} edit${inc !== 1 ? 's' : ''}`);
+      parts.push(isChinese.value ? `${inc} 项修改` : `${inc} edit${inc !== 1 ? 's' : ''}`);
     }
     return parts.join(' · ');
   }
 
   // Edits only
   if (exc > 0) {
-    return `${inc} included · ${exc} excluded`;
+    return isChinese.value
+      ? `已包含 ${inc} 项 · 已排除 ${exc} 项`
+      : `${inc} included · ${exc} excluded`;
   }
-  return `${inc} element${inc !== 1 ? 's' : ''}`;
+  return isChinese.value ? `${inc} 个元素` : `${inc} element${inc !== 1 ? 's' : ''}`;
 });
 
 const emptyStateText = computed(() => {
   if (viewMode.value === 'exclude') {
-    return 'No excluded elements.';
+    return isChinese.value ? '没有已排除的元素。' : 'No excluded elements.';
   }
   if (excludedCount.value > 0) {
-    return 'All changes are excluded.';
+    return isChinese.value ? '所有修改均已排除。' : 'All changes are excluded.';
   }
-  return 'No changes yet.';
+  return isChinese.value ? '暂时没有修改。' : 'No changes yet.';
 });
 
 // =============================================================================

@@ -70,9 +70,12 @@
             :reasoning-effort="currentReasoningEffort"
             :available-reasoning-efforts="currentAvailableReasoningEfforts"
             :enable-fake-caret="inputPreferences.fakeCaretEnabled.value"
+            :is-marking-page="isMarkingPage"
+            :mark-page-label="copy.markPage"
             @update:model-value="chat.input.value = $event"
             @submit="handleSend"
             @cancel="chat.cancelCurrentRequest()"
+            @page:mark="handlePageMark"
             @attachment:add="handleAttachmentAdd"
             @attachment:remove="attachments.removeAttachment"
             @attachment:drop="attachments.handleDrop"
@@ -197,6 +200,7 @@ import {
   useAgentChatViewRoute,
   useOpenProjectPreference,
   useAgentInputPreferences,
+  useAgentLocale,
   WEB_EDITOR_TX_STATE_INJECTION_KEY,
   AGENT_SERVER_PORT_KEY,
   type AgentThemeId,
@@ -227,21 +231,19 @@ import {
   getCodexReasoningEfforts,
   getDefaultModelForCli,
 } from '@/common/agent-models';
-import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
+import { BACKGROUND_MESSAGE_TYPES, TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
 // Local UI state
-type Locale = 'zh' | 'en';
-const locale = ref<Locale>(localStorage.getItem('agent-chat-locale') === 'en' ? 'en' : 'zh');
+const { locale, setLocale } = useAgentLocale();
 const copy = computed(() =>
   locale.value === 'zh'
-    ? { preview: '预览', composerPlaceholder: '让智能助手帮你编写代码…' }
-    : { preview: 'Preview', composerPlaceholder: 'Ask the assistant to write code...' },
+    ? { preview: '预览', composerPlaceholder: '让智能助手帮你编写代码…', markPage: '标记页面' }
+    : {
+        preview: 'Preview',
+        composerPlaceholder: 'Ask the assistant to write code...',
+        markPage: 'Mark page',
+      },
 );
-function setLocale(next: Locale): void {
-  locale.value = next;
-  localStorage.setItem('agent-chat-locale', next);
-}
-
 const selectedCli = ref('');
 const model = ref('');
 const reasoningEffort = ref<CodexReasoningEffort>('medium');
@@ -366,6 +368,7 @@ const inputPreferences = useAgentInputPreferences();
 // This prevents duplicate listener registration in child components
 const webEditorTxState = useWebEditorTxState();
 provide(WEB_EDITOR_TX_STATE_INJECTION_KEY, webEditorTxState);
+const isMarkingPage = ref(false);
 
 // Provide server port for child components to build attachment URLs
 provide(AGENT_SERVER_PORT_KEY, server.serverPort);
@@ -1097,6 +1100,83 @@ function handleBackToSessions(): void {
 // Web Editor Selection Context
 // =============================================================================
 
+async function handlePageMark(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !/^https?:/i.test(tab.url || '')) {
+    chat.errorMessage.value = '请先打开一个普通网页，再标记页面内容。';
+    return;
+  }
+
+  try {
+    const response = (await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.WEB_EDITOR_TOGGLE,
+    })) as { success?: boolean; active?: boolean; error?: string };
+    if (!response?.success) {
+      chat.errorMessage.value = response?.error || '无法启动页面标记。';
+      return;
+    }
+    isMarkingPage.value = response.active === true;
+  } catch (cause) {
+    chat.errorMessage.value = cause instanceof Error ? cause.message : '无法启动页面标记。';
+  }
+}
+
+watch(
+  () => webEditorTxState.selectedElement.value,
+  (selection) => {
+    if (selection) isMarkingPage.value = false;
+  },
+);
+
+async function readMarkedElementContent(
+  selection: NonNullable<typeof webEditorTxState.selectedElement.value>,
+): Promise<string | null> {
+  const tabId = webEditorTxState.tabId.value;
+  const selectors = selection.locator.selectors.filter(Boolean).slice(0, 5);
+  if (!tabId || selectors.length === 0) return null;
+
+  try {
+    const [tab, frames] = await Promise.all([
+      chrome.tabs.get(tabId),
+      chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        args: [selectors],
+        func: (candidates: string[]) => {
+          for (const selector of candidates) {
+            try {
+              const element = document.querySelector(selector);
+              if (!element) continue;
+              const text =
+                (element as HTMLElement).innerText?.trim() ||
+                element.textContent?.trim() ||
+                element.getAttribute('aria-label') ||
+                element.getAttribute('alt') ||
+                element.getAttribute('title') ||
+                element.outerHTML;
+              return { selector, tagName: element.tagName.toLowerCase(), text };
+            } catch {
+              // Try the next selector candidate.
+            }
+          }
+          return null;
+        },
+      }),
+    ]);
+    const result = frames.find((frame) => frame.result)?.result;
+    if (!result?.text) return null;
+    return [
+      '[MarkedPageContent]',
+      `title: ${tab.title || 'Untitled'}`,
+      `url: ${tab.url || webEditorTxState.selectionPageUrl.value || 'unknown'}`,
+      `tagName: ${result.tagName}`,
+      `selector: ${result.selector}`,
+      `content:\n${result.text.slice(0, 8_000)}`,
+    ].join('\n');
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Build instruction with web editor selection context prepended.
  * This provides AI with element context when user asks to modify selected element.
@@ -1161,6 +1241,43 @@ function buildInstructionWithSelectionContext(userInput: string): string {
   return `${contextLines.join('\n')}\n\n[UserRequest]\n${userInput}`;
 }
 
+function needsCurrentPageSummary(input: string): boolean {
+  return /(总结|概括|摘要|summari[sz]e|summary).*(网页|页面|page|website)|(网页|页面|page|website).*(总结|概括|摘要|summari[sz]e|summary)/i.test(
+    input,
+  );
+}
+
+async function readCurrentPageForSummary(): Promise<{ context?: string; error?: string }> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !/^https?:/i.test(tab.url || '')) {
+    return { error: '请先打开要总结的普通网页。' };
+  }
+
+  try {
+    const ping = await chrome.tabs
+      .sendMessage(tab.id, { action: 'chrome_get_web_content_ping' })
+      .catch(() => null);
+    if (ping?.status !== 'pong') {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['inject-scripts/web-fetcher-helper.js'],
+      });
+    }
+    const response = (await chrome.tabs.sendMessage(tab.id, {
+      action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_TEXT_CONTENT,
+    })) as { success?: boolean; textContent?: string; error?: string };
+    const text = response?.textContent?.replace(/\s+/g, ' ').trim();
+    if (!response?.success || !text) {
+      return { error: response?.error || '未能读取当前网页正文。' };
+    }
+    return {
+      context: `[CurrentWebPageContext]\ntitle: ${tab.title || 'Untitled'}\nurl: ${tab.url}\ncontent:\n${text.slice(0, 20_000)}`,
+    };
+  } catch (cause) {
+    return { error: cause instanceof Error ? cause.message : '读取当前网页失败。' };
+  }
+}
+
 // Attachment handlers
 function handleAttachmentAdd(): void {
   // Create and click a hidden file input
@@ -1209,7 +1326,21 @@ async function handleSend(): Promise<void> {
   // Build instruction with web editor selection context (if any)
   // The UI will show the original messageText, but the actual instruction
   // sent to the server will include element context for AI to understand
-  const instructionWithContext = buildInstructionWithSelectionContext(messageText);
+  let instructionWithContext = buildInstructionWithSelectionContext(messageText);
+  if (selection) {
+    const markedContent = await readMarkedElementContent(selection);
+    if (markedContent) {
+      instructionWithContext = `${markedContent}\n\n${instructionWithContext}`;
+    }
+  }
+  if (needsCurrentPageSummary(messageText)) {
+    const page = await readCurrentPageForSummary();
+    if (!page.context) {
+      chat.errorMessage.value = `无法总结当前网页：${page.error || '网页内容不可用。'}`;
+      return;
+    }
+    instructionWithContext = `${page.context}\n\n${instructionWithContext}`;
+  }
 
   // Use getAttachments() to strip previewUrl and avoid payload bloat
   chat.attachments.value = attachments.getAttachments() ?? [];

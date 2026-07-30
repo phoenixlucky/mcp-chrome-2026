@@ -14,7 +14,7 @@
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Sessions
+      {{ copy.sessions }}
     </div>
 
     <!-- Loading State -->
@@ -23,7 +23,7 @@
       class="px-3 py-4 text-center text-xs"
       :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"
     >
-      Loading sessions...
+      {{ copy.loading }}
     </div>
 
     <!-- Empty State -->
@@ -32,7 +32,7 @@
       class="px-3 py-4 text-center text-xs"
       :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"
     >
-      No sessions yet
+      {{ copy.empty }}
     </div>
 
     <!-- Session List -->
@@ -109,7 +109,7 @@
                 color: 'var(--ac-text-muted, #6e6e6e)',
                 borderRadius: 'var(--ac-radius-button)',
               }"
-              title="Rename session"
+              :title="copy.rename"
               @click.stop="startRename(session)"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +128,7 @@
                 color: 'var(--ac-danger, #dc2626)',
                 borderRadius: 'var(--ac-radius-button)',
               }"
-              title="Delete session"
+              :title="copy.delete"
               @click.stop="handleDeleteSession(session.id)"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,7 +168,7 @@
       :disabled="isCreating"
       @click="handleNewSession"
     >
-      {{ isCreating ? 'Creating...' : '+ New Session' }}
+      {{ isCreating ? copy.creating : copy.newSession }}
     </button>
 
     <!-- Error -->
@@ -179,8 +179,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, computed } from 'vue';
 import type { AgentSession } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 const props = defineProps<{
   open: boolean;
@@ -202,6 +203,28 @@ const emit = defineEmits<{
 const editingSessionId = ref<string | null>(null);
 const editingName = ref('');
 const renameInputRef = ref<HTMLInputElement | null>(null);
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        sessions: '会话',
+        loading: '正在加载会话…',
+        empty: '还没有会话',
+        rename: '重命名会话',
+        delete: '删除会话',
+        creating: '创建中…',
+        newSession: '+ 新建会话',
+      }
+    : {
+        sessions: 'Sessions',
+        loading: 'Loading sessions...',
+        empty: 'No sessions yet',
+        rename: 'Rename session',
+        delete: 'Delete session',
+        creating: 'Creating...',
+        newSession: '+ New Session',
+      },
+);
 
 function getEngineColor(engineName: string): string {
   const colors: Record<string, string> = {
@@ -228,7 +251,7 @@ function getSessionDisplayName(session: AgentSession): string {
   if (session.name) {
     return session.name;
   }
-  return 'Unnamed Session';
+  return isChinese.value ? '未命名会话' : 'Unnamed Session';
 }
 
 function formatDate(dateStr: string): string {
@@ -239,10 +262,10 @@ function formatDate(dateStr: string): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return isChinese.value ? '刚刚' : 'just now';
+  if (diffMins < 60) return isChinese.value ? `${diffMins} 分钟前` : `${diffMins}m ago`;
+  if (diffHours < 24) return isChinese.value ? `${diffHours} 小时前` : `${diffHours}h ago`;
+  if (diffDays < 7) return isChinese.value ? `${diffDays} 天前` : `${diffDays}d ago`;
   return date.toLocaleDateString();
 }
 
@@ -257,7 +280,13 @@ function handleNewSession(): void {
 }
 
 function handleDeleteSession(sessionId: string): void {
-  if (confirm('Delete this session? This cannot be undone.')) {
+  if (
+    confirm(
+      isChinese.value
+        ? '确定删除此会话吗？此操作无法撤销。'
+        : 'Delete this session? This cannot be undone.',
+    )
+  ) {
     emit('session:delete', sessionId);
   }
 }

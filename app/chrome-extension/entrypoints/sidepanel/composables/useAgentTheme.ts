@@ -10,14 +10,16 @@ export type AgentThemeId =
   | 'blueprint-architect'
   | 'zen-journal'
   | 'neo-pop'
+  | 'catgirl'
   | 'dark-console'
   | 'swiss-grid';
 
 /** Storage key for persisting theme preference */
 const STORAGE_KEY_THEME = 'agentTheme';
+const STORAGE_KEY_CATGIRL_MIGRATION = 'agentThemeCatgirlMigrated';
 
 /** Default theme when none is set */
-const DEFAULT_THEME: AgentThemeId = 'warm-editorial';
+const DEFAULT_THEME: AgentThemeId = 'catgirl';
 
 /** Valid theme IDs for validation */
 const VALID_THEMES: AgentThemeId[] = [
@@ -25,6 +27,7 @@ const VALID_THEMES: AgentThemeId[] = [
   'blueprint-architect',
   'zen-journal',
   'neo-pop',
+  'catgirl',
   'dark-console',
   'swiss-grid',
 ];
@@ -35,6 +38,7 @@ export const THEME_LABELS: Record<AgentThemeId, string> = {
   'blueprint-architect': 'Blueprint',
   'zen-journal': 'Zen',
   'neo-pop': 'Neo-Pop',
+  catgirl: 'Catgirl',
   'dark-console': 'Console',
   'swiss-grid': 'Swiss',
 };
@@ -82,10 +86,19 @@ export function useAgentTheme(): UseAgentTheme {
    */
   async function initTheme(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get(STORAGE_KEY_THEME);
+      const result = await chrome.storage.local.get([
+        STORAGE_KEY_THEME,
+        STORAGE_KEY_CATGIRL_MIGRATION,
+      ]);
       const stored = result[STORAGE_KEY_THEME];
 
-      if (isValidTheme(stored)) {
+      if (stored === 'warm-editorial' && !result[STORAGE_KEY_CATGIRL_MIGRATION]) {
+        theme.value = DEFAULT_THEME;
+        await chrome.storage.local.set({
+          [STORAGE_KEY_THEME]: DEFAULT_THEME,
+          [STORAGE_KEY_CATGIRL_MIGRATION]: true,
+        });
+      } else if (isValidTheme(stored)) {
         theme.value = stored;
       } else {
         // Use preloaded or default
@@ -154,10 +167,15 @@ export async function preloadAgentTheme(): Promise<AgentThemeId> {
   let themeId: AgentThemeId = DEFAULT_THEME;
 
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY_THEME);
+    const result = await chrome.storage.local.get([
+      STORAGE_KEY_THEME,
+      STORAGE_KEY_CATGIRL_MIGRATION,
+    ]);
     const stored = result[STORAGE_KEY_THEME];
 
-    if (isValidTheme(stored)) {
+    if (stored === 'warm-editorial' && !result[STORAGE_KEY_CATGIRL_MIGRATION]) {
+      themeId = DEFAULT_THEME;
+    } else if (isValidTheme(stored)) {
       themeId = stored;
     }
   } catch (error) {

@@ -2,7 +2,7 @@
   <div ref="shellRef" class="h-full flex flex-col overflow-hidden relative">
     <!-- Header -->
     <header
-      class="flex-none px-5 py-3 flex items-center justify-between z-20"
+      class="flex-none px-3 py-2 flex items-center justify-between z-20"
       :style="{
         backgroundColor: 'var(--ac-header-bg)',
         borderBottom: 'var(--ac-border-width) solid var(--ac-header-border)',
@@ -62,8 +62,8 @@
             color: 'var(--ac-danger)',
             borderRadius: 'var(--ac-radius-button)',
           }"
-          aria-label="Dismiss error"
-          title="Dismiss"
+          :aria-label="copy.dismiss"
+          :title="copy.dismiss"
           @click="emit('error:dismiss')"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,7 +88,7 @@
           <span
             :title="`Input: ${usage.inputTokens.toLocaleString()}, Output: ${usage.outputTokens.toLocaleString()}`"
           >
-            {{ formatTokens(usage.inputTokens + usage.outputTokens) }} tokens
+            {{ formatTokens(usage.inputTokens + usage.outputTokens) }} {{ copy.tokens }}
           </span>
           <span class="opacity-50">·</span>
           <span
@@ -105,8 +105,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import type { AgentUsageStats } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 defineProps<{
   errorMessage?: string | null;
@@ -119,6 +120,13 @@ const emit = defineEmits<{
   /** Emitted when user clicks dismiss button on error banner */
   'error:dismiss': [];
 }>();
+
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? { dismiss: '关闭错误提示', tokens: '个词元' }
+    : { dismiss: 'Dismiss error', tokens: 'tokens' },
+);
 
 /**
  * Format token count for display (e.g., 1.2k, 3.5M)

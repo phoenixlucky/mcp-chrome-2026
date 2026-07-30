@@ -8,6 +8,7 @@ export { useAgentProjects } from './useAgentProjects';
 export { useAgentSessions } from './useAgentSessions';
 export { useAttachments, type AttachmentWithPreview } from './useAttachments';
 export { useAgentTheme, preloadAgentTheme, THEME_LABELS } from './useAgentTheme';
+export { useAgentLocale } from './useAgentLocale';
 export { useAgentThreads, AGENT_SERVER_PORT_KEY } from './useAgentThreads';
 export { useWebEditorTxState, WEB_EDITOR_TX_STATE_INJECTION_KEY } from './useWebEditorTxState';
 export { useAgentChatViewRoute } from './useAgentChatViewRoute';
@@ -17,6 +18,7 @@ export type { UseAgentChatOptions } from './useAgentChat';
 export type { UseAgentProjectsOptions } from './useAgentProjects';
 export type { UseAgentSessionsOptions } from './useAgentSessions';
 export type { AgentThemeId, UseAgentTheme } from './useAgentTheme';
+export type { AgentLocale } from './useAgentLocale';
 export type {
   AgentThread,
   TimelineItem,

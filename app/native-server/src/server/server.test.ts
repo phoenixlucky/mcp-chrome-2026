@@ -35,4 +35,14 @@ describe('服务器测试', () => {
     expect(response.body.mcp).toMatchObject({ activeSessions: 0, streamableHttp: true });
     expect(response.body.tools.count).toBeGreaterThan(0);
   });
+
+  test('智能助手设置允许跨域 PUT 保存', async () => {
+    const response = await supertest(Server.getInstance().server)
+      .options('/agent/settings/deepseek')
+      .set('Origin', 'chrome-extension://test')
+      .set('Access-Control-Request-Method', 'PUT')
+      .expect(204);
+
+    expect(response.headers['access-control-allow-methods']).toContain('PUT');
+  });
 });

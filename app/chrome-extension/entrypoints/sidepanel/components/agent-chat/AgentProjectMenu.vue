@@ -14,7 +14,7 @@
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Projects
+      {{ copy.projects }}
     </div>
 
     <!-- Project List -->
@@ -65,7 +65,7 @@
       :disabled="isPicking"
       @click="$emit('project:new')"
     >
-      {{ isPicking ? 'Selecting...' : '+ New Project' }}
+      {{ isPicking ? copy.selecting : copy.newProject }}
     </button>
 
     <!-- Divider -->
@@ -79,12 +79,14 @@
       class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
       :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }"
     >
-      Settings
+      {{ copy.settings }}
     </div>
 
     <!-- CLI Selection -->
     <div class="px-3 py-2 flex items-center gap-2">
-      <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"> CLI </span>
+      <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
+        copy.cli
+      }}</span>
       <select
         :value="selectedCli"
         class="flex-1 px-2 py-1 text-xs rounded"
@@ -96,7 +98,7 @@
         }"
         @change="handleCliChange"
       >
-        <option value="">Auto</option>
+        <option value="">{{ copy.auto }}</option>
         <option v-for="e in engines" :key="e.name" :value="e.name">
           {{ e.name }}
         </option>
@@ -105,7 +107,9 @@
 
     <!-- Model Selection -->
     <div class="px-3 py-2 flex items-center gap-2">
-      <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"> Model </span>
+      <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">{{
+        copy.model
+      }}</span>
       <select
         :value="normalizedModel"
         class="flex-1 px-2 py-1 text-xs rounded"
@@ -118,7 +122,7 @@
         :disabled="isModelDisabled"
         @change="handleModelChange"
       >
-        <option value="">Default</option>
+        <option value="">{{ copy.default }}</option>
         <option v-for="m in availableModels" :key="m.id" :value="m.id">
           {{ m.name }}
         </option>
@@ -129,7 +133,7 @@
     <div v-if="showReasoningEffortOption" class="px-3 py-2">
       <div class="flex items-center gap-2">
         <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }">
-          Effort
+          {{ copy.effort }}
         </span>
         <select
           :value="normalizedReasoningEffort"
@@ -148,17 +152,14 @@
         </select>
       </div>
       <p class="text-[10px] mt-1 ml-14" :style="{ color: 'var(--ac-text-subtle, #a8a29e)' }">
-        Applies to new sessions. Edit existing session in Session Settings.
+        {{ copy.effortHint }}
       </p>
     </div>
 
     <!-- CCR Option (Claude Code Router) - only shown when Claude CLI is selected -->
     <div v-if="showCcrOption" class="px-3 py-2 flex items-center gap-2">
       <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"> CCR </span>
-      <label
-        class="flex items-center gap-2 cursor-pointer"
-        title="Use Claude Code Router for API routing"
-      >
+      <label class="flex items-center gap-2 cursor-pointer" :title="copy.ccrHint">
         <input
           type="checkbox"
           :checked="useCcr"
@@ -169,7 +170,7 @@
           @change="handleCcrChange"
         />
         <span class="text-xs" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
-          Use Claude Code Router
+          {{ copy.useCcr }}
         </span>
       </label>
     </div>
@@ -177,10 +178,7 @@
     <!-- Chrome MCP Option - only shown when Claude or Codex CLI is selected -->
     <div v-if="showChromeMcpOption" class="px-3 py-2 flex items-center gap-2">
       <span class="text-xs w-12" :style="{ color: 'var(--ac-text-muted, #6e6e6e)' }"> MCP </span>
-      <label
-        class="flex items-center gap-2 cursor-pointer"
-        title="Enable local 猫娘 Chrome MCP Server integration"
-      >
+      <label class="flex items-center gap-2 cursor-pointer" :title="copy.mcpHint">
         <input
           type="checkbox"
           :checked="enableChromeMcp"
@@ -191,7 +189,7 @@
           @change="handleChromeMcpChange"
         />
         <span class="text-xs" :style="{ color: 'var(--ac-text, #1a1a1a)' }">
-          Enable 猫娘 Chrome MCP Server
+          {{ copy.enableMcp }}
         </span>
       </label>
     </div>
@@ -208,7 +206,7 @@
         :disabled="isSaving"
         @click="handleSave"
       >
-        {{ isSaving ? 'Saving...' : 'Save Settings' }}
+        {{ isSaving ? copy.saving : copy.saveSettings }}
       </button>
     </div>
 
@@ -232,6 +230,7 @@ import {
   getCodexReasoningEfforts,
   type ModelDefinition,
 } from '@/common/agent-models';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 const props = defineProps<{
   open: boolean;
@@ -258,6 +257,47 @@ const emit = defineEmits<{
   'chrome-mcp:update': [enableChromeMcp: boolean];
   save: [];
 }>();
+
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        projects: '项目',
+        selecting: '选择中…',
+        newProject: '+ 新建项目',
+        settings: '设置',
+        cli: '命令行',
+        auto: '自动',
+        model: '模型',
+        default: '默认',
+        effort: '推理强度',
+        effortHint: '仅应用于新会话；已有会话请在会话设置中修改。',
+        ccrHint: '使用 Claude Code Router 进行 API 路由',
+        useCcr: '使用 Claude Code Router',
+        mcpHint: '启用本地 Chrome MCP Server 集成',
+        enableMcp: '启用 Chrome MCP Server',
+        saving: '保存中…',
+        saveSettings: '保存设置',
+      }
+    : {
+        projects: 'Projects',
+        selecting: 'Selecting...',
+        newProject: '+ New Project',
+        settings: 'Settings',
+        cli: 'CLI',
+        auto: 'Auto',
+        model: 'Model',
+        default: 'Default',
+        effort: 'Effort',
+        effortHint: 'Applies to new sessions. Edit existing session in Session Settings.',
+        ccrHint: 'Use Claude Code Router for API routing',
+        useCcr: 'Use Claude Code Router',
+        mcpHint: 'Enable local 猫娘 Chrome MCP Server integration',
+        enableMcp: 'Enable 猫娘 Chrome MCP Server',
+        saving: 'Saving...',
+        saveSettings: 'Save Settings',
+      },
+);
 
 // Get available models based on selected CLI
 const availableModels = computed<ModelDefinition[]>(() => {
