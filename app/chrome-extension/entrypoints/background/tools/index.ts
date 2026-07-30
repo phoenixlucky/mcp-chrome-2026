@@ -1,9 +1,8 @@
 import { createErrorResponse } from '@/common/tool-handler';
 import { ERROR_MESSAGES } from '@/common/constants';
 import * as browserTools from './browser';
-import { flowRunTool, listPublishedFlowsTool } from './record-replay';
 
-const tools = { ...browserTools, flowRunTool, listPublishedFlowsTool } as any;
+const tools = browserTools as any;
 const toolsMap = new Map(Object.values(tools).map((tool: any) => [tool.name, tool]));
 
 /**
@@ -120,11 +119,8 @@ function operationDetail(param: ToolCallParam): string {
       return `处理下载${compact(args.action) ? `：${compact(args.action)}` : ''}`;
     case 'chrome_computer':
       return `模拟 ${compact(args.action) || '鼠标'} 操作：${target(args)}`;
-    case 'chrome_inject_script':
     case 'chrome_javascript':
       return '执行页面脚本（内容已隐藏）';
-    case 'chrome_send_command_to_inject_script':
-      return '向页面脚本发送命令';
     case 'chrome_console':
       return '读取页面控制台';
     case 'chrome_userscript':
@@ -141,10 +137,6 @@ function operationDetail(param: ToolCallParam): string {
       return '读取当前标签页地址';
     case 'chrome_get_scroll_state':
       return '读取滚动状态';
-    case 'record_replay_flow_run':
-      return '运行录制流程';
-    case 'record_replay_list_published':
-      return '读取已发布流程';
     default:
       return '';
   }
@@ -260,9 +252,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_handle_dialog: '处理对话框',
           chrome_handle_download: '处理下载',
           chrome_computer: '模拟操作',
-          chrome_inject_script: '注入脚本',
           chrome_javascript: '执行脚本',
-          chrome_send_command_to_inject_script: '发送脚本命令',
           chrome_console: '读取控制台',
           chrome_userscript: '管理用户脚本',
           performance_start_trace: '开始性能追踪',
@@ -271,8 +261,6 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_gif_recorder: 'GIF 录制',
           chrome_get_tab_url: '读取地址',
           chrome_get_scroll_state: '读取滚动状态',
-          record_replay_flow_run: '运行流程',
-          record_replay_list_published: '读取流程',
         };
         let target: Element | null = null;
         try {

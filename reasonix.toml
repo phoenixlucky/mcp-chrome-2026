@@ -37,7 +37,7 @@ enabled = true   # language server tools; servers launch lazily when used
 # disabled_skills = ["review"]   # hide noisy or unwanted skills
 
 [permissions]
-allow = ["Bash(git remote:*)", "Bash(git branch:*)", "explore", "Bash(git stash:*)", "Bash(Get-Content \"E:\\home\\mcp-chrome-2026\\package.json\" -Raw | Select-String -Pattern \"@modelcontextprotocol\" -Context 0,2)", "Bash(Get-Content \"E:\\home\\mcp-chrome-2026\\node_modules\\@modelcontextprotocol\\sdk\\package.json\" -Raw | Select-String -Pattern '\"version\"')"]
+allow = ["Bash(git remote:*)", "Bash(git branch:*)", "explore", "Bash(git stash:*)", "Bash(Get-Content \"E:\\home\\mcp-chrome-2026\\package.json\" -Raw | Select-String -Pattern \"@modelcontextprotocol\" -Context 0,2)", "Bash(Get-Content \"E:\\home\\mcp-chrome-2026\\node_modules\\@modelcontextprotocol\\sdk\\package.json\" -Raw | Select-String -Pattern '\"version\"')", "Bash=cd packages/shared && cat package.json | python -c \"import sys,json; d=json.load(sys.stdin); print(json.dumps({k:d.get(k) for k in ['scripts','main','types']}, indent=2))\"", "Bash=npm whoami 2>$null; if (-not $?) { Write-Host \"NOT_LOGGED_IN\" }"]
 [sandbox]
 # Confine tool blast radius. File-writers (write_file/edit_file/multi_edit/move_file)
 # may only write under workspace_root (empty = current dir) and allow_write extras.

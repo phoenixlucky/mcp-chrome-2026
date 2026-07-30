@@ -5,7 +5,6 @@
 
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
-import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { ContentIndexer } from '@/utils/content-indexer';
 import { LIMITS, ERROR_MESSAGES } from '@/common/constants';
 import type { SearchResult } from '@/utils/vector-database';
@@ -24,7 +23,7 @@ interface VectorSearchResult {
  * Tool for vectorized search of tab content using semantic similarity
  */
 class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
-  name = TOOL_NAMES.BROWSER.SEARCH_TABS_CONTENT;
+  name = 'search_tabs_content';
   private contentIndexer: ContentIndexer;
   private isInitialized = false;
 
@@ -48,14 +47,21 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
     }
   }
 
-  async execute(args: { query: string }): Promise<ToolResult> {
+  async execute(args: { query: string; tabIds: number[]; limit?: number }): Promise<ToolResult> {
     try {
       const { query } = args;
+      const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 20);
 
       if (!query || query.trim().length === 0) {
         return createErrorResponse(
           ERROR_MESSAGES.INVALID_PARAMETERS + ': Query parameter is required and cannot be empty',
         );
+      }
+      if (!Array.isArray(args.tabIds) || args.tabIds.length === 0 || args.tabIds.length > 5) {
+        return createErrorResponse('tabIds must contain between 1 and 5 tab IDs');
+      }
+      if (!args.tabIds.every((tabId) => Number.isInteger(tabId) && tabId >= 0)) {
+        return createErrorResponse('tabIds must contain valid tab IDs');
       }
 
       console.log(`VectorSearchTabsContentTool: Starting vector search with query: "${query}"`);
@@ -78,8 +84,20 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
         }
       }
 
-      // Execute vector search, get more results for deduplication
-      const searchResults = await this.contentIndexer.searchContent(query, 50);
+      const tabs = await Promise.all(args.tabIds.map((tabId) => chrome.tabs.get(tabId)));
+      const indexableTabs = tabs.filter(
+        (tab) =>
+          typeof tab.id === 'number' &&
+          !!tab.url &&
+          !/^(?:chrome|chrome-extension|edge|about|file):/.test(tab.url),
+      );
+      if (indexableTabs.length === 0) {
+        return createErrorResponse('None of the requested tabs can be indexed');
+      }
+      await this.ensureTabsIndexed(indexableTabs);
+
+      // Get extra chunks before deduplicating results by tab.
+      const searchResults = await this.contentIndexer.searchContent(query, limit * 5);
 
       // Convert search results format
       const vectorSearchResults = this.convertSearchResults(searchResults);
@@ -87,17 +105,17 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
       // Deduplicate by tab, keep only the highest similarity fragment per tab
       const deduplicatedResults = this.deduplicateByTab(vectorSearchResults);
 
-      // Sort by similarity and get top 10 results
+      // Sort by similarity and return the requested number of tabs.
       const topResults = deduplicatedResults
         .sort((a, b) => b.semanticScore - a.semanticScore)
-        .slice(0, 10);
+        .slice(0, limit);
 
       // Get index statistics
       const stats = this.contentIndexer.getStats();
 
       const result = {
         success: true,
-        totalTabsSearched: stats.totalTabs,
+        totalTabsSearched: indexableTabs.length,
         matchedTabsCount: topResults.length,
         vectorSearchEnabled: true,
         indexStats: {

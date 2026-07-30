@@ -26,14 +26,14 @@
 
 ---
 
-## 📢 v1.6.3 更新内容
+## 📢 v1.6.4 更新内容
 
 > **SPA 内容提取 + 截图 WebP 压缩** — 专为 X/Reddit 等动态网站设计。
 >
 > - 🌐 **`chrome_spa_fetch` 工具** — 自动导航、等待 JS 渲染、滚动触发懒加载、Readability 文本提取，解决 SPA 动态内容获取难题
 > - 🖼️ **截图 PNG → WebP** — 体积缩减 73%–91%，大幅降低传输开销
 > - 📖 **新增 TOOLS 文档** — 中英文工具 API 参考
-> - 🔧 所有包版本统一为 v1.6.3
+> - 🔧 所有包版本统一为 v1.6.4
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -110,7 +110,11 @@ pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 mcp-chrome-bridge start
 
 # 或克隆仓库后用脚本
+# Windows
 start-server.bat
+
+# macOS / Linux
+bash start-server.sh
 ```
 
 服务将在 `http://127.0.0.1:12306/mcp` 监听。
@@ -191,13 +195,24 @@ start-server.bat
 | ✅ 已实现                                           | 🎯 规划中                                         |
 | --------------------------------------------------- | ------------------------------------------------- |
 | **40+ MCP 工具** — 浏览器全能力覆盖                 | **认证与权限管理** — API Key / OAuth 接入         |
-| **Streamable HTTP + STDIO 双传输**                  | **工具级 ACL** — 精细控制每个客户端的工具权限     |
+| **Streamable HTTP + STDIO 双传输**                  |                                                   |
 | **智能助手** — Claude / Codex / DeepSeek            | **实时监控仪表盘** — Web 面板查看调用、性能、错误 |
-| **语义搜索** — 向量数据库 + 本地嵌入                | **跨平台安装体验** — macOS / Linux 一键脚本       |
+| **语义搜索** — 向量数据库 + 本地嵌入                |                                                   |
 | **SIMD 加速** — WASM 引擎 4-8× 更快                 |                                                   |
 | **工作流录制与回放** — v3 统一架构（v2 已完全迁移） |                                                   |
 | **可视化编辑器** — 拖拽搭建工作流                   |                                                   |
 | **Native Messaging 自动注册**                       |                                                   |
+| **跨平台安装体验** — macOS / Linux 一键脚本         |                                                   |
+
+### 🔧 待开发工具
+
+| 工具                                    | 说明                                                                          |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `chrome_create_tab`                     | 新建标签页 — 支持 url、windowId、激活/后台打开、是否固定                      |
+| `chrome_hover`                          | 悬停元素 — 通过 CSS/XPath 选择器触发 hover，展开 dropdown / tooltip / submenu |
+| `chrome_print_to_pdf`                   | 打印为 PDF — 调用 CDP Page.printToPDF，支持页面/自定义纸张尺寸                |
+| `chrome_get_element_info`               | 元素信息查询 — 获取指定元素的 attributes、computed styles、bounding rect      |
+| `chrome_storage_get` / `set` / `delete` | 存储管理 — 读写 localStorage / sessionStorage                                 |
 
 ---
 

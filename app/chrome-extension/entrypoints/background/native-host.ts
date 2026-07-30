@@ -2,7 +2,7 @@ import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { NATIVE_HOST, STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/common/constants';
 import { handleCallTool } from './tools';
-import { getFlow, listFlows } from './record-replay-v3/public-api';
+import { enqueueFlow, getFlow, listFlows } from './record-replay-v3/public-api';
 import { acquireKeepalive } from './keepalive-manager';
 
 const LOG_PREFIX = '[NativeHost]';
@@ -412,6 +412,27 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
           nativePort?.postMessage({
             responseToRequestId: requestId,
             payload: { status: 'success', items },
+          });
+        } catch (error: any) {
+          nativePort?.postMessage({
+            responseToRequestId: requestId,
+            payload: { status: 'error', error: error?.message || String(error) },
+          });
+        }
+      } else if (message.type === 'rr_run_flow' && message.requestId) {
+        const requestId = message.requestId;
+        try {
+          const { flowId, args } = message.payload || {};
+          if (typeof flowId !== 'string' || !flowId) throw new Error('flowId is required');
+          const flow = await getFlow(flowId);
+          if (!flow) throw new Error(`Flow not found: ${flowId}`);
+          const result = await enqueueFlow(flowId, args);
+          nativePort?.postMessage({
+            responseToRequestId: requestId,
+            payload: {
+              status: 'success',
+              data: { content: [{ type: 'text', text: JSON.stringify(result) }], isError: false },
+            },
           });
         } catch (error: any) {
           nativePort?.postMessage({

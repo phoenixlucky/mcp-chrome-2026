@@ -5,11 +5,6 @@ const { execute } = vi.hoisted(() => ({ execute: vi.fn() }));
 vi.mock('@/entrypoints/background/tools/browser', () => ({
   navigateTool: { name: 'chrome_navigate', execute },
 }));
-vi.mock('@/entrypoints/background/tools/record-replay', () => ({
-  flowRunTool: { name: 'record_replay_flow_run', execute: vi.fn() },
-  listPublishedFlowsTool: { name: 'record_replay_list_published', execute: vi.fn() },
-}));
-
 import { handleCallTool } from '@/entrypoints/background/tools';
 
 describe('stale tab operation overlay', () => {

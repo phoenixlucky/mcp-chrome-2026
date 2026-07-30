@@ -26,14 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.6.3
+## 📢 What's New in v1.6.4
 
 > **SPA content extraction + WebP screenshot compression** — Designed for X, Reddit, and other dynamic websites.
 >
 > - 🌐 **`chrome_spa_fetch` tool** — Auto-navigate, wait for JS render, trigger lazy-load on scroll, Readability text extraction. Solves SPA dynamic content challenges
 > - 🖼️ **PNG → WebP screenshots** — Size reduced by 73%–91%, dramatically lowering transfer overhead
 > - 📖 **New TOOLS docs** — Tool API reference in both Chinese and English
-> - 🔧 All packages bumped to v1.6.3
+> - 🔧 All packages bumped to v1.6.4
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -110,7 +110,11 @@ pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 mcp-chrome-bridge start
 
 # Or via the startup script after cloning
+# Windows
 start-server.bat
+
+# macOS / Linux
+bash start-server.sh
 ```
 
 The service listens on `http://127.0.0.1:12306/mcp`.
@@ -191,13 +195,24 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 | ✅ Done                                                                       | 🎯 Planned                                                   |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | **40+ MCP Tools** — Full browser API coverage                                 | **Auth & Permission** — API Key / OAuth                      |
-| **Streamable HTTP + STDIO** — Dual transport                                  | **Tool-level ACL** — Per-client tool permissions             |
+| **Streamable HTTP + STDIO** — Dual transport                                  |                                                              |
 | **Smart Assistant** — Claude / Codex / DeepSeek                               | **Monitoring Dashboard** — Web panel for calls, perf, errors |
-| **Semantic Search** — Vector DB + local embeddings                            | **Cross-platform Setup** — macOS / Linux one-click scripts   |
+| **Semantic Search** — Vector DB + local embeddings                            |                                                              |
 | **SIMD Acceleration** — WASM engine 4-8× faster                               |                                                              |
 | **Workflow Recording & Replay** — v3 unified architecture (v2 fully migrated) |                                                              |
 | **Visual Editor** — Drag-and-drop workflow builder                            |                                                              |
 | **Native Messaging Auto-registration**                                        |                                                              |
+| **Cross-platform Setup** — macOS / Linux one-click scripts                    |                                                              |
+
+### 🔧 Planned Tools
+
+| Tool                                    | Description                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `chrome_create_tab`                     | Create new tab — supports url, windowId, active/background, pinned                             |
+| `chrome_hover`                          | Hover element — trigger hover state via CSS/XPath selector for dropdowns / tooltips / submenus |
+| `chrome_print_to_pdf`                   | Print to PDF — uses CDP Page.printToPDF, supports page/custom paper sizes                      |
+| `chrome_get_element_info`               | Element info query — get attributes, computed styles, bounding rect for a selector             |
+| `chrome_storage_get` / `set` / `delete` | Storage management — read/write localStorage / sessionStorage                                  |
 
 ---
 

@@ -187,9 +187,9 @@ const handleToolCall = async (
           args,
           () =>
             nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-              { name: 'record_replay_flow_run', args: flowArgs },
-              NativeMessageType.CALL_TOOL,
-              timeoutFor('record_replay_flow_run', args),
+              flowArgs,
+              'rr_run_flow',
+              timeoutFor('flow.run', args),
               signal,
             ),
           () => {

@@ -131,13 +131,11 @@ export const fillHandler: ActionHandler<'fill'> = {
     // Scroll element into view (best-effort)
     if (cssSelector) {
       try {
-        await handleCallTool({
-          name: TOOL_NAMES.BROWSER.INJECT_SCRIPT,
-          args: {
-            type: 'MAIN',
-            jsScript: `try{var el=document.querySelector(${JSON.stringify(cssSelector)});if(el){el.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'});}}catch(e){}`,
-            tabId,
-          },
+        await chrome.scripting.executeScript({
+          target: { tabId, ...(typeof frameId === 'number' ? { frameIds: [frameId] } : {}) },
+          world: 'MAIN',
+          args: [cssSelector],
+          func: (selector) => document.querySelector(selector)?.scrollIntoView({ block: 'center' }),
         });
       } catch {
         // Ignore scroll errors
@@ -148,14 +146,16 @@ export const fillHandler: ActionHandler<'fill'> = {
     if (located?.ref) {
       await sendMessageToTab(tabId, { action: 'focusByRef', ref: located.ref }, frameId);
     } else if (cssSelector) {
-      await handleCallTool({
-        name: TOOL_NAMES.BROWSER.INJECT_SCRIPT,
-        args: {
-          type: 'MAIN',
-          jsScript: `try{var el=document.querySelector(${JSON.stringify(cssSelector)});if(el&&el.focus){el.focus();}}catch(e){}`,
-          tabId,
-        },
-      });
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId, ...(typeof frameId === 'number' ? { frameIds: [frameId] } : {}) },
+          world: 'MAIN',
+          args: [cssSelector],
+          func: (selector) => (document.querySelector(selector) as HTMLElement | null)?.focus(),
+        });
+      } catch {
+        // Ignore focus errors; fill still has its own selector fallback.
+      }
     }
 
     // Execute fill

@@ -147,7 +147,7 @@ export class ContentIndexer {
         return;
       }
 
-      const pageKey = `${tab.url}_${tab.title}`;
+      const pageKey = `${tabId}:${tab.url}_${tab.title}`;
       if (this.options.skipDuplicates && this.indexedPages.has(pageKey)) {
         console.log(`ContentIndexer: Skipping tab ${tabId} - already indexed`);
         return;
@@ -262,7 +262,7 @@ export class ContentIndexer {
       await this.vectorDatabase.removeTabDocuments(tabId);
 
       for (const pageKey of this.indexedPages) {
-        if (pageKey.includes(`tab_${tabId}_`)) {
+        if (pageKey.startsWith(`${tabId}:`)) {
           this.indexedPages.delete(pageKey);
         }
       }

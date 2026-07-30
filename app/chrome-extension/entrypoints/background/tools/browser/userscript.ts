@@ -1,6 +1,5 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
-import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { ExecutionWorld, STORAGE_KEYS } from '@/common/constants';
 import { cdpSessionManager } from '@/utils/cdp-session-manager';
 
@@ -220,6 +219,10 @@ function matchUrl(patterns: string[], url?: string): boolean {
   return false;
 }
 
+function shouldApply(record: UserscriptRecord, url?: string): boolean {
+  return matchUrl(record.matches, url) && !matchUrl(record.excludes, url);
+}
+
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   return tabs[0] || null;
@@ -343,8 +346,8 @@ async function reinjectForTab(tabId: number, url?: string) {
   if (flag) return;
   const all = await loadAllRecords();
   for (const rec of Object.values(all)) {
-    if (!rec.enabled || !rec.persist) continue;
-    if (!matchUrl(rec.matches, url)) continue;
+    if (!rec.enabled || !rec.persist || rec.runAt !== 'document_idle') continue;
+    if (!shouldApply(rec, url)) continue;
     try {
       if (rec.sourceType === 'CSS') {
         await insertCssToTab(tabId, rec.script, rec.allFrames);
@@ -388,7 +391,7 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
   const all = await loadAllRecords();
   for (const rec of Object.values(all)) {
     if (!rec.enabled || !rec.persist || rec.runAt !== 'document_start') continue;
-    if (!matchUrl(rec.matches, tab.url)) continue;
+    if (!shouldApply(rec, tab.url)) continue;
     try {
       if (rec.sourceType === 'CSS') await insertCssToTab(details.tabId, rec.script, rec.allFrames);
       else await injectJsPersistent(details.tabId, rec.script, rec.world, rec.allFrames);
@@ -409,7 +412,7 @@ chrome.webNavigation.onDOMContentLoaded.addListener(async (details) => {
   const all = await loadAllRecords();
   for (const rec of Object.values(all)) {
     if (!rec.enabled || !rec.persist || rec.runAt !== 'document_end') continue;
-    if (!matchUrl(rec.matches, tab.url)) continue;
+    if (!shouldApply(rec, tab.url)) continue;
     try {
       if (rec.sourceType === 'CSS') await insertCssToTab(details.tabId, rec.script, rec.allFrames);
       else await injectJsPersistent(details.tabId, rec.script, rec.world, rec.allFrames);
@@ -420,7 +423,7 @@ chrome.webNavigation.onDOMContentLoaded.addListener(async (details) => {
 });
 
 class UserscriptTool extends BaseBrowserToolExecutor {
-  name = TOOL_NAMES.BROWSER.USERSCRIPT;
+  name = 'chrome_userscript';
 
   async execute(params: UserscriptArgsBase): Promise<ToolResult> {
     try {
@@ -458,6 +461,9 @@ class UserscriptTool extends BaseBrowserToolExecutor {
   }
 
   private async create(args: CreateArgs): Promise<ToolResult> {
+    if (typeof args.script !== 'string' || !args.script.trim()) {
+      return createErrorResponse('script is required and cannot be empty');
+    }
     const active = await getActiveTab();
     if (!active || !active.id) return createErrorResponse('No active tab found');
     const currentUrl = active.url;
@@ -519,12 +525,34 @@ class UserscriptTool extends BaseBrowserToolExecutor {
       await saveAllRecords(all);
     }
 
+    if (emergency) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              id,
+              status: 'queued',
+              warnings: ['USERSCRIPTS_DISABLED is ON, injection skipped'],
+            }),
+          },
+        ],
+        isError: false,
+      };
+    }
+
     // Apply to current tab immediately if matches
     let applied = false;
     const fallbacks: string[] = [];
     let cspBlocked = false;
     const t0 = performance.now();
     try {
+      if (!shouldApply(record, currentUrl)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ id, status: 'queued' }) }],
+          isError: false,
+        };
+      }
       if (mode === 'once') {
         // Once: CDP evaluate in page
         await cdpSessionManager.withSession(active.id!, 'userscript_once', async () => {

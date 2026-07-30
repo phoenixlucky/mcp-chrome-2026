@@ -1,5 +1,6 @@
 export { navigateTool, closeTabsTool, switchTabTool } from './common';
 export { windowTool } from './window';
+export { cookieGetTool, cookieSetTool, cookieDeleteTool } from './cookie';
 export { vectorSearchTabsContentTool as searchTabsContentTool } from './vector-search';
 export { screenshotTool } from './screenshot';
 export { webFetcherTool, getInteractiveElementsTool } from './web-fetcher';
@@ -14,7 +15,6 @@ export { networkCaptureStartTool, networkCaptureStopTool } from './network-captu
 export { keyboardTool } from './keyboard';
 export { historyTool } from './history';
 export { bookmarkSearchTool, bookmarkAddTool, bookmarkDeleteTool } from './bookmark';
-export { injectScriptTool, sendCommandToInjectScriptTool } from './inject-script';
 export { javascriptTool } from './javascript';
 export { consoleTool } from './console';
 export { fileUploadTool } from './file-upload';

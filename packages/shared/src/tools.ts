@@ -3,7 +3,6 @@ import { type Tool } from '@modelcontextprotocol/sdk/types.js';
 export const TOOL_NAMES = {
   BROWSER: {
     GET_WINDOWS_AND_TABS: 'get_windows_and_tabs',
-    SEARCH_TABS_CONTENT: 'search_tabs_content',
     NAVIGATE: 'chrome_navigate',
     SCREENSHOT: 'chrome_screenshot',
     CLOSE_TABS: 'chrome_close_tabs',
@@ -26,8 +25,6 @@ export const TOOL_NAMES = {
     BOOKMARK_SEARCH: 'chrome_bookmark_search',
     BOOKMARK_ADD: 'chrome_bookmark_add',
     BOOKMARK_DELETE: 'chrome_bookmark_delete',
-    INJECT_SCRIPT: 'chrome_inject_script',
-    SEND_COMMAND_TO_INJECT_SCRIPT: 'chrome_send_command_to_inject_script',
     JAVASCRIPT: 'chrome_javascript',
     CONSOLE: 'chrome_console',
     FILE_UPLOAD: 'chrome_upload_file',
@@ -36,6 +33,9 @@ export const TOOL_NAMES = {
     HANDLE_DIALOG: 'chrome_handle_dialog',
     HANDLE_DOWNLOAD: 'chrome_handle_download',
     USERSCRIPT: 'chrome_userscript',
+    COOKIE_GET: 'chrome_cookie_get',
+    COOKIE_SET: 'chrome_cookie_set',
+    COOKIE_DELETE: 'chrome_cookie_delete',
     PERFORMANCE_START_TRACE: 'performance_start_trace',
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
@@ -50,10 +50,6 @@ export const TOOL_NAMES = {
     SPA_FETCH: 'chrome_spa_fetch',
     CLICK_AND_WAIT: 'chrome_click_and_wait',
   },
-  RECORD_REPLAY: {
-    FLOW_RUN: 'record_replay_flow_run',
-    LIST_PUBLISHED: 'record_replay_list_published',
-  },
 };
 
 export const TOOL_SCHEMAS: Tool[] = [
@@ -64,6 +60,91 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {},
       required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.COOKIE_GET,
+    description: 'Get cookies, optionally filtered by URL, domain, name, or cookie store.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'Only return cookies that apply to this URL.' },
+        domain: { type: 'string', description: 'Only return cookies for this domain.' },
+        name: { type: 'string', description: 'Only return cookies with this name.' },
+        storeId: {
+          type: 'string',
+          description: 'Only return cookies from this browser profile store.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.COOKIE_SET,
+    description:
+      'Set a browser cookie, including HttpOnly, Secure, SameSite, path, and expiration settings.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'A URL on the cookie domain; required by Chrome to set the cookie.',
+        },
+        name: { type: 'string', description: 'Cookie name.' },
+        value: { type: 'string', description: 'Cookie value.' },
+        domain: {
+          type: 'string',
+          description: 'Optional cookie domain; it must match the URL host.',
+        },
+        path: { type: 'string', description: 'Cookie path (default: /).' },
+        secure: { type: 'boolean', description: 'Send only over HTTPS.' },
+        httpOnly: { type: 'boolean', description: 'Hide from page JavaScript.' },
+        sameSite: {
+          type: 'string',
+          enum: ['no_restriction', 'lax', 'strict', 'unspecified'],
+          description: 'SameSite policy.',
+        },
+        expirationDate: {
+          type: 'number',
+          description: 'Unix timestamp in seconds; omit for a session cookie.',
+        },
+        storeId: { type: 'string', description: 'Browser profile store ID.' },
+      },
+      required: ['url', 'name', 'value'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.COOKIE_DELETE,
+    description: 'Delete a cookie identified by its URL and name.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'A URL matching the cookie to delete.' },
+        name: { type: 'string', description: 'Cookie name.' },
+        storeId: { type: 'string', description: 'Browser profile store ID.' },
+      },
+      required: ['url', 'name'],
+    },
+  },
+  {
+    name: 'search_tabs_content',
+    description:
+      'Search the readable content of explicitly selected browser tabs using semantic similarity. Selected tabs are indexed on demand.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The text or topic to search for.' },
+        tabIds: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'One to five tab IDs to search.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of matching tabs to return (default: 10, max: 20).',
+        },
+      },
+      required: ['query', 'tabIds'],
     },
   },
   // {
@@ -1065,6 +1146,39 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['requests'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_INTERACTIVE_ELEMENTS,
+    description:
+      '查找页面上可点击和交互的元素。支持按文本模糊搜索、CSS 选择器过滤和元素类型过滤。返回元素的 CSS 选择器、类型、文本、可见性和可点击性等信息。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description: '目标标签页 ID。如果省略，使用当前活动标签页。',
+        },
+        textQuery: {
+          type: 'string',
+          description: '在可交互元素中模糊搜索的文本。',
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS 选择器，用于过滤可交互元素。',
+        },
+        includeCoordinates: {
+          type: 'boolean',
+          description: '是否在响应中包含元素坐标（默认：true）。',
+        },
+        types: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            '要包含的可交互元素类型列表。例如：["button", "input", "select", "a", "checkbox", "radio"]。如果省略则包含所有类型。',
+        },
+      },
+      required: [],
     },
   },
   {

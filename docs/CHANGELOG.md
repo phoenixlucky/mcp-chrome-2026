@@ -5,16 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v1.6.3] - 2026-07-30
+## [v1.6.4] - 2026-07-30
 
 ### Added
 
-- **`chrome_spa_fetch` 工具** — 专为 X（推特）、Reddit 等 SPA 网站设计的内容提取工具。自动导航、等待 JS 渲染、滚动触发懒加载、Readability 文本提取。解决普通 HTTP 请求无法获取 SPA 动态内容的问题。
-- 新增 `docs/TOOLS.md`、`docs/TOOLS_zh.md` 中文档。
+- **`chrome_get_interactive_elements`** — 恢复该工具（之前被遗漏）。
+- 删除 `start-server-npm.bat`（与 `start-server.bat` 功能重复）。
+- README 路线图更新：移除「工具级 ACL」，新增「待开发工具」计划表。
 
 ### Changed
 
-- 所有包版本统一为 v1.6.3。
+- 版本统一为 v1.6.4。
 
 ## [v1.6.2] - 2026-07-30
 

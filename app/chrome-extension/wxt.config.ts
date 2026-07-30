@@ -52,6 +52,7 @@ export default defineConfig({
       'debugger',
       'history',
       'bookmarks',
+      'cookies',
       'offscreen',
       'storage',
       'declarativeNetRequest',
