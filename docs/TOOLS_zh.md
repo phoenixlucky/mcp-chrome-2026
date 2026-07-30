@@ -9,7 +9,7 @@
 - [网络监控](#网络监控)
 - [内容分析](#内容分析)
 - [交互操作](#交互操作)
-- [数据管理](#数据管理)
+- [数据管理](#数据管理)（含 Cookie 管理）
 - [抓取与提取](#抓取与提取)
 - [响应格式](#响应格式)
 
@@ -326,7 +326,7 @@
 }
 ```
 
-### `chrome_get_interactive_elements`
+### `chrome_get_interactive_elements` (since v1.6.4)
 
 查找页面上可点击和交互的元素。
 
@@ -488,6 +488,74 @@
 ```json
 {
   "url": "https://example.com"
+}
+```
+
+### `chrome_cookie_get` (since v1.6.4)
+
+获取浏览器 Cookie，支持按 URL、域名、名称或存储分区过滤。
+
+**参数**：
+
+- `url` (字符串，可选)：仅返回此 URL 适用的 Cookie
+- `domain` (字符串，可选)：仅返回此域名的 Cookie
+- `name` (字符串，可选)：仅返回此名称的 Cookie
+- `storeId` (字符串，可选)：仅返回此浏览器存储分区的 Cookie
+
+**示例**：
+
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+### `chrome_cookie_set` (since v1.6.4)
+
+设置浏览器 Cookie。支持 HttpOnly、Secure、SameSite、path 和过期时间等选项。
+
+**参数**：
+
+- `url` (字符串，必需)：Cookie 所属域名的 URL；Chrome 要求此参数
+- `name` (字符串，必需)：Cookie 名称
+- `value` (字符串，必需)：Cookie 值
+- `domain` (字符串，可选)：Cookie 域名，必须匹配 URL 主机
+- `path` (字符串，可选)：Cookie 路径（默认：`/`）
+- `secure` (布尔值，可选)：仅通过 HTTPS 发送
+- `httpOnly` (布尔值，可选)：禁止页面 JavaScript 访问
+- `sameSite` (字符串，可选)：`no_restriction` | `lax` | `strict` | `unspecified`
+- `expirationDate` (数字，可选)：Unix 时间戳（秒），省略则为会话 Cookie
+- `storeId` (字符串，可选)：浏览器存储分区 ID
+
+**示例**：
+
+```json
+{
+  "url": "https://example.com",
+  "name": "session_id",
+  "value": "abc123",
+  "domain": "example.com",
+  "secure": true,
+  "sameSite": "lax"
+}
+```
+
+### `chrome_cookie_delete` (since v1.6.4)
+
+删除指定的浏览器 Cookie。
+
+**参数**：
+
+- `url` (字符串，必需)：要删除 Cookie 的 URL
+- `name` (字符串，必需)：Cookie 名称
+- `storeId` (字符串，可选)：浏览器存储分区 ID
+
+**示例**：
+
+```json
+{
+  "url": "https://example.com",
+  "name": "session_id"
 }
 ```
 
@@ -784,7 +852,7 @@
 }
 ```
 
-### `chrome_spa_fetch`
+### `chrome_spa_fetch` (since v1.6.3)
 
 专为 SPA（单页应用）网站设计的内容提取工具。自动导航到目标 URL，等待 JavaScript 渲染完成，多次滚动到底部触发懒加载，然后提取完整的渲染文本。解决 X（推特）、Reddit 等 JS 重型页面用普通 HTTP 请求无法获取内容的问题。
 

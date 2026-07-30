@@ -9,7 +9,7 @@ Complete reference for all available tools and their parameters.
 - [Network Monitoring](#network-monitoring)
 - [Content Analysis](#content-analysis)
 - [Interaction](#interaction)
-- [Data Management](#data-management)
+- [Data Management](#data-management) (includes Cookie Management)
 - [Scraping & Extraction](#scraping--extraction)
 - [Response Format](#response-format)
 
@@ -350,9 +350,9 @@ Extract HTML or text content from web pages.
 }
 ```
 
-### `chrome_get_interactive_elements` (deprecated)
+### `chrome_get_interactive_elements` (since v1.6.4)
 
-Replaced by `chrome_read_page` as the primary discovery tool. The `read_page` implementation will automatically fallback to the interactive-elements logic when the accessibility tree is unavailable or too sparse. This tool is no longer listed via ListTools and is kept only for backward compatibility.
+Replaced by `chrome_read_page` as the primary discovery tool. The `read_page` implementation will automatically fallback to the interactive-elements logic when the accessibility tree is unavailable or too sparse. This tool is kept for backward compatibility.
 
 ## 🎯 Interaction
 
@@ -543,7 +543,73 @@ Delete bookmarks by ID or URL.
 }
 ```
 
-## 🕸️ Scraping & Extraction
+### `chrome_cookie_get` (since v1.6.4)
+
+Get browser cookies, optionally filtered by URL, domain, name, or cookie store.
+
+**Parameters**:
+
+- `url` (string, optional): Only return cookies that apply to this URL
+- `domain` (string, optional): Only return cookies for this domain
+- `name` (string, optional): Only return cookies with this name
+- `storeId` (string, optional): Only return cookies from this browser profile store
+
+**Example**:
+
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+### `chrome_cookie_set` (since v1.6.4)
+
+Set a browser cookie, including HttpOnly, Secure, SameSite, path, and expiration settings.
+
+**Parameters**:
+
+- `url` (string, required): A URL on the cookie domain; required by Chrome to set the cookie
+- `name` (string, required): Cookie name
+- `value` (string, required): Cookie value
+- `domain` (string, optional): Cookie domain; it must match the URL host
+- `path` (string, optional): Cookie path (default: `/`)
+- `secure` (boolean, optional): Send only over HTTPS
+- `httpOnly` (boolean, optional): Hide from page JavaScript
+- `sameSite` (string, optional): `no_restriction` | `lax` | `strict` | `unspecified`
+- `expirationDate` (number, optional): Unix timestamp in seconds; omit for a session cookie
+- `storeId` (string, optional): Browser profile store ID
+
+**Example**:
+
+```json
+{
+  "url": "https://example.com",
+  "name": "session_id",
+  "value": "abc123",
+  "domain": "example.com",
+  "secure": true,
+  "sameSite": "lax"
+}
+```
+
+### `chrome_cookie_delete` (since v1.6.4)
+
+Delete a cookie identified by its URL and name.
+
+**Parameters**:
+
+- `url` (string, required): A URL matching the cookie to delete
+- `name` (string, required): Cookie name
+- `storeId` (string, optional): Browser profile store ID
+
+**Example**:
+
+```json
+{
+  "url": "https://example.com",
+  "name": "session_id"
+}
+```
 
 ### `chrome_get_tab_url`
 
@@ -760,7 +826,7 @@ Extract structured data from a web page using CSS selectors. The core tool for w
 }
 ```
 
-### `chrome_spa_fetch`
+### `chrome_spa_fetch` (since v1.6.3)
 
 A dedicated content extraction tool for SPAs (Single Page Applications). Automatically navigates to a URL, waits for JavaScript rendering, scrolls to trigger lazy-loaded content, then extracts the full rendered text. Solves the problem of fetching content from JS-heavy sites like X/Twitter and Reddit where plain HTTP requests return an empty shell.
 

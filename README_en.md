@@ -158,9 +158,9 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 | 📷 **Screenshots**        |   1   | Element-level, full-page, custom viewport                                             |
 | 🌐 **Network Monitoring** |   4   | Request capture (webRequest / CDP), custom HTTP                                       |
 | 📝 **Content Analysis**   |   4   | Semantic search, HTML/text extraction, interactive element detection, console capture |
-| 🖱️ **Interaction**        |   3   | Click, fill forms, keyboard input                                                     |
-| 📑 **Data Management**    |   4   | History search, bookmark CRUD                                                         |
-| 📡 **Scraping**           |  7+   | Scroll, wait, structured extraction, Readability, SPA content fetch, click-and-wait   |
+| 🖱️ **Interaction**        |   4   | Click, fill forms, keyboard input, computer operations                                |
+| 📑 **Data Management**    |   7   | History search, bookmark CRUD, Cookie management (v1.6.4)                             |
+| 📡 **Scraping**           |  8+   | Scroll, wait, structured extraction, Readability, SPA fetch (v1.6.3), click-and-wait  |
 
 📖 Full API reference: [中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
