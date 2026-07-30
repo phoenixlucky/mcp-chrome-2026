@@ -94,10 +94,11 @@ export class DeepSeekEngine implements AgentEngine {
       ctx.emit({ type: 'message', data: message });
     };
 
-    const consume = (line: string): void => {
-      if (!line.startsWith('data:')) return;
+    const consume = (line: string): boolean => {
+      if (!line.startsWith('data:')) return false;
       const data = line.slice(5).trim();
-      if (!data || data === '[DONE]') return;
+      if (!data) return false;
+      if (data === '[DONE]') return true;
       let chunk: DeepSeekChunk;
       try {
         chunk = JSON.parse(data) as DeepSeekChunk;
@@ -105,21 +106,29 @@ export class DeepSeekEngine implements AgentEngine {
         throw new Error('DeepSeek API returned malformed stream data.');
       }
       const delta = chunk.choices?.[0]?.delta;
-      if (!delta) return;
+      if (!delta) return false;
       if (delta.reasoning_content) reasoning += delta.reasoning_content;
       if (delta.content) answer += delta.content;
       emit(false);
+      return false;
     };
 
-    while (true) {
+    let receivedDone = false;
+    while (!receivedDone) {
       const { done, value } = await reader.read();
       pending += decoder.decode(value, { stream: !done });
       const lines = pending.split(/\r?\n/);
       pending = lines.pop() ?? '';
-      for (const line of lines) consume(line);
+      for (const line of lines) {
+        if (consume(line)) {
+          receivedDone = true;
+          break;
+        }
+      }
       if (done) break;
     }
-    if (pending) consume(pending);
+    if (!receivedDone && pending) receivedDone = consume(pending);
+    if (receivedDone) await reader.cancel().catch(() => undefined);
     emit(true);
   }
 }

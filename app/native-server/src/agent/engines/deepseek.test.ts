@@ -11,13 +11,13 @@ const originalApiKey = process.env.DEEPSEEK_API_KEY;
 const originalDbFile = process.env.CHROME_MCP_AGENT_DB_FILE;
 let testDbDir = '';
 
-function streamResponse(chunks: string[]): Response {
+function streamResponse(chunks: string[], keepOpen = false): Response {
   const encoder = new TextEncoder();
   return new Response(
     new ReadableStream({
       start(controller) {
         for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
-        controller.close();
+        if (!keepOpen) controller.close();
       },
     }),
     { status: 200 },
@@ -82,6 +82,20 @@ describe('DeepSeekEngine', () => {
       isStreaming: false,
       isFinal: true,
     });
+  });
+
+  test('finishes when [DONE] arrives even if the provider keeps the connection open', async () => {
+    process.env.DEEPSEEK_API_KEY = 'test-key';
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(streamResponse(['data: [DONE]\n\n'], true));
+
+    await expect(
+      Promise.race([
+        run().promise,
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('stream did not finish')), 50),
+        ),
+      ]),
+    ).resolves.toBeUndefined();
   });
 
   test('uses the API key saved from the extension before the environment variable', async () => {
