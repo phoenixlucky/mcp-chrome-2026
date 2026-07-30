@@ -1241,16 +1241,21 @@ function buildInstructionWithSelectionContext(userInput: string): string {
   return `${contextLines.join('\n')}\n\n[UserRequest]\n${userInput}`;
 }
 
-function needsCurrentPageSummary(input: string): boolean {
-  return /(总结|概括|摘要|summari[sz]e|summary).*(网页|页面|page|website)|(网页|页面|page|website).*(总结|概括|摘要|summari[sz]e|summary)/i.test(
-    input,
+function needsCurrentPageContext(input: string): boolean {
+  return (
+    /(总结|概括|摘要|summari[sz]e|summary).*(网页|页面|page|website)|(网页|页面|page|website).*(总结|概括|摘要|summari[sz]e|summary)/i.test(
+      input,
+    ) ||
+    /(?:帮我|请|麻烦)?\s*(?:看(?:看|一下|下)?|分析(?:分析|一下|下)?|解读|评估|诊断|review|analy[sz]e)/i.test(
+      input,
+    )
   );
 }
 
-async function readCurrentPageForSummary(): Promise<{ context?: string; error?: string }> {
+async function readCurrentPageForContext(): Promise<{ context?: string; error?: string }> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !/^https?:/i.test(tab.url || '')) {
-    return { error: '请先打开要总结的普通网页。' };
+    return { error: '请先打开要查看的普通网页。' };
   }
 
   try {
@@ -1333,10 +1338,14 @@ async function handleSend(): Promise<void> {
       instructionWithContext = `${markedContent}\n\n${instructionWithContext}`;
     }
   }
-  if (needsCurrentPageSummary(messageText)) {
-    const page = await readCurrentPageForSummary();
+  if (
+    !selection &&
+    attachments.attachments.value.length === 0 &&
+    needsCurrentPageContext(messageText)
+  ) {
+    const page = await readCurrentPageForContext();
     if (!page.context) {
-      chat.errorMessage.value = `无法总结当前网页：${page.error || '网页内容不可用。'}`;
+      chat.errorMessage.value = `无法读取当前网页：${page.error || '网页内容不可用。'}`;
       return;
     }
     instructionWithContext = `${page.context}\n\n${instructionWithContext}`;
