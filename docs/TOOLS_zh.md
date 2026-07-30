@@ -15,7 +15,7 @@
 
 ## 📊 浏览器管理
 
-### `get_windows_and_tabs`
+### `get_windows_and_tabs`（上线时间：2025-06-09）
 
 列出当前打开的所有浏览器窗口和标签页。
 
@@ -43,7 +43,7 @@
 }
 ```
 
-### `chrome_navigate`
+### `chrome_navigate`（上线时间：2025-06-09）
 
 导航到指定 URL，可选择控制视口。
 
@@ -65,7 +65,7 @@
 }
 ```
 
-### `chrome_close_tabs`
+### `chrome_close_tabs`（上线时间：2025-06-09）
 
 关闭指定的标签页或窗口。
 
@@ -83,7 +83,7 @@
 }
 ```
 
-### `chrome_switch_tab`
+### `chrome_switch_tab`（上线时间：2025-07-24）
 
 切换到指定的浏览器标签页。
 
@@ -101,7 +101,7 @@
 }
 ```
 
-### `chrome_go_back_or_forward`
+### `chrome_go_back_or_forward`（上线时间：2025-06-09）
 
 浏览器历史导航。
 
@@ -121,7 +121,7 @@
 
 ## 📸 截图和视觉
 
-### `chrome_screenshot`
+### `chrome_screenshot`（上线时间：2025-06-09）
 
 使用各种选项进行高级截图。
 
@@ -161,7 +161,7 @@
 
 ## 🌐 网络监控
 
-### `chrome_network_capture_start`
+### `chrome_network_capture_start`（上线时间：2025-06-09）
 
 使用 webRequest API 开始捕获网络请求。
 
@@ -182,7 +182,7 @@
 }
 ```
 
-### `chrome_network_capture_stop`
+### `chrome_network_capture_stop`（上线时间：2025-06-09）
 
 停止网络捕获并返回收集的数据。
 
@@ -210,7 +210,7 @@
 }
 ```
 
-### `chrome_network_debugger_start`
+### `chrome_network_debugger_start`（上线时间：2025-06-09）
 
 使用 Chrome Debugger API 开始捕获（包含响应体）。
 
@@ -218,11 +218,11 @@
 
 - `url` (字符串，可选)：要导航并捕获的 URL
 
-### `chrome_network_debugger_stop`
+### `chrome_network_debugger_stop`（上线时间：2025-06-09）
 
 停止调试器捕获并返回包含响应体的数据。
 
-### `chrome_network_request`
+### `chrome_network_request`（上线时间：2025-06-09）
 
 发送自定义 HTTP 请求。
 
@@ -246,7 +246,7 @@
 }
 ```
 
-### `chrome_block_images`
+### `chrome_block_images`（上线时间：2026-07-17）
 
 通过 CDP 阻止标签页中的图片 HTTP 请求。适合在导航或刷新前调用，以节省带宽、加速页面加载。
 
@@ -265,7 +265,7 @@
 
 ## 🔍 内容分析
 
-### `search_tabs_content`
+### `search_tabs_content`（上线时间：2025-06-09）
 
 跨浏览器标签页的 AI 驱动语义搜索。
 
@@ -307,7 +307,7 @@
 }
 ```
 
-### `chrome_get_web_content`
+### `chrome_get_web_content`（上线时间：2025-06-09）
 
 从网页提取 HTML 或文本内容。
 
@@ -326,7 +326,7 @@
 }
 ```
 
-### `chrome_get_interactive_elements` (since v1.6.4)
+### `chrome_get_interactive_elements`（上线时间：2025-06-09；since v1.6.4）
 
 查找页面上可点击和交互的元素。
 
@@ -352,7 +352,7 @@
 
 ## 🎯 交互操作
 
-### `chrome_click_element`
+### `chrome_click_element`（上线时间：2025-06-09）
 
 使用 CSS 选择器点击元素。
 
@@ -369,7 +369,7 @@
 }
 ```
 
-### `chrome_fill_or_select`
+### `chrome_fill_or_select`（上线时间：2025-06-09）
 
 填充表单字段或选择选项。
 
@@ -388,7 +388,7 @@
 }
 ```
 
-### `chrome_keyboard`
+### `chrome_keyboard`（上线时间：2025-06-09）
 
 模拟键盘输入和快捷键。
 
@@ -410,7 +410,7 @@
 
 ## 📚 数据管理
 
-### `chrome_history`
+### `chrome_history`（上线时间：2025-06-09）
 
 使用过滤器搜索浏览器历史记录。
 
@@ -432,7 +432,7 @@
 }
 ```
 
-### `chrome_bookmark_search`
+### `chrome_bookmark_search`（上线时间：2025-06-09）
 
 按关键词搜索书签。
 
@@ -452,7 +452,7 @@
 }
 ```
 
-### `chrome_bookmark_add`
+### `chrome_bookmark_add`（上线时间：2025-06-09）
 
 添加支持文件夹的新书签。
 
@@ -474,7 +474,7 @@
 }
 ```
 
-### `chrome_bookmark_delete`
+### `chrome_bookmark_delete`（上线时间：2025-06-09）
 
 按 ID 或 URL 删除书签。
 
@@ -491,7 +491,7 @@
 }
 ```
 
-### `chrome_cookie_get` (since v1.6.4)
+### `chrome_cookie_get`（上线时间：2026-07-30；since v1.6.4）
 
 获取浏览器 Cookie，支持按 URL、域名、名称或存储分区过滤。
 
@@ -510,7 +510,7 @@
 }
 ```
 
-### `chrome_cookie_set` (since v1.6.4)
+### `chrome_cookie_set`（上线时间：2026-07-30；since v1.6.4）
 
 设置浏览器 Cookie。支持 HttpOnly、Secure、SameSite、path 和过期时间等选项。
 
@@ -540,7 +540,7 @@
 }
 ```
 
-### `chrome_cookie_delete` (since v1.6.4)
+### `chrome_cookie_delete`（上线时间：2026-07-30；since v1.6.4）
 
 删除指定的浏览器 Cookie。
 
@@ -561,7 +561,7 @@
 
 ## 🕸️ 抓取与提取
 
-### `chrome_get_tab_url`
+### `chrome_get_tab_url`（上线时间：2026-07-15）
 
 获取浏览器标签页的当前 URL 和标题。当只需要当前 URL 时，比 `get_windows_and_tabs` 更轻量快速。
 
@@ -590,7 +590,7 @@
 }
 ```
 
-### `chrome_scroll`
+### `chrome_scroll`（上线时间：2026-07-15）
 
 滚动页面或可滚动容器，支持多种滚动模式。
 
@@ -636,7 +636,7 @@
 }
 ```
 
-### `chrome_get_scroll_state`
+### `chrome_get_scroll_state`（上线时间：2026-07-17）
 
 获取页面或可滚动容器的原生滚动状态。在滚动前后调用，判断是否到达底部或顶部，适合懒加载页面分步滚动控制。
 
@@ -666,7 +666,7 @@
 }
 ```
 
-### `chrome_wait`
+### `chrome_wait`（上线时间：2026-07-15）
 
 等待 DOM 元素或 JavaScript 条件变为真。以可配置的间隔轮询页面，超时不抛异常，返回 `{ found: false }`。
 
@@ -721,7 +721,7 @@
 }
 ```
 
-### `chrome_extract`
+### `chrome_extract`（上线时间：2026-07-15）
 
 使用 CSS 选择器从网页提取结构化数据，是网页抓取的核心工具。支持嵌套字段提取、8 种提取模式、同源 iframe 定位和可配置限制。
 
@@ -780,7 +780,7 @@
 }
 ```
 
-### `chrome_get_page_text`
+### `chrome_get_page_text`（上线时间：2026-07-15）
 
 使用 Readability 从页面提取可读的主文章内容。返回干净文本、文章 HTML 和元数据（标题、摘要、作者、站点名称、语言、长度等）。
 
@@ -813,7 +813,7 @@
 }
 ```
 
-### `chrome_click_and_wait`
+### `chrome_click_and_wait`（上线时间：2026-07-15）
 
 点击 CSS 选择器指定的元素，然后等待另一个选择器达到指定状态。将 `click` 和 `wait` 合二为一，简化交互流程。
 
@@ -852,7 +852,7 @@
 }
 ```
 
-### `chrome_spa_fetch` (since v1.6.3)
+### `chrome_spa_fetch`（上线时间：2026-07-29；since v1.6.3）
 
 专为 SPA（单页应用）网站设计的内容提取工具。自动导航到目标 URL，等待 JavaScript 渲染完成，多次滚动到底部触发懒加载，然后提取完整的渲染文本。解决 X（推特）、Reddit 等 JS 重型页面用普通 HTTP 请求无法获取内容的问题。
 

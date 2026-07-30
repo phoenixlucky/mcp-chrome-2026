@@ -43,6 +43,7 @@
           <summary>
             <code>{{ tool.name }}</code>
             <span>{{ descriptionFor(tool) }}</span>
+            <small class="tool-launch-date">{{ copy.launchDate }}{{ launchDateFor(tool) }}</small>
           </summary>
           <div v-if="getProperties(tool).length" class="tool-params">
             <div v-for="[name, schema] in getProperties(tool)" :key="name" class="tool-param">
@@ -86,6 +87,7 @@ const messages = {
     required: '必填',
     noParameters: '无参数',
     empty: '没有匹配的工具',
+    launchDate: '上线时间：',
   },
   en: {
     back: 'Back',
@@ -97,10 +99,56 @@ const messages = {
     required: 'required',
     noParameters: 'No parameters',
     empty: 'No matching tools',
+    launchDate: 'Launched: ',
   },
 } as const;
 
 const copy = computed(() => messages[locale.value]);
+
+// MCP catalog launch dates, based on the first release that exposed each tool.
+const launchDates: Record<string, string> = {
+  search_tabs_content: '2025-06-09',
+  get_windows_and_tabs: '2025-06-09',
+  chrome_cookie_get: '2026-07-30',
+  chrome_cookie_set: '2026-07-30',
+  chrome_cookie_delete: '2026-07-30',
+  performance_start_trace: '2025-10-10',
+  performance_stop_trace: '2025-10-10',
+  performance_analyze_insight: '2025-10-10',
+  chrome_read_page: '2025-10-09',
+  chrome_computer: '2025-10-09',
+  chrome_navigate: '2025-06-09',
+  chrome_screenshot: '2025-06-09',
+  chrome_close_tabs: '2025-06-09',
+  chrome_switch_tab: '2025-07-24',
+  chrome_get_web_content: '2025-06-09',
+  chrome_network_request: '2025-06-09',
+  chrome_network_capture: '2025-12-25',
+  chrome_block_images: '2026-07-17',
+  chrome_handle_download: '2025-10-13',
+  chrome_history: '2025-06-09',
+  chrome_bookmark_search: '2025-06-09',
+  chrome_bookmark_add: '2025-06-09',
+  chrome_bookmark_delete: '2025-06-09',
+  chrome_javascript: '2025-12-24',
+  chrome_click_element: '2025-06-09',
+  chrome_fill_or_select: '2025-06-09',
+  chrome_request_element_selection: '2025-12-29',
+  chrome_get_interactive_elements: '2025-06-09',
+  chrome_keyboard: '2025-06-09',
+  chrome_console: '2025-06-22',
+  chrome_upload_file: '2025-08-08',
+  chrome_handle_dialog: '2025-10-09',
+  chrome_gif_recorder: '2025-12-24',
+  chrome_get_page_text: '2026-07-15',
+  chrome_spa_fetch: '2026-07-29',
+  chrome_get_tab_url: '2026-07-15',
+  chrome_get_scroll_state: '2026-07-17',
+  chrome_scroll: '2026-07-15',
+  chrome_wait: '2026-07-15',
+  chrome_extract: '2026-07-15',
+  chrome_click_and_wait: '2026-07-15',
+};
 
 const zhDescriptions: Record<string, string> = {
   get_windows_and_tabs: '获取当前打开的全部浏览器窗口和标签页。',
@@ -295,6 +343,7 @@ const zhParameterDescriptions: Record<string, string> = {
 
 const descriptionFor = (tool: Tool) =>
   locale.value === 'zh' ? (zhDescriptions[tool.name] ?? tool.description) : tool.description;
+const launchDateFor = (tool: Tool) => launchDates[tool.name] ?? '—';
 const parameterDescriptionFor = (tool: Tool, name: string, schema: PropertySchema) =>
   locale.value === 'zh'
     ? (zhToolParameterDescriptions[`${tool.name}.${name}`] ??
@@ -393,7 +442,8 @@ const isRequired = (tool: Tool, name: string) => (tool.inputSchema.required || [
   cursor: pointer;
 }
 .tool-card summary span,
-.tool-param small {
+.tool-param small,
+.tool-launch-date {
   color: var(--ac-text-subtle, #78716c);
   font-size: 12px;
 }

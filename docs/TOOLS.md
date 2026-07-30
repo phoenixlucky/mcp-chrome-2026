@@ -15,7 +15,7 @@ Complete reference for all available tools and their parameters.
 
 ## 📊 Browser Management
 
-### `get_windows_and_tabs`
+### `get_windows_and_tabs` (Launched: 2025-06-09)
 
 List all currently open browser windows and tabs.
 
@@ -43,7 +43,7 @@ List all currently open browser windows and tabs.
 }
 ```
 
-### `chrome_navigate`
+### `chrome_navigate` (Launched: 2025-06-09)
 
 Navigate to a URL with optional viewport control.
 
@@ -67,7 +67,7 @@ Navigate to a URL with optional viewport control.
 }
 ```
 
-### `chrome_close_tabs`
+### `chrome_close_tabs` (Launched: 2025-06-09)
 
 Close specific tabs or windows.
 
@@ -85,7 +85,7 @@ Close specific tabs or windows.
 }
 ```
 
-### `chrome_switch_tab`
+### `chrome_switch_tab` (Launched: 2025-07-24)
 
 Switch to a specific browser tab.
 
@@ -103,7 +103,7 @@ Switch to a specific browser tab.
 }
 ```
 
-### `chrome_go_back_or_forward`
+### `chrome_go_back_or_forward` (Launched: 2025-06-09)
 
 Navigate browser history.
 
@@ -123,7 +123,7 @@ Navigate browser history.
 
 ## 📸 Screenshots & Visual
 
-### `chrome_screenshot`
+### `chrome_screenshot` (Launched: 2025-06-09)
 
 Take advanced screenshots with various options.
 
@@ -165,7 +165,7 @@ Take advanced screenshots with various options.
 
 ## 🌐 Network Monitoring
 
-### `chrome_network_capture_start`
+### `chrome_network_capture_start` (Launched: 2025-06-09)
 
 Start capturing network requests using webRequest API.
 
@@ -186,7 +186,7 @@ Start capturing network requests using webRequest API.
 }
 ```
 
-### `chrome_network_capture_stop`
+### `chrome_network_capture_stop` (Launched: 2025-06-09)
 
 Stop network capture and return collected data.
 
@@ -214,7 +214,7 @@ Stop network capture and return collected data.
 }
 ```
 
-### `chrome_network_debugger_start`
+### `chrome_network_debugger_start` (Launched: 2025-06-09)
 
 Start capturing with Chrome Debugger API (includes response bodies).
 
@@ -222,11 +222,11 @@ Start capturing with Chrome Debugger API (includes response bodies).
 
 - `url` (string, optional): URL to navigate to and capture
 
-### `chrome_network_debugger_stop`
+### `chrome_network_debugger_stop` (Launched: 2025-06-09)
 
 Stop debugger capture and return data with response bodies.
 
-### `chrome_network_request`
+### `chrome_network_request` (Launched: 2025-06-09)
 
 Send custom HTTP requests.
 
@@ -250,7 +250,7 @@ Send custom HTTP requests.
 }
 ```
 
-### `chrome_block_images`
+### `chrome_block_images` (Launched: 2026-07-17)
 
 Block image HTTP requests in a tab via CDP. Useful to save bandwidth and speed up page loads when called before navigation or reload.
 
@@ -269,7 +269,7 @@ Block image HTTP requests in a tab via CDP. Useful to save bandwidth and speed u
 
 ## 🔍 Content Analysis
 
-### `chrome_read_page`
+### `chrome_read_page` (Launched: 2025-10-09)
 
 Build an accessibility-like tree of the current page (visible viewport by default) with stable `ref_*` identifiers and viewport info. Useful for semantic element discovery or agent planning.
 
@@ -288,7 +288,7 @@ Example:
 
 Response contains `pageContent` (text tree), `viewport`, and a `refMapCount` summary. Use `chrome_get_interactive_elements` or your own logic to act on returned refs.
 
-### `search_tabs_content`
+### `search_tabs_content` (Launched: 2025-06-09)
 
 AI-powered semantic search across browser tabs.
 
@@ -330,7 +330,7 @@ AI-powered semantic search across browser tabs.
 }
 ```
 
-### `chrome_get_web_content`
+### `chrome_get_web_content` (Launched: 2025-06-09)
 
 Extract HTML or text content from web pages.
 
@@ -350,13 +350,13 @@ Extract HTML or text content from web pages.
 }
 ```
 
-### `chrome_get_interactive_elements` (since v1.6.4)
+### `chrome_get_interactive_elements` (since v1.6.4; Launched: 2025-06-09)
 
 Replaced by `chrome_read_page` as the primary discovery tool. The `read_page` implementation will automatically fallback to the interactive-elements logic when the accessibility tree is unavailable or too sparse. This tool is kept for backward compatibility.
 
 ## 🎯 Interaction
 
-### `chrome_computer`
+### `chrome_computer` (Launched: 2025-10-09)
 
 Unified advanced interaction tool that prioritizes high-level DOM actions with CDP fallback. Supports hover, click, drag, scroll, typing, key chords, fill, wait and screenshot. If a recent screenshot was taken via `chrome_screenshot`, coordinates are auto-scaled from screenshot space to viewport space.
 
@@ -399,7 +399,7 @@ Examples:
 { "action": "left_click_drag", "startRef": "ref_10", "ref": "ref_15" }
 ````
 
-### `chrome_click_element`
+### `chrome_click_element` (Launched: 2025-06-09)
 
 Click elements using a ref, selector, or coordinates.
 
@@ -419,7 +419,7 @@ At least one of `ref`, `selector`, or `coordinates` must be provided.
 }
 ```
 
-### `chrome_fill_or_select`
+### `chrome_fill_or_select` (Launched: 2025-06-09)
 
 Fill form fields or select options.
 
@@ -440,7 +440,7 @@ Provide `ref` or `selector` to identify the element.
 }
 ```
 
-### `chrome_keyboard`
+### `chrome_keyboard` (Launched: 2025-06-09)
 
 Simulate keyboard input and shortcuts.
 
@@ -462,7 +462,7 @@ Simulate keyboard input and shortcuts.
 
 ## 📚 Data Management
 
-### `chrome_history`
+### `chrome_history` (Launched: 2025-06-09)
 
 Search browser history with filters.
 
@@ -484,7 +484,7 @@ Search browser history with filters.
 }
 ```
 
-### `chrome_bookmark_search`
+### `chrome_bookmark_search` (Launched: 2025-06-09)
 
 Search bookmarks by keywords.
 
@@ -504,7 +504,7 @@ Search bookmarks by keywords.
 }
 ```
 
-### `chrome_bookmark_add`
+### `chrome_bookmark_add` (Launched: 2025-06-09)
 
 Add new bookmarks with folder support.
 
@@ -526,7 +526,7 @@ Add new bookmarks with folder support.
 }
 ```
 
-### `chrome_bookmark_delete`
+### `chrome_bookmark_delete` (Launched: 2025-06-09)
 
 Delete bookmarks by ID or URL.
 
@@ -543,7 +543,7 @@ Delete bookmarks by ID or URL.
 }
 ```
 
-### `chrome_cookie_get` (since v1.6.4)
+### `chrome_cookie_get` (since v1.6.4; Launched: 2026-07-30)
 
 Get browser cookies, optionally filtered by URL, domain, name, or cookie store.
 
@@ -562,7 +562,7 @@ Get browser cookies, optionally filtered by URL, domain, name, or cookie store.
 }
 ```
 
-### `chrome_cookie_set` (since v1.6.4)
+### `chrome_cookie_set` (since v1.6.4; Launched: 2026-07-30)
 
 Set a browser cookie, including HttpOnly, Secure, SameSite, path, and expiration settings.
 
@@ -592,7 +592,7 @@ Set a browser cookie, including HttpOnly, Secure, SameSite, path, and expiration
 }
 ```
 
-### `chrome_cookie_delete` (since v1.6.4)
+### `chrome_cookie_delete` (since v1.6.4; Launched: 2026-07-30)
 
 Delete a cookie identified by its URL and name.
 
@@ -611,7 +611,7 @@ Delete a cookie identified by its URL and name.
 }
 ```
 
-### `chrome_get_tab_url`
+### `chrome_get_tab_url` (Launched: 2026-07-15)
 
 Get the current URL and title of a browser tab. Lightweight alternative to `get_windows_and_tabs` when only the current URL is needed.
 
@@ -640,7 +640,7 @@ Get the current URL and title of a browser tab. Lightweight alternative to `get_
 }
 ```
 
-### `chrome_scroll`
+### `chrome_scroll` (Launched: 2026-07-15)
 
 Scroll the page or a scrollable container with 4 modes.
 
@@ -685,7 +685,7 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 }
 ```
 
-### `chrome_get_scroll_state`
+### `chrome_get_scroll_state` (Launched: 2026-07-17)
 
 Get the native scroll state of the page or a scrollable container. Useful to call before/after scrolling to check if the bottom or top has been reached, especially for lazy-loaded pages.
 
@@ -715,7 +715,7 @@ Get the native scroll state of the page or a scrollable container. Useful to cal
 }
 ```
 
-### `chrome_wait`
+### `chrome_wait` (Launched: 2026-07-15)
 
 Wait for a DOM element or JavaScript condition to become true. Polls the page at a configurable interval. Returns `{ found: false }` on timeout (does not throw).
 
@@ -769,7 +769,7 @@ Wait for a DOM element or JavaScript condition to become true. Polls the page at
 }
 ```
 
-### `chrome_extract`
+### `chrome_extract` (Launched: 2026-07-15)
 
 Extract structured data from a web page using CSS selectors. The core tool for web scraping. Supports nested field extraction, 7 extraction modes, and configurable limits.
 
@@ -826,7 +826,7 @@ Extract structured data from a web page using CSS selectors. The core tool for w
 }
 ```
 
-### `chrome_spa_fetch` (since v1.6.3)
+### `chrome_spa_fetch` (since v1.6.3; Launched: 2026-07-29)
 
 A dedicated content extraction tool for SPAs (Single Page Applications). Automatically navigates to a URL, waits for JavaScript rendering, scrolls to trigger lazy-loaded content, then extracts the full rendered text. Solves the problem of fetching content from JS-heavy sites like X/Twitter and Reddit where plain HTTP requests return an empty shell.
 
