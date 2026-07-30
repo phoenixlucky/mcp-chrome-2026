@@ -177,6 +177,8 @@ export default defineConfig({
       },
     },
     build: {
+      // Extension pages run in separate worlds; modulepreload entries cannot be reused across them.
+      modulePreload: false,
       // 我们的构建产物需要兼容到es6
       target: 'es2015',
       // 非生产环境下生成sourcemap

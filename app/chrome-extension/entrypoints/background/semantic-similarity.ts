@@ -2,7 +2,7 @@ import type { ModelPreset } from '@/utils/semantic-similarity-engine';
 import { OffscreenManager } from '@/utils/offscreen-manager';
 import { BACKGROUND_MESSAGE_TYPES, OFFSCREEN_MESSAGE_TYPES } from '@/common/message-types';
 import { STORAGE_KEYS, ERROR_MESSAGES } from '@/common/constants';
-import { hasAnyModelCache } from '@/utils/semantic-similarity-engine';
+import { hasAnyModelCache, PREDEFINED_MODELS } from '@/utils/semantic-similarity-engine';
 
 /**
  * Model configuration state management interface
@@ -54,7 +54,6 @@ export async function initializeDefaultSemanticEngine(): Promise<void> {
     const defaultVersion =
       (result.selectedVersion as 'full' | 'quantized' | 'compressed') || 'quantized';
 
-    const { PREDEFINED_MODELS } = await import('@/utils/semantic-similarity-engine');
     const modelInfo = PREDEFINED_MODELS[defaultModel];
 
     await OffscreenManager.getInstance().ensureOffscreenDocument();
