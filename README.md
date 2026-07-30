@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 v1.6.4 更新内容
+## 📢 v1.6.19 更新内容
 
-> **Cookie 管理 + 工具恢复 + 文档更新** — 增强浏览器数据管控能力。
+> **侧边栏聊天界面翻新 + 选择器引擎重构** — 体验与架构双重升级。
 >
-> - 🍪 **Cookie 管理三件套** — 新增 `chrome_cookie_get` / `set` / `delete`，支持按 URL/域名筛选查询、设置和删除 Cookie
-> - 🔧 **`chrome_get_interactive_elements`** — 恢复该工具（之前被遗漏）
-> - 🗑️ 删除 `start-server-npm.bat`（与 `start-server.bat` 功能重复）
-> - 📋 README 路线图更新：移除「工具级 ACL」，新增「待开发工具」计划表
-> - 🔧 所有包版本统一为 v1.6.4
+> - 💬 **侧边栏聊天界面全面翻新** — 猫娘聊天背景、i18n 国际化、主题切换、设置面板重构
+> - 🔧 **选择器引擎大重构** — 新增 page handler，`element-marker.js` 大幅优化，Builder/Sidepanel 多处改进
+> - 🔧 语义相似度引擎静态导入；wxt 禁用 modulePreload
+> - 🐛 DeepSeek 引擎更新并补充测试
+> - 🔧 版本统一为 v1.6.19
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v1.6.4
+## 📢 What's New in v1.6.19
 
-> **Cookie management + tool restoration + docs update** — Enhanced browser data control.
+> **Sidepanel chat UI overhaul + element-marker refactor** — Experience and architecture upgrades.
 >
-> - 🍪 **Cookie management trio** — New `chrome_cookie_get` / `set` / `delete` tools: query by URL/domain, set, and delete cookies
-> - 🔧 **`chrome_get_interactive_elements`** — Restored this tool (previously omitted)
-> - 🗑️ Removed `start-server-npm.bat` (duplicate of `start-server.bat`)
-> - 📋 Roadmap updated: removed "Tool-level ACL", added "Planned tools" table
-> - 🔧 All packages bumped to v1.6.4
+> - 💬 **Sidepanel chat UI overhaul** — Catgirl background, i18n, theme switching, settings panel refactored
+> - 🔧 **Element-marker engine refactor** — New page handler, `element-marker.js` optimization, Builder/Sidepanel improvements
+> - 🔧 Semantic similarity engine uses static imports; wxt disables modulePreload
+> - 🐛 DeepSeek engine update with tests
+> - 🔧 All packages bumped to v1.6.19
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

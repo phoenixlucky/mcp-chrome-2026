@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.19] - 2026-07-30
+
+### Added
+
+- **侧边栏聊天界面全面翻新** — 猫娘聊天背景、i18n 国际化支持、主题切换、设置面板重构。
+- **选择器引擎大重构** — 新增 page handler，`element-marker.js` 注入脚本大幅优化，Builder/Sidepanel 多处体验改进。
+- **Popup 页面调整** — 工具列表交互优化。
+- 新增 `package-extension.bat` 打包脚本。
+
+### Changed
+
+- 语义相似度引擎改为静态导入 PREDEFINED_MODELS；wxt 配置禁用 modulePreload。
+- DeepSeek 引擎更新并补充测试。
+- 版本统一为 v1.6.19。
+
 ## [v1.6.4] - 2026-07-30
 
 ### Added
