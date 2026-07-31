@@ -43,24 +43,46 @@
 ## 🖼️ 界面预览
 
 <p align="center">
-  <table>
+  <table style="border-collapse: collapse; width: 100%; max-width: 960px; margin: 0 auto;">
     <tr>
-      <td align="center" width="33%"><b>Popup 弹窗</b></td>
-      <td align="center" width="33%"><b>Builder 工作流编辑器</b></td>
-      <td align="center" width="33%"><b>Quick Panel 快捷操作</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>Popup 弹窗</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>Builder 工作流编辑器</b></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/popup-ui.webp" alt="Popup 弹窗" width="100%"></td>
-      <td align="center"><img src="screenshots/builder-ui.webp" alt="Builder 工作流编辑器" width="100%"></td>
-      <td align="center"><img src="screenshots/quick-panel.webp" alt="Quick Panel 快捷操作" width="100%"></td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/popup-ui.webp" alt="Popup 弹窗" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/builder-ui.webp" alt="Builder 工作流编辑器" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
     </tr>
     <tr>
-      <td align="center">猫娘毛玻璃主题，<br/>MCP 工具一览</td>
-      <td align="center">可视化拖拽搭建，<br/>录制回放工作流</td>
-      <td align="center">页面内快捷工具，<br/>快速选取与操作</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">猫娘毛玻璃主题，<br/>MCP 工具一览</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">可视化拖拽搭建，<br/>录制回放工作流</td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 8px 12px;"><b>Quick Panel 快捷操作</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>Smart Assistant 智能助手</b></td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/quick-panel.webp" alt="Quick Panel 快捷操作" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/assistant-ui.webp" alt="Smart Assistant 智能助手" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">页面内快捷工具，<br/>快速选取与操作</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">侧边栏对话，<br/>Claude / Codex / DeepSeek</td>
     </tr>
   </table>
 </p>
+![image-20260731093601655](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20260731093601655.png)
 
 ## ✨ 核心特性
 

@@ -43,21 +43,42 @@
 ## 🖼️ Screenshots
 
 <p align="center">
-  <table>
+  <table style="border-collapse: collapse; width: 100%; max-width: 960px; margin: 0 auto;">
     <tr>
-      <td align="center" width="33%"><b>Popup Window</b></td>
-      <td align="center" width="33%"><b>Builder Workflow Editor</b></td>
-      <td align="center" width="33%"><b>Quick Panel</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>Popup Window</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>Builder Workflow Editor</b></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/popup-ui.webp" alt="Popup" width="100%"></td>
-      <td align="center"><img src="screenshots/builder-ui.webp" alt="Builder" width="100%"></td>
-      <td align="center"><img src="screenshots/quick-panel.webp" alt="Quick Panel" width="100%"></td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/popup-ui.webp" alt="Popup" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/builder-ui.webp" alt="Builder" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
     </tr>
     <tr>
-      <td align="center">Catgirl frosted glass theme,<br/>MCP tools at a glance</td>
-      <td align="center">Drag-and-drop workflow builder,<br/>record & replay automation</td>
-      <td align="center">In-page quick tools,<br/>element picker & actions</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">Catgirl frosted glass theme,<br/>MCP tools at a glance</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">Drag-and-drop workflow builder,<br/>record & replay automation</td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 8px 12px;"><b>Quick Panel</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>Smart Assistant</b></td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/quick-panel.webp" alt="Quick Panel" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/assistant-ui.webp" alt="Smart Assistant" width="100%" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">In-page quick tools,<br/>element picker & actions</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">Sidepanel chat,<br/>Claude / Codex / DeepSeek</td>
     </tr>
   </table>
 </p>
