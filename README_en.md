@@ -26,15 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.6.19
+## 📢 What's New in v1.6.26
 
-> **Sidepanel chat UI overhaul + element-marker refactor** — Experience and architecture upgrades.
+> **12+ new tools + network capture refactor** — Greatly enhanced extraction and interaction capabilities.
 >
-> - 💬 **Sidepanel chat UI overhaul** — Catgirl background, i18n, theme switching, settings panel refactored
-> - 🔧 **Element-marker engine refactor** — New page handler, `element-marker.js` optimization, Builder/Sidepanel improvements
-> - 🔧 Semantic similarity engine uses static imports; wxt disables modulePreload
-> - 🐛 DeepSeek engine update with tests
-> - 🔧 All packages bumped to v1.6.19
+> - 🧩 **12+ new tools** — `chrome_find_and_click`, `chrome_expand_section`, `chrome_scan_for_section`, `chrome_paginate_extract`, `chrome_extract_records`, `merge_records`, `chrome_scoped_action`, `chrome_task_context`, `chrome_diagnostic_snapshot`, `chrome_list_frames`, `chrome_block_resources`, `detect_empty_state`
+> - 🌐 **Network capture refactor** — unified webRequest / CDP dual channel
+> - 🖥️ **Popup tools page update** — MCP tools list interaction improvements
+> - 🔧 All packages bumped to v1.6.26
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

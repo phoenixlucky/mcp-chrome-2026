@@ -26,15 +26,14 @@
 
 ---
 
-## 📢 v1.6.19 更新内容
+## 📢 v1.6.26 更新内容
 
-> **侧边栏聊天界面翻新 + 选择器引擎重构** — 体验与架构双重升级。
+> **12+ 新工具 + 网络抓包重构** — 采集与交互能力大幅增强。
 >
-> - 💬 **侧边栏聊天界面全面翻新** — 猫娘聊天背景、i18n 国际化、主题切换、设置面板重构
-> - 🔧 **选择器引擎大重构** — 新增 page handler，`element-marker.js` 大幅优化，Builder/Sidepanel 多处改进
-> - 🔧 语义相似度引擎静态导入；wxt 禁用 modulePreload
-> - 🐛 DeepSeek 引擎更新并补充测试
-> - 🔧 版本统一为 v1.6.19
+> - 🧩 **新增 12+ 工具** — `chrome_find_and_click`、`chrome_expand_section`、`chrome_scan_for_section`、`chrome_paginate_extract`、`chrome_extract_records`、`merge_records`、`chrome_scoped_action`、`chrome_task_context`、`chrome_diagnostic_snapshot`、`chrome_list_frames`、`chrome_block_resources`、`detect_empty_state`
+> - 🌐 **网络抓包重构** — webRequest / CDP 双通道统一
+> - 🖥️ **Popup 工具页面更新** — MCP 工具列表交互优化
+> - 🔧 版本统一为 v1.6.26
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.6.26] - 2026-07-31
+
+### Added
+
+- **新增 12+ 个工具** — `chrome_block_resources`（阻止资源加载）、`chrome_task_context`（任务上下文）、`chrome_scoped_action`（限定作用域操作）、`chrome_diagnostic_snapshot`（诊断快照）、`chrome_list_frames`（列出框架）、`chrome_find_and_click`（查找并点击）、`chrome_expand_section`（展开折叠区域）、`chrome_scan_for_section`（滚动查找区域）、`chrome_paginate_extract`（分页提取）、`chrome_extract_records`（提取记录）、`detect_empty_state`（检测空状态）、`merge_records`（合并记录）。
+- **网络抓包重构** — webRequest / CDP 双通道统一，新增 `chrome_block_images` 升级版资源控制。
+- **Popup 工具页面更新** — MCP 工具列表交互与展示优化。
+
+### Changed
+
+- Agent Chat 组件修复与优化。
+- README 新增智能助手 UI 截图。
+- 版本统一为 v1.6.26。
+
 ## [v1.6.19] - 2026-07-30
 
 ### Added
