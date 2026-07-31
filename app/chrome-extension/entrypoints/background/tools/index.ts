@@ -13,8 +13,6 @@ export interface ToolCallParam {
   args: any;
 }
 
-const WRITE_TOOL = /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload)/;
-
 function compact(value: unknown, max = 72): string {
   const text = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -354,7 +352,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
 
 async function checkExpectedUrl(param: ToolCallParam): Promise<string | null> {
   const expectedUrl = String(param.args?.expectedUrl || '');
-  if (!expectedUrl || !WRITE_TOOL.test(param.name)) return null;
+  if (!expectedUrl) return null;
   const tabId = param.args?.tabId;
   const tab =
     typeof tabId === 'number'

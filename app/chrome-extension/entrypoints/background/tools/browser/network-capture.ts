@@ -8,6 +8,7 @@ type NetworkCaptureBackend = 'webRequest' | 'debugger';
 
 interface NetworkCaptureToolParams {
   action: 'start' | 'stop';
+  tabId?: number;
   needResponseBody?: boolean;
   url?: string;
   maxCaptureTime?: number;
@@ -107,6 +108,7 @@ class NetworkCaptureTool extends BaseBrowserToolExecutor {
     const backend: NetworkCaptureBackend = wantBody ? 'debugger' : 'webRequest';
 
     const result = await delegate.execute({
+      tabId: args.tabId,
       url: args.url,
       maxCaptureTime: args.maxCaptureTime,
       inactivityTimeout: args.inactivityTimeout,
@@ -146,7 +148,7 @@ class NetworkCaptureTool extends BaseBrowserToolExecutor {
 
     const delegateStop =
       backendToStop === 'debugger' ? networkDebuggerStopTool : networkCaptureStopTool;
-    const result = await delegateStop.execute();
+    const result = await delegateStop.execute({ tabId: args.tabId });
 
     return decorateJsonResult(result, {
       backend: backendToStop,

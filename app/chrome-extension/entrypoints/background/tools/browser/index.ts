@@ -9,6 +9,7 @@ export { elementPickerTool } from './element-picker';
 export { networkRequestTool } from './network-request';
 export { networkCaptureTool } from './network-capture';
 export { blockImagesTool } from './block-images';
+export { blockResourcesTool } from './block-resources';
 // Legacy exports (for internal use by networkCaptureTool)
 export { networkDebuggerStartTool, networkDebuggerStopTool } from './network-capture-debugger';
 export { networkCaptureStartTool, networkCaptureStopTool } from './network-capture-web-request';
@@ -36,3 +37,16 @@ export { extractTool } from './extract';
 export { pageTextTool } from './get-page-text';
 export { spaFetchTool } from './spa-fetch';
 export { clickAndWaitTool } from './click-and-wait';
+export { taskContextTool } from './task-context';
+export { scopedActionTool } from './scoped-action';
+export { diagnosticSnapshotTool } from './diagnostic-snapshot';
+export { listFramesTool } from './list-frames';
+export {
+  detectEmptyStateTool,
+  expandSectionTool,
+  extractRecordsTool,
+  findAndClickTool,
+  mergeRecordsTool,
+  paginateExtractTool,
+  scanForSectionTool,
+} from './review-tools';

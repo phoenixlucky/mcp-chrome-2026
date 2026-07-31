@@ -37,6 +37,7 @@ const CDP_SESSION_KEY = 'wait';
 type WaitMode = 'visible' | 'present' | 'hidden' | 'gone' | 'enabled';
 
 interface WaitToolParams {
+  event?: 'mutation' | 'network';
   selector?: string;
   waitFor?: WaitMode;
   jsCondition?: string;
@@ -46,6 +47,10 @@ interface WaitToolParams {
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
+  observeSelector?: string;
+  urlPattern?: string;
+  statusCode?: number;
+  needResponseBody?: boolean;
 }
 
 // ============================================================================
@@ -150,6 +155,8 @@ class WaitTool extends BaseBrowserToolExecutor {
         tabId = tab.id!;
       }
 
+      if (args.event) return this.waitForEvent(tabId, args, timeout, signal);
+
       // 2. Build condition expression
       const conditionExpr = buildConditionExpression(args);
 
@@ -242,6 +249,116 @@ class WaitTool extends BaseBrowserToolExecutor {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return createErrorResponse(`Wait failed: ${message}`);
+    }
+  }
+
+  private async waitForEvent(
+    tabId: number,
+    args: WaitToolParams,
+    timeout: number,
+    signal?: AbortSignal,
+  ): Promise<ToolResult> {
+    const startedAt = Date.now();
+    if (args.event === 'mutation') {
+      const selector = args.observeSelector || args.selector || 'body';
+      const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, () =>
+        cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          expression: `new Promise(resolve => {
+            const root = document.querySelector(${JSON.stringify(selector)});
+            if (!root) return resolve({ found: false, reason: 'observe target not found' });
+            const observer = new MutationObserver(records => { observer.disconnect(); resolve({ found: true, mutations: records.length }); });
+            observer.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
+            setTimeout(() => { observer.disconnect(); resolve({ found: false, timeout: true }); }, ${timeout});
+          })`,
+          awaitPromise: true,
+          returnByValue: true,
+        }),
+      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ...(response?.result?.value || {}),
+              event: 'mutation',
+              elapsedMs: Date.now() - startedAt,
+            }),
+          },
+        ],
+        isError: false,
+      };
+    }
+
+    const match = (url: string, status?: number) =>
+      (!args.urlPattern || url.includes(args.urlPattern)) &&
+      (args.statusCode === undefined || status === args.statusCode);
+    try {
+      await cdpSessionManager.attach(tabId, CDP_SESSION_KEY);
+      await cdpSessionManager.sendCommand(tabId, 'Network.enable');
+      const result = await new Promise<Record<string, unknown>>((resolve) => {
+        const matched = new Map<string, { url: string; status?: number }>();
+        const finish = (value: Record<string, unknown>) => {
+          clearTimeout(timer);
+          chrome.debugger.onEvent.removeListener(listener);
+          signal?.removeEventListener('abort', abort);
+          resolve(value);
+        };
+        const abort = () => finish({ found: false, cancelled: true });
+        const timer = setTimeout(() => finish({ found: false, timeout: true }), timeout);
+        const listener = (source: chrome.debugger.Debuggee, method: string, params?: any) => {
+          if (source.tabId !== tabId) return;
+          if (method === 'Network.responseReceived') {
+            const response = params?.response;
+            if (response && match(response.url, response.status)) {
+              if (!args.needResponseBody)
+                finish({
+                  found: true,
+                  url: response.url,
+                  status: response.status,
+                  mimeType: response.mimeType,
+                });
+              else matched.set(params.requestId, { url: response.url, status: response.status });
+            }
+          }
+          if (method === 'Network.loadingFinished' && matched.has(params?.requestId)) {
+            const request = matched.get(params.requestId)!;
+            void cdpSessionManager
+              .sendCommand(tabId, 'Network.getResponseBody', { requestId: params.requestId })
+              .then((body: any) =>
+                finish({
+                  found: true,
+                  ...request,
+                  responseBody: body?.body || '',
+                  base64Encoded: body?.base64Encoded === true,
+                }),
+              )
+              .catch((error) =>
+                finish({
+                  found: true,
+                  ...request,
+                  responseBodyError: error instanceof Error ? error.message : String(error),
+                }),
+              );
+          }
+        };
+        chrome.debugger.onEvent.addListener(listener);
+        signal?.addEventListener('abort', abort, { once: true });
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ...result,
+              event: 'network',
+              elapsedMs: Date.now() - startedAt,
+            }),
+          },
+        ],
+        isError: false,
+      };
+    } finally {
+      await cdpSessionManager.detach(tabId, CDP_SESSION_KEY).catch(() => undefined);
     }
   }
 

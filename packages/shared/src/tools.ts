@@ -14,6 +14,7 @@ export const TOOL_NAMES = {
     GET_INTERACTIVE_ELEMENTS: 'chrome_get_interactive_elements',
     NETWORK_CAPTURE: 'chrome_network_capture',
     BLOCK_IMAGES: 'chrome_block_images',
+    BLOCK_RESOURCES: 'chrome_block_resources',
     // Legacy tool names (kept for internal use, not exposed in TOOL_SCHEMAS)
     NETWORK_CAPTURE_START: 'chrome_network_capture_start',
     NETWORK_CAPTURE_STOP: 'chrome_network_capture_stop',
@@ -49,10 +50,239 @@ export const TOOL_NAMES = {
     GET_PAGE_TEXT: 'chrome_get_page_text',
     SPA_FETCH: 'chrome_spa_fetch',
     CLICK_AND_WAIT: 'chrome_click_and_wait',
+    TASK_CONTEXT: 'chrome_task_context',
+    SCOPED_ACTION: 'chrome_scoped_action',
+    DIAGNOSTIC_SNAPSHOT: 'chrome_diagnostic_snapshot',
+    LIST_FRAMES: 'chrome_list_frames',
+    FIND_AND_CLICK: 'chrome_find_and_click',
+    EXPAND_SECTION: 'chrome_expand_section',
+    SCAN_FOR_SECTION: 'chrome_scan_for_section',
+    PAGINATE_EXTRACT: 'chrome_paginate_extract',
+    EXTRACT_RECORDS: 'chrome_extract_records',
+    DETECT_EMPTY_STATE: 'detect_empty_state',
+    MERGE_RECORDS: 'merge_records',
   },
 };
 
 export const TOOL_SCHEMAS: Tool[] = [
+  {
+    name: TOOL_NAMES.BROWSER.FIND_AND_CLICK,
+    description:
+      'Try CSS, XPath, or text candidates in order inside an optional scope and click the first visible enabled match.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        candidates: { type: 'array', items: { type: 'object' } },
+        scopeSelector: { type: 'string' },
+        waitSelector: { type: 'string' },
+        waitFor: { type: 'string' },
+        waitTimeout: { type: 'number' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['candidates'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.EXPAND_SECTION,
+    description:
+      'Expand a generic collapsible section and wait for its configured content selector.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        trigger: { type: 'object' },
+        expandedAttribute: { type: 'string' },
+        contentSelector: { type: 'string' },
+        waitTimeout: { type: 'number' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['trigger', 'contentSelector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.SCAN_FOR_SECTION,
+    description:
+      'Scroll for a configured section and optionally rescan upward; returns only traversal state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targetSelector: { type: 'string' },
+        stopSelector: { type: 'string' },
+        direction: { type: 'string', enum: ['down', 'up'] },
+        step: { type: 'number' },
+        maxSteps: { type: 'number' },
+        rescanUpSteps: { type: 'number' },
+        waitAfterScrollMs: { type: 'number' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['targetSelector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PAGINATE_EXTRACT,
+    description:
+      'Extract the current page first, click a configured next candidate, and continue only after card HTML changes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardSelector: { type: 'string' },
+        next: { type: 'object' },
+        fields: { type: 'array', items: { type: 'object' } },
+        expectedCount: { type: 'number' },
+        pageSize: { type: 'number' },
+        maxPages: { type: 'number' },
+        changeMode: { type: 'string', enum: ['card_html_hash'] },
+        waitTimeout: { type: 'number' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['cardSelector', 'next', 'fields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.EXTRACT_RECORDS,
+    description:
+      'Extract configured raw fields from cards and apply case-insensitive text exclusions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardSelector: { type: 'string' },
+        fields: { type: 'array', items: { type: 'object' } },
+        excludeIfTextMatches: { type: 'array', items: { type: 'string' } },
+        includeOuterHtml: { type: 'boolean' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['cardSelector', 'fields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.DETECT_EMPTY_STATE,
+    description:
+      'Return has_content, empty, or loading_or_unknown from configured selectors and text markers.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contentSelector: { type: 'string' },
+        emptyTextMarkers: { type: 'array', items: { type: 'string' } },
+        countSelector: { type: 'string' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['contentSelector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.MERGE_RECORDS,
+    description:
+      'Pure data merge with caller-configured identity and source precedence; no browser state or persistence.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sources: { type: 'array', items: { type: 'object' } },
+        identityFields: { type: 'array', items: { type: 'string' } },
+        textNormalize: { type: 'boolean' },
+        dateToleranceDays: { type: 'number' },
+        fieldPriority: { type: 'object' },
+        allowSourceOnlyRecords: { type: 'boolean' },
+      },
+      required: ['sources', 'identityFields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.LIST_FRAMES,
+    description:
+      'List frames in a tab so a scoped action can target a same-origin or cross-origin iframe by frameId.',
+    inputSchema: {
+      type: 'object',
+      properties: { tabId: { type: 'number', description: 'Target tab ID.' } },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.DIAGNOSTIC_SNAPSHOT,
+    description:
+      'Return one debugging bundle for a tab: viewport screenshot, DOM snapshot, console buffer, and active network-capture summary.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: 'Target tab ID.' },
+        domLimit: {
+          type: 'number',
+          description: 'Maximum DOM characters (default 50000, cap 250000).',
+        },
+        consoleLimit: {
+          type: 'number',
+          description: 'Maximum console entries (default 100, cap 500).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.SCOPED_ACTION,
+    description:
+      'Click, extract, or paginate inside one semantic scope. Searches open Shadow DOM; provide frameId for same-origin or cross-origin iframe targets.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['click', 'extract', 'paginate'] },
+        scopeSelector: {
+          type: 'string',
+          description: 'CSS selector for the owning region, for example the reviews section.',
+        },
+        selector: { type: 'string', description: 'CSS selector within the scope.' },
+        text: { type: 'string', description: 'Optional visible text filter for click.' },
+        role: { type: 'string', description: 'Optional ARIA role filter for click.' },
+        frameId: { type: 'number', description: 'Frame ID from Chrome frame inspection.' },
+        tabId: { type: 'number', description: 'Target tab ID.' },
+        itemSelector: { type: 'string', description: 'For paginate, item selector within scope.' },
+        nextSelector: {
+          type: 'string',
+          description: 'For paginate, next-page control selector within scope.',
+        },
+        stopSelector: {
+          type: 'string',
+          description: 'For paginate, stop when this selector appears.',
+        },
+        maxPages: {
+          type: 'number',
+          description: 'For paginate, maximum pages (default 50, cap 200).',
+        },
+        timeout: {
+          type: 'number',
+          description: 'For paginate, per-page DOM-change timeout in milliseconds.',
+        },
+      },
+      required: ['action', 'scopeSelector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.TASK_CONTEXT,
+    description:
+      'Create an isolated incognito task window and persist its tab plus arbitrary crawl state across MCP restarts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['create', 'get', 'save', 'clear', 'close'] },
+        taskId: { type: 'string', description: 'Stable caller-defined task ID.' },
+        url: { type: 'string', description: 'Initial URL when creating.' },
+        state: {
+          type: 'object',
+          description: 'JSON-safe state, for example product ID and current review page.',
+        },
+      },
+      required: ['action', 'taskId'],
+    },
+  },
   {
     name: TOOL_NAMES.BROWSER.GET_WINDOWS_AND_TABS,
     description: 'Get all currently open browser windows and tabs',
@@ -726,6 +956,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'boolean',
           description: 'Include static resources like images/scripts/styles (default: false)',
         },
+        tabId: {
+          type: 'number',
+          description:
+            'Capture only this tab. When stopping, only this tab is stopped; no other capture is affected.',
+        },
       },
       required: ['action'],
     },
@@ -745,6 +980,32 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: {
           type: 'number',
           description: 'Target tab ID. Defaults to the active tab.',
+        },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.BLOCK_RESOURCES,
+    description:
+      'Block selected resource types or URL patterns in one tab. Start before navigation or reload; stop restores loading.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['start', 'stop'] },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to active tab.' },
+        resourceTypes: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['Image', 'Font', 'Media', 'Script', 'Stylesheet', 'XHR', 'Fetch'],
+          },
+          description: 'Resource types to block; defaults to Image.',
+        },
+        urlPatterns: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'CDP URL wildcard patterns to block, for example *://*.doubleclick.net/*.',
         },
       },
       required: ['action'],
@@ -1809,6 +2070,22 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'Require the condition to remain true continuously for this many milliseconds before returning (default: 0).',
         },
+        event: {
+          type: 'string',
+          enum: ['mutation', 'network'],
+          description:
+            'Event-driven wait. mutation observes DOM changes without polling; network waits for a matching response.',
+        },
+        observeSelector: {
+          type: 'string',
+          description: 'Mutation observer root; defaults to selector or body.',
+        },
+        urlPattern: { type: 'string', description: 'Network response URL substring to match.' },
+        statusCode: { type: 'number', description: 'Optional exact network response status.' },
+        needResponseBody: {
+          type: 'boolean',
+          description: 'For network event, return the matching response body when available.',
+        },
         tabId: {
           type: 'number',
           description: 'Target tab ID (default: active tab).',
@@ -1951,18 +2228,8 @@ for (const tool of TOOL_SCHEMAS) {
     description:
       'Optional current-phase intent shown with this operation in the browser status overlay.',
   };
-  if (
-    [
-      TOOL_NAMES.BROWSER.NAVIGATE,
-      TOOL_NAMES.BROWSER.CLICK,
-      TOOL_NAMES.BROWSER.FILL,
-      TOOL_NAMES.BROWSER.SCROLL,
-      TOOL_NAMES.BROWSER.CLICK_AND_WAIT,
-    ].includes(tool.name as any)
-  ) {
-    (tool.inputSchema as any).properties.expectedUrl = {
-      type: 'string',
-      description: 'Refuse this write unless the target tab URL starts with this value.',
-    };
-  }
+  (tool.inputSchema as any).properties.expectedUrl = {
+    type: 'string',
+    description: 'Refuse this call unless the target tab URL starts with this value.',
+  };
 }

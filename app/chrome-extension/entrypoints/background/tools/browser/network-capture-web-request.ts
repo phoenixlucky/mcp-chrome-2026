@@ -46,6 +46,7 @@ const STATIC_RESOURCE_EXTENSIONS = [
 const AD_ANALYTICS_DOMAINS = NETWORK_FILTERS.EXCLUDED_DOMAINS;
 
 interface NetworkCaptureStartToolParams {
+  tabId?: number;
   url?: string; // URL to navigate to or focus. If not provided, uses active tab.
   maxCaptureTime?: number; // Maximum capture time (milliseconds)
   inactivityTimeout?: number; // Inactivity timeout (milliseconds)
@@ -803,7 +804,9 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       // Get current tab or create new tab
       let tabToOperateOn: chrome.tabs.Tab;
 
-      if (targetUrl) {
+      if (typeof args.tabId === 'number') {
+        tabToOperateOn = await chrome.tabs.get(args.tabId);
+      } else if (targetUrl) {
         // Find tabs matching the URL
         const matchingTabs = await chrome.tabs.query({ url: targetUrl });
 
@@ -887,7 +890,7 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
     NetworkCaptureStopTool.instance = this;
   }
 
-  async execute(): Promise<ToolResult> {
+  async execute(args: { tabId?: number } = {}): Promise<ToolResult> {
     console.log(`NetworkCaptureStopTool: Executing`);
 
     try {
@@ -914,7 +917,12 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
       // Determine the primary tab to stop
       let primaryTabId: number;
 
-      if (activeTabId && startTool.captureData.has(activeTabId)) {
+      if (typeof args.tabId === 'number') {
+        if (!startTool.captureData.has(args.tabId)) {
+          return createErrorResponse(`No active network capture found for tab ${args.tabId}.`);
+        }
+        primaryTabId = args.tabId;
+      } else if (activeTabId && startTool.captureData.has(activeTabId)) {
         // If current active tab is capturing, prioritize stopping it
         primaryTabId = activeTabId;
         console.log(
@@ -943,7 +951,7 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
       }
 
       // If multiple tabs are capturing, stop other tabs
-      if (ongoingCaptures.length > 1) {
+      if (args.tabId === undefined && ongoingCaptures.length > 1) {
         const otherTabIds = ongoingCaptures.filter((id) => id !== primaryTabId);
         console.log(
           `NetworkCaptureStopTool: Stopping ${otherTabIds.length} additional captures: ${otherTabIds.join(', ')}`,
