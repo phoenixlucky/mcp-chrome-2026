@@ -194,6 +194,27 @@
             }}</span>
           </button>
 
+          <button
+            type="button"
+            class="flex items-center gap-1 px-1.5 py-1 ac-btn"
+            :style="{
+              color: isCurrentPageSelected ? 'var(--ac-accent)' : 'var(--ac-text-subtle)',
+              borderRadius: 'var(--ac-radius-button)',
+            }"
+            :title="currentPageLabel"
+            @click="$emit('page:select')"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 20h9M3 4h18v12H3zM7 8h10M7 12h6"
+              />
+            </svg>
+            <span class="text-[10px]">{{ currentPageLabel }}</span>
+          </button>
+
           <!-- Model Selector (auto-width) -->
           <div v-if="availableModels.length > 0" class="relative" :data-tooltip="copy.switchModel">
             <!-- Hidden span to measure text width -->
@@ -456,6 +477,10 @@ const props = defineProps<{
   isMarkingPage?: boolean;
   /** Label for the page marking control. */
   markPageLabel?: string;
+  /** Whether the current page is included as chat context. */
+  isCurrentPageSelected?: boolean;
+  /** Label for the current page context control. */
+  currentPageLabel?: string;
 }>();
 
 /**
@@ -612,6 +637,7 @@ const emit = defineEmits<{
   'attachment:dragover': [event: DragEvent];
   'attachment:dragleave': [event: DragEvent];
   'page:mark': [];
+  'page:select': [];
   'model:change': [modelId: string];
   'reasoning-effort:change': [effort: CodexReasoningEffort];
   'session:settings': [];

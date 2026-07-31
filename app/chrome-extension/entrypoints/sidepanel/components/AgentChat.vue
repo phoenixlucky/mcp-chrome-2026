@@ -72,10 +72,13 @@
             :enable-fake-caret="inputPreferences.fakeCaretEnabled.value"
             :is-marking-page="isMarkingPage"
             :mark-page-label="copy.markPage"
+            :is-current-page-selected="!!selectedCurrentPageContext"
+            :current-page-label="copy.currentPage"
             @update:model-value="chat.input.value = $event"
             @submit="handleSend"
             @cancel="chat.cancelCurrentRequest()"
             @page:mark="handlePageMark"
+            @page:select="handleCurrentPageSelect"
             @attachment:add="handleAttachmentAdd"
             @attachment:remove="attachments.removeAttachment"
             @attachment:drop="attachments.handleDrop"
@@ -237,11 +240,17 @@ import { BACKGROUND_MESSAGE_TYPES, TOOL_MESSAGE_TYPES } from '@/common/message-t
 const { locale, setLocale } = useAgentLocale();
 const copy = computed(() =>
   locale.value === 'zh'
-    ? { preview: '预览', composerPlaceholder: '让智能助手帮你编写代码…', markPage: '标记页面' }
+    ? {
+        preview: '预览',
+        composerPlaceholder: '让智能助手帮你编写代码…',
+        markPage: '标记元素',
+        currentPage: '当前网页',
+      }
     : {
         preview: 'Preview',
         composerPlaceholder: 'Ask the assistant to write code...',
-        markPage: 'Mark page',
+        markPage: 'Mark element',
+        currentPage: 'Current page',
       },
 );
 const selectedCli = ref('');
@@ -369,6 +378,7 @@ const inputPreferences = useAgentInputPreferences();
 const webEditorTxState = useWebEditorTxState();
 provide(WEB_EDITOR_TX_STATE_INJECTION_KEY, webEditorTxState);
 const isMarkingPage = ref(false);
+const selectedCurrentPageContext = ref<string | null>(null);
 
 // Provide server port for child components to build attachment URLs
 provide(AGENT_SERVER_PORT_KEY, server.serverPort);
@@ -1121,6 +1131,20 @@ async function handlePageMark(): Promise<void> {
   }
 }
 
+async function handleCurrentPageSelect(): Promise<void> {
+  if (selectedCurrentPageContext.value) {
+    selectedCurrentPageContext.value = null;
+    return;
+  }
+
+  const page = await readCurrentPageForContext();
+  if (!page.context) {
+    chat.errorMessage.value = `无法读取当前网页：${page.error || '网页内容不可用。'}`;
+    return;
+  }
+  selectedCurrentPageContext.value = page.context;
+}
+
 watch(
   () => webEditorTxState.selectedElement.value,
   (selection) => {
@@ -1310,6 +1334,7 @@ async function handleSend(): Promise<void> {
   const selection = webEditorTxState.selectedElement.value;
   const txState = webEditorTxState.txState.value;
   const selectionPageUrl = webEditorTxState.selectionPageUrl.value;
+  const currentPageContext = selectedCurrentPageContext.value;
 
   // Capture selection info before sending (for clear after success)
   const selectionTabId = webEditorTxState.tabId.value;
@@ -1338,7 +1363,9 @@ async function handleSend(): Promise<void> {
       instructionWithContext = `${markedContent}\n\n${instructionWithContext}`;
     }
   }
-  if (
+  if (currentPageContext) {
+    instructionWithContext = `${currentPageContext}\n\n${instructionWithContext}`;
+  } else if (
     !selection &&
     attachments.attachments.value.length === 0 &&
     needsCurrentPageContext(messageText)
@@ -1367,6 +1394,10 @@ async function handleSend(): Promise<void> {
     displayText: selection ? messageText : undefined,
     clientMeta: selectionClientMeta,
   });
+
+  if (selectedCurrentPageContext.value === currentPageContext) {
+    selectedCurrentPageContext.value = null;
+  }
 
   // Clear web editor selection after successful send
   // This "consumes" the selection context so it won't be re-injected in next message
