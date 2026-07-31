@@ -26,16 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.7.0
+## 📢 What's New in v1.7.5
 
-> **4 new tools + collection pipeline** — Virtual-list collection and failure diagnosis.
+> **Cookie tool fix + Popup improvements** — Stability release.
 >
-> - 🧩 **`collect_virtual_list`** — Stably extract deduplicated records from dynamic/virtual lists, with small-step scrolling, stall detection, and upward rescan
-> - 📡 **`wait_extract_response`** — Wait for a specific JSON response after navigation or click, then extract records via JSONPath
-> - 🐛 **`capture_debug_bundle`** — Save the failure scene to Downloads: screenshot, DOM, console, sanitized network summary, and metadata
-> - 💾 **`resume_tab_task`** — Save, read, or clear caller state on a normal tab (no incognito window, no cookie access)
-> - 🔧 **Native Host updates** — MCP SDK ^1.30, dependency fixes, native-messaging-host & doctor improvements
-> - 🔧 All packages bumped to v1.7.0
+> - 🍪 **Cookie tool fix** — Strip `intent`/`background` metadata before calling `chrome.cookies` API to avoid parameter pollution
+> - 🖥️ **Popup App fix** — Error messages and popup UI adjustments
+> - 🐛 **Error log fix** — `error-log.ts` output improvements
+> - 🔧 All packages bumped to v1.7.5
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.7.5] - 2026-07-31
+
+### Fixed
+
+- **Cookie 工具修复** — 过滤工具元数据（`intent`/`background`）后再调用 `chrome.cookies` API，避免参数污染导致操作失败。
+- **Popup App 修复** — 错误提示与弹窗界面调整。
+- **错误日志修复** — `error-log.ts` 输出优化。
+
+### Changed
+
+- 版本统一为 v1.7.5。
+
 ## [v1.7.0] - 2026-07-31
 
 ### Added

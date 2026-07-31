@@ -26,16 +26,14 @@
 
 ---
 
-## 📢 v1.7.0 更新内容
+## 📢 v1.7.5 更新内容
 
-> **4 个新工具 + 采集管线完善** — 虚拟列表采集与失败诊断能力。
+> **Cookie 工具修复 + Popup 优化** — 稳定性提升。
 >
-> - 🧩 **`collect_virtual_list`** — 从动态/虚拟列表稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫
-> - 📡 **`wait_extract_response`** — 导航或点击后等待指定 JSON 响应，并按 JSONPath 抽取记录
-> - 🐛 **`capture_debug_bundle`** — 将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据
-> - 💾 **`resume_tab_task`** — 保存、读取或清除标签页调用方状态（不创建无痕窗口，不读取 Cookie）
-> - 🔧 **Native Host 更新** — MCP SDK 升级至 ^1.30、依赖修复、native-messaging-host 与 doctor 优化
-> - 🔧 版本统一为 v1.7.0
+> - 🍪 **Cookie 工具修复** — 过滤 `intent`/`background` 元数据后再调用 `chrome.cookies` API，避免参数污染
+> - 🖥️ **Popup App 修复** — 错误提示与弹窗界面调整
+> - 🐛 **错误日志修复** — `error-log.ts` 输出优化
+> - 🔧 版本统一为 v1.7.5
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
