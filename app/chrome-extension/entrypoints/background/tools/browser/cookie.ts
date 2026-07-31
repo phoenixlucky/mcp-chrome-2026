@@ -2,9 +2,11 @@ import { createErrorResponse, type ToolResult } from '@/common/tool-handler';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { BaseBrowserToolExecutor } from '../base-browser';
 
-type CookieFilter = Pick<chrome.cookies.GetAllDetails, 'url' | 'domain' | 'name' | 'storeId'>;
-type CookieSetArgs = chrome.cookies.SetDetails;
-type CookieDeleteArgs = chrome.cookies.CookieDetails;
+type ToolMetadata = { intent?: unknown; background?: boolean };
+type CookieFilter = Pick<chrome.cookies.GetAllDetails, 'url' | 'domain' | 'name' | 'storeId'> &
+  ToolMetadata;
+type CookieSetArgs = chrome.cookies.SetDetails & ToolMetadata;
+type CookieDeleteArgs = chrome.cookies.CookieDetails & ToolMetadata;
 
 const SAME_SITE_VALUES = new Set<chrome.cookies.SameSiteStatus>([
   'no_restriction',
@@ -20,6 +22,11 @@ function validCookieUrl(url: unknown): url is string {
   } catch {
     return false;
   }
+}
+
+function withoutToolMetadata<T extends ToolMetadata>(args: T): Omit<T, keyof ToolMetadata> {
+  const { intent: _intent, background: _background, ...details } = args;
+  return details;
 }
 
 function serializeCookie(cookie: chrome.cookies.Cookie) {
@@ -45,7 +52,7 @@ class CookieGetTool extends BaseBrowserToolExecutor {
     if (args.url && !validCookieUrl(args.url)) {
       return createErrorResponse('url must be an http or https URL');
     }
-    const cookies = await chrome.cookies.getAll(args);
+    const cookies = await chrome.cookies.getAll(withoutToolMetadata(args));
     return {
       content: [{ type: 'text', text: JSON.stringify({ cookies: cookies.map(serializeCookie) }) }],
       isError: false,
@@ -78,7 +85,7 @@ class CookieSetTool extends BaseBrowserToolExecutor {
       return createErrorResponse('secure cookies require an https URL');
     }
 
-    const cookie = await chrome.cookies.set(args);
+    const cookie = await chrome.cookies.set(withoutToolMetadata(args));
     if (!cookie) return createErrorResponse('Chrome did not return the saved cookie');
     return {
       content: [{ type: 'text', text: JSON.stringify({ cookie: serializeCookie(cookie) }) }],
@@ -93,7 +100,7 @@ class CookieDeleteTool extends BaseBrowserToolExecutor {
   async execute(args: CookieDeleteArgs): Promise<ToolResult> {
     if (!validCookieUrl(args.url)) return createErrorResponse('url must be an http or https URL');
     if (!args.name) return createErrorResponse('name is required');
-    const removed = await chrome.cookies.remove(args);
+    const removed = await chrome.cookies.remove(withoutToolMetadata(args));
     return {
       content: [
         { type: 'text', text: JSON.stringify({ deleted: !!removed, details: removed ?? null }) },

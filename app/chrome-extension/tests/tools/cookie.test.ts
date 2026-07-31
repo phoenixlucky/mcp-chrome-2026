@@ -32,16 +32,24 @@ describe('cookie tools', () => {
     set.mockResolvedValue(cookie);
     remove.mockResolvedValue({ url: 'https://example.com/', name: 'session', storeId: '0' });
 
-    const found = await cookieGetTool.execute({ domain: 'example.com' });
+    const found = await cookieGetTool.execute({
+      domain: 'example.com',
+      intent: 'read cookies',
+      background: true,
+    });
     await cookieSetTool.execute({
       url: 'https://example.com/',
       name: 'session',
       value: 'token',
       httpOnly: true,
+      intent: 'set cookie',
+      background: true,
     });
     const deleted = await cookieDeleteTool.execute({
       url: 'https://example.com/',
       name: 'session',
+      intent: 'delete cookie',
+      background: true,
     });
 
     expect(getAll).toHaveBeenCalledWith({ domain: 'example.com' });
