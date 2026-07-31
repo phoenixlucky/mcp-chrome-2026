@@ -39,26 +39,40 @@
       >
 
       <div class="tool-list">
-        <details v-for="tool in filteredTools" :key="tool.name" class="tool-card">
-          <summary>
-            <code>{{ tool.name }}</code>
-            <span>{{ descriptionFor(tool) }}</span>
-            <small class="tool-launch-date">{{ copy.launchDate }}{{ launchDateFor(tool) }}</small>
-          </summary>
-          <div v-if="getProperties(tool).length" class="tool-params">
-            <div v-for="[name, schema] in getProperties(tool)" :key="name" class="tool-param">
-              <code>{{ name }}</code>
-              <span
-                >{{ schema.type || 'any'
-                }}{{ isRequired(tool, name) ? ` · ${copy.required}` : '' }}</span
-              >
-              <small v-if="parameterDescriptionFor(tool, name, schema)">
-                {{ parameterDescriptionFor(tool, name, schema) }}
-              </small>
+        <section v-for="group in toolGroups" :key="group.category" class="tool-group">
+          <h3
+            >{{ categoryLabel(group.category) }} <small>({{ group.tools.length }})</small></h3
+          >
+          <details v-for="tool in group.tools" :key="tool.name" class="tool-card">
+            <summary>
+              <code>{{ tool.name }}</code>
+              <span>{{ descriptionFor(tool) }}</span>
+              <small class="tool-launch-date">{{ copy.launchDate }}{{ launchDateFor(tool) }}</small>
+              <span class="tool-badges">
+                <small
+                  v-for="badge in toolBadges(tool.name)"
+                  :key="badge.kind"
+                  class="tool-badge"
+                  :class="badge.kind"
+                  >{{ badge.icon }} {{ badge.label }}</small
+                >
+              </span>
+            </summary>
+            <div v-if="getProperties(tool).length" class="tool-params">
+              <div v-for="[name, schema] in getProperties(tool)" :key="name" class="tool-param">
+                <code>{{ name }}</code>
+                <span
+                  >{{ schema.type || 'any'
+                  }}{{ isRequired(tool, name) ? ` · ${copy.required}` : '' }}</span
+                >
+                <small v-if="parameterDescriptionFor(tool, name, schema)">
+                  {{ parameterDescriptionFor(tool, name, schema) }}
+                </small>
+              </div>
             </div>
-          </div>
-          <p v-else class="no-params">{{ copy.noParameters }}</p>
-        </details>
+            <p v-else class="no-params">{{ copy.noParameters }}</p>
+          </details>
+        </section>
         <p v-if="!filteredTools.length" class="empty-state">{{ copy.empty }}</p>
       </div>
     </div>
@@ -125,6 +139,7 @@ const launchDates: Record<string, string> = {
   chrome_network_request: '2025-06-09',
   chrome_network_capture: '2025-12-25',
   chrome_block_images: '2026-07-17',
+  chrome_block_resources: '2026-07-31',
   chrome_handle_download: '2025-10-13',
   chrome_history: '2025-06-09',
   chrome_bookmark_search: '2025-06-09',
@@ -148,9 +163,21 @@ const launchDates: Record<string, string> = {
   chrome_wait: '2026-07-15',
   chrome_extract: '2026-07-15',
   chrome_click_and_wait: '2026-07-15',
+  chrome_task_context: '2026-07-31',
+  chrome_scoped_action: '2026-07-31',
+  chrome_diagnostic_snapshot: '2026-07-31',
+  chrome_list_frames: '2026-07-31',
+  chrome_find_and_click: '2026-07-31',
+  chrome_expand_section: '2026-07-31',
+  chrome_scan_for_section: '2026-07-31',
+  chrome_paginate_extract: '2026-07-31',
+  chrome_extract_records: '2026-07-31',
+  detect_empty_state: '2026-07-31',
+  merge_records: '2026-07-31',
 };
 
 const zhDescriptions: Record<string, string> = {
+  search_tabs_content: '使用语义相似度搜索用户明确选定标签页中的可读内容；标签页会按需建立索引。',
   get_windows_and_tabs: '获取当前打开的全部浏览器窗口和标签页。',
   chrome_cookie_get: '获取浏览器 Cookie；可按 URL、域名、名称或浏览器存储分区筛选。',
   chrome_cookie_set: '设置浏览器 Cookie，支持 HttpOnly、Secure、SameSite、路径和过期时间。',
@@ -367,6 +394,131 @@ const filteredTools = computed(() => {
     : TOOL_SCHEMAS;
 });
 
+const reviewTools = new Set([
+  'chrome_find_and_click',
+  'chrome_expand_section',
+  'chrome_scan_for_section',
+  'chrome_paginate_extract',
+  'chrome_extract_records',
+  'detect_empty_state',
+  'merge_records',
+]);
+const scrapingTools = new Set([
+  'chrome_get_tab_url',
+  'chrome_get_scroll_state',
+  'chrome_scroll',
+  'chrome_wait',
+  'chrome_extract',
+  'chrome_get_page_text',
+  'chrome_spa_fetch',
+  'chrome_click_and_wait',
+  'chrome_task_context',
+  'chrome_scoped_action',
+  'chrome_diagnostic_snapshot',
+  'chrome_list_frames',
+]);
+
+const categoryFor = (name: string) => {
+  if (reviewTools.has(name)) return 'reviews';
+  if (scrapingTools.has(name)) return 'scraping';
+  if (name.includes('network') || name.startsWith('chrome_block_')) return 'network';
+  if (name.startsWith('chrome_cookie_')) return 'cookies';
+  if (name.startsWith('performance_')) return 'performance';
+  if (name.startsWith('chrome_bookmark_') || name === 'chrome_history') return 'data';
+  if (name.includes('screenshot') || name.includes('gif_recorder')) return 'capture';
+  if (
+    ['get_windows_and_tabs', 'chrome_navigate', 'chrome_close_tabs', 'chrome_switch_tab'].includes(
+      name,
+    )
+  )
+    return 'tabs';
+  return 'interaction';
+};
+const categoryLabels = {
+  zh: {
+    reviews: '评价抓取',
+    scraping: '页面采集',
+    network: '网络监控',
+    cookies: 'Cookie 管理',
+    performance: '性能分析',
+    data: '历史与书签',
+    capture: '截图与录制',
+    tabs: '标签页管理',
+    interaction: '页面交互',
+  },
+  en: {
+    reviews: 'Review scraping',
+    scraping: 'Page scraping',
+    network: 'Network',
+    cookies: 'Cookies',
+    performance: 'Performance',
+    data: 'History & bookmarks',
+    capture: 'Capture',
+    tabs: 'Tabs',
+    interaction: 'Page interaction',
+  },
+} as const;
+const categoryLabel = (category: keyof typeof categoryLabels.zh) =>
+  categoryLabels[locale.value][category];
+const toolGroups = computed(() => {
+  const groups = new Map<keyof typeof categoryLabels.zh, Tool[]>();
+  for (const tool of filteredTools.value) {
+    const category = categoryFor(tool.name) as keyof typeof categoryLabels.zh;
+    groups.set(category, [...(groups.get(category) || []), tool]);
+  }
+  return [...groups].map(([category, tools]) => ({ category, tools }));
+});
+
+const advancedTools = new Set([
+  'chrome_javascript',
+  'chrome_computer',
+  'chrome_network_capture',
+  'chrome_block_resources',
+  'chrome_console',
+  'chrome_task_context',
+  'chrome_scoped_action',
+  'chrome_diagnostic_snapshot',
+  'chrome_list_frames',
+  'performance_start_trace',
+  'performance_stop_trace',
+  'performance_analyze_insight',
+]);
+const commonTools = new Set([
+  'chrome_navigate',
+  'chrome_screenshot',
+  'chrome_click_element',
+  'chrome_fill_or_select',
+  'chrome_get_web_content',
+  'chrome_get_page_text',
+  'chrome_scroll',
+  'chrome_wait',
+  'chrome_extract',
+  'chrome_find_and_click',
+  'chrome_paginate_extract',
+]);
+const toolBadges = (name: string) => {
+  const advanced = advancedTools.has(name);
+  const common = commonTools.has(name);
+  const zh = locale.value === 'zh';
+  return [
+    {
+      kind: 'ease',
+      icon: '⚡',
+      label: `${zh ? '易用' : 'Ease'}：${advanced ? (zh ? '中' : 'Medium') : zh ? '高' : 'High'}`,
+    },
+    {
+      kind: 'usage',
+      icon: '★',
+      label: `${zh ? '常用' : 'Use'}：${common ? (zh ? '高' : 'High') : advanced ? (zh ? '低' : 'Low') : zh ? '中' : 'Medium'}`,
+    },
+    {
+      kind: advanced ? 'advanced' : 'recommended',
+      icon: advanced ? '○' : '✓',
+      label: advanced ? (zh ? '进阶' : 'Advanced') : zh ? '推荐' : 'Recommended',
+    },
+  ];
+};
+
 type PropertySchema = { type?: string; description?: string };
 const getProperties = (tool: Tool) =>
   Object.entries((tool.inputSchema.properties || {}) as Record<string, PropertySchema>);
@@ -430,6 +582,19 @@ const isRequired = (tool: Tool, name: string) => (tool.inputSchema.required || [
   display: grid;
   gap: 8px;
 }
+.tool-group {
+  display: grid;
+  gap: 8px;
+}
+.tool-group h3 {
+  margin: 8px 0 0;
+  color: var(--ac-text, #1c1917);
+  font-size: 13px;
+}
+.tool-group h3 small {
+  color: var(--ac-text-subtle, #78716c);
+  font-weight: 400;
+}
 .tool-card {
   border: 1px solid var(--ac-border, #e7e5e4);
   border-radius: 8px;
@@ -446,6 +611,25 @@ const isRequired = (tool: Tool, name: string) => (tool.inputSchema.required || [
 .tool-launch-date {
   color: var(--ac-text-subtle, #78716c);
   font-size: 12px;
+}
+.tool-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tool-card summary .tool-badge {
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: #f5f5f4;
+  font-size: 11px;
+}
+.tool-card summary .tool-badge.recommended {
+  color: #15803d;
+  background: #f0fdf4;
+}
+.tool-card summary .tool-badge.advanced {
+  color: #a16207;
+  background: #fefce8;
 }
 .tool-card code,
 .tool-param code {

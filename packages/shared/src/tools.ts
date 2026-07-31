@@ -67,8 +67,7 @@ export const TOOL_NAMES = {
 export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.FIND_AND_CLICK,
-    description:
-      'Try CSS, XPath, or text candidates in order inside an optional scope and click the first visible enabled match.',
+    description: '在可选作用域内依次尝试 CSS、XPath 或文本候选项，点击第一个可见且可用的匹配元素。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -86,8 +85,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.EXPAND_SECTION,
-    description:
-      'Expand a generic collapsible section and wait for its configured content selector.',
+    description: '展开通用的折叠区域，并等待指定的内容选择器出现。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -104,8 +102,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.SCAN_FOR_SECTION,
-    description:
-      'Scroll for a configured section and optionally rescan upward; returns only traversal state.',
+    description: '滚动查找指定区域，可选择向上复扫；仅返回遍历状态，不包含平台业务规则。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -125,8 +122,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.PAGINATE_EXTRACT,
-    description:
-      'Extract the current page first, click a configured next candidate, and continue only after card HTML changes.',
+    description: '先抽取当前页，再点击指定的下一页候选项；仅在卡片 HTML 发生变化后继续。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -147,8 +143,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.EXTRACT_RECORDS,
-    description:
-      'Extract configured raw fields from cards and apply case-insensitive text exclusions.',
+    description: '从卡片中抽取调用方指定的原始字段，并按不区分大小写的文本规则排除记录。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -165,8 +160,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.DETECT_EMPTY_STATE,
-    description:
-      'Return has_content, empty, or loading_or_unknown from configured selectors and text markers.',
+    description: '根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -182,8 +176,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.MERGE_RECORDS,
-    description:
-      'Pure data merge with caller-configured identity and source precedence; no browser state or persistence.',
+    description: '按调用方提供的身份字段和数据源优先级纯数据合并；不读取浏览器状态，也不持久化。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -199,8 +192,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.LIST_FRAMES,
-    description:
-      'List frames in a tab so a scoped action can target a same-origin or cross-origin iframe by frameId.',
+    description: '列出标签页中的框架，以便作用域操作通过 frameId 定位同源或跨域 iframe。',
     inputSchema: {
       type: 'object',
       properties: { tabId: { type: 'number', description: 'Target tab ID.' } },
@@ -209,8 +201,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.DIAGNOSTIC_SNAPSHOT,
-    description:
-      'Return one debugging bundle for a tab: viewport screenshot, DOM snapshot, console buffer, and active network-capture summary.',
+    description: '返回标签页的一组诊断信息：视口截图、DOM 快照、控制台缓冲和当前网络捕获摘要。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -230,7 +221,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCOPED_ACTION,
     description:
-      'Click, extract, or paginate inside one semantic scope. Searches open Shadow DOM; provide frameId for same-origin or cross-origin iframe targets.',
+      '在一个语义作用域内点击、抽取或分页；支持开放的 Shadow DOM，并可用 frameId 指定同源或跨域 iframe。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -267,8 +258,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.TASK_CONTEXT,
-    description:
-      'Create an isolated incognito task window and persist its tab plus arbitrary crawl state across MCP restarts.',
+    description: '创建隔离的无痕任务窗口，并在 MCP 重启后保存其标签页和调用方定义的抓取状态。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -925,7 +915,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.NETWORK_CAPTURE,
     description:
-      'Unified network capture tool. Use action="start" to begin capturing, action="stop" to end and retrieve results. Set needResponseBody=true to capture response bodies (uses Debugger API, may conflict with DevTools). Default mode uses webRequest API (lightweight, no debugger conflict, but no response body).',
+      '统一网络捕获工具。action="start" 开始，action="stop" 停止并返回结果；needResponseBody=true 时通过 Debugger API 获取响应体（可能与 DevTools 冲突），默认 webRequest 模式较轻量但不含响应体。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -988,7 +978,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.BLOCK_RESOURCES,
     description:
-      'Block selected resource types or URL patterns in one tab. Start before navigation or reload; stop restores loading.',
+      '在一个标签页中拦截指定资源类型或 URL 模式。请在导航或刷新前启动；停止后恢复加载。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2033,7 +2023,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.WAIT,
     description:
-      'Wait for a DOM element or JavaScript condition to become true. Polls the page at a configurable interval until the condition is met or the timeout expires. Does NOT throw on timeout — returns { found: false } so the caller can decide how to proceed.',
+      '等待 DOM 元素、JavaScript 条件或事件满足。支持 DOM 变更和网络响应事件；超时不会抛错，而是返回 { found: false } 供调用方决定后续处理。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2225,11 +2215,10 @@ export const TOOL_SCHEMAS: Tool[] = [
 for (const tool of TOOL_SCHEMAS) {
   (tool.inputSchema as any).properties.intent = {
     type: 'string',
-    description:
-      'Optional current-phase intent shown with this operation in the browser status overlay.',
+    description: '可选的当前操作意图，会显示在浏览器状态浮层中。',
   };
   (tool.inputSchema as any).properties.expectedUrl = {
     type: 'string',
-    description: 'Refuse this call unless the target tab URL starts with this value.',
+    description: '仅当目标标签页 URL 以该值开头时才执行，否则拒绝调用。',
   };
 }
