@@ -1,7 +1,7 @@
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 
 const ERROR_LOG_KEY = 'pluginErrorLogs';
-const MAX_ERROR_LOGS = 200;
+const MAX_ERROR_LOGS = 1000;
 
 export interface PluginErrorLog {
   timestamp: string;

@@ -427,7 +427,7 @@
           <strong>错误日志</strong>
           <button class="copy-config-button" @click="showErrorLogs = false">关闭</button>
         </header>
-        <pre class="error-log-content">{{ errorLogText }}</pre>
+        <textarea readonly class="error-log-content" :value="errorLogText"></textarea>
         <footer class="error-log-actions">
           <button class="copy-config-button" @click="copyErrorLogs">{{ errorLogCopyLabel }}</button>
           <button
@@ -608,7 +608,7 @@ const errorLogText = computed(() =>
     ? errorLogs.value
         .map(
           (log) =>
-            `[${log.timestamp}] ${log.type}: ${log.message}${log.stack ? `\n${log.stack}` : ''}`,
+            `[${formatRecordedFlowTime(log.timestamp)}] ${log.type}: ${log.message}${log.stack ? `\n${log.stack}` : ''}`,
         )
         .join('\n\n')
     : '暂无错误日志。',
@@ -2556,7 +2556,7 @@ onUnmounted(() => {
 }
 
 .error-log-modal {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 10;
   display: grid;
@@ -2567,6 +2567,8 @@ onUnmounted(() => {
 
 .error-log-dialog {
   width: 100%;
+  height: calc(100% - 32px);
+  box-sizing: border-box;
   max-height: 100%;
   display: flex;
   flex-direction: column;
@@ -2587,10 +2589,12 @@ onUnmounted(() => {
 }
 
 .error-log-content {
-  min-height: 180px;
+  min-height: 0;
   max-height: none;
   flex: 1;
   overflow: auto;
+  resize: none;
+  overscroll-behavior: contain;
   margin: 0;
   padding: 8px;
   border: 1px solid #e2e8f0;
@@ -2602,6 +2606,7 @@ onUnmounted(() => {
     'Menlo',
     monospace;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .recent-scripts-dialog {
