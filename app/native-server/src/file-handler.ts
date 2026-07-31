@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import fetch from 'node-fetch';
 
 /**
  * File handler for managing file uploads through the native messaging host
@@ -88,7 +87,7 @@ export class FileHandler {
       const filePath = path.join(this.tempDir, finalFileName);
 
       // Get the file buffer
-      const buffer = await response.buffer();
+      const buffer = Buffer.from(await response.arrayBuffer());
 
       // Save to file
       fs.writeFileSync(filePath, buffer);

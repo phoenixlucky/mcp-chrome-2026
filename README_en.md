@@ -26,14 +26,16 @@
 
 ---
 
-## 📢 What's New in v1.6.26
+## 📢 What's New in v1.7.0
 
-> **12+ new tools + network capture refactor** — Greatly enhanced extraction and interaction capabilities.
+> **4 new tools + collection pipeline** — Virtual-list collection and failure diagnosis.
 >
-> - 🧩 **12+ new tools** — `chrome_find_and_click`, `chrome_expand_section`, `chrome_scan_for_section`, `chrome_paginate_extract`, `chrome_extract_records`, `merge_records`, `chrome_scoped_action`, `chrome_task_context`, `chrome_diagnostic_snapshot`, `chrome_list_frames`, `chrome_block_resources`, `detect_empty_state`
-> - 🌐 **Network capture refactor** — unified webRequest / CDP dual channel
-> - 🖥️ **Popup tools page update** — MCP tools list interaction improvements
-> - 🔧 All packages bumped to v1.6.26
+> - 🧩 **`collect_virtual_list`** — Stably extract deduplicated records from dynamic/virtual lists, with small-step scrolling, stall detection, and upward rescan
+> - 📡 **`wait_extract_response`** — Wait for a specific JSON response after navigation or click, then extract records via JSONPath
+> - 🐛 **`capture_debug_bundle`** — Save the failure scene to Downloads: screenshot, DOM, console, sanitized network summary, and metadata
+> - 💾 **`resume_tab_task`** — Save, read, or clear caller state on a normal tab (no incognito window, no cookie access)
+> - 🔧 **Native Host updates** — MCP SDK ^1.30, dependency fixes, native-messaging-host & doctor improvements
+> - 🔧 All packages bumped to v1.7.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

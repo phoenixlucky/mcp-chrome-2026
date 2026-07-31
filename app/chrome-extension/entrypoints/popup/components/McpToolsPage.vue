@@ -174,10 +174,19 @@ const launchDates: Record<string, string> = {
   chrome_extract_records: '2026-07-31',
   detect_empty_state: '2026-07-31',
   merge_records: '2026-07-31',
+  collect_virtual_list: '2026-07-31',
+  wait_extract_response: '2026-07-31',
+  capture_debug_bundle: '2026-07-31',
+  resume_tab_task: '2026-07-31',
 };
 
 const zhDescriptions: Record<string, string> = {
   search_tabs_content: '使用语义相似度搜索用户明确选定标签页中的可读内容；标签页会按需建立索引。',
+  collect_virtual_list: '从动态或虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。',
+  wait_extract_response: '执行导航或点击后等待指定 JSON 响应，并按调用方提供的 JSONPath 抽取记录。',
+  capture_debug_bundle: '将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。',
+  resume_tab_task:
+    '保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。',
   get_windows_and_tabs: '获取当前打开的全部浏览器窗口和标签页。',
   chrome_cookie_get: '获取浏览器 Cookie；可按 URL、域名、名称或浏览器存储分区筛选。',
   chrome_cookie_set: '设置浏览器 Cookie，支持 HttpOnly、Secure、SameSite、路径和过期时间。',
@@ -416,6 +425,9 @@ const scrapingTools = new Set([
   'chrome_scoped_action',
   'chrome_diagnostic_snapshot',
   'chrome_list_frames',
+  'collect_virtual_list',
+  'wait_extract_response',
+  'resume_tab_task',
 ]);
 
 const categoryFor = (name: string) => {
@@ -425,7 +437,12 @@ const categoryFor = (name: string) => {
   if (name.startsWith('chrome_cookie_')) return 'cookies';
   if (name.startsWith('performance_')) return 'performance';
   if (name.startsWith('chrome_bookmark_') || name === 'chrome_history') return 'data';
-  if (name.includes('screenshot') || name.includes('gif_recorder')) return 'capture';
+  if (
+    name.includes('screenshot') ||
+    name.includes('gif_recorder') ||
+    name === 'capture_debug_bundle'
+  )
+    return 'capture';
   if (
     ['get_windows_and_tabs', 'chrome_navigate', 'chrome_close_tabs', 'chrome_switch_tab'].includes(
       name,
@@ -479,6 +496,7 @@ const advancedTools = new Set([
   'chrome_scoped_action',
   'chrome_diagnostic_snapshot',
   'chrome_list_frames',
+  'wait_extract_response',
   'performance_start_trace',
   'performance_stop_trace',
   'performance_analyze_insight',

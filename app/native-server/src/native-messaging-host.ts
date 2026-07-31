@@ -1,6 +1,6 @@
 import { stdin, stdout } from 'process';
+import { randomUUID } from 'node:crypto';
 import { Server } from './server';
-import { v4 as uuidv4 } from 'uuid';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
@@ -220,7 +220,7 @@ export class NativeMessagingHost {
     signal?: AbortSignal,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
-      const requestId = uuidv4(); // Generate unique request ID
+      const requestId = randomUUID(); // Generate unique request ID
 
       const cancel = () => {
         const pending = this.pendingRequests.get(requestId);

@@ -13,7 +13,14 @@ import { javascriptTool } from '@/entrypoints/background/tools/browser/javascrip
 import { scrollStateTool, scrollTool } from '@/entrypoints/background/tools/browser/scroll';
 
 function payload(result: Awaited<ReturnType<typeof javascriptTool.execute>>) {
-  return JSON.parse(result.content[0].text);
+  return JSON.parse(text(result));
+}
+
+function text(result: { content: Array<{ type: string; text?: string }> }) {
+  const content = result.content[0];
+  if (content?.type !== 'text' || typeof content.text !== 'string')
+    throw new Error('Expected a text tool result');
+  return content.text;
 }
 
 describe('browser result contracts', () => {
@@ -68,7 +75,7 @@ describe('browser result contracts', () => {
     });
 
     const result = await scrollStateTool.execute({ tabId: 12 });
-    expect(JSON.parse(result.content[0].text)).toEqual({
+    expect(JSON.parse(text(result))).toEqual({
       target: '#primaryColumn',
       y: 400,
       maxY: 1200,
@@ -118,11 +125,11 @@ describe('browser result contracts', () => {
       expect(expression).toContain('doc.querySelectorAll("[data-testid=\\"cellInnerDiv\\"]")');
       expect(expression).toContain('win.__mcpChromeScrollRoot');
     });
-    expect(JSON.parse(scroll.content[0].text)).toMatchObject({
+    expect(JSON.parse(text(scroll))).toMatchObject({
       target: '[data-testid="primaryColumn"]',
       moved: true,
     });
-    expect(JSON.parse(state.content[0].text)).toMatchObject({
+    expect(JSON.parse(text(state))).toMatchObject({
       target: '[data-testid="primaryColumn"]',
       y: 600,
     });

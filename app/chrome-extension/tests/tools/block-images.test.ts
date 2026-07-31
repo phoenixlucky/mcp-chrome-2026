@@ -36,7 +36,10 @@ describe('chrome_block_images', () => {
     const result = await blockImagesTool.execute({ action: 'start', tabId: 42 });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]?.text).toContain('Pass the collector page tabId');
+    expect(result.content[0]).toMatchObject({
+      type: 'text',
+      text: expect.stringContaining('Pass the collector page tabId'),
+    });
     expect(chrome.debugger.sendCommand).not.toHaveBeenCalledWith(
       { tabId: 42 },
       'Fetch.enable',

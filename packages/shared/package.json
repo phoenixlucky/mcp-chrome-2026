@@ -1,7 +1,7 @@
 {
   "name": "@ethanwilkins/chrome-mcp-shared-2026",
   "private": true,
-  "version": "1.6.26",
+  "version": "1.7.0",
   "author": "hangye",
   "main": "dist/index.js",
   "module": "./dist/index.mjs",
@@ -34,7 +34,7 @@
     "tsup": "^8.5.1"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.0",
-    "zod": "^3.24.4"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
   }
 }

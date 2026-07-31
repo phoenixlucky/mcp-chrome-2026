@@ -26,14 +26,16 @@
 
 ---
 
-## 📢 v1.6.26 更新内容
+## 📢 v1.7.0 更新内容
 
-> **12+ 新工具 + 网络抓包重构** — 采集与交互能力大幅增强。
+> **4 个新工具 + 采集管线完善** — 虚拟列表采集与失败诊断能力。
 >
-> - 🧩 **新增 12+ 工具** — `chrome_find_and_click`、`chrome_expand_section`、`chrome_scan_for_section`、`chrome_paginate_extract`、`chrome_extract_records`、`merge_records`、`chrome_scoped_action`、`chrome_task_context`、`chrome_diagnostic_snapshot`、`chrome_list_frames`、`chrome_block_resources`、`detect_empty_state`
-> - 🌐 **网络抓包重构** — webRequest / CDP 双通道统一
-> - 🖥️ **Popup 工具页面更新** — MCP 工具列表交互优化
-> - 🔧 版本统一为 v1.6.26
+> - 🧩 **`collect_virtual_list`** — 从动态/虚拟列表稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫
+> - 📡 **`wait_extract_response`** — 导航或点击后等待指定 JSON 响应，并按 JSONPath 抽取记录
+> - 🐛 **`capture_debug_bundle`** — 将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据
+> - 💾 **`resume_tab_task`** — 保存、读取或清除标签页调用方状态（不创建无痕窗口，不读取 Cookie）
+> - 🔧 **Native Host 更新** — MCP SDK 升级至 ^1.30、依赖修复、native-messaging-host 与 doctor 优化
+> - 🔧 版本统一为 v1.7.0
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

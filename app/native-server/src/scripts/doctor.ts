@@ -550,29 +550,10 @@ function readJsonFile(
 // Connectivity Check
 // ============================================================================
 
-type FetchFn = typeof globalThis.fetch;
-
-function resolveFetch(): FetchFn | null {
-  if (typeof globalThis.fetch === 'function') {
-    return globalThis.fetch.bind(globalThis) as FetchFn;
-  }
-  try {
-    const mod = require('node-fetch');
-    return (mod.default ?? mod) as FetchFn;
-  } catch {
-    return null;
-  }
-}
-
 async function checkConnectivity(
   url: string,
   timeoutMs: number,
 ): Promise<{ ok: boolean; status?: number; error?: string }> {
-  const fetchFn = resolveFetch();
-  if (!fetchFn) {
-    return { ok: false, error: 'fetch is not available (requires Node.js >=18 or node-fetch)' };
-  }
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   // Prevent timeout from keeping the process alive
@@ -581,7 +562,7 @@ async function checkConnectivity(
   }
 
   try {
-    const res = await fetchFn(url, { method: 'GET', signal: controller.signal });
+    const res = await fetch(url, { method: 'GET', signal: controller.signal });
     return { ok: res.ok, status: res.status };
   } catch (e: unknown) {
     const errMessage = e instanceof Error ? e.message : String(e);
@@ -1076,8 +1057,7 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
     for (const check of report.checks) {
       console.log(`${statusBadge(check.status)}    ${check.title}: ${check.message}`);
       const fix = (check.details as Record<string, unknown> | undefined)?.fix as
-        | string[]
-        | undefined;
+        string[] | undefined;
       if (check.status !== 'ok' && fix && fix.length > 0) {
         console.log(`        Fix: ${fix[0]}`);
       }

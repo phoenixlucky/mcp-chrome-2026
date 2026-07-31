@@ -61,10 +61,80 @@ export const TOOL_NAMES = {
     EXTRACT_RECORDS: 'chrome_extract_records',
     DETECT_EMPTY_STATE: 'detect_empty_state',
     MERGE_RECORDS: 'merge_records',
+    COLLECT_VIRTUAL_LIST: 'collect_virtual_list',
+    WAIT_EXTRACT_RESPONSE: 'wait_extract_response',
+    CAPTURE_DEBUG_BUNDLE: 'capture_debug_bundle',
+    RESUME_TAB_TASK: 'resume_tab_task',
   },
 };
 
 export const TOOL_SCHEMAS: Tool[] = [
+  {
+    name: TOOL_NAMES.BROWSER.COLLECT_VIRTUAL_LIST,
+    description: '从动态或虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardSelector: { type: 'string' },
+        fields: { type: 'array', items: { type: 'object' } },
+        identityFields: { type: 'array', items: { type: 'string' } },
+        maxItems: { type: 'number' },
+        scroll: { type: 'object' },
+        state: { type: 'object' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['cardSelector', 'fields', 'identityFields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.WAIT_EXTRACT_RESPONSE,
+    description: '执行导航或点击后等待指定 JSON 响应，并按调用方提供的 JSONPath 抽取记录。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'object' },
+        response: { type: 'object' },
+        extract: { type: 'object' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: ['action', 'response', 'extract'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.CAPTURE_DEBUG_BUNDLE,
+    description: '将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string' },
+        domLimit: { type: 'number' },
+        consoleLimit: { type: 'number' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+      },
+      required: ['reason'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.RESUME_TAB_TASK,
+    description:
+      '保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['save', 'get', 'clear'] },
+        taskId: { type: 'string' },
+        state: { type: 'object' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+      },
+      required: ['action', 'taskId'],
+    },
+  },
   {
     name: TOOL_NAMES.BROWSER.FIND_AND_CLICK,
     description: '在可选作用域内依次尝试 CSS、XPath 或文本候选项，点击第一个可见且可用的匹配元素。',

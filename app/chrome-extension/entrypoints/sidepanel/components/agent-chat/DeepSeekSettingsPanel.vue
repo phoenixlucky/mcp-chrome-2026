@@ -151,7 +151,7 @@ const primaryStyle = computed(() => ({
 
 async function request(method: 'GET' | 'PUT', body?: Record<string, unknown>): Promise<void> {
   const serverPort = props.getServerPort();
-  if (!Number.isInteger(serverPort) || serverPort <= 0)
+  if (serverPort == null || !Number.isInteger(serverPort) || serverPort <= 0)
     throw new Error('本地智能助手服务未连接，请稍后重试。');
   const response = await fetch(`http://127.0.0.1:${serverPort}/agent/settings/deepseek`, {
     method,

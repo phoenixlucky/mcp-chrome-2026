@@ -42,6 +42,12 @@ export { scopedActionTool } from './scoped-action';
 export { diagnosticSnapshotTool } from './diagnostic-snapshot';
 export { listFramesTool } from './list-frames';
 export {
+  captureDebugBundleTool,
+  collectVirtualListTool,
+  resumeTabTaskTool,
+  waitExtractResponseTool,
+} from './collector-tools';
+export {
   detectEmptyStateTool,
   expandSectionTool,
   extractRecordsTool,

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.7.0] - 2026-07-31
+
+### Added
+
+- **`collect_virtual_list`** — 从动态/虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。
+- **`wait_extract_response`** — 导航或点击后等待指定 JSON 响应，并按 JSONPath 抽取记录。
+- **`capture_debug_bundle`** — 将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。
+- **`resume_tab_task`** — 保存、读取或清除正常标签页的调用方状态（不创建无痕窗口，不读取 Cookie）。
+
+### Changed
+
+- Native Host：MCP SDK 升级至 `^1.30.0`，`drizzle-orm` 升级至 `^0.45.2`；`native-messaging-host` 请求 ID 生成、`file-handler` 与 `doctor` 脚本修复优化。
+- Popup 工具页面与 DeepSeek 设置面板微调。
+- 所有项目包版本统一为 v1.7.0。
+
 ## [v1.6.26] - 2026-07-31
 
 ### Added
