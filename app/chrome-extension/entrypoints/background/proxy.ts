@@ -29,7 +29,8 @@ const rotatingTabs = new Set<number>();
 const rotationTimes = new Map<number, number[]>();
 
 function applyCountryCode(username: string, countryCode: string): string {
-  if (!countryCode) return username.replace(/-cc-[a-z]{2}(?=-|$)/i, '');
+  if (!countryCode) return username;
+  if (countryCode === 'random') return username.replace(/-cc-[a-z]{2}(?=-|$)/i, '');
   if (/-cc-[a-z]{2}(?=-|$)/i.test(username)) {
     return username.replace(/-cc-[a-z]{2}(?=-|$)/i, `-cc-${countryCode}`);
   }
@@ -70,7 +71,9 @@ export function normalizeProxyConfig(value: Partial<ProxyConfig>): ProxyConfig {
   }
   const sessionId = String(value.sessionId ?? '').trim();
   const countryCode = String(
-    value.countryCode ?? username.match(/-cc-([a-z]{2})(?=-|$)/i)?.[1] ?? '',
+    value.countryCode === undefined
+      ? (username.match(/-cc-([a-z]{2})(?=-|$)/i)?.[1] ?? '')
+      : value.countryCode,
   )
     .trim()
     .toLowerCase();
@@ -104,7 +107,7 @@ export function normalizeProxyConfig(value: Partial<ProxyConfig>): ProxyConfig {
   if (domains.some((domain) => !/^(?:\*\.)?[a-z0-9.-]+$/.test(domain))) {
     throw new Error('网站范围只能填写域名，如 example.com 或 *.example.com');
   }
-  if (countryCode && !/^[a-z]{2}$/.test(countryCode)) {
+  if (countryCode && countryCode !== 'random' && !/^[a-z]{2}$/.test(countryCode)) {
     throw new Error('国家代码必须是两个字母，如 us 或 ca');
   }
   return next;

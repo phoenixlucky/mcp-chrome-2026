@@ -520,7 +520,8 @@
           /></label>
           <label
             >国家/地区（可选）<select v-model="proxy.countryCode"
-              ><option value="">随机（不写 cc）</option
+              ><option value="">不指定（保留用户名）</option
+              ><option value="random">随机（移除 cc）</option
               ><option value="us">美国（cc-us）</option
               ><option value="ca">加拿大（cc-ca）</option></select
             ></label
@@ -1144,8 +1145,12 @@ function openAgentSidepanel() {
 
 async function loadProxySettings() {
   const stored = await chrome.storage.local.get(STORAGE_KEYS.PROXY_CONFIG);
-  Object.assign(proxy, stored[STORAGE_KEYS.PROXY_CONFIG] || {});
-  proxyDomains.value = (stored[STORAGE_KEYS.PROXY_CONFIG]?.domains || []).join('\n');
+  const saved = stored[STORAGE_KEYS.PROXY_CONFIG] || {};
+  Object.assign(proxy, saved);
+  if (!Object.hasOwn(saved, 'countryCode')) {
+    proxy.countryCode = saved.username?.match(/-cc-([a-z]{2})(?=-|$)/i)?.[1] || '';
+  }
+  proxyDomains.value = (saved.domains || []).join('\n');
 }
 
 async function saveProxySettings(): Promise<boolean> {

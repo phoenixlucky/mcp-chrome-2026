@@ -20,6 +20,7 @@ describe('proxy config', () => {
     expect(buildProxyUsername('customer-user-sessid-old', '0366', 'ca')).toBe(
       'customer-user-cc-ca-sessid-0366',
     );
+    expect(buildProxyUsername('customer-user-cc-us', '', 'random')).toBe('customer-user');
   });
 
   it('accepts a complete proxy connection string', () => {
