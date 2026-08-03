@@ -26,14 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.7.5
+## 📢 What's New in v1.7.16
 
-> **Cookie tool fix + Popup improvements** — Stability release.
+> **Proxy support + proxy diagnostics tool** — New proxy takeover capabilities.
 >
-> - 🍪 **Cookie tool fix** — Strip `intent`/`background` metadata before calling `chrome.cookies` API to avoid parameter pollution
-> - 🖥️ **Popup App fix** — Error messages and popup UI adjustments
-> - 🐛 **Error log fix** — `error-log.ts` output improvements
-> - 🔧 All packages bumped to v1.7.5
+> - 🌐 **Proxy support** — Proxy config UI added to Options & Popup pages, with takeover state control
+> - 🔧 **`chrome_proxy_diagnostics` tool** — Read proxy config & Chrome takeover state; `test` mode verifies the proxy exit IP (no credentials leaked)
+> - 📡 **Network request proxy support** — `network-request` tool now works through proxies
+> - 🔧 All packages bumped to v1.7.16
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

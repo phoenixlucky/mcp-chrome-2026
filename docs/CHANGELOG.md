@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.7.16] - 2026-07-31
+
+### Added
+
+- **代理（Proxy）支持** — 新增代理设置/管理能力：Options 与 Popup 页面新增代理配置 UI，支持代理接管状态控制。
+- **`chrome_proxy_diagnostics` 工具** — 读取代理配置及 Chrome 接管状态；`action=test` 时验证代理出口 IP（不会返回用户名或密码）。
+- **网络请求代理支持** — `network-request` 工具适配代理环境，新增对应测试。
+
+### Changed
+
+- 版本统一为 v1.7.16。
+
 ## [v1.7.5] - 2026-07-31
 
 ### Fixed

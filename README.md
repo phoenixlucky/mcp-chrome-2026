@@ -26,14 +26,14 @@
 
 ---
 
-## 📢 v1.7.5 更新内容
+## 📢 v1.7.16 更新内容
 
-> **Cookie 工具修复 + Popup 优化** — 稳定性提升。
+> **代理支持 + 代理诊断工具** — 新增代理接管能力。
 >
-> - 🍪 **Cookie 工具修复** — 过滤 `intent`/`background` 元数据后再调用 `chrome.cookies` API，避免参数污染
-> - 🖥️ **Popup App 修复** — 错误提示与弹窗界面调整
-> - 🐛 **错误日志修复** — `error-log.ts` 输出优化
-> - 🔧 版本统一为 v1.7.5
+> - 🌐 **代理（Proxy）支持** — Options 与 Popup 页面新增代理配置 UI，支持代理接管状态控制
+> - 🔧 **`chrome_proxy_diagnostics` 工具** — 读取代理配置与 Chrome 接管状态，`test` 模式验证代理出口 IP（不泄露账号密码）
+> - 📡 **网络请求代理适配** — `network-request` 工具兼容代理环境
+> - 🔧 版本统一为 v1.7.16
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
