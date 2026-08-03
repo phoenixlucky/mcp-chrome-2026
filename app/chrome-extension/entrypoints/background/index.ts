@@ -11,6 +11,7 @@ import { initQuickPanelAgentHandler } from './quick-panel/agent-handler';
 import { initQuickPanelCommands } from './quick-panel/commands';
 import { initQuickPanelTabsHandler } from './quick-panel/tabs-handler';
 import { initErrorLog } from './error-log';
+import { initProxyManager } from './proxy';
 
 import { bootstrapV3 } from './record-replay-v3/bootstrap';
 import { initPageRecorder } from './record-replay-v3/page-recorder';
@@ -21,6 +22,7 @@ import { initPageRecorder } from './record-replay-v3/page-recorder';
  */
 export default defineBackground(() => {
   initErrorLog();
+  initProxyManager();
   // Open welcome page on first install
   chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {

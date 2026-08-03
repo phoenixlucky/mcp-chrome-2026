@@ -127,6 +127,21 @@
                 @change="saveBackgroundOperations"
               />
             </label>
+            <label class="background-operations-switch">
+              <span>
+                <strong>住宅代理</strong>
+                <small>{{
+                  proxy.enabled ? '已启用，当前 Chrome 配置文件流量将走代理' : '已关闭'
+                }}</small>
+              </span>
+              <input
+                :checked="proxy.enabled"
+                :disabled="proxySaving"
+                type="checkbox"
+                @change="toggleProxy"
+              />
+            </label>
+            <p v-if="proxyQuickResult" class="proxy-quick-result">{{ proxyQuickResult }}</p>
           </div>
         </div>
 
@@ -350,6 +365,39 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
+            <button class="entry-item" @click="openProxySettings">
+              <div class="entry-icon tools">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path
+                    stroke-linecap="round"
+                    d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"
+                  />
+                </svg>
+              </div>
+              <div class="entry-content">
+                <span class="entry-title">住宅代理</span>
+                <span class="entry-desc">配置代理与页面异常自动轮换</span>
+              </div>
+              <svg
+                class="entry-arrow"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
             <button class="entry-item" @click="openRecentRecordedScripts">
               <div class="entry-icon recordings">
                 <svg
@@ -438,6 +486,68 @@
             {{ isExportingErrorLogs ? '正在导出…' : '导出 JSON' }}
           </button>
           <button class="copy-config-button" @click="clearErrorLogs">清空日志</button>
+        </footer>
+      </section>
+    </div>
+
+    <div v-if="showProxyModal" class="error-log-modal" @click.self="showProxyModal = false">
+      <section
+        class="error-log-dialog proxy-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="住宅代理"
+      >
+        <header class="error-log-header">
+          <strong>住宅代理</strong>
+          <button class="copy-config-button" @click="showProxyModal = false">关闭</button>
+        </header>
+        <p class="proxy-description"
+          >Oxylabs 定位需在用户名中保留 <code>cc-us</code>（美国）或
+          <code>cc-ca</code>（加拿大）；未写国家代码时出口随机。</p
+        >
+        <div class="proxy-form">
+          <label class="proxy-toggle"
+            ><span>启用代理</span><input v-model="proxy.enabled" type="checkbox"
+          /></label>
+          <label
+            >代理地址或完整连接串<input
+              v-model="proxy.host"
+              placeholder="customer-USER:PASSWORD@pr.oxylabs.io:7777"
+          /></label>
+          <label>端口<input v-model.number="proxy.port" type="number" min="1" max="65535" /></label>
+          <label
+            >用户名<input v-model="proxy.username" placeholder="customer-USERNAME-cc-us"
+          /></label>
+          <label
+            >国家/地区（可选）<select v-model="proxy.countryCode"
+              ><option value="">随机（不写 cc）</option
+              ><option value="us">美国（cc-us）</option
+              ><option value="ca">加拿大（cc-ca）</option></select
+            ></label
+          >
+          <label
+            >密码<input v-model="proxy.password" type="password" autocomplete="new-password"
+          /></label>
+          <label>会话 ID（可选）<input v-model="proxy.sessionId" placeholder="0366443321" /></label>
+          <label class="proxy-toggle"
+            ><span>页面异常自动轮换 IP</span><input v-model="proxy.rotateOnError" type="checkbox"
+          /></label>
+          <label
+            >仅对这些网站走代理（留空表示全部网站）<textarea
+              v-model="proxyDomains"
+              rows="2"
+              placeholder="example.com&#10;*.shop.example"
+            />
+          </label>
+        </div>
+        <p v-if="proxyResult" class="proxy-result">{{ proxyResult }}</p>
+        <footer class="error-log-actions">
+          <button class="copy-config-button" :disabled="proxySaving" @click="saveProxySettings"
+            >保存</button
+          >
+          <button class="copy-config-button" :disabled="proxySaving" @click="testProxyConnection"
+            >测试连接</button
+          >
         </footer>
       </section>
     </div>
@@ -555,7 +665,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import {
   PREDEFINED_MODELS,
   type ModelPreset,
@@ -565,7 +675,7 @@ import {
   cleanupModelCache,
 } from '@/utils/semantic-similarity-engine';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
-import { LINKS } from '@/common/constants';
+import { LINKS, STORAGE_KEYS } from '@/common/constants';
 import { getMessage } from '@/utils/i18n';
 import { useRRV3Rpc } from '@/entrypoints/shared/composables';
 import { useAgentTheme, type AgentThemeId } from '../sidepanel/composables/useAgentTheme';
@@ -598,6 +708,21 @@ const rrRpc = useRRV3Rpc();
 // 当前视图状态：首页 or 本地模型页
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
 const showErrorLogs = ref(false);
+const showProxyModal = ref(false);
+const proxySaving = ref(false);
+const proxyResult = ref('');
+const proxyQuickResult = ref('');
+const proxyDomains = ref('');
+const proxy = reactive({
+  enabled: false,
+  host: '',
+  port: 7777,
+  username: '',
+  password: '',
+  sessionId: '',
+  rotateOnError: true,
+  countryCode: '',
+});
 const isExportingErrorLogs = ref(false);
 const errorLogCopyLabel = ref('复制日志');
 const errorLogs = ref<Array<{ timestamp: string; type: string; message: string; stack?: string }>>(
@@ -1015,6 +1140,87 @@ function openElementMarkerSidepanel() {
 // Open sidepanel for agent chat
 function openAgentSidepanel() {
   openSidepanelAndClose('agent-chat');
+}
+
+async function loadProxySettings() {
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.PROXY_CONFIG);
+  Object.assign(proxy, stored[STORAGE_KEYS.PROXY_CONFIG] || {});
+  proxyDomains.value = (stored[STORAGE_KEYS.PROXY_CONFIG]?.domains || []).join('\n');
+}
+
+async function saveProxySettings(): Promise<boolean> {
+  proxySaving.value = true;
+  proxyResult.value = '';
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'proxy_configure',
+      config: {
+        ...proxy,
+        domains: proxyDomains.value
+          .split(/[\n,]/)
+          .map((domain) => domain.trim())
+          .filter(Boolean),
+      },
+    });
+    if (!response?.success) throw new Error(response?.error || '保存失败');
+    Object.assign(proxy, response.config);
+    proxyDomains.value = (response.config.domains || []).join('\n');
+    proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
+    return true;
+  } catch (error: any) {
+    proxyResult.value = `错误：${error?.message || String(error)}`;
+    return false;
+  } finally {
+    proxySaving.value = false;
+  }
+}
+
+async function testProxyConnection() {
+  if (!(await saveProxySettings())) return;
+  proxySaving.value = true;
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'proxy_test' });
+    if (!response?.success) throw new Error(response?.error || '测试失败');
+    proxyResult.value = `连接成功，出口 IP：${response.ip}${response.country ? `（国家/地区：${response.country}）` : ''}`;
+  } catch (error: any) {
+    proxyResult.value = `错误：${error?.message || String(error)}`;
+  } finally {
+    proxySaving.value = false;
+  }
+}
+
+async function toggleProxy(event: Event) {
+  const enabled = (event.target as HTMLInputElement).checked;
+  const previous = proxy.enabled;
+  proxySaving.value = true;
+  proxyQuickResult.value = '';
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'proxy_configure',
+      config: {
+        ...proxy,
+        enabled,
+        domains: proxyDomains.value
+          .split(/[\n,]/)
+          .map((domain) => domain.trim())
+          .filter(Boolean),
+      },
+    });
+    if (!response?.success) throw new Error(response?.error || '切换失败');
+    Object.assign(proxy, response.config);
+    proxyQuickResult.value = enabled ? '代理已开启' : '代理已关闭';
+  } catch (error: any) {
+    proxy.enabled = previous;
+    proxyQuickResult.value = `错误：${error?.message || String(error)}`;
+  } finally {
+    proxySaving.value = false;
+  }
+}
+
+async function openProxySettings() {
+  await loadProxySettings();
+  proxyResult.value = '';
+  showProxyModal.value = true;
 }
 
 async function toggleWebEditor() {
@@ -1929,6 +2135,7 @@ onMounted(async () => {
   // 初始化主题
   await initTheme();
   await loadPortPreference();
+  await loadProxySettings();
   await loadBackgroundOperations();
   await loadModelPreference();
   await checkNativeConnection();
@@ -2611,6 +2818,60 @@ onUnmounted(() => {
 
 .recent-scripts-dialog {
   min-height: 240px;
+}
+
+.proxy-dialog {
+  width: min(100%, 420px);
+  height: auto;
+  max-height: calc(100% - 32px);
+  overflow: auto;
+}
+
+.proxy-description,
+.proxy-result {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.proxy-quick-result {
+  margin: 0 0 8px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.proxy-form {
+  display: grid;
+  gap: 8px;
+}
+
+.proxy-form label {
+  display: grid;
+  gap: 4px;
+  color: #374151;
+  font-size: 12px;
+}
+
+.proxy-form input:not([type='checkbox']),
+.proxy-form textarea,
+.proxy-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.proxy-form textarea {
+  resize: vertical;
+}
+
+.proxy-form .proxy-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .recent-scripts-list {

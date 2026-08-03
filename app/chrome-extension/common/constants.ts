@@ -228,6 +228,7 @@ export const STORAGE_KEYS = {
   VECTOR_INDEX: 'vectorIndex',
   USERSCRIPTS: 'userscripts',
   USERSCRIPTS_DISABLED: 'userscripts_disabled',
+  PROXY_CONFIG: 'proxyConfig',
   // Record & Replay storage keys
   RR_FLOWS: 'rr_flows',
   RR_RUNS: 'rr_runs',

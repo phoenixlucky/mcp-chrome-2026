@@ -10,6 +10,84 @@
       </div>
     </header>
 
+    <section class="proxy">
+      <h2>住宅代理</h2>
+      <p class="description"
+        >Oxylabs 定位需在用户名中保留 <code>cc-us</code>（美国）或
+        <code>cc-ca</code>（加拿大）；未写国家代码时出口随机。支持分别填写或粘贴完整连接串。</p
+      >
+      <div class="grid">
+        <label class="toggle">
+          启用代理
+          <input type="checkbox" v-model="proxy.enabled" />
+        </label>
+        <label>
+          代理地址或完整连接串
+          <input
+            v-model="proxy.host"
+            placeholder="customer-USER:PASSWORD@pr.oxylabs.io:7777"
+            :disabled="!proxy.enabled"
+          />
+        </label>
+        <label>
+          端口
+          <input
+            v-model.number="proxy.port"
+            type="number"
+            min="1"
+            max="65535"
+            :disabled="!proxy.enabled"
+          />
+        </label>
+        <label>
+          用户名
+          <input
+            v-model="proxy.username"
+            placeholder="customer-USERNAME-cc-us-sesstime-5"
+            :disabled="!proxy.enabled"
+          />
+        </label>
+        <label>
+          国家/地区（可选）
+          <select v-model="proxy.countryCode" :disabled="!proxy.enabled">
+            <option value="">随机（不写 cc）</option>
+            <option value="us">美国（cc-us）</option>
+            <option value="ca">加拿大（cc-ca）</option>
+          </select>
+        </label>
+        <label>
+          密码
+          <input
+            v-model="proxy.password"
+            type="password"
+            autocomplete="new-password"
+            :disabled="!proxy.enabled"
+          />
+        </label>
+        <label>
+          会话 ID（可选）
+          <input v-model="proxy.sessionId" placeholder="0366443321" :disabled="!proxy.enabled" />
+        </label>
+        <label class="toggle">
+          页面异常自动轮换 IP
+          <input type="checkbox" v-model="proxy.rotateOnError" :disabled="!proxy.enabled" />
+        </label>
+      </div>
+      <label>
+        仅对这些网站走代理（留空表示全部网站）
+        <textarea
+          v-model="proxyDomains"
+          rows="2"
+          placeholder="example.com&#10;*.shop.example"
+          :disabled="!proxy.enabled"
+        />
+      </label>
+      <div class="row">
+        <button :disabled="proxySaving" @click="saveProxy">保存代理设置</button>
+        <span class="hint" v-if="proxyResult">{{ proxyResult }}</span>
+      </div>
+    </section>
+
     <section class="create">
       <h2>{{ m('createRunSectionTitle') }}</h2>
       <div class="grid">
@@ -142,7 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { STORAGE_KEYS } from '@/common/constants';
 
@@ -158,6 +236,19 @@ type ListItem = {
 const emergencyDisabled = ref(false);
 const items = ref<ListItem[]>([]);
 const filters = ref({ query: '', status: '', domain: '' });
+const proxy = reactive({
+  enabled: false,
+  host: '',
+  port: 7777,
+  username: '',
+  password: '',
+  sessionId: '',
+  rotateOnError: true,
+  countryCode: '',
+});
+const proxySaving = ref(false);
+const proxyResult = ref('');
+const proxyDomains = ref('');
 
 const form = ref({
   name: '',
@@ -189,6 +280,37 @@ async function saveEmergency() {
   await globalThis.chrome?.storage?.local.set({
     [STORAGE_KEYS.USERSCRIPTS_DISABLED]: emergencyDisabled.value,
   });
+}
+
+async function loadProxy() {
+  const stored = await globalThis.chrome?.storage?.local.get(STORAGE_KEYS.PROXY_CONFIG);
+  Object.assign(proxy, stored?.[STORAGE_KEYS.PROXY_CONFIG] || {});
+  proxyDomains.value = (stored?.[STORAGE_KEYS.PROXY_CONFIG]?.domains || []).join('\n');
+}
+
+async function saveProxy() {
+  proxySaving.value = true;
+  proxyResult.value = '';
+  try {
+    const result = await globalThis.chrome?.runtime?.sendMessage({
+      type: 'proxy_configure',
+      config: {
+        ...proxy,
+        domains: proxyDomains.value
+          .split(/[\n,]/)
+          .map((domain) => domain.trim())
+          .filter(Boolean),
+      },
+    });
+    if (!result?.success) throw new Error(result?.error || '保存失败');
+    Object.assign(proxy, result.config);
+    proxyDomains.value = (result.config.domains || []).join('\n');
+    proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
+  } catch (error: any) {
+    proxyResult.value = `错误：${error?.message || String(error)}`;
+  } finally {
+    proxySaving.value = false;
+  }
 }
 
 async function loadEmergency() {
@@ -291,6 +413,7 @@ async function exportAll() {
 
 onMounted(async () => {
   await loadEmergency();
+  await loadProxy();
   await reload();
 });
 
@@ -316,6 +439,7 @@ function m(key: string, substitutions?: string | string[]) {
   justify-content: space-between;
   margin-bottom: 12px;
 }
+.proxy,
 .create,
 .filters {
   background: #fff;
@@ -323,6 +447,14 @@ function m(key: string, substitutions?: string | string[]) {
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 16px;
+}
+.description {
+  margin: 0 0 12px;
+  color: #4b5563;
+  font-size: 12px;
+}
+.toggle input {
+  align-self: flex-start;
 }
 .grid {
   display: grid;
