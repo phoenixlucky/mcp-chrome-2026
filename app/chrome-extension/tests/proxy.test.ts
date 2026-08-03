@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildProxyUsername,
   createProxyPac,
+  isClosedTabError,
+  isFatalProxyNetworkError,
   normalizeProxyConfig,
   shouldRotatePage,
 } from '@/entrypoints/background/proxy';
@@ -59,10 +61,80 @@ describe('proxy config', () => {
     expect(shouldRotatePage(404)).toBe(false);
   });
 
+  it('preserves the HTTPS protocol from a complete connection string', () => {
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        host: 'https://customer-user:secret@us-pr.oxylabs.io:10001',
+        endpointType: 'country',
+        countryCode: 'us',
+      }),
+    ).toMatchObject({ protocol: 'https', host: 'us-pr.oxylabs.io', port: 10001 });
+  });
+
+  it('uses the country-specific Oxylabs entry node without cc parameters', () => {
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        endpointType: 'country',
+        countryCode: 'us',
+        username: 'customer-user-cc-us',
+        password: 'secret',
+      }),
+    ).toMatchObject({ host: 'us-pr.oxylabs.io', port: 10000, username: 'customer-user' });
+  });
+
+  it('adds the Oxylabs customer prefix for a country-specific entry node', () => {
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        endpointType: 'country',
+        countryCode: 'us',
+        username: 'user',
+        password: 'secret',
+      }),
+    ).toMatchObject({ username: 'customer-user' });
+  });
+
+  it('uses the HTTPS port for a country-specific HTTPS entry node', () => {
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        endpointType: 'country',
+        countryCode: 'us',
+        protocol: 'https',
+        username: 'customer-user',
+        password: 'secret',
+      }),
+    ).toMatchObject({ host: 'us-pr.oxylabs.io', port: 10001, protocol: 'https' });
+  });
+
+  it('uses the selected Oxylabs access region without changing username parameters', () => {
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        accessRegion: 'beijing',
+        username: 'customer-user-cc-us-sessid-1',
+        password: 'secret',
+      }),
+    ).toMatchObject({ host: 'cnt9t1is.com', port: 8000, username: 'customer-user-cc-us-sessid-1' });
+  });
+
+  it('recognizes proxy connection failures that must stop the global proxy', () => {
+    expect(isFatalProxyNetworkError('net::ERR_PROXY_CONNECTION_FAILED')).toBe(true);
+    expect(isFatalProxyNetworkError('net::ERR_TUNNEL_CONNECTION_FAILED')).toBe(true);
+    expect(isFatalProxyNetworkError('net::ERR_CONNECTION_TIMED_OUT')).toBe(false);
+  });
+
+  it('treats a tab closed during automatic retry as harmless', () => {
+    expect(isClosedTabError(new Error('No tab with id: 323090993.'))).toBe(true);
+    expect(isClosedTabError(new Error('Proxy rejected connection'))).toBe(false);
+  });
+
   it('uses the proxy only for configured domains in PAC mode', () => {
     const pac = createProxyPac(['example.com', '*.shop.test'], 'pr.oxylabs.io', 7777);
     expect(pac).toContain('PROXY pr.oxylabs.io:7777');
-    expect(pac).toContain('api.ipify.org');
+    expect(pac).toContain('ip.oxylabs.io');
     expect(pac).toContain('dnsDomainIs(host, ".example.com")');
     expect(pac).toContain('return "DIRECT"');
   });

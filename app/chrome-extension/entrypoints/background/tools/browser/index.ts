@@ -40,6 +40,7 @@ export { clickAndWaitTool } from './click-and-wait';
 export { taskContextTool } from './task-context';
 export { scopedActionTool } from './scoped-action';
 export { diagnosticSnapshotTool } from './diagnostic-snapshot';
+export { proxyDiagnosticsTool } from './proxy-diagnostics';
 export { listFramesTool } from './list-frames';
 export {
   captureDebugBundleTool,

@@ -53,6 +53,7 @@ export const TOOL_NAMES = {
     TASK_CONTEXT: 'chrome_task_context',
     SCOPED_ACTION: 'chrome_scoped_action',
     DIAGNOSTIC_SNAPSHOT: 'chrome_diagnostic_snapshot',
+    PROXY_DIAGNOSTICS: 'chrome_proxy_diagnostics',
     LIST_FRAMES: 'chrome_list_frames',
     FIND_AND_CLICK: 'chrome_find_and_click',
     EXPAND_SECTION: 'chrome_expand_section',
@@ -283,6 +284,22 @@ export const TOOL_SCHEMAS: Tool[] = [
         consoleLimit: {
           type: 'number',
           description: 'Maximum console entries (default 100, cap 500).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PROXY_DIAGNOSTICS,
+    description:
+      '读取代理配置及 Chrome 接管状态；action 为 test 时还会验证代理出口。不会返回用户名或密码。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['status', 'test'],
+          description: 'status only reads state; test also checks the proxy exit IP.',
         },
       },
       required: [],

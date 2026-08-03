@@ -40,10 +40,16 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
 
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]?.id) {
+      const activeTab = tabs[0];
+      if (!activeTab?.id) {
         return createErrorResponse('No active tab found or tab has no ID.');
       }
-      const activeTabId = tabs[0].id;
+      if (!/^https?:\/\//i.test(activeTab.url ?? '')) {
+        return createErrorResponse(
+          '当前标签是 Chrome 内置页，不能注入网络请求脚本。请先打开任意 http(s) 网页；代理出口检测请使用 chrome_proxy_diagnostics。',
+        );
+      }
+      const activeTabId = activeTab.id;
 
       // Ensure content script is available in the target tab
       await this.injectContentScript(activeTabId, ['inject-scripts/network-helper.js']);

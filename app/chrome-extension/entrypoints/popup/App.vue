@@ -502,13 +502,35 @@
           <button class="copy-config-button" @click="showProxyModal = false">关闭</button>
         </header>
         <p class="proxy-description"
-          >Oxylabs 定位需在用户名中保留 <code>cc-us</code>（美国）或
-          <code>cc-ca</code>（加拿大）；未写国家代码时出口随机。</p
+          >反向入口使用 <code>pr.oxylabs.io:7777</code> +
+          <code>cc-us/cc-ca</code>；具体国家入口使用对应国家主机和端口，用户名不带
+          <code>cc</code>。</p
         >
         <div class="proxy-form">
           <label class="proxy-toggle"
             ><span>启用代理</span><input v-model="proxy.enabled" type="checkbox"
           /></label>
+          <label
+            >端点类型<select v-model="proxy.endpointType"
+              ><option value="reverse">反向连接入口（7777）</option
+              ><option value="country">具体国家/地区入口</option></select
+            ></label
+          >
+          <label v-if="proxy.endpointType === 'reverse'"
+            >接入地区<select v-model="proxy.accessRegion"
+              ><option value="global">全球（pr.oxylabs.io:7777）</option
+              ><option value="beijing">北京（cnt9t1is.com:8000）</option
+              ><option value="hongkong">香港（a81298871.com:8000）</option
+              ><option value="custom">自定义地址</option></select
+            ></label
+          >
+          <label
+            >输出格式 / 连接协议<select v-model="proxy.protocol"
+              ><option value="http">端点：端口 / HTTP</option
+              ><option value="https">HTTPS</option
+              ><option value="socks5" disabled>SOCKS5（Oxylabs 不支持 Chrome）</option></select
+            ></label
+          >
           <label
             >代理地址或完整连接串<input
               v-model="proxy.host"
@@ -519,11 +541,24 @@
             >用户名<input v-model="proxy.username" placeholder="customer-USERNAME-cc-us"
           /></label>
           <label
-            >国家/地区（可选）<select v-model="proxy.countryCode"
-              ><option value="">不指定（保留用户名）</option
-              ><option value="random">随机（移除 cc）</option
-              ><option value="us">美国（cc-us）</option
-              ><option value="ca">加拿大（cc-ca）</option></select
+            >国家/地区{{ proxy.endpointType === 'country' ? '' : '（可选）'
+            }}<select v-model="proxy.countryCode"
+              ><option v-if="proxy.endpointType === 'reverse'" value="">不指定（保留用户名）</option
+              ><option v-if="proxy.endpointType === 'reverse'" value="random"
+                >随机（移除 cc）</option
+              ><option value="us"
+                >美国{{
+                  proxy.endpointType === 'reverse'
+                    ? '（cc-us）'
+                    : `（us-pr.oxylabs.io:${proxy.protocol === 'https' ? '10001' : '10000'}）`
+                }}</option
+              ><option value="ca"
+                >加拿大{{
+                  proxy.endpointType === 'reverse'
+                    ? '（cc-ca）'
+                    : `（ca-pr.oxylabs.io:${proxy.protocol === 'https' ? '30001' : '30000'}）`
+                }}</option
+              ></select
             ></label
           >
           <label
@@ -543,10 +578,18 @@
         </div>
         <p v-if="proxyResult" class="proxy-result">{{ proxyResult }}</p>
         <footer class="error-log-actions">
-          <button class="copy-config-button" :disabled="proxySaving" @click="saveProxySettings"
+          <button
+            class="copy-config-button"
+            type="button"
+            :disabled="proxySaving"
+            @click="() => saveProxySettings()"
             >保存</button
           >
-          <button class="copy-config-button" :disabled="proxySaving" @click="testProxyConnection"
+          <button
+            class="copy-config-button"
+            type="button"
+            :disabled="proxySaving"
+            @click="testProxyConnection"
             >测试连接</button
           >
         </footer>
@@ -723,6 +766,9 @@ const proxy = reactive({
   sessionId: '',
   rotateOnError: true,
   countryCode: '',
+  endpointType: 'reverse' as 'reverse' | 'country',
+  accessRegion: 'global' as 'global' | 'beijing' | 'hongkong' | 'custom',
+  protocol: 'http' as 'http' | 'https' | 'socks5',
 });
 const isExportingErrorLogs = ref(false);
 const errorLogCopyLabel = ref('复制日志');
@@ -1144,16 +1190,29 @@ function openAgentSidepanel() {
 }
 
 async function loadProxySettings() {
-  const stored = await chrome.storage.local.get(STORAGE_KEYS.PROXY_CONFIG);
+  const stored = await chrome.storage.local.get([
+    STORAGE_KEYS.PROXY_CONFIG,
+    STORAGE_KEYS.PROXY_TEST_RESULT,
+  ]);
   const saved = stored[STORAGE_KEYS.PROXY_CONFIG] || {};
   Object.assign(proxy, saved);
   if (!Object.hasOwn(saved, 'countryCode')) {
     proxy.countryCode = saved.username?.match(/-cc-([a-z]{2})(?=-|$)/i)?.[1] || '';
   }
   proxyDomains.value = (saved.domains || []).join('\n');
+  const test = stored[STORAGE_KEYS.PROXY_TEST_RESULT] as
+    | { success?: boolean; pending?: boolean; ip?: string; country?: string; error?: string }
+    | undefined;
+  if (test?.pending) {
+    proxyResult.value = '正在测试代理出口…';
+  } else if (test?.success && test.ip) {
+    proxyResult.value = `连接成功，出口 IP：${test.ip}${test.country ? `（国家/地区：${test.country}）` : ''}`;
+  } else if (test?.error) {
+    proxyResult.value = `错误：${test.error}`;
+  }
 }
 
-async function saveProxySettings(): Promise<boolean> {
+async function saveProxySettings(showResult = true): Promise<boolean> {
   proxySaving.value = true;
   proxyResult.value = '';
   try {
@@ -1170,7 +1229,7 @@ async function saveProxySettings(): Promise<boolean> {
     if (!response?.success) throw new Error(response?.error || '保存失败');
     Object.assign(proxy, response.config);
     proxyDomains.value = (response.config.domains || []).join('\n');
-    proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
+    if (showResult) proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
     return true;
   } catch (error: any) {
     proxyResult.value = `错误：${error?.message || String(error)}`;
@@ -1181,8 +1240,10 @@ async function saveProxySettings(): Promise<boolean> {
 }
 
 async function testProxyConnection() {
-  if (!(await saveProxySettings())) return;
+  proxyResult.value = '正在测试代理出口…';
+  if (!(await saveProxySettings(false))) return;
   proxySaving.value = true;
+  proxyResult.value = '正在测试代理出口…';
   try {
     const response = await chrome.runtime.sendMessage({ type: 'proxy_test' });
     if (!response?.success) throw new Error(response?.error || '测试失败');
@@ -1224,7 +1285,6 @@ async function toggleProxy(event: Event) {
 
 async function openProxySettings() {
   await loadProxySettings();
-  proxyResult.value = '';
   showProxyModal.value = true;
 }
 

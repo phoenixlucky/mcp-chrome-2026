@@ -13,13 +13,39 @@
     <section class="proxy">
       <h2>住宅代理</h2>
       <p class="description"
-        >Oxylabs 定位需在用户名中保留 <code>cc-us</code>（美国）或
-        <code>cc-ca</code>（加拿大）；未写国家代码时出口随机。支持分别填写或粘贴完整连接串。</p
+        >反向入口 <code>pr.oxylabs.io:7777</code> 在用户名中使用
+        <code>cc-us</code>/<code>cc-ca</code>；具体国家入口的 HTTP 为
+        <code>us-pr.oxylabs.io:10000</code>/<code>ca-pr.oxylabs.io:30000</code>，HTTPS 为
+        <code>:10001</code>/<code>:30001</code>，用户名不带 <code>cc</code>。</p
       >
       <div class="grid">
         <label class="toggle">
           启用代理
           <input type="checkbox" v-model="proxy.enabled" />
+        </label>
+        <label>
+          端点类型
+          <select v-model="proxy.endpointType" :disabled="!proxy.enabled">
+            <option value="reverse">反向连接入口（7777）</option>
+            <option value="country">具体国家/地区入口</option>
+          </select>
+        </label>
+        <label v-if="proxy.endpointType === 'reverse'">
+          接入地区
+          <select v-model="proxy.accessRegion" :disabled="!proxy.enabled">
+            <option value="global">全球（pr.oxylabs.io:7777）</option>
+            <option value="beijing">北京（cnt9t1is.com:8000）</option>
+            <option value="hongkong">香港（a81298871.com:8000）</option>
+            <option value="custom">自定义地址</option>
+          </select>
+        </label>
+        <label>
+          输出格式 / 连接协议
+          <select v-model="proxy.protocol" :disabled="!proxy.enabled">
+            <option value="http">端点：端口 / HTTP</option>
+            <option value="https">HTTPS</option>
+            <option value="socks5" disabled>SOCKS5（Oxylabs 不支持 Chrome）</option>
+          </select>
         </label>
         <label>
           代理地址或完整连接串
@@ -48,12 +74,24 @@
           />
         </label>
         <label>
-          国家/地区（可选）
+          国家/地区{{ proxy.endpointType === 'country' ? '' : '（可选）' }}
           <select v-model="proxy.countryCode" :disabled="!proxy.enabled">
-            <option value="">不指定（保留用户名）</option>
-            <option value="random">随机（移除 cc）</option>
-            <option value="us">美国（cc-us）</option>
-            <option value="ca">加拿大（cc-ca）</option>
+            <option v-if="proxy.endpointType === 'reverse'" value="">不指定（保留用户名）</option>
+            <option v-if="proxy.endpointType === 'reverse'" value="random">随机（移除 cc）</option>
+            <option value="us"
+              >美国{{
+                proxy.endpointType === 'reverse'
+                  ? '（cc-us）'
+                  : `（us-pr.oxylabs.io:${proxy.protocol === 'https' ? '10001' : '10000'}）`
+              }}</option
+            >
+            <option value="ca"
+              >加拿大{{
+                proxy.endpointType === 'reverse'
+                  ? '（cc-ca）'
+                  : `（ca-pr.oxylabs.io:${proxy.protocol === 'https' ? '30001' : '30000'}）`
+              }}</option
+            >
           </select>
         </label>
         <label>
@@ -246,6 +284,9 @@ const proxy = reactive({
   sessionId: '',
   rotateOnError: true,
   countryCode: '',
+  endpointType: 'reverse' as 'reverse' | 'country',
+  accessRegion: 'global' as 'global' | 'beijing' | 'hongkong' | 'custom',
+  protocol: 'http' as 'http' | 'https' | 'socks5',
 });
 const proxySaving = ref(false);
 const proxyResult = ref('');
