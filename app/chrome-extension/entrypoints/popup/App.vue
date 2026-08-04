@@ -361,7 +361,7 @@
                 </svg>
               </div>
               <div class="entry-content">
-                <span class="entry-title">MCP 工具清单</span>
+                <span class="entry-title">MCP 工具一览</span>
                 <span class="entry-desc">查询可用工具与参数</span>
               </div>
               <svg

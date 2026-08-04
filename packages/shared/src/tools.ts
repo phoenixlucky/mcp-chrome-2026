@@ -380,7 +380,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.GET_WINDOWS_AND_TABS,
-    description: '获取当前打开的所有浏览器窗口和标签页',
+    description: '列出当前打开的所有浏览器窗口和标签页。',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -389,7 +389,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.COOKIE_GET,
-    description: '获取 Cookie，可按 URL、域名、名称或 Cookie 存储分区筛选。',
+    description: '获取浏览器 Cookie，可按 URL、域名、名称或 Cookie 存储分区筛选。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -406,7 +406,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.COOKIE_SET,
-    description: '设置浏览器 Cookie，支持 HttpOnly、Secure、SameSite、路径和过期时间设置。',
+    description: '设置浏览器 Cookie，支持 HttpOnly、Secure、SameSite、路径和过期时间。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -928,7 +928,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.WEB_FETCHER,
-    description: '获取网页内容',
+    description: '从网页提取 HTML 或文本内容。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1154,7 +1154,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.BOOKMARK_ADD,
-    description: '向 Chrome 添加新书签',
+    description: '向 Chrome 添加书签，支持指定文件夹。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1181,7 +1181,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.BOOKMARK_DELETE,
-    description: '从 Chrome 删除书签',
+    description: '按 ID 或 URL 从 Chrome 删除书签。',
     inputSchema: {
       type: 'object',
       properties: {
