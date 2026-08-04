@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 What's New in v1.8.0
+## 📢 What's New in v1.8.1
 
-> **Proxy rotate tool + English tool descriptions** — Tool metadata and proxy upgrades.
+> **Scroll tool sticky header support** — Scrolling experience improvements.
 >
-> - 🔄 **`chrome_proxy_rotate` tool** — Rotate the proxy session and reload the page when the caller detects an abnormal tab (no credentials leaked)
-> - 🌐 **English tool descriptions** — Full English metadata via `tools-en.ts`, complete bilingual coverage
-> - 📜 **Scroll tool enhancements** — Element scrolling, direction control, timeout handling, etc.
-> - ⚡ **Web Editor perf monitor updates** — `perf-monitor` improvements
-> - 🔧 All packages bumped to v1.8.0
+> - 📜 **Scroll tool enhancement** — Auto-detect and avoid sticky headers while scrolling so content isn't hidden
+> - 🔧 Tool descriptions and parameters refined
+> - 🔧 All packages bumped to v1.8.1
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

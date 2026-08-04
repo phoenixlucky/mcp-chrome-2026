@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.8.1] - 2026-08-04
+
+### Added
+
+- **Scroll 工具 sticky header 支持** — 滚动时自动识别并避让吸顶头部，避免内容被遮挡；工具描述与参数同步完善。
+
+### Changed
+
+- 版本统一为 v1.8.1。
+
 ## [v1.8.0] - 2026-07-31
 
 ### Added

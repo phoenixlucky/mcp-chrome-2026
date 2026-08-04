@@ -18,7 +18,7 @@ pnpm() {
 }
 
 echo "========================================"
-echo "  Chrome MCP Server v1.8.0"
+echo "  Chrome MCP Server v1.8.1"
 echo "========================================"
 echo
 
