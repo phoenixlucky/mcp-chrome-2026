@@ -48,6 +48,8 @@ export const WEB_EDITOR_V2_ACTIONS = {
   REVERT_ELEMENT: 'web_editor_revert_element_v2',
   /** Clear selection (from sidepanel after send) */
   CLEAR_SELECTION: 'web_editor_clear_selection_v2',
+  /** Show or hide page scroll coordinates in the editor HUD */
+  SET_SCROLL_COORDINATES: 'web_editor_set_scroll_coordinates_v2',
 } as const;
 
 /**
@@ -110,18 +112,31 @@ export interface WebEditorV2StopResponse {
   active: boolean;
 }
 
+/** Update the page scroll-coordinate HUD setting. */
+export interface WebEditorV2SetScrollCoordinatesRequest {
+  action: typeof WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES;
+  enabled: boolean;
+}
+
+/** Response to a scroll-coordinate HUD setting update. */
+export interface WebEditorV2SetScrollCoordinatesResponse {
+  success: boolean;
+}
+
 /** Union types for V2 type-safe message handling */
 export type WebEditorV2Request =
   | WebEditorV2PingRequest
   | WebEditorV2ToggleRequest
   | WebEditorV2StartRequest
-  | WebEditorV2StopRequest;
+  | WebEditorV2StopRequest
+  | WebEditorV2SetScrollCoordinatesRequest;
 
 export type WebEditorV2Response =
   | WebEditorV2PingResponse
   | WebEditorV2ToggleResponse
   | WebEditorV2StartResponse
-  | WebEditorV2StopResponse;
+  | WebEditorV2StopResponse
+  | WebEditorV2SetScrollCoordinatesResponse;
 
 // =============================================================================
 // Element Locator (Phase 1 - Basic Structure)
@@ -526,6 +541,8 @@ export interface WebEditorV2Api {
    * Triggers deselect and broadcasts null selection.
    */
   clearSelection: () => void;
+  /** Show or hide page scroll coordinates in the lower-left HUD. */
+  setScrollCoordinatesVisible: (enabled: boolean) => void;
 }
 
 // =============================================================================

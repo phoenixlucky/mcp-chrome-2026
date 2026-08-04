@@ -133,6 +133,8 @@ function operationDetail(param: ToolCallParam): string {
       return `${compact(args.action) || '开始'} GIF 录制${args.durationMs ? `（${duration(args.durationMs, 0)}）` : ''}`;
     case 'chrome_get_tab_url':
       return '读取当前标签页地址';
+    case 'chrome_proxy_rotate':
+      return `轮换代理并刷新页面${compact(args.reason) ? `：${compact(args.reason)}` : ''}`;
     case 'chrome_get_scroll_state':
       return '读取滚动状态';
     default:
@@ -258,6 +260,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           performance_analyze_insight: '分析性能',
           chrome_gif_recorder: 'GIF 录制',
           chrome_get_tab_url: '读取地址',
+          chrome_proxy_rotate: '轮换 IP',
           chrome_get_scroll_state: '读取滚动状态',
         };
         let target: Element | null = null;

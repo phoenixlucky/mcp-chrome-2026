@@ -54,6 +54,7 @@ export const TOOL_NAMES = {
     SCOPED_ACTION: 'chrome_scoped_action',
     DIAGNOSTIC_SNAPSHOT: 'chrome_diagnostic_snapshot',
     PROXY_DIAGNOSTICS: 'chrome_proxy_diagnostics',
+    PROXY_ROTATE: 'chrome_proxy_rotate',
     LIST_FRAMES: 'chrome_list_frames',
     FIND_AND_CLICK: 'chrome_find_and_click',
     EXPAND_SECTION: 'chrome_expand_section',
@@ -303,6 +304,23 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PROXY_ROTATE,
+    description:
+      '当调用方确认当前标签页异常时，轮换代理会话并重新加载该页面。需要已启用代理；不会返回用户名或密码。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        reason: {
+          type: 'string',
+          minLength: 1,
+          description: 'Why the caller considers the current page abnormal.',
+        },
+      },
+      required: ['reason'],
     },
   },
   {

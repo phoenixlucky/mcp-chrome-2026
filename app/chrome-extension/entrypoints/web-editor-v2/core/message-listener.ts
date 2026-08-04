@@ -68,6 +68,11 @@ interface WebEditorV2ClearSelectionResponse {
   success: boolean;
 }
 
+interface WebEditorV2SetScrollCoordinatesRequest {
+  action: typeof WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES;
+  enabled: boolean;
+}
+
 /** All possible V2 response types */
 type WebEditorV2Response =
   | WebEditorV2PingResponse
@@ -76,7 +81,8 @@ type WebEditorV2Response =
   | WebEditorV2StopResponse
   | WebEditorV2HighlightResponse
   | WebEditorV2RevertResponse
-  | WebEditorV2ClearSelectionResponse;
+  | WebEditorV2ClearSelectionResponse
+  | { success: boolean };
 
 // =============================================================================
 // Implementation
@@ -93,7 +99,8 @@ function isV2Request(request: unknown): request is WebEditorV2Request {
     action === WEB_EDITOR_V2_ACTIONS.PING ||
     action === WEB_EDITOR_V2_ACTIONS.TOGGLE ||
     action === WEB_EDITOR_V2_ACTIONS.START ||
-    action === WEB_EDITOR_V2_ACTIONS.STOP
+    action === WEB_EDITOR_V2_ACTIONS.STOP ||
+    action === WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES
   );
 }
 
@@ -137,6 +144,16 @@ function isClearSelectionRequest(request: unknown): request is WebEditorV2ClearS
   if (!request || typeof request !== 'object') return false;
   const r = request as Record<string, unknown>;
   return r.action === WEB_EDITOR_V2_ACTIONS.CLEAR_SELECTION;
+}
+
+function isScrollCoordinatesRequest(
+  request: unknown,
+): request is WebEditorV2SetScrollCoordinatesRequest {
+  if (!request || typeof request !== 'object') return false;
+  const r = request as Record<string, unknown>;
+  return (
+    r.action === WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES && typeof r.enabled === 'boolean'
+  );
 }
 
 // =============================================================================
@@ -285,6 +302,12 @@ export function installMessageListener(api: WebEditorV2Api): RemoveMessageListen
       api.clearSelection();
       sendResponse({ success: true });
       return false; // Synchronous
+    }
+
+    if (isScrollCoordinatesRequest(request)) {
+      api.setScrollCoordinatesVisible(request.enabled);
+      sendResponse({ success: true });
+      return false;
     }
 
     // Only handle V2 requests for other actions

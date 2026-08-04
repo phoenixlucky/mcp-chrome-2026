@@ -16,6 +16,7 @@ import type {
   WebEditorTxChangeAction,
   WebEditorV2Api,
 } from '@/common/web-editor-types';
+import { STORAGE_KEYS } from '@/common/constants';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { WEB_EDITOR_V2_VERSION, WEB_EDITOR_V2_LOG_PREFIX } from '../constants';
 import { mountShadowHost, type ShadowHostManager } from '../ui/shadow-host';
@@ -1068,6 +1069,16 @@ export function createWebEditorV2(): WebEditorV2Api {
         fpsUiIntervalMs: 500,
         memorySampleIntervalMs: 1000,
       });
+      const perfMonitor = state.perfMonitor;
+      void chrome.storage.local
+        .get(STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES)
+        .then((settings) => {
+          if (state.perfMonitor === perfMonitor) {
+            perfMonitor.setScrollCoordinatesVisible(
+              settings[STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES] === true,
+            );
+          }
+        });
 
       // Register hotkey: Ctrl/Cmd + Shift + P toggles perf monitor
       const perfHotkeyHandler = (event: KeyboardEvent): void => {
@@ -1555,6 +1566,10 @@ export function createWebEditorV2(): WebEditorV2Api {
     };
   }
 
+  function setScrollCoordinatesVisible(enabled: boolean): void {
+    state.perfMonitor?.setScrollCoordinatesVisible(enabled);
+  }
+
   return {
     start,
     stop,
@@ -1562,5 +1577,6 @@ export function createWebEditorV2(): WebEditorV2Api {
     getState,
     revertElement,
     clearSelection,
+    setScrollCoordinatesVisible,
   };
 }

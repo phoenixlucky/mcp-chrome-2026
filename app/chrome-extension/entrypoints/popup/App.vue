@@ -129,6 +129,17 @@
             </label>
             <label class="background-operations-switch">
               <span>
+                <strong>发送滚动坐标</strong>
+                <small>在页面编辑器左下角悬浮窗显示页面 X/Y 坐标</small>
+              </span>
+              <input
+                v-model="sendScrollCoordinates"
+                type="checkbox"
+                @change="saveScrollCoordinatesSetting"
+              />
+            </label>
+            <label class="background-operations-switch">
+              <span>
                 <strong>住宅代理</strong>
                 <small>{{
                   proxy.enabled ? '已启用，当前 Chrome 配置文件流量将走代理' : '已关闭'
@@ -719,6 +730,7 @@ import {
   cleanupModelCache,
 } from '@/utils/semantic-similarity-engine';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
+import { WEB_EDITOR_V2_ACTIONS } from '@/common/web-editor-types';
 import { LINKS, STORAGE_KEYS } from '@/common/constants';
 import { getMessage } from '@/utils/i18n';
 import { useRRV3Rpc } from '@/entrypoints/shared/composables';
@@ -1040,6 +1052,7 @@ const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('un
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
 const backgroundOperations = ref(true);
+const sendScrollCoordinates = ref(false);
 const extensionId = chrome.runtime.id;
 const extensionLogoUrl = chrome.runtime.getURL('icon/128.png');
 
@@ -1886,6 +1899,29 @@ const saveBackgroundOperations = async () => {
   await chrome.storage.local.set({ backgroundOperations: backgroundOperations.value });
 };
 
+const loadScrollCoordinatesSetting = async () => {
+  const settings = await chrome.storage.local.get(STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES);
+  sendScrollCoordinates.value = settings[STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES] === true;
+};
+
+const saveScrollCoordinatesSetting = async () => {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES]: sendScrollCoordinates.value,
+  });
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, {
+      action: WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES,
+      enabled: sendScrollCoordinates.value,
+    });
+  } catch {
+    // The page editor is not active in this tab; its saved setting is applied on next start.
+  }
+};
+
 const saveModelState = async () => {
   try {
     const modelState = {
@@ -2202,6 +2238,7 @@ onMounted(async () => {
   await loadPortPreference();
   await loadProxySettings();
   await loadBackgroundOperations();
+  await loadScrollCoordinatesSetting();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();

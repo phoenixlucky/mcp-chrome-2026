@@ -13,6 +13,7 @@ describe('MCP tool catalog', () => {
         'chrome_cookie_set',
         'chrome_cookie_delete',
         'chrome_proxy_diagnostics',
+        'chrome_proxy_rotate',
       ]),
     );
     expect(search?.inputSchema.required).toEqual(expect.arrayContaining(['query', 'tabIds']));

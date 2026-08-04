@@ -41,6 +41,7 @@ export { taskContextTool } from './task-context';
 export { scopedActionTool } from './scoped-action';
 export { diagnosticSnapshotTool } from './diagnostic-snapshot';
 export { proxyDiagnosticsTool } from './proxy-diagnostics';
+export { proxyRotateTool } from './proxy-rotate';
 export { listFramesTool } from './list-frames';
 export {
   captureDebugBundleTool,

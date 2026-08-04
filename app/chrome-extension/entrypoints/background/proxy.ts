@@ -43,6 +43,7 @@ let config = DEFAULT_CONFIG;
 const rotatingTabs = new Set<number>();
 const rotationTimes = new Map<number, number[]>();
 let lastProxyAuth: { host: string; port: number; matched: boolean; at: number } | undefined;
+const AUTO_ROTATION_COOLDOWN_MS = 60_000;
 
 function applyCountryCode(username: string, countryCode: string): string {
   if (!countryCode) return username;
@@ -210,34 +211,106 @@ export function shouldRotatePage(statusCode: number): boolean {
   return statusCode === 403 || statusCode === 429 || statusCode >= 500;
 }
 
+const KNOWN_PAGE_ERROR = /oops!!\s*something went wrong\.\s*please refresh page/i;
+
+export function isKnownPageError(text: string): boolean {
+  return KNOWN_PAGE_ERROR.test(text.replace(/\s+/g, ' '));
+}
+
 export function isFatalProxyNetworkError(error?: string): boolean {
   return /ERR_(?:PROXY_CONNECTION_FAILED|TUNNEL_CONNECTION_FAILED)/.test(error ?? '');
+}
+
+export function shouldRotateNetworkError(error?: string): boolean {
+  return isFatalProxyNetworkError(error);
 }
 
 export function isClosedTabError(error: unknown): boolean {
   return /No tab with id:/i.test(String(error));
 }
 
-async function rotateAndReload(tabId: number, error?: string): Promise<void> {
-  if (tabId < 0 || !config.enabled || !config.rotateOnError || rotatingTabs.has(tabId)) return;
+type ProxyRotationResult = {
+  rotated: boolean;
+  tabId: number;
+  skipped?: string;
+};
+
+async function rotateAndReload(
+  tabId: number,
+  error?: string,
+  explicit = false,
+): Promise<ProxyRotationResult> {
+  if (tabId < 0) return { rotated: false, tabId, skipped: 'invalid_tab' };
+  if (!config.enabled) return { rotated: false, tabId, skipped: 'proxy_disabled' };
+  if (!explicit && !config.rotateOnError)
+    return { rotated: false, tabId, skipped: 'auto_rotation_disabled' };
+  if (rotatingTabs.has(tabId)) return { rotated: false, tabId, skipped: 'rotation_in_progress' };
   const now = Date.now();
-  const recent = (rotationTimes.get(tabId) ?? []).filter((time) => now - time < 60_000);
+  const recent = (rotationTimes.get(tabId) ?? []).filter(
+    (time) => now - time < AUTO_ROTATION_COOLDOWN_MS,
+  );
+  // ponytail: one automatic rotation per tab per minute; explicit MCP calls keep the 3/min guard.
+  if (!explicit && recent.length > 0)
+    return { rotated: false, tabId, skipped: 'auto_rotation_cooldown' };
   if (recent.length >= 2 && isFatalProxyNetworkError(error)) {
     await saveProxyConfig({ ...config, enabled: false });
-    return;
+    return { rotated: false, tabId, skipped: 'proxy_disabled_after_fatal_error' };
   }
-  if (recent.length >= 3) return;
+  if (recent.length >= 3) return { rotated: false, tabId, skipped: 'rate_limited' };
 
   rotatingTabs.add(tabId);
   rotationTimes.set(tabId, [...recent, now]);
   try {
     await saveProxyConfig({ ...config, sessionId: nextSessionId() });
     await chrome.tabs.reload(tabId);
+    return { rotated: true, tabId };
   } catch (reloadError) {
     if (!isClosedTabError(reloadError)) throw reloadError;
+    return { rotated: true, tabId, skipped: 'tab_closed_after_rotation' };
   } finally {
     rotatingTabs.delete(tabId);
   }
+}
+
+async function pageContainsKnownError(tabId: number): Promise<boolean> {
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId, frameIds: [0] },
+    func: async () => {
+      const hasError = () =>
+        /oops!!\s*something went wrong\.\s*please refresh page/i.test(
+          (document.body?.innerText ?? '').replace(/\s+/g, ' '),
+        );
+      const deadline = Date.now() + 3_000;
+      do {
+        if (hasError()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      } while (Date.now() < deadline);
+      return hasError();
+    },
+  });
+  return injection?.result === true;
+}
+
+async function detectPageErrorAndRotate(tabId: number): Promise<void> {
+  if (tabId < 0 || !config.enabled || !config.rotateOnError) return;
+  try {
+    if (await pageContainsKnownError(tabId)) await rotateAndReload(tabId);
+  } catch (error) {
+    if (!isClosedTabError(error)) console.debug('页面异常检测跳过:', error);
+  }
+}
+
+export async function rotateProxyForTab(
+  tabId: number,
+  reason: string,
+): Promise<ProxyRotationResult & { reason: string }> {
+  if (!Number.isInteger(tabId) || tabId < 0)
+    throw new Error('tabId must be a non-negative integer');
+  const result = await rotateAndReload(tabId, undefined, true);
+  if (!result.rotated && result.skipped === 'proxy_disabled') throw new Error('请先启用并保存代理');
+  if (!result.rotated && result.skipped === 'rate_limited')
+    throw new Error('该标签页 1 分钟内已轮换 3 次，请稍后再试');
+  return { ...result, reason };
 }
 
 export async function getProxyDiagnostics(
@@ -400,11 +473,14 @@ export function initProxyManager(): void {
   );
   chrome.webRequest.onErrorOccurred.addListener(
     (details) => {
-      if (details.type === 'main_frame')
+      if (details.type === 'main_frame' && shouldRotateNetworkError(details.error))
         void rotateAndReload(details.tabId, details.error).catch(console.warn);
     },
     { urls: ['<all_urls>'], types: ['main_frame'] },
   );
+  chrome.webNavigation.onCompleted.addListener((details) => {
+    if (details.frameId === 0) void detectPageErrorAndRotate(details.tabId);
+  });
   chrome.tabs.onRemoved.addListener((tabId) => rotationTimes.delete(tabId));
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

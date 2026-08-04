@@ -22,7 +22,8 @@ interface ToolActivity {
 }
 const recentToolCalls: ToolActivity[] = [];
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
-const WRITE_TOOL = /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload)/;
+const WRITE_TOOL =
+  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate)/;
 const LONG_TOOL = /(?:performance|trace|record|download|upload|proxy_diagnostics)/;
 const NAVIGATION_TOOL = /(?:navigate|download|upload)/;
 const tabQueues = new Map<string, Promise<void>>();

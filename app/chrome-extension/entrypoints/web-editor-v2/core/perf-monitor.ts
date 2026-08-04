@@ -37,6 +37,8 @@ export interface PerfMonitor {
   setEnabled(enabled: boolean): void;
   /** Toggle monitor and return new state */
   toggle(): boolean;
+  /** Show or hide the page scroll coordinates in the HUD. */
+  setScrollCoordinatesVisible(visible: boolean): void;
   /** Cleanup */
   dispose(): void;
 }
@@ -136,7 +138,11 @@ export function createPerfMonitor(options: PerfMonitorOptions): PerfMonitor {
   heapEl.className = 'we-perf-hud-line';
   heapEl.textContent = 'Heap: --';
 
-  root.append(fpsEl, heapEl);
+  const scrollEl = document.createElement('div');
+  scrollEl.className = 'we-perf-hud-line';
+  scrollEl.hidden = true;
+
+  root.append(fpsEl, heapEl, scrollEl);
   container.append(root);
   disposer.add(() => root.remove());
 
@@ -145,7 +151,9 @@ export function createPerfMonitor(options: PerfMonitorOptions): PerfMonitor {
   // ==========================================================================
 
   let enabled = false;
+  let scrollCoordinatesVisible = false;
   let rafId: number | null = null;
+  let scrollRafId: number | null = null;
 
   let frameCount = 0;
   let lastFpsUiTime = 0;
@@ -165,6 +173,30 @@ export function createPerfMonitor(options: PerfMonitorOptions): PerfMonitor {
     }
   }
   disposer.add(cancelRaf);
+  disposer.add(() => {
+    if (scrollRafId !== null) cancelAnimationFrame(scrollRafId);
+  });
+
+  function syncVisibility(): void {
+    root.hidden = !enabled && !scrollCoordinatesVisible;
+    fpsEl.hidden = !enabled;
+    heapEl.hidden = !enabled;
+    scrollEl.hidden = !scrollCoordinatesVisible;
+  }
+
+  function updateScrollText(): void {
+    scrollEl.textContent = `Scroll: X ${Math.round(window.scrollX)}, Y ${Math.round(window.scrollY)}`;
+  }
+
+  function onScroll(): void {
+    if (!scrollCoordinatesVisible || scrollRafId !== null) return;
+    scrollRafId = requestAnimationFrame(() => {
+      scrollRafId = null;
+      if (scrollCoordinatesVisible) updateScrollText();
+    });
+  }
+
+  disposer.listen(window, 'scroll', onScroll, { passive: true });
 
   function setText(el: HTMLElement, next: string, cache: 'fps' | 'heap'): void {
     if (cache === 'fps') {
@@ -260,12 +292,12 @@ export function createPerfMonitor(options: PerfMonitorOptions): PerfMonitor {
     enabled = next;
 
     if (!enabled) {
-      root.hidden = true;
+      syncVisibility();
       cancelRaf();
       return;
     }
 
-    root.hidden = false;
+    syncVisibility();
 
     if (document.visibilityState !== 'visible') {
       // Stay paused until visible again
@@ -281,13 +313,21 @@ export function createPerfMonitor(options: PerfMonitorOptions): PerfMonitor {
     return enabled;
   }
 
+  function setScrollCoordinatesVisible(visible: boolean): void {
+    scrollCoordinatesVisible = visible;
+    syncVisibility();
+    if (visible) updateScrollText();
+  }
+
   return {
     isEnabled: () => enabled,
     setEnabled,
     toggle,
+    setScrollCoordinatesVisible,
     dispose: () => {
       // Ensure rAF is stopped before cleanup
       enabled = false;
+      scrollCoordinatesVisible = false;
       root.hidden = true;
       disposer.dispose();
     },

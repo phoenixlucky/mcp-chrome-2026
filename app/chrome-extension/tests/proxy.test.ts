@@ -4,7 +4,9 @@ import {
   createProxyPac,
   isClosedTabError,
   isFatalProxyNetworkError,
+  isKnownPageError,
   normalizeProxyConfig,
+  shouldRotateNetworkError,
   shouldRotatePage,
 } from '@/entrypoints/background/proxy';
 
@@ -59,6 +61,12 @@ describe('proxy config', () => {
     expect(shouldRotatePage(429)).toBe(true);
     expect(shouldRotatePage(500)).toBe(true);
     expect(shouldRotatePage(404)).toBe(false);
+  });
+
+  it('recognizes the known page-level error message', () => {
+    expect(isKnownPageError('Oops!! Something went wrong. Please refresh page')).toBe(true);
+    expect(isKnownPageError('Oops!!\nSomething went wrong.\nPlease refresh page')).toBe(true);
+    expect(isKnownPageError('Something went wrong, but the page is usable')).toBe(false);
   });
 
   it('preserves the HTTPS protocol from a complete connection string', () => {
@@ -124,6 +132,13 @@ describe('proxy config', () => {
     expect(isFatalProxyNetworkError('net::ERR_PROXY_CONNECTION_FAILED')).toBe(true);
     expect(isFatalProxyNetworkError('net::ERR_TUNNEL_CONNECTION_FAILED')).toBe(true);
     expect(isFatalProxyNetworkError('net::ERR_CONNECTION_TIMED_OUT')).toBe(false);
+  });
+
+  it('ignores generic network timeouts for automatic IP rotation', () => {
+    expect(shouldRotateNetworkError('net::ERR_PROXY_CONNECTION_FAILED')).toBe(true);
+    expect(shouldRotateNetworkError('net::ERR_TUNNEL_CONNECTION_FAILED')).toBe(true);
+    expect(shouldRotateNetworkError('net::ERR_TIMED_OUT')).toBe(false);
+    expect(shouldRotateNetworkError('net::ERR_CONNECTION_TIMED_OUT')).toBe(false);
   });
 
   it('treats a tab closed during automatic retry as harmless', () => {

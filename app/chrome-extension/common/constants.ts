@@ -230,6 +230,7 @@ export const STORAGE_KEYS = {
   USERSCRIPTS_DISABLED: 'userscripts_disabled',
   PROXY_CONFIG: 'proxyConfig',
   PROXY_TEST_RESULT: 'proxyTestResult',
+  WEB_EDITOR_SEND_SCROLL_COORDINATES: 'webEditorSendScrollCoordinates',
   // Record & Replay storage keys
   RR_FLOWS: 'rr_flows',
   RR_RUNS: 'rr_runs',
