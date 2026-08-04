@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bridge AI agents with your Chrome browser</b><br />
-  A Model Context Protocol server that exposes 40+ browser capabilities to AI assistants
+  A Model Context Protocol server that exposes 59 browser capabilities to AI assistants
 </p>
 
 <p align="center">
@@ -88,7 +88,7 @@
 |                                                                                           |                                                                               |                                                                                 |                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
-| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 40+ Tools**<br/>Navigation / forms<br/>bookmarks / history / network       | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 59 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
 ---
 
@@ -173,15 +173,16 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 ## 🛠️ Tools at a Glance
 
-| Category                  | Count | Coverage                                                                              |
-| ------------------------- | :---: | ------------------------------------------------------------------------------------- |
-| 🖥️ **Browser Management** |   7   | Window/tab listing, navigation, switch, close, go back/forward, script injection      |
-| 📷 **Screenshots**        |   1   | Element-level, full-page, custom viewport                                             |
-| 🌐 **Network Monitoring** |   4   | Request capture (webRequest / CDP), custom HTTP                                       |
-| 📝 **Content Analysis**   |   4   | Semantic search, HTML/text extraction, interactive element detection, console capture |
-| 🖱️ **Interaction**        |   4   | Click, fill forms, keyboard input, computer operations                                |
-| 📑 **Data Management**    |   7   | History search, bookmark CRUD, Cookie management (v1.6.4)                             |
-| 📡 **Scraping**           |  8+   | Scroll, wait, structured extraction, Readability, SPA fetch (v1.6.3), click-and-wait  |
+| Category                  | Count | Coverage                                                                             |
+| ------------------------- | :---: | ------------------------------------------------------------------------------------ |
+| 🖥️ **Browser Management** |   9   | Window/tab listing, navigation, switch, close, current URL, scroll, script injection |
+| 📷 **Screenshots**        |   2   | Element-level, full-page, custom viewport, GIF recording                             |
+| 🌐 **Network Monitoring** |   6   | Request capture & response wait, resource blocking, custom HTTP, download handling   |
+| 📝 **Content Analysis**   |   7   | Semantic search, HTML/text extraction, interactive elements, console capture, SPA    |
+| 🖱️ **Interaction**        |   9   | Click, fill forms, keyboard, computer ops, manual element pick, dialogs, file upload |
+| 📑 **Data Management**    |   7   | History search, bookmark CRUD, Cookie management (v1.6.4)                            |
+| 📡 **Scraping**           |  16   | Scoped/Shadow DOM/iframe, pagination, isolated task state, diagnostics, proxy rotate |
+| ⚡ **Performance**        |   3   | Trace start / stop / insight analysis                                                |
 
 📖 Full API reference: [中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
@@ -216,7 +217,7 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 | ✅ Done                                                                       | 🎯 Planned                                                   |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| **40+ MCP Tools** — Full browser API coverage                                 | **Auth & Permission** — API Key / OAuth                      |
+| **59 MCP Tools** — Full browser API coverage                                  | **Auth & Permission** — API Key / OAuth                      |
 | **Streamable HTTP + STDIO** — Dual transport                                  |                                                              |
 | **Smart Assistant** — Claude / Codex / DeepSeek                               | **Monitoring Dashboard** — Web panel for calls, perf, errors |
 | **Semantic Search** — Vector DB + local embeddings                            |                                                              |
