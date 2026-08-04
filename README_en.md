@@ -198,17 +198,23 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 ## 🎬 Use Cases
 
-| Scenario                           | Prompt                                                                                           | Demo                                                                              |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| 📄 **AI Summary + Excalidraw Viz** | [excalidraw-prompt](prompt/excalidraw-prompt.md)                                                 | [Video](https://www.youtube.com/watch?v=3fBPdUBWVz0)                              |
-| 🖼️ **Image Analysis + Excalidraw** | [excalidraw-prompt](prompt/excalidraw-prompt.md) \| [content-analize](prompt/content-analize.md) | [Video](https://www.youtube.com/watch?v=tEPdHZBzbZk)                              |
-| 🎨 **Style Injection & Web Mod**   | [modify-web-prompt](prompt/modify-web.md)                                                        | [Video](https://youtu.be/twI6apRKHsk)                                             |
-| 📡 **Network Request Analysis**    | —                                                                                                | [Video](https://youtu.be/1hHKr7XKqnQ)                                             |
-| 📊 **Browsing History Analysis**   | —                                                                                                | [Video](https://youtu.be/jf2UZfrR2Vk)                                             |
-| 💬 **Web Page Conversation**       | —                                                                                                | [Video](https://youtu.be/FlJKS9UQyC8)                                             |
-| 📸 **Page & Element Screenshots**  | —                                                                                                | [Video 1](https://youtu.be/7ycK6iksWi4) · [Video 2](https://youtu.be/ev8VivANIrk) |
-| 🔖 **Bookmark Management**         | —                                                                                                | [Video](https://youtu.be/R_83arKmFTo)                                             |
-| 🗑️ **Batch Tab Closure**           | —                                                                                                | [Video](https://youtu.be/2wzUT6eNVg4)                                             |
+| Scenario                           | Prompt                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 📄 **AI Summary + Excalidraw Viz** | [excalidraw-prompt](prompt/excalidraw-prompt.md)                                                 |
+| 🖼️ **Image Analysis + Excalidraw** | [excalidraw-prompt](prompt/excalidraw-prompt.md) \| [content-analize](prompt/content-analize.md) |
+| 🎨 **Style Injection & Web Mod**   | [modify-web-prompt](prompt/modify-web.md)                                                        |
+| 📡 **Network Request Analysis**    | —                                                                                                |
+| 📊 **Browsing History Analysis**   | —                                                                                                |
+| 💬 **Web Page Conversation**       | —                                                                                                |
+| 📸 **Page & Element Screenshots**  | —                                                                                                |
+| 🔖 **Bookmark Management**         | —                                                                                                |
+| 🗑️ **Batch Tab Closure**           | —                                                                                                |
+| 🤖 **Smart Assistant Chat**        | —                                                                                                |
+| 🔄 **Workflow Record & Replay**    | —                                                                                                |
+| 🧩 **Visual Workflow Builder**     | —                                                                                                |
+| 📊 **Page Data Extraction**        | —                                                                                                |
+| ⚡ **Page Performance Analysis**   | —                                                                                                |
+| 🎥 **Record Actions as GIF**       | —                                                                                                |
 
 ---
 
