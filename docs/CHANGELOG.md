@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.8.0] - 2026-07-31
+
+### Added
+
+- **`chrome_proxy_rotate` 工具** — 调用方确认当前标签页异常时，轮换代理会话并重新加载页面（需已启用代理，不返回用户名或密码）。
+- **英文工具描述** — 新增 `tools-en.ts` 全量英文工具描述，中英双语元数据完整覆盖。
+- **Scroll 工具增强** — 滚动工具能力扩展（元素滚动、方向控制、超时处理等）。
+- **Web Editor 性能监控更新** — `perf-monitor` 与消息监听增强，新增对应测试。
+
+### Changed
+
+- 版本统一为 v1.8.0。
+
 ## [v1.7.16] - 2026-07-31
 
 ### Added

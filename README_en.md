@@ -26,14 +26,15 @@
 
 ---
 
-## 📢 What's New in v1.7.16
+## 📢 What's New in v1.8.0
 
-> **Proxy support + proxy diagnostics tool** — New proxy takeover capabilities.
+> **Proxy rotate tool + English tool descriptions** — Tool metadata and proxy upgrades.
 >
-> - 🌐 **Proxy support** — Proxy config UI added to Options & Popup pages, with takeover state control
-> - 🔧 **`chrome_proxy_diagnostics` tool** — Read proxy config & Chrome takeover state; `test` mode verifies the proxy exit IP (no credentials leaked)
-> - 📡 **Network request proxy support** — `network-request` tool now works through proxies
-> - 🔧 All packages bumped to v1.7.16
+> - 🔄 **`chrome_proxy_rotate` tool** — Rotate the proxy session and reload the page when the caller detects an abnormal tab (no credentials leaked)
+> - 🌐 **English tool descriptions** — Full English metadata via `tools-en.ts`, complete bilingual coverage
+> - 📜 **Scroll tool enhancements** — Element scrolling, direction control, timeout handling, etc.
+> - ⚡ **Web Editor perf monitor updates** — `perf-monitor` improvements
+> - 🔧 All packages bumped to v1.8.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
