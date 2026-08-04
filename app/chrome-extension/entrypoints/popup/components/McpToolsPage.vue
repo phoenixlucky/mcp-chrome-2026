@@ -35,7 +35,7 @@
         autofocus
       />
       <p class="tool-count"
-        >{{ filteredTools.length }} / {{ TOOL_SCHEMAS.length }} {{ copy.tools }}</p
+        >{{ filteredTools.length }} / {{ toolSchemas.length }} {{ copy.tools }}</p
       >
 
       <div class="tool-list">
@@ -82,7 +82,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { TOOL_SCHEMAS, TOOL_SCHEMAS_EN } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 defineEmits<{ (e: 'back'): void }>();
 
@@ -90,6 +90,10 @@ const query = ref('');
 type Locale = 'zh' | 'en';
 
 const locale = ref<Locale>(localStorage.getItem('mcp-tools-locale') === 'en' ? 'en' : 'zh');
+// Keep the page's shape and fallback text on the complete English catalog.
+const toolSchemas = TOOL_SCHEMAS_EN;
+const zhToolSchemas = new Map(TOOL_SCHEMAS.map((tool) => [tool.name, tool]));
+const zhToolDescriptions = new Map(TOOL_SCHEMAS.map((tool) => [tool.name, tool.description]));
 const messages = {
   zh: {
     back: '返回',
@@ -377,15 +381,33 @@ const zhParameterDescriptions: Record<string, string> = {
   waitFor: '目标元素需要达到的状态。',
 };
 
+const enToolParameterDescriptions = new Map<string, string>();
+for (const t of TOOL_SCHEMAS_EN) {
+  const props = (t.inputSchema.properties || {}) as Record<string, PropertySchema>;
+  for (const [name, schema] of Object.entries(props)) {
+    if (schema.description)
+      enToolParameterDescriptions.set(`${t.name}.${name}`, schema.description);
+  }
+}
+
 const descriptionFor = (tool: Tool) =>
-  locale.value === 'zh' ? (zhDescriptions[tool.name] ?? tool.description) : tool.description;
+  locale.value === 'zh'
+    ? (zhDescriptions[tool.name] ?? zhToolDescriptions.get(tool.name) ?? tool.description)
+    : tool.description;
 const launchDateFor = (tool: Tool) => launchDates[tool.name] ?? '—';
+const zhParameterSchema = (tool: Tool, name: string) => {
+  return (
+    zhToolSchemas.get(tool.name)?.inputSchema.properties as
+      Record<string, PropertySchema> | undefined
+  )?.[name];
+};
 const parameterDescriptionFor = (tool: Tool, name: string, schema: PropertySchema) =>
   locale.value === 'zh'
     ? (zhToolParameterDescriptions[`${tool.name}.${name}`] ??
       zhParameterDescriptions[name] ??
+      zhParameterSchema(tool, name)?.description ??
       schema.description)
-    : schema.description;
+    : (enToolParameterDescriptions.get(`${tool.name}.${name}`) ?? schema.description);
 
 function toggleLocale() {
   locale.value = locale.value === 'zh' ? 'en' : 'zh';
@@ -395,12 +417,12 @@ function toggleLocale() {
 const filteredTools = computed(() => {
   const keyword = query.value.trim().toLowerCase();
   return keyword
-    ? TOOL_SCHEMAS.filter((tool) =>
-        `${tool.name} ${tool.description} ${zhDescriptions[tool.name] ?? ''}`
+    ? toolSchemas.filter((tool) =>
+        `${tool.name} ${tool.description} ${zhDescriptions[tool.name] ?? ''} ${zhToolDescriptions.get(tool.name) ?? ''}`
           .toLowerCase()
           .includes(keyword),
       )
-    : TOOL_SCHEMAS;
+    : toolSchemas;
 });
 
 const reviewTools = new Set([

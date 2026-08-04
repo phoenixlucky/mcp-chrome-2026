@@ -1,6 +1,7 @@
 export * from './constants';
 export * from './types';
 export * from './tools';
+export { TOOL_SCHEMAS_EN } from './tools-en';
 export * from './rr-graph';
 export * from './step-types';
 export * from './labels';

@@ -600,6 +600,8 @@
 
 - `amount` (数字，可选)：滚动像素数（正数=下/右，负数=上/左）
 - `direction` (字符串，可选)：`down` | `up` | `left` | `right`
+- `steps` (数字，可选)：将像素滚动拆成多少步（默认 `1`，最多 `50`）
+- `intervalMs` (数字，可选)：每步之间等待的毫秒数（默认 `0`，最多 `2000`）；与 `steps` 配合可实现慢速滚动
 - `toBottom` (布尔值，可选)：滚动到容器底部
 - `lazyLoad` (布尔值，可选)：与 `toBottom: true` 配合，分段缓慢滚动以等待懒加载内容（默认 `false`）
 - `lazyLoadStep` (数字，可选)：每次分段滚动像素数（默认 `400`）
@@ -620,6 +622,7 @@
 
 ```json
 { "amount": 500 }
+{ "amount": 1000, "direction": "down", "steps": 10, "intervalMs": 150 }
 { "toBottom": true }
 { "selector": "#load-more-button", "block": "center" }
 ```

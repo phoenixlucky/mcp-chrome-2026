@@ -134,4 +134,34 @@ describe('browser result contracts', () => {
       y: 600,
     });
   });
+
+  it('builds paced pixel scrolling when steps and intervalMs are provided', async () => {
+    sendCommand.mockResolvedValue({
+      result: {
+        value: JSON.stringify({
+          success: true,
+          target: 'document.scrollingElement',
+          moved: true,
+          scrollTop: 1000,
+          scrollHeight: 2000,
+          clientHeight: 900,
+          scrollLeft: 0,
+          scrollWidth: 1000,
+          clientWidth: 1000,
+        }),
+      },
+    });
+
+    await scrollTool.execute({
+      tabId: 12,
+      amount: 1000,
+      direction: 'down',
+      steps: 10,
+      intervalMs: 150,
+    });
+
+    const expression = sendCommand.mock.calls[0][2].expression as string;
+    expect(expression).toContain('for (let i = 0; i < 10; i++)');
+    expect(expression).toContain('setTimeout(resolve, 150)');
+  });
 });

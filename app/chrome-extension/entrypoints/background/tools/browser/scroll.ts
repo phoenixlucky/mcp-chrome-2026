@@ -22,6 +22,10 @@ import { cdpSessionManager } from '@/utils/cdp-session-manager';
 const DEFAULT_TIMEOUT_MS = 10_000;
 const CDP_SESSION_KEY = 'scroll';
 const DEFAULT_SCROLL_AMOUNT = 300;
+const DEFAULT_SCROLL_STEPS = 1;
+const MAX_SCROLL_STEPS = 50;
+const MAX_SCROLL_INTERVAL_MS = 2_000;
+const MAX_SLOW_SCROLL_DURATION_MS = 9_000;
 const DEFAULT_LAZY_LOAD_STEP = 400;
 const DEFAULT_LAZY_LOAD_WAIT_MS = 800;
 const DEFAULT_LAZY_LOAD_MAX_STEPS = 1;
@@ -39,6 +43,8 @@ type ScrollBehavior = 'auto' | 'smooth';
 interface ScrollToolParams {
   amount?: number;
   direction?: ScrollDirection;
+  steps?: number;
+  intervalMs?: number;
   toBottom?: boolean;
   lazyLoad?: boolean;
   lazyLoadStep?: number;
@@ -103,6 +109,8 @@ function buildScrollExpression(params: ScrollToolParams): string {
   const {
     amount,
     direction,
+    steps,
+    intervalMs,
     toBottom,
     lazyLoad,
     lazyLoadStep,
@@ -177,15 +185,27 @@ function buildScrollExpression(params: ScrollToolParams): string {
     // Pixel scroll
     const px = typeof amount === 'number' ? amount : DEFAULT_SCROLL_AMOUNT;
     const dir = direction || 'down';
-    if (dir === 'down') {
-      actions.push(`c.scrollTop += ${px}`);
-    } else if (dir === 'up') {
-      actions.push(`c.scrollTop -= ${Math.abs(px)}`);
-    } else if (dir === 'left') {
-      actions.push(`c.scrollLeft -= ${Math.abs(px)}`);
-    } else if (dir === 'right') {
-      actions.push(`c.scrollLeft += ${px}`);
-    }
+    const rawSteps =
+      typeof steps === 'number' && Number.isFinite(steps)
+        ? Math.floor(steps)
+        : DEFAULT_SCROLL_STEPS;
+    const scrollSteps = Math.min(MAX_SCROLL_STEPS, Math.max(1, rawSteps));
+    const rawIntervalMs =
+      typeof intervalMs === 'number' && Number.isFinite(intervalMs) ? Math.floor(intervalMs) : 0;
+    const requestedIntervalMs = Math.min(MAX_SCROLL_INTERVAL_MS, Math.max(0, rawIntervalMs));
+    const scrollIntervalMs = Math.min(
+      requestedIntervalMs,
+      Math.floor(MAX_SLOW_SCROLL_DURATION_MS / Math.max(scrollSteps - 1, 1)),
+    );
+    const deltaX = dir === 'left' ? -Math.abs(px) : dir === 'right' ? px : 0;
+    const deltaY = dir === 'up' ? -Math.abs(px) : dir === 'down' ? px : 0;
+    actions.push(`for (let i = 0; i < ${scrollSteps}; i++) {
+      c.scrollLeft += ${deltaX} / ${scrollSteps};
+      c.scrollTop += ${deltaY} / ${scrollSteps};
+      if (i < ${scrollSteps - 1} && ${scrollIntervalMs} > 0) {
+        await new Promise(resolve => setTimeout(resolve, ${scrollIntervalMs}));
+      }
+    }`);
   }
 
   // Build return statement

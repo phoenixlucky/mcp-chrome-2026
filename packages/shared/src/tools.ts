@@ -267,7 +267,7 @@ export const TOOL_SCHEMAS: Tool[] = [
     description: '列出标签页中的框架，以便作用域操作通过 frameId 定位同源或跨域 iframe。',
     inputSchema: {
       type: 'object',
-      properties: { tabId: { type: 'number', description: 'Target tab ID.' } },
+      properties: { tabId: { type: 'number', description: '目标标签页 ID。' } },
       required: [],
     },
   },
@@ -277,14 +277,14 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        tabId: { type: 'number', description: 'Target tab ID.' },
+        tabId: { type: 'number', description: '目标标签页 ID。' },
         domLimit: {
           type: 'number',
-          description: 'Maximum DOM characters (default 50000, cap 250000).',
+          description: '最大 DOM 字符数（默认 50000，上限 250000）。',
         },
         consoleLimit: {
           type: 'number',
-          description: 'Maximum console entries (default 100, cap 500).',
+          description: '最大控制台条目数（默认 100，上限 500）。',
         },
       },
       required: [],
@@ -300,7 +300,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         action: {
           type: 'string',
           enum: ['status', 'test'],
-          description: 'status only reads state; test also checks the proxy exit IP.',
+          description: 'status 只读取状态；test 还会验证代理出口 IP。',
         },
       },
       required: [],
@@ -313,11 +313,11 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        tabId: { type: 'number', description: '目标标签页 ID；默认为当前激活标签页。' },
         reason: {
           type: 'string',
           minLength: 1,
-          description: 'Why the caller considers the current page abnormal.',
+          description: '调用方认为当前页面异常的原因。',
         },
       },
       required: ['reason'],
@@ -333,29 +333,29 @@ export const TOOL_SCHEMAS: Tool[] = [
         action: { type: 'string', enum: ['click', 'extract', 'paginate'] },
         scopeSelector: {
           type: 'string',
-          description: 'CSS selector for the owning region, for example the reviews section.',
+          description: '所属区域的 CSS 选择器，例如评论区。',
         },
-        selector: { type: 'string', description: 'CSS selector within the scope.' },
-        text: { type: 'string', description: 'Optional visible text filter for click.' },
-        role: { type: 'string', description: 'Optional ARIA role filter for click.' },
-        frameId: { type: 'number', description: 'Frame ID from Chrome frame inspection.' },
-        tabId: { type: 'number', description: 'Target tab ID.' },
-        itemSelector: { type: 'string', description: 'For paginate, item selector within scope.' },
+        selector: { type: 'string', description: '作用域内的 CSS 选择器。' },
+        text: { type: 'string', description: '点击时可选的可见文本过滤条件。' },
+        role: { type: 'string', description: '点击时可选的 ARIA 角色过滤条件。' },
+        frameId: { type: 'number', description: '来自 Chrome 框架检查的框架 ID。' },
+        tabId: { type: 'number', description: '目标标签页 ID。' },
+        itemSelector: { type: 'string', description: '分页用：作用域内的条目选择器。' },
         nextSelector: {
           type: 'string',
-          description: 'For paginate, next-page control selector within scope.',
+          description: '分页用：作用域内的下一页控件选择器。',
         },
         stopSelector: {
           type: 'string',
-          description: 'For paginate, stop when this selector appears.',
+          description: '分页用：出现此选择器时停止。',
         },
         maxPages: {
           type: 'number',
-          description: 'For paginate, maximum pages (default 50, cap 200).',
+          description: '分页用：最大页数（默认 50，上限 200）。',
         },
         timeout: {
           type: 'number',
-          description: 'For paginate, per-page DOM-change timeout in milliseconds.',
+          description: '分页用：每页 DOM 变化的超时时间（毫秒）。',
         },
       },
       required: ['action', 'scopeSelector'],
@@ -368,11 +368,11 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {
         action: { type: 'string', enum: ['create', 'get', 'save', 'clear', 'close'] },
-        taskId: { type: 'string', description: 'Stable caller-defined task ID.' },
-        url: { type: 'string', description: 'Initial URL when creating.' },
+        taskId: { type: 'string', description: '调用方定义的稳定任务 ID。' },
+        url: { type: 'string', description: '创建时的初始 URL。' },
         state: {
           type: 'object',
-          description: 'JSON-safe state, for example product ID and current review page.',
+          description: 'JSON 安全的状态，例如商品 ID 和当前评论页。',
         },
       },
       required: ['action', 'taskId'],
@@ -380,7 +380,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.GET_WINDOWS_AND_TABS,
-    description: 'Get all currently open browser windows and tabs',
+    description: '获取当前打开的所有浏览器窗口和标签页',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -389,16 +389,16 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.COOKIE_GET,
-    description: 'Get cookies, optionally filtered by URL, domain, name, or cookie store.',
+    description: '获取 Cookie，可按 URL、域名、名称或 Cookie 存储分区筛选。',
     inputSchema: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'Only return cookies that apply to this URL.' },
-        domain: { type: 'string', description: 'Only return cookies for this domain.' },
-        name: { type: 'string', description: 'Only return cookies with this name.' },
+        url: { type: 'string', description: '仅返回适用于此 URL 的 Cookie。' },
+        domain: { type: 'string', description: '仅返回此域名下的 Cookie。' },
+        name: { type: 'string', description: '仅返回此名称的 Cookie。' },
         storeId: {
           type: 'string',
-          description: 'Only return cookies from this browser profile store.',
+          description: '仅返回此浏览器配置存储分区中的 Cookie。',
         },
       },
       required: [],
@@ -406,67 +406,65 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.COOKIE_SET,
-    description:
-      'Set a browser cookie, including HttpOnly, Secure, SameSite, path, and expiration settings.',
+    description: '设置浏览器 Cookie，支持 HttpOnly、Secure、SameSite、路径和过期时间设置。',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'A URL on the cookie domain; required by Chrome to set the cookie.',
+          description: 'Cookie 所属域名下的 URL；Chrome 设置 Cookie 时必填。',
         },
-        name: { type: 'string', description: 'Cookie name.' },
-        value: { type: 'string', description: 'Cookie value.' },
+        name: { type: 'string', description: 'Cookie 名称。' },
+        value: { type: 'string', description: 'Cookie 值。' },
         domain: {
           type: 'string',
-          description: 'Optional cookie domain; it must match the URL host.',
+          description: '可选的 Cookie 域名；必须与 URL 主机匹配。',
         },
-        path: { type: 'string', description: 'Cookie path (default: /).' },
-        secure: { type: 'boolean', description: 'Send only over HTTPS.' },
-        httpOnly: { type: 'boolean', description: 'Hide from page JavaScript.' },
+        path: { type: 'string', description: 'Cookie 路径（默认：/）。' },
+        secure: { type: 'boolean', description: '仅通过 HTTPS 发送。' },
+        httpOnly: { type: 'boolean', description: '对页面 JavaScript 隐藏。' },
         sameSite: {
           type: 'string',
           enum: ['no_restriction', 'lax', 'strict', 'unspecified'],
-          description: 'SameSite policy.',
+          description: 'SameSite 策略。',
         },
         expirationDate: {
           type: 'number',
-          description: 'Unix timestamp in seconds; omit for a session cookie.',
+          description: 'Unix 时间戳（秒）；省略则为会话 Cookie。',
         },
-        storeId: { type: 'string', description: 'Browser profile store ID.' },
+        storeId: { type: 'string', description: '浏览器配置存储分区 ID。' },
       },
       required: ['url', 'name', 'value'],
     },
   },
   {
     name: TOOL_NAMES.BROWSER.COOKIE_DELETE,
-    description: 'Delete a cookie identified by its URL and name.',
+    description: '按 URL 和名称删除 Cookie。',
     inputSchema: {
       type: 'object',
       properties: {
-        url: { type: 'string', description: 'A URL matching the cookie to delete.' },
-        name: { type: 'string', description: 'Cookie name.' },
-        storeId: { type: 'string', description: 'Browser profile store ID.' },
+        url: { type: 'string', description: '与要删除 Cookie 匹配的 URL。' },
+        name: { type: 'string', description: 'Cookie 名称。' },
+        storeId: { type: 'string', description: '浏览器配置存储分区 ID。' },
       },
       required: ['url', 'name'],
     },
   },
   {
     name: 'search_tabs_content',
-    description:
-      'Search the readable content of explicitly selected browser tabs using semantic similarity. Selected tabs are indexed on demand.',
+    description: '使用语义相似度搜索显式选定的浏览器标签页中的可读内容；选定标签页按需建立索引。',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'The text or topic to search for.' },
+        query: { type: 'string', description: '要搜索的文本或主题。' },
         tabIds: {
           type: 'array',
           items: { type: 'number' },
-          description: 'One to five tab IDs to search.',
+          description: '要搜索的 1 到 5 个标签页 ID。',
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of matching tabs to return (default: 10, max: 20).',
+          description: '最多返回的匹配标签页数量（默认 10，上限 20）。',
         },
       },
       required: ['query', 'tabIds'],
@@ -479,31 +477,31 @@ export const TOOL_SCHEMAS: Tool[] = [
   //   inputSchema: {
   //     type: 'object',
   //     properties: {
-  //       flowId: { type: 'string', description: 'ID of the flow to run' },
+  //       flowId: { type: 'string', description: '要运行的流程 ID' },
   //       args: {
   //         type: 'object',
-  //         description: 'Variable values for the flow (flat object of key/value)',
+  //         description: '流程的变量值（扁平的键值对对象）',
   //       },
   //       tabTarget: {
   //         type: 'string',
-  //         description: "Target tab: 'current' or 'new' (default: current)",
+  //         description: "目标标签页：'current' 或 'new'（默认 current）",
   //         enum: ['current', 'new'],
   //       },
-  //       refresh: { type: 'boolean', description: 'Refresh before running (default false)' },
+  //       refresh: { type: 'boolean', description: '运行前是否刷新（默认 false）' },
   //       captureNetwork: {
   //         type: 'boolean',
-  //         description: 'Capture network snippets for debugging (default false)',
+  //         description: '是否采集网络片段用于调试（默认 false）',
   //       },
-  //       returnLogs: { type: 'boolean', description: 'Return run logs (default false)' },
-  //       timeoutMs: { type: 'number', description: 'Global timeout in ms (optional)' },
-  //       startUrl: { type: 'string', description: 'Optional start URL to open before running' },
+  //       returnLogs: { type: 'boolean', description: '是否返回运行日志（默认 false）' },
+  //       timeoutMs: { type: 'number', description: '全局超时时间（毫秒，可选）' },
+  //       startUrl: { type: 'string', description: '运行前打开的可选起始 URL' },
   //     },
   //     required: ['flowId'],
   //   },
   // },
   // {
   //   name: TOOL_NAMES.RECORD_REPLAY.LIST_PUBLISHED,
-  //   description: 'List published flows available as dynamic tools (for discovery).',
+  //   description: '列出可作为动态工具使用的已发布流程（用于发现）。',
   //   inputSchema: {
   //     type: 'object',
   //     properties: {},
@@ -512,23 +510,21 @@ export const TOOL_SCHEMAS: Tool[] = [
   // },
   {
     name: TOOL_NAMES.BROWSER.PERFORMANCE_START_TRACE,
-    description:
-      'Starts a performance trace recording on the selected page. Optionally reloads the page and/or auto-stops after a short duration.',
+    description: '在所选页面上开始性能追踪记录；可选自动刷新页面和/或在短暂时间后自动停止。',
     inputSchema: {
       type: 'object',
       properties: {
         reload: {
           type: 'boolean',
-          description:
-            'Determines if, once tracing has started, the page should be automatically reloaded (ignore cache).',
+          description: '决定追踪开始后是否自动刷新页面（忽略缓存）。',
         },
         autoStop: {
           type: 'boolean',
-          description: 'Determines if the trace should be automatically stopped (default false).',
+          description: '决定是否自动停止追踪（默认 false）。',
         },
         durationMs: {
           type: 'number',
-          description: 'Auto-stop duration in milliseconds when autoStop is true (default 5000).',
+          description: 'autoStop 为 true 时的自动停止时长（毫秒，默认 5000）。',
         },
       },
       required: [],
@@ -536,17 +532,17 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.PERFORMANCE_STOP_TRACE,
-    description: 'Stops the active performance trace recording on the selected page.',
+    description: '停止所选页面正在进行的性能追踪记录。',
     inputSchema: {
       type: 'object',
       properties: {
         saveToDownloads: {
           type: 'boolean',
-          description: 'Whether to save the trace as a JSON file in Downloads (default true).',
+          description: '是否将追踪结果保存为下载目录中的 JSON 文件（默认 true）。',
         },
         filenamePrefix: {
           type: 'string',
-          description: 'Optional filename prefix for the downloaded trace JSON.',
+          description: '下载的追踪 JSON 文件名的可选前缀。',
         },
       },
       required: [],
@@ -555,19 +551,18 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.PERFORMANCE_ANALYZE_INSIGHT,
     description:
-      'Provides a lightweight summary of the last recorded trace. For deep insights (CWV, breakdowns), integrate native-side DevTools trace engine.',
+      '提供最近一次追踪记录的轻量摘要；如需深入洞察（CWV、明细），请集成原生侧 DevTools 追踪引擎。',
     inputSchema: {
       type: 'object',
       properties: {
         insightName: {
           type: 'string',
           description:
-            'Optional insight name for future deep analysis (e.g., "DocumentLatency"). Currently informational only.',
+            '供后续深入分析使用的可选洞察名称（例如 "DocumentLatency"）；目前仅作信息记录。',
         },
         timeoutMs: {
           type: 'number',
-          description:
-            'Timeout for deep analysis via native host (milliseconds). Default 60000. Increase for large traces.',
+          description: '通过原生宿主进行深入分析的超时时间（毫秒），默认 60000；大型追踪可调大。',
         },
       },
       required: [],
@@ -576,32 +571,30 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.READ_PAGE,
     description:
-      'Get an accessibility tree representation of visible elements on the page. Only returns elements that are visible in the viewport. Optionally filter for only interactive elements.\nTip: If the returned elements do not include the specific element you need, use the computer tool\'s screenshot (action="screenshot") to capture the element\'s on-screen coordinates, then operate by coordinates.',
+      '获取页面上可见元素的无障碍树表示；仅返回视口中可见的元素，可选只筛选交互元素。\n提示：如果返回的元素不包含所需的具体元素，请使用 computer 工具的截图（action="screenshot"）获取该元素的屏幕坐标，再按坐标操作。',
     inputSchema: {
       type: 'object',
       properties: {
         filter: {
           type: 'string',
-          description:
-            'Filter elements: "interactive" for such as  buttons/links/inputs only (default: all visible elements)',
+          description: '元素筛选："interactive" 表示仅按钮/链接/输入框等（默认：所有可见元素）',
         },
         depth: {
           type: 'number',
-          description:
-            'Maximum DOM depth to traverse (integer >= 0). Lower values reduce output size and can improve performance.',
+          description: '最大 DOM 遍历深度（整数 >= 0）；值越小输出越小、性能越好。',
         },
         refId: {
           type: 'string',
           description:
-            'Focus on the subtree rooted at this element refId (e.g., "ref_12"). The refId must come from a recent chrome_read_page response in the same tab (refs may expire).',
+            '聚焦于以该元素 refId（例如 "ref_12"）为根的子树；refId 必须来自同一标签页最近的 chrome_read_page 响应（引用可能过期）。',
         },
         tabId: {
           type: 'number',
-          description: 'Target an existing tab by ID (default: active tab).',
+          description: '按 ID 指定现有标签页（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab when tabId is omitted.',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: [],
@@ -610,34 +603,34 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.COMPUTER,
     description:
-      "Use a mouse and keyboard to interact with a web browser, and take screenshots.\n* Whenever you intend to click on an element like an icon, you should consult a read_page to determine the ref of the element before moving the cursor.\n* If you tried clicking on a program or link but it failed to load, even after waiting, try screenshot and then adjusting your click location so that the tip of the cursor visually falls on the element that you want to click.\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don't click boxes on their edges unless asked.",
+      '使用鼠标和键盘与浏览器交互，并可截图。\n* 每当要点击图标等元素时，应先通过 read_page 确定该元素的 ref，再移动光标。\n* 如果点击程序或链接后等待很久仍未加载成功，先截图，再调整点击位置，使光标尖端视觉上落在要点击的元素上。\n* 点击按钮、链接、图标等时，务必让光标尖端位于元素中心，除非被要求，否则不要点击边缘。',
     inputSchema: {
       type: 'object',
       properties: {
-        tabId: { type: 'number', description: 'Target tab ID (default: active tab)' },
+        tabId: { type: 'number', description: '目标标签页 ID（默认：当前激活标签页）' },
         background: {
           type: 'boolean',
           description:
-            'Avoid focusing/activating tab/window for certain operations (best-effort). Default: true; set false only when foreground interaction is required.',
+            '对某些操作尽量避免聚焦/激活标签页或窗口（尽力而为）。默认 true；仅当需要前台交互时才设为 false。',
         },
         action: {
           type: 'string',
           description:
-            'Action to perform: left_click | right_click | double_click | triple_click | left_click_drag | scroll | scroll_to | type | key | fill | fill_form | hover | wait | resize_page | zoom | screenshot',
+            '要执行的操作：left_click | right_click | double_click | triple_click | left_click_drag | scroll | scroll_to | type | key | fill | fill_form | hover | wait | resize_page | zoom | screenshot',
         },
         ref: {
           type: 'string',
           description:
-            'Element ref from chrome_read_page. For click/scroll/scroll_to/key/type and drag end when provided; takes precedence over coordinates.',
+            '来自 chrome_read_page 的元素引用；提供时用于 click/scroll/scroll_to/key/type 及拖拽终点，优先于坐标。',
         },
         coordinates: {
           type: 'object',
           properties: {
-            x: { type: 'number', description: 'X coordinate' },
-            y: { type: 'number', description: 'Y coordinate' },
+            x: { type: 'number', description: 'X 坐标' },
+            y: { type: 'number', description: 'Y 坐标' },
           },
           description:
-            'Coordinates for actions (in screenshot space if a recent screenshot was taken, otherwise viewport). Required for click/scroll and as end point for drag.',
+            '操作使用的坐标（若近期截过图则基于截图坐标空间，否则为视口坐标）。click/scroll 必需，拖拽时作为终点。',
         },
         startCoordinates: {
           type: 'object',
@@ -645,34 +638,32 @@ export const TOOL_SCHEMAS: Tool[] = [
             x: { type: 'number' },
             y: { type: 'number' },
           },
-          description: 'Starting coordinates for drag action',
+          description: '拖拽操作的起始坐标',
         },
         startRef: {
           type: 'string',
-          description: 'Drag start ref from chrome_read_page (alternative to startCoordinates).',
+          description: '来自 chrome_read_page 的拖拽起点引用（startCoordinates 的替代）。',
         },
         scrollDirection: {
           type: 'string',
-          description: 'Scroll direction: up | down | left | right',
+          description: '滚动方向：up | down | left | right',
         },
         scrollAmount: {
           type: 'number',
-          description: 'Scroll ticks (1-10), default 3',
+          description: '滚动格数（1-10），默认 3',
         },
         text: {
           type: 'string',
           description:
-            'Text to type (for action=type) or keys/chords separated by space (for action=key, e.g. "Backspace Enter" or "cmd+a")',
+            '要输入的文本（action=type），或用空格分隔的按键/组合键（action=key，例如 "Backspace Enter" 或 "cmd+a"）',
         },
         repeat: {
           type: 'number',
-          description:
-            'For action=key: number of times to repeat the key sequence (integer 1-100, default 1).',
+          description: 'action=key 时：按键序列的重复次数（整数 1-100，默认 1）。',
         },
         modifiers: {
           type: 'object',
-          description:
-            'Modifier keys for click actions (left_click/right_click/double_click/triple_click).',
+          description: '点击操作（left_click/right_click/double_click/triple_click）使用的修饰键。',
           properties: {
             altKey: { type: 'boolean' },
             ctrlKey: { type: 'boolean' },
@@ -683,7 +674,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         region: {
           type: 'object',
           description:
-            'For action=zoom: rectangular region to capture (x0,y0)-(x1,y1) in viewport pixels (or screenshot-space if a recent screenshot context exists).',
+            'action=zoom 时：要采集的矩形区域 (x0,y0)-(x1,y1)，单位为视口像素（若存在近期截图上下文则为截图坐标空间）。',
           properties: {
             x0: { type: 'number' },
             y0: { type: 'number' },
@@ -695,39 +686,37 @@ export const TOOL_SCHEMAS: Tool[] = [
         // For action=fill
         selector: {
           type: 'string',
-          description: 'CSS selector for fill (alternative to ref).',
+          description: '用于 fill 的 CSS 选择器（ref 的替代）。',
         },
         value: {
           oneOf: [{ type: 'string' }, { type: 'boolean' }, { type: 'number' }],
-          description: 'Value to set for action=fill (string | boolean | number)',
+          description: 'action=fill 时设置的值（字符串 | 布尔值 | 数字）',
         },
         elements: {
           type: 'array',
-          description: 'For action=fill_form: list of elements to fill (ref + value)',
+          description: 'action=fill_form 时：要填写的元素列表（ref + value）',
           items: {
             type: 'object',
             properties: {
-              ref: { type: 'string', description: 'Element ref from chrome_read_page' },
-              value: { type: 'string', description: 'Value to set (stringified if non-string)' },
+              ref: { type: 'string', description: '来自 chrome_read_page 的元素引用' },
+              value: { type: 'string', description: '要设置的值（非字符串时转为字符串）' },
             },
             required: ['ref', 'value'],
           },
         },
-        width: { type: 'number', description: 'For action=resize_page: viewport width' },
-        height: { type: 'number', description: 'For action=resize_page: viewport height' },
+        width: { type: 'number', description: 'action=resize_page 时：视口宽度' },
+        height: { type: 'number', description: 'action=resize_page 时：视口高度' },
         appear: {
           type: 'boolean',
-          description:
-            'For action=wait with text: whether to wait for the text to appear (true, default) or disappear (false)',
+          description: 'action=wait（带 text）时：是等待文本出现（true，默认）还是消失（false）',
         },
         timeout: {
           type: 'number',
-          description:
-            'For action=wait with text: timeout in milliseconds (default 10000, max 120000)',
+          description: 'action=wait（带 text）时：超时时间（毫秒，默认 10000，上限 120000）',
         },
         duration: {
           type: 'number',
-          description: 'Seconds to wait for action=wait (max 30s)',
+          description: 'action=wait 的等待秒数（最长 30 秒）',
         },
       },
       required: ['action'],
@@ -762,48 +751,48 @@ export const TOOL_SCHEMAS: Tool[] = [
   //           'Arguments for the specified action.\n- create: { script (required), name?, description?, matches?: string[], excludes?: string[], persist?: boolean (default true), runAt?: "document_start"|"document_end"|"document_idle"|"auto", world?: "auto"|"ISOLATED"|"MAIN", allFrames?: boolean (default true), mode?: "auto"|"css"|"persistent"|"once", dnrFallback?: boolean (default true), tags?: string[] }\n- list: { query?: string, status?: "enabled"|"disabled", domain?: string }\n- get: { id (required) }\n- enable/disable: { id (required) }\n- update: { id (required), script?, name?, description?, matches?, excludes?, runAt?, world?, allFrames?, persist?, dnrFallback?, tags? }\n- remove: { id (required) }\n- send_command: { id (required), payload?: string, tabId?: number }\n- export: {}\nTip: For a one-off execution that returns a value, use create with args.mode="once". The returned value is included as onceResult in the tool response.',
   //         properties: {
   //           // Common identifiers
-  //           id: { type: 'string', description: 'Userscript id (for get/enable/disable/update/remove/send_command)' },
+  //           id: { type: 'string', description: '用户脚本 ID（用于 get/enable/disable/update/remove/send_command）' },
   //           // Create / Update fields
-  //           script: { type: 'string', description: 'JS/CSS/Tampermonkey script source (required for create)' },
-  //           name: { type: 'string', description: 'Userscript name (optional)' },
-  //           description: { type: 'string', description: 'Userscript description (optional)' },
+  //           script: { type: 'string', description: 'JS/CSS/Tampermonkey 脚本源码（create 时必填）' },
+  //           name: { type: 'string', description: '用户脚本名称（可选）' },
+  //           description: { type: 'string', description: '用户脚本描述（可选）' },
   //           matches: {
   //             type: 'array',
   //             items: { type: 'string' },
-  //             description: 'Match patterns for pages to apply to (e.g., https://*.example.com/*)'
+  //             description: '要应用到的页面匹配模式（例如 https://*.example.com/*）'
   //           },
   //           excludes: {
   //             type: 'array',
   //             items: { type: 'string' },
-  //             description: 'Exclude patterns'
+  //             description: '排除模式'
   //           },
-  //           persist: { type: 'boolean', description: 'Persist userscript for matched pages (default true)' },
+  //           persist: { type: 'boolean', description: '为匹配页面持久保存用户脚本（默认 true）' },
   //           runAt: {
   //             type: 'string',
-  //             description: 'Injection timing',
+  //             description: '注入时机',
   //             enum: ['document_start', 'document_end', 'document_idle', 'auto'],
   //           },
   //           world: {
   //             type: 'string',
-  //             description: 'Execution world',
+  //             description: '执行环境',
   //             enum: ['auto', 'ISOLATED', 'MAIN'],
   //           },
-  //           allFrames: { type: 'boolean', description: 'Inject into all frames (default true)' },
+  //           allFrames: { type: 'boolean', description: '注入所有框架（默认 true）' },
   //           mode: {
   //             type: 'string',
   //             description:
   //               'Injection strategy: auto | css | persistent | once. Use once to evaluate immediately (no persistence) and include the return value in onceResult.',
   //             enum: ['auto', 'css', 'persistent', 'once'],
   //           },
-  //           dnrFallback: { type: 'boolean', description: 'Use DNR fallback when needed (default true)' },
-  //           tags: { type: 'array', items: { type: 'string' }, description: 'Custom tags' },
+  //           dnrFallback: { type: 'boolean', description: '需要时使用 DNR 回退（默认 true）' },
+  //           tags: { type: 'array', items: { type: 'string' }, description: '自定义标签' },
   //           // List filters
-  //           query: { type: 'string', description: 'Search by name/description (list action)' },
-  //           status: { type: 'string', enum: ['enabled', 'disabled'], description: 'Filter by status (list action)' },
-  //           domain: { type: 'string', description: 'Filter by domain (list action)' },
+  //           query: { type: 'string', description: '按名称/描述搜索（list 操作）' },
+  //           status: { type: 'string', enum: ['enabled', 'disabled'], description: '按状态筛选（list 操作）' },
+  //           domain: { type: 'string', description: '按域名筛选（list 操作）' },
   //           // Send command
-  //           payload: { type: 'string', description: 'Arbitrary payload (stringified) for send_command' },
-  //           tabId: { type: 'number', description: 'Target tab for send_command (default active tab)' },
+  //           payload: { type: 'string', description: 'send_command 的任意负载（字符串化）' },
+  //           tabId: { type: 'number', description: 'send_command 的目标标签页（默认当前激活标签页）' },
   //         },
   //       },
   //     },
@@ -812,54 +801,48 @@ export const TOOL_SCHEMAS: Tool[] = [
   // },
   {
     name: TOOL_NAMES.BROWSER.NAVIGATE,
-    description:
-      'Navigate to a URL, refresh the current tab, or navigate browser history (back/forward)',
+    description: '打开 URL、刷新当前标签页，或在浏览历史中前进/后退',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description:
-            'URL to navigate to. Special values: "back" or "forward" to navigate browser history in the target tab.',
+          description: '要打开的 URL。特殊值："back" 或 "forward" 用于在目标标签页中浏览历史。',
         },
         newWindow: {
           type: 'boolean',
-          description: 'Create a new window to navigate to the URL or not. Defaults to false',
+          description: '是否新建窗口打开该 URL。默认为 false',
         },
         tabId: {
           type: 'number',
           description:
-            'Target an existing tab by ID (if provided, navigate/refresh/back/forward that tab instead of the active tab).',
+            '按 ID 指定现有标签页（若提供，则对该标签页执行导航/刷新/后退/前进，而非当前激活标签页）。',
         },
         windowId: {
           type: 'number',
           description:
-            'Target an existing window by ID (when creating a new tab in existing window, or picking active tab if tabId is not provided).',
+            '按 ID 指定现有窗口（在现有窗口中新建标签页，或在未提供 tabId 时选取激活标签页）。',
         },
         background: {
           type: 'boolean',
-          description:
-            'Perform the operation without stealing focus. Default: true; set false only when foreground interaction is required.',
+          description: '执行操作时不抢占焦点。默认 true；仅当需要前台交互时才设为 false。',
         },
         activateTab: {
           type: 'boolean',
           description:
-            'Keep the target tab active within its own window while background=true, without focusing that window. Use for pages that must continue rendering virtualized content.',
+            'background=true 时，保持目标标签页在其窗口内激活，但不聚焦该窗口。适用于必须继续渲染虚拟化内容的页面。',
         },
         width: {
           type: 'number',
-          description:
-            'Window width in pixels (default: 1280). When width or height is provided, a new window will be created.',
+          description: '窗口宽度（像素，默认 1280）。提供宽度或高度时将新建窗口。',
         },
         height: {
           type: 'number',
-          description:
-            'Window height in pixels (default: 720). When width or height is provided, a new window will be created.',
+          description: '窗口高度（像素，默认 720）。提供宽度或高度时将新建窗口。',
         },
         refresh: {
           type: 'boolean',
-          description:
-            'Refresh the current active tab instead of navigating to a URL. When true, the url parameter is ignored. Defaults to false',
+          description: '刷新当前激活标签页而非打开 URL。为 true 时忽略 url 参数。默认为 false',
         },
       },
       required: [],
@@ -868,40 +851,39 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCREENSHOT,
     description:
-      '[Prefer read_page over taking a screenshot and Prefer chrome_computer] Take a screenshot of the current page or a specific element. For new usage, use chrome_computer with action="screenshot". Use this tool if you need advanced options.',
+      '[优先使用 read_page 而非截图，并优先使用 chrome_computer] 截取当前页面或指定元素的截图。新用法请使用 chrome_computer 的 action="screenshot"；需要高级选项时再使用本工具。',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Name for the screenshot, if saving as PNG' },
-        selector: { type: 'string', description: 'CSS selector for element to screenshot' },
+        name: { type: 'string', description: '截图名称（保存为 PNG 时使用）' },
+        selector: { type: 'string', description: '要截图的元素的 CSS 选择器' },
         tabId: {
           type: 'number',
-          description: 'Target tab ID to capture from (default: active tab).',
+          description: '采集来源的目标标签页 ID（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from when tabId is not provided.',
+          description: '未提供 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
         background: {
           type: 'boolean',
           description:
-            'Attempt capture without bringing tab/window to foreground. CDP-based capture is used for simple viewport captures. For element/full-page capture, the tab may still be made active in its window without focusing the window. Default: false',
+            '尝试不将标签页/窗口置于前台进行采集。简单视口采集使用基于 CDP 的方式；元素/整页采集时标签页可能仍会在其窗口内激活，但不聚焦窗口。默认 false',
         },
-        width: { type: 'number', description: 'Width in pixels (default: 800)' },
-        height: { type: 'number', description: 'Height in pixels (default: 600)' },
+        width: { type: 'number', description: '宽度（像素，默认 800）' },
+        height: { type: 'number', description: '高度（像素，默认 600）' },
         storeBase64: {
           type: 'boolean',
-          description:
-            'return screenshot in base64 format (default: false) if you want to see the page, recommend set this to be true',
+          description: '以 base64 格式返回截图（默认 false）；若想查看页面，建议设为 true',
         },
         fullPage: {
           type: 'boolean',
-          description: 'Store screenshot of the entire page (default: true)',
+          description: '保存整页截图（默认 true）',
         },
         savePng: {
           type: 'boolean',
           description:
-            'Save screenshot as PNG file (default: true)，if you want to see the page, recommend set this to be false, and set storeBase64 to be true',
+            '保存截图 PNG 文件（默认 true）；若想查看页面，建议设为 false 并将 storeBase64 设为 true',
         },
       },
       required: [],
@@ -909,18 +891,18 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.CLOSE_TABS,
-    description: 'Close one or more browser tabs',
+    description: '关闭一个或多个浏览器标签页',
     inputSchema: {
       type: 'object',
       properties: {
         tabIds: {
           type: 'array',
           items: { type: 'number' },
-          description: 'Array of tab IDs to close. If not provided, will close the active tab.',
+          description: '要关闭的标签页 ID 数组。未提供时关闭当前激活标签页。',
         },
         url: {
           type: 'string',
-          description: 'Close tabs matching this URL. Can be used instead of tabIds.',
+          description: '关闭匹配该 URL 的标签页。可替代 tabIds 使用。',
         },
       },
       required: [],
@@ -928,17 +910,17 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.SWITCH_TAB,
-    description: 'Switch to a specific browser tab',
+    description: '切换到指定浏览器标签页',
     inputSchema: {
       type: 'object',
       properties: {
         tabId: {
           type: 'number',
-          description: 'The ID of the tab to switch to.',
+          description: '要切换到的标签页 ID。',
         },
         windowId: {
           type: 'number',
-          description: 'The ID of the window where the tab is located.',
+          description: '标签页所在窗口的 ID。',
         },
       },
       required: ['tabId'],
@@ -946,37 +928,34 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.WEB_FETCHER,
-    description: 'Fetch content from a web page',
+    description: '获取网页内容',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'URL to fetch content from. If not provided, uses the current active tab',
+          description: '要获取内容的 URL。未提供时使用当前激活标签页',
         },
         tabId: {
           type: 'number',
-          description: 'Target an existing tab by ID (default: active tab).',
+          description: '按 ID 指定现有标签页（默认：当前激活标签页）。',
         },
         background: {
           type: 'boolean',
-          description: 'Do not activate tab/focus window while fetching (default: true)',
+          description: '获取内容时不激活标签页/聚焦窗口（默认 true）',
         },
         htmlContent: {
           type: 'boolean',
-          description:
-            'Get the visible HTML content of the page. If true, textContent will be ignored (default: false)',
+          description: '获取页面可见 HTML 内容。为 true 时忽略 textContent（默认 false）',
         },
         textContent: {
           type: 'boolean',
-          description:
-            'Get the visible text content of the page with metadata. Ignored if htmlContent is true (default: true)',
+          description: '获取页面可见文本内容及元数据。htmlContent 为 true 时忽略（默认 true）',
         },
 
         selector: {
           type: 'string',
-          description:
-            'CSS selector to get content from a specific element. If provided, only content from this element will be returned',
+          description: '用于获取指定元素内容的 CSS 选择器。提供后仅返回该元素的内容',
         },
       },
       required: [],
@@ -984,34 +963,34 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.NETWORK_REQUEST,
-    description: 'Send a network request from the browser with cookies and other browser context',
+    description: '在浏览器上下文中发送网络请求，携带 Cookie 等浏览器信息',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'URL to send the request to',
+          description: '要发送请求的 URL',
         },
         method: {
           type: 'string',
-          description: 'HTTP method to use (default: GET)',
+          description: '使用的 HTTP 方法（默认 GET）',
         },
         headers: {
           type: 'object',
-          description: 'Headers to include in the request',
+          description: '请求中包含的标头',
         },
         body: {
           type: 'string',
-          description: 'Body of the request (for POST, PUT, etc.)',
+          description: '请求正文（用于 POST、PUT 等）',
         },
         timeout: {
           type: 'number',
-          description: 'Timeout in milliseconds (default: 30000)',
+          description: '超时时间（毫秒，默认 30000）',
         },
         formData: {
           type: 'object',
           description:
-            'Multipart/form-data descriptor. If provided, overrides body and builds FormData with optional file attachments. Shape: { fields?: Record<string,string|number|boolean>, files?: Array<{ name: string, fileUrl?: string, filePath?: string, base64Data?: string, filename?: string, contentType?: string }> }. Also supports a compact array form: [ [name, fileSpec, filename?], ... ] where fileSpec may be url:, file:, or base64:.',
+            'multipart/form-data 描述。提供后覆盖 body，并构建带可选文件附件的 FormData。结构：{ fields?: Record<string,string|number|boolean>, files?: Array<{ name: string, fileUrl?: string, filePath?: string, base64Data?: string, filename?: string, contentType?: string }> }。也支持紧凑数组形式：[ [name, fileSpec, filename?], ... ]，其中 fileSpec 可为 url:、file: 或 base64:。',
         },
       },
       required: ['url'],
@@ -1027,34 +1006,32 @@ export const TOOL_SCHEMAS: Tool[] = [
         action: {
           type: 'string',
           enum: ['start', 'stop'],
-          description: 'Action to perform: "start" begins capture, "stop" ends and returns results',
+          description: '要执行的操作："start" 开始采集，"stop" 结束并返回结果',
         },
         needResponseBody: {
           type: 'boolean',
           description:
-            'When true, captures response body using Debugger API (default: false). Only use when you need to inspect response content.',
+            '为 true 时使用 Debugger API 采集响应正文（默认 false）。仅在需要检查响应内容时使用。',
         },
         url: {
           type: 'string',
-          description:
-            'URL to capture network requests from. For action="start". If not provided, uses the current active tab.',
+          description: '要采集网络请求的 URL。用于 action="start"。未提供时使用当前激活标签页。',
         },
         maxCaptureTime: {
           type: 'number',
-          description: 'Maximum capture time in milliseconds (default: 180000)',
+          description: '最大采集时长（毫秒，默认 180000）',
         },
         inactivityTimeout: {
           type: 'number',
-          description: 'Stop after inactivity in milliseconds (default: 60000). Set 0 to disable.',
+          description: '无活动后自动停止的时长（毫秒，默认 60000）。设为 0 可禁用。',
         },
         includeStatic: {
           type: 'boolean',
-          description: 'Include static resources like images/scripts/styles (default: false)',
+          description: '是否包含图片/脚本/样式等静态资源（默认 false）',
         },
         tabId: {
           type: 'number',
-          description:
-            'Capture only this tab. When stopping, only this tab is stopped; no other capture is affected.',
+          description: '仅采集此标签页。停止时只停止此标签页，不影响其他采集。',
         },
       },
       required: ['action'],
@@ -1063,18 +1040,18 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.BLOCK_IMAGES,
     description:
-      'Block image network requests in a tab using Chrome DevTools Protocol. Start this before navigating or reloading to prevent future image downloads; stop restores normal image loading.',
+      '使用 Chrome DevTools Protocol 阻止标签页中的图片网络请求。请在导航或刷新前启动以阻止后续图片下载；停止后恢复正常的图片加载。',
     inputSchema: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
           enum: ['start', 'stop'],
-          description: '"start" blocks future image requests; "stop" restores image loading',
+          description: '"start" 阻止后续图片请求；"stop" 恢复图片加载',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. Defaults to the active tab.',
+          description: '目标标签页 ID。默认为当前激活标签页。',
         },
       },
       required: ['action'],
@@ -1088,19 +1065,19 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {
         action: { type: 'string', enum: ['start', 'stop'] },
-        tabId: { type: 'number', description: 'Target tab ID; defaults to active tab.' },
+        tabId: { type: 'number', description: '目标标签页 ID；默认为当前激活标签页。' },
         resourceTypes: {
           type: 'array',
           items: {
             type: 'string',
             enum: ['Image', 'Font', 'Media', 'Script', 'Stylesheet', 'XHR', 'Fetch'],
           },
-          description: 'Resource types to block; defaults to Image.',
+          description: '要阻止的资源类型；默认为 Image。',
         },
         urlPatterns: {
           type: 'array',
           items: { type: 'string' },
-          description: 'CDP URL wildcard patterns to block, for example *://*.doubleclick.net/*.',
+          description: '要阻止的 CDP URL 通配符模式，例如 *://*.doubleclick.net/*。',
         },
       },
       required: ['action'],
@@ -1108,47 +1085,45 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.HANDLE_DOWNLOAD,
-    description: 'Wait for a browser download and return details (id, filename, url, state, size)',
+    description: '等待浏览器下载完成并返回详情（id、filename、url、state、size）',
     inputSchema: {
       type: 'object',
       properties: {
-        filenameContains: { type: 'string', description: 'Filter by substring in filename or URL' },
-        timeoutMs: { type: 'number', description: 'Timeout in ms (default 60000, max 300000)' },
-        waitForComplete: { type: 'boolean', description: 'Wait until completed (default true)' },
+        filenameContains: { type: 'string', description: '按文件名或 URL 中的子串筛选' },
+        timeoutMs: { type: 'number', description: '超时时间（毫秒，默认 60000，上限 300000）' },
+        waitForComplete: { type: 'boolean', description: '等待下载完成（默认 true）' },
       },
       required: [],
     },
   },
   {
     name: TOOL_NAMES.BROWSER.HISTORY,
-    description: 'Retrieve and search browsing history from Chrome',
+    description: '读取并搜索 Chrome 浏览历史',
     inputSchema: {
       type: 'object',
       properties: {
         text: {
           type: 'string',
-          description:
-            'Text to search for in history URLs and titles. Leave empty to retrieve all history entries within the time range.',
+          description: '在历史 URL 和标题中搜索的文本。留空则返回时间范围内的全部历史条目。',
         },
         startTime: {
           type: 'string',
           description:
-            'Start time as a date string. Supports ISO format (e.g., "2023-10-01", "2023-10-01T14:30:00"), relative times (e.g., "1 day ago", "2 weeks ago", "3 months ago", "1 year ago"), and special keywords ("now", "today", "yesterday"). Default: 24 hours ago',
+            '起始时间（日期字符串）。支持 ISO 格式（如 "2023-10-01"、"2023-10-01T14:30:00"）、相对时间（如 "1 day ago"、"2 weeks ago"、"3 months ago"、"1 year ago"）和特殊关键词（"now"、"today"、"yesterday"）。默认：24 小时前',
         },
         endTime: {
           type: 'string',
           description:
-            'End time as a date string. Supports ISO format (e.g., "2023-10-31", "2023-10-31T14:30:00"), relative times (e.g., "1 day ago", "2 weeks ago", "3 months ago", "1 year ago"), and special keywords ("now", "today", "yesterday"). Default: current time',
+            '结束时间（日期字符串）。支持 ISO 格式（如 "2023-10-31"、"2023-10-31T14:30:00"）、相对时间（如 "1 day ago"、"2 weeks ago"、"3 months ago"、"1 year ago"）和特殊关键词（"now"、"today"、"yesterday"）。默认：当前时间',
         },
         maxResults: {
           type: 'number',
-          description:
-            'Maximum number of history entries to return. Use this to limit results for performance or to focus on the most relevant entries. (default: 100)',
+          description: '最多返回的历史条目数。用于限制结果以提升性能或聚焦最相关条目（默认 100）。',
         },
         excludeCurrentTabs: {
           type: 'boolean',
           description:
-            "When set to true, filters out URLs that are currently open in any browser tab. Useful for finding pages you've visited but don't have open anymore. (default: false)",
+            '为 true 时，过滤掉当前已在任意标签页打开的 URL。适合查找访问过但已关闭的页面（默认 false）',
         },
       },
       required: [],
@@ -1156,23 +1131,22 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.BOOKMARK_SEARCH,
-    description: 'Search Chrome bookmarks by title and URL',
+    description: '按标题和 URL 搜索 Chrome 书签',
     inputSchema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description:
-            'Search query to match against bookmark titles and URLs. Leave empty to retrieve all bookmarks.',
+          description: '用于匹配书签标题和 URL 的搜索词。留空则返回全部书签。',
         },
         maxResults: {
           type: 'number',
-          description: 'Maximum number of bookmarks to return (default: 50)',
+          description: '最多返回的书签数量（默认 50）',
         },
         folderPath: {
           type: 'string',
           description:
-            'Optional folder path or ID to limit search to a specific bookmark folder. Can be a path string (e.g., "Work/Projects") or a folder ID.',
+            '用于限定搜索范围的可选文件夹路径或 ID。可以是路径字符串（如 "Work/Projects"）或文件夹 ID。',
         },
       },
       required: [],
@@ -1180,26 +1154,26 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.BOOKMARK_ADD,
-    description: 'Add a new bookmark to Chrome',
+    description: '向 Chrome 添加新书签',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'URL to bookmark. If not provided, uses the current active tab URL.',
+          description: '要收藏的 URL；未提供时使用当前激活标签页的 URL。',
         },
         title: {
           type: 'string',
-          description: 'Title for the bookmark. If not provided, uses the page title from the URL.',
+          description: '书签标题；未提供时使用该 URL 的页面标题。',
         },
         parentId: {
           type: 'string',
           description:
-            'Parent folder path or ID to add the bookmark to. Can be a path string (e.g., "Work/Projects") or a folder ID. If not provided, adds to the "Bookmarks Bar" folder.',
+            '书签要加入的父文件夹路径或 ID（如 "Work/Projects" 或文件夹 ID）。未提供时添加到"书签栏"。',
         },
         createFolder: {
           type: 'boolean',
-          description: 'Whether to create the parent folder if it does not exist (default: false)',
+          description: '父文件夹不存在时是否自动创建（默认 false）',
         },
       },
       required: [],
@@ -1207,21 +1181,21 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.BOOKMARK_DELETE,
-    description: 'Delete a bookmark from Chrome',
+    description: '从 Chrome 删除书签',
     inputSchema: {
       type: 'object',
       properties: {
         bookmarkId: {
           type: 'string',
-          description: 'ID of the bookmark to delete. Either bookmarkId or url must be provided.',
+          description: '要删除的书签 ID；bookmarkId 和 url 必须提供其一。',
         },
         url: {
           type: 'string',
-          description: 'URL of the bookmark to delete. Used if bookmarkId is not provided.',
+          description: '要删除的书签 URL；未提供 bookmarkId 时使用。',
         },
         title: {
           type: 'string',
-          description: 'Title of the bookmark to help with matching when deleting by URL.',
+          description: '按 URL 删除时的书签标题，用于辅助匹配。',
         },
       },
       required: [],
@@ -1236,7 +1210,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   //     properties: {
   //       query: {
   //         type: 'string',
-  //         description: 'the query to search for related content.',
+  //         description: '搜索相关内容的关键词。',
   //       },
   //     },
   //     required: ['query'],
@@ -1276,7 +1250,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   //       },
   //       jsScript: {
   //         type: 'string',
-  //         description: 'the content script to inject',
+  //         description: '要注入的内容脚本',
   //       },
   //     },
   //     required: ['type', 'jsScript'],
@@ -1296,11 +1270,11 @@ export const TOOL_SCHEMAS: Tool[] = [
   //       },
   //       eventName: {
   //         type: 'string',
-  //         description: 'the eventName your injected content script listen for',
+  //         description: '注入的内容脚本所监听的事件名',
   //       },
   //       payload: {
   //         type: 'string',
-  //         description: 'the payload passed to event, must be a json string',
+  //         description: '传递给事件的负载，必须是 JSON 字符串',
   //       },
   //     },
   //     required: ['eventName'],
@@ -1309,32 +1283,31 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.JAVASCRIPT,
     description:
-      'Execute JavaScript code in a browser tab and return the result. Uses CDP Runtime.evaluate with awaitPromise and returnByValue; automatically falls back to chrome.scripting.executeScript if the debugger is busy. Output is sanitized (sensitive data redacted) and truncated by default.',
+      '在浏览器标签页中执行 JavaScript 代码并返回结果。使用 CDP Runtime.evaluate（awaitPromise + returnByValue）；调试器忙碌时自动回退到 chrome.scripting.executeScript。输出默认经过脱敏处理并截断。',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
           description:
-            'JavaScript code to execute. Runs inside an async function body, so top-level await and "return ..." are supported.',
+            '要执行的 JavaScript 代码。在 async 函数体内运行，支持顶层 await 和 "return ..."。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. If omitted, uses the current active tab.',
+          description: '目标标签页 ID；省略时使用当前激活标签页。',
         },
         timeoutMs: {
           type: 'number',
-          description: 'Execution timeout in milliseconds (default: 15000).',
+          description: '执行超时时间（毫秒，默认 15000）。',
         },
         maxOutputBytes: {
           type: 'number',
-          description:
-            'Maximum output size in bytes after sanitization (default: 51200). Output exceeding this limit will be truncated.',
+          description: '脱敏后允许的最大输出字节数（默认 51200）；超出部分会被截断。',
         },
         requireResult: {
           type: 'boolean',
           description:
-            'Require the script to return a value. When true, a script that completes with undefined returns a no_result error; default false keeps action-only scripts successful.',
+            '是否要求脚本必须返回值。为 true 时，以 undefined 结束的脚本返回 no_result 错误；默认 false 允许纯操作脚本成功。',
         },
       },
       required: ['code'],
@@ -1343,26 +1316,26 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.CLICK,
     description:
-      'Click on an element in a web page. Supports multiple targeting methods: CSS selector, XPath, element ref (from chrome_read_page), or viewport coordinates. More focused than chrome_computer for simple click operations.',
+      '点击网页元素。支持多种定位方式：CSS 选择器、XPath、元素引用（来自 chrome_read_page）或视口坐标。简单点击操作比 chrome_computer 更聚焦。',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector or XPath for the element to click.',
+          description: '要点击元素的 CSS 选择器或 XPath。',
         },
         selectorType: {
           type: 'string',
           enum: ['css', 'xpath'],
-          description: 'Type of selector (default: "css").',
+          description: '选择器类型（默认 "css"）。',
         },
         ref: {
           type: 'string',
-          description: 'Element ref from chrome_read_page (takes precedence over selector).',
+          description: '来自 chrome_read_page 的元素引用（优先于 selector）。',
         },
         coordinates: {
           type: 'object',
-          description: 'Viewport coordinates to click at.',
+          description: '要点击的视口坐标。',
           properties: {
             x: { type: 'number' },
             y: { type: 'number' },
@@ -1371,16 +1344,16 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         double: {
           type: 'boolean',
-          description: 'Perform double click when true (default: false).',
+          description: '为 true 时执行双击（默认 false）。',
         },
         button: {
           type: 'string',
           enum: ['left', 'right', 'middle'],
-          description: 'Mouse button to click (default: "left").',
+          description: '要点击的鼠标按键（默认 "left"）。',
         },
         modifiers: {
           type: 'object',
-          description: 'Modifier keys to hold during click.',
+          description: '点击时按住的修饰键。',
           properties: {
             altKey: { type: 'boolean' },
             ctrlKey: { type: 'boolean' },
@@ -1390,23 +1363,23 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         waitForNavigation: {
           type: 'boolean',
-          description: 'Wait for navigation to complete after click (default: false).',
+          description: '点击后是否等待导航完成（默认 false）。',
         },
         timeout: {
           type: 'number',
-          description: 'Timeout in milliseconds for waiting (default: 5000).',
+          description: '等待超时时间（毫秒，默认 5000）。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. If omitted, uses the current active tab.',
+          description: '目标标签页 ID；省略时使用当前激活标签页。',
         },
         windowId: {
           type: 'number',
-          description: 'Window ID to select active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选择激活标签页的窗口 ID。',
         },
         frameId: {
           type: 'number',
-          description: 'Target frame ID for iframe support.',
+          description: '用于 iframe 支持的目标框架 ID。',
         },
       },
       required: [],
@@ -1415,39 +1388,39 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.FILL,
     description:
-      'Fill or select a form element on a web page. Supports input, textarea, select, checkbox, and radio elements. Use CSS selector, XPath, or element ref to target the element.',
+      '填写或选择网页表单元素。支持 input、textarea、select、checkbox 和 radio。可使用 CSS 选择器、XPath 或元素引用定位。',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector or XPath for the form element.',
+          description: '表单元素的 CSS 选择器或 XPath。',
         },
         selectorType: {
           type: 'string',
           enum: ['css', 'xpath'],
-          description: 'Type of selector (default: "css").',
+          description: '选择器类型（默认 "css"）。',
         },
         ref: {
           type: 'string',
-          description: 'Element ref from chrome_read_page (takes precedence over selector).',
+          description: '来自 chrome_read_page 的元素引用（优先于 selector）。',
         },
         value: {
           type: ['string', 'number', 'boolean'],
           description:
-            'Value to fill. For text inputs: string. For checkboxes/radios: boolean. For selects: option value or text.',
+            '要填写的值。文本输入框：字符串；复选框/单选：布尔值；下拉框：选项值或文本。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. If omitted, uses the current active tab.',
+          description: '目标标签页 ID；省略时使用当前激活标签页。',
         },
         windowId: {
           type: 'number',
-          description: 'Window ID to select active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选择激活标签页的窗口 ID。',
         },
         frameId: {
           type: 'number',
-          description: 'Target frame ID for iframe support.',
+          description: '用于 iframe 支持的目标框架 ID。',
         },
       },
       required: ['value'],
@@ -1456,32 +1429,31 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.REQUEST_ELEMENT_SELECTION,
     description:
-      'Request the user to manually select one or more elements on the current page. Use this as a human-in-the-loop fallback when you cannot reliably locate the target element after approximately 3 attempts using chrome_read_page combined with chrome_click_element/chrome_fill_or_select/chrome_computer. The user will see a panel with instructions and can click on the requested elements. Returns element refs compatible with chrome_click_element/chrome_fill_or_select (including iframe frameId for cross-frame support).',
+      '请求用户手动选择当前页面上的一个或多个元素。当使用 chrome_read_page 配合 chrome_click_element/chrome_fill_or_select/chrome_computer 尝试约 3 次仍无法可靠定位目标元素时，作为人工介入的回退方案。用户会看到带说明的面板并点击所需元素。返回与 chrome_click_element/chrome_fill_or_select 兼容的元素引用（含跨框架的 iframe frameId）。',
     inputSchema: {
       type: 'object',
       properties: {
         requests: {
           type: 'array',
           description:
-            'A list of element selection requests. Each request produces exactly one picked element. The user will see these requests in a panel and select each element by clicking on the page.',
+            '元素选择请求列表。每个请求产出一个被选元素；用户会在面板中看到请求并逐一点击选择。',
           minItems: 1,
           items: {
             type: 'object',
             properties: {
               id: {
                 type: 'string',
-                description:
-                  'Optional stable request id for correlation. If omitted, an id is auto-generated (e.g., "req_1").',
+                description: '用于关联的可选稳定请求 ID；省略时自动生成（如 "req_1"）。',
               },
               name: {
                 type: 'string',
                 description:
-                  'Short label shown to the user describing what element to select (e.g., "Login button", "Email input field").',
+                  '向用户展示的简短标签，描述要选择什么元素（如 "登录按钮"、"邮箱输入框"）。',
               },
               description: {
                 type: 'string',
                 description:
-                  'Optional longer instruction shown to the user with more context (e.g., "Click on the primary login button in the top-right corner").',
+                  '向用户展示的可选详细说明，提供更多上下文（如"点击右上角的主登录按钮"）。',
               },
             },
             required: ['name'],
@@ -1490,15 +1462,15 @@ export const TOOL_SCHEMAS: Tool[] = [
         timeoutMs: {
           type: 'number',
           description:
-            'Timeout in milliseconds for the user to complete all selections. Default: 180000 (3 minutes). Maximum: 600000 (10 minutes).',
+            '用户完成所有选择的超时时间（毫秒）。默认 180000（3 分钟），上限 600000（10 分钟）。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. If omitted, uses the current active tab.',
+          description: '目标标签页 ID；省略时使用当前激活标签页。',
         },
         windowId: {
           type: 'number',
-          description: 'Window ID to select active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选择激活标签页的窗口 ID。',
         },
       },
       required: ['requests'],
@@ -1540,39 +1512,39 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.KEYBOARD,
     description:
-      'Simulate keyboard input on a web page. Supports single keys (Enter, Tab, Escape), key combinations (Ctrl+C, Ctrl+V), and text input. Can target a specific element or send to the focused element.',
+      '模拟网页键盘输入。支持单键（Enter、Tab、Escape）、组合键（Ctrl+C、Ctrl+V）和文本输入。可定位到指定元素或发送给当前聚焦元素。',
     inputSchema: {
       type: 'object',
       properties: {
         keys: {
           type: 'string',
           description:
-            'Keys or key combinations to simulate. Examples: "Enter", "Tab", "Ctrl+C", "Shift+Tab", "Hello World".',
+            '要模拟的按键或组合键。示例："Enter"、"Tab"、"Ctrl+C"、"Shift+Tab"、"Hello World"。',
         },
         selector: {
           type: 'string',
-          description: 'CSS selector or XPath for target element to receive keyboard events.',
+          description: '接收键盘事件的目标元素的 CSS 选择器或 XPath。',
         },
         selectorType: {
           type: 'string',
           enum: ['css', 'xpath'],
-          description: 'Type of selector (default: "css").',
+          description: '选择器类型（默认 "css"）。',
         },
         delay: {
           type: 'number',
-          description: 'Delay between keystrokes in milliseconds (default: 50).',
+          description: '按键之间的延迟（毫秒，默认 50）。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. If omitted, uses the current active tab.',
+          description: '目标标签页 ID；省略时使用当前激活标签页。',
         },
         windowId: {
           type: 'number',
-          description: 'Window ID to select active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选择激活标签页的窗口 ID。',
         },
         frameId: {
           type: 'number',
-          description: 'Target frame ID for iframe support.',
+          description: '用于 iframe 支持的目标框架 ID。',
         },
       },
       required: ['keys'],
@@ -1581,70 +1553,67 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.CONSOLE,
     description:
-      'Capture console output from a browser tab. Supports snapshot mode (default; one-time capture with ~2s wait) and buffer mode (persistent per-tab buffer you can read/clear instantly without waiting).',
+      '采集浏览器标签页的控制台输出。支持快照模式（默认；一次性采集，约等待 2 秒）和缓冲模式（每个标签页的持久缓冲，可即时读取/清空，无需等待）。',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description:
-            'URL to navigate to and capture console from. If not provided, uses the current active tab',
+          description: '要导航并采集控制台的 URL；未提供时使用当前激活标签页',
         },
         tabId: {
           type: 'number',
-          description: 'Target an existing tab by ID (default: active tab).',
+          description: '按 ID 指定现有标签页（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab when tabId is omitted.',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
         background: {
           type: 'boolean',
-          description: 'Do not activate tab/focus window when capturing via CDP. Default: true',
+          description: '通过 CDP 采集时不激活标签页/聚焦窗口。默认 true',
         },
         includeExceptions: {
           type: 'boolean',
-          description: 'Include uncaught exceptions in the output (default: true)',
+          description: '输出中是否包含未捕获异常（默认 true）',
         },
         maxMessages: {
           type: 'number',
-          description:
-            'Maximum number of console messages to capture in snapshot mode (default: 100). If limit is provided, it takes precedence.',
+          description: '快照模式最多采集的控制台消息数（默认 100）。提供 limit 时以 limit 为准。',
         },
         mode: {
           type: 'string',
           enum: ['snapshot', 'buffer'],
           description:
-            'Console capture mode: snapshot (default; waits ~2s for messages) or buffer (persistent per-tab buffer; reads from memory instantly).',
+            '控制台采集模式：snapshot（默认；等待约 2 秒收集消息）或 buffer（每个标签页的持久缓冲，从内存即时读取）。',
         },
         buffer: {
           type: 'boolean',
-          description: 'Alias for mode="buffer" (default: false).',
+          description: 'mode="buffer" 的别名（默认 false）。',
         },
         clear: {
           type: 'boolean',
           description:
-            'Buffer mode only: clear the buffered logs for this tab before reading (default: false). Use clearAfterRead instead to clear after reading (mcp-tools.js style).',
+            '仅缓冲模式：读取前清空该标签页的缓冲日志（默认 false）。如需读取后清空，请改用 clearAfterRead（mcp-tools.js 风格）。',
         },
         clearAfterRead: {
           type: 'boolean',
           description:
-            'Buffer mode only: clear the buffered logs for this tab AFTER reading, to avoid duplicate messages on subsequent calls (default: false). This matches mcp-tools.js behavior.',
+            '仅缓冲模式：读取后清空该标签页的缓冲日志，避免后续调用重复（默认 false）。与 mcp-tools.js 行为一致。',
         },
         pattern: {
           type: 'string',
-          description:
-            'Optional regex filter applied to message/exception text. Supports /pattern/flags syntax.',
+          description: '应用于消息/异常文本的可选正则过滤。支持 /pattern/flags 语法。',
         },
         onlyErrors: {
           type: 'boolean',
           description:
-            'Only return error-level console messages (and exceptions when includeExceptions=true). Default: false.',
+            '仅返回错误级别的控制台消息（includeExceptions=true 时含异常）。默认 false。',
         },
         limit: {
           type: 'number',
           description:
-            'Limit returned console messages. In snapshot mode this is an alias for maxMessages; in buffer mode it limits returned messages from the buffer.',
+            '限制返回的控制台消息数。快照模式下为 maxMessages 的别名；缓冲模式下限制从缓冲返回的消息数。',
         },
       },
       required: [],
@@ -1652,39 +1621,38 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.FILE_UPLOAD,
-    description:
-      'Upload files to web forms with file input elements using Chrome DevTools Protocol',
+    description: '使用 Chrome DevTools Protocol 向带文件输入控件的网页表单上传文件',
     inputSchema: {
       type: 'object',
       properties: {
-        tabId: { type: 'number', description: 'Target tab ID (default: active tab)' },
+        tabId: { type: 'number', description: '目标标签页 ID（默认：当前激活标签页）' },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab when tabId is omitted',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID',
         },
         selector: {
           type: 'string',
-          description: 'CSS selector for the file input element (input[type="file"])',
+          description: '文件输入元素（input[type="file"]）的 CSS 选择器',
         },
         filePath: {
           type: 'string',
-          description: 'Local file path to upload',
+          description: '要上传的本地文件路径',
         },
         fileUrl: {
           type: 'string',
-          description: 'URL to download file from before uploading',
+          description: '上传前要从该 URL 下载的文件',
         },
         base64Data: {
           type: 'string',
-          description: 'Base64 encoded file data to upload',
+          description: '要上传的 Base64 编码文件数据',
         },
         fileName: {
           type: 'string',
-          description: 'Optional filename when using base64 or URL (default: "uploaded-file")',
+          description: '使用 base64 或 URL 时的可选文件名（默认 "uploaded-file"）',
         },
         multiple: {
           type: 'boolean',
-          description: 'Whether the input accepts multiple files (default: false)',
+          description: '输入控件是否接受多个文件（默认 false）',
         },
       },
       required: ['selector'],
@@ -1692,14 +1660,14 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.HANDLE_DIALOG,
-    description: 'Handle JavaScript dialogs (alert/confirm/prompt) via CDP',
+    description: '通过 CDP 处理 JavaScript 对话框（alert/confirm/prompt）',
     inputSchema: {
       type: 'object',
       properties: {
-        action: { type: 'string', description: 'accept | dismiss' },
+        action: { type: 'string', description: '接受 | 取消' },
         promptText: {
           type: 'string',
-          description: 'Optional prompt text when accepting a prompt',
+          description: '接受 prompt 对话框时的可选输入文本',
         },
       },
       required: ['action'],
@@ -1708,7 +1676,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.GIF_RECORDER,
     description:
-      'Record browser tab activity as an animated GIF.\n\nModes:\n- Fixed FPS mode (action="start"): Captures frames at regular intervals. Good for animations/videos.\n- Auto-capture mode (action="auto_start"): Captures frames automatically when chrome_computer or chrome_navigate actions succeed. Better for interaction recordings with natural pacing.\n\nUse "stop" to end recording and save the GIF.',
+      '将浏览器标签页活动录制为 GIF 动画。\n\n模式：\n- 固定帧率模式（action="start"）：按固定间隔采集帧，适合动画/视频。\n- 自动采集模式（action="auto_start"）：chrome_computer 或 chrome_navigate 操作成功时自动采集帧，适合节奏自然的交互录制。\n\n使用 "stop" 结束录制并保存 GIF。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1716,69 +1684,60 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           enum: ['start', 'stop', 'status', 'auto_start', 'capture', 'clear', 'export'],
           description:
-            'Action to perform:\n- "start": Begin fixed-FPS recording (captures frames at regular intervals)\n- "auto_start": Begin auto-capture mode (frames captured on tool actions)\n- "stop": End recording and save GIF\n- "status": Get current recording state\n- "capture": Manually trigger a frame capture in auto mode\n- "clear": Clear all recording state and cached GIF without saving\n- "export": Export the last recorded GIF (download or drag&drop upload)',
+            '要执行的操作：\n- "start"：开始固定帧率录制（按固定间隔采集帧）\n- "auto_start"：开始自动采集模式（工具操作时采集帧）\n- "stop"：结束录制并保存 GIF\n- "status"：获取当前录制状态\n- "capture"：在自动模式下手动触发一次帧采集\n- "clear"：清除全部录制状态和缓存的 GIF（不保存）\n- "export"：导出最近录制的 GIF（下载或拖拽上传）',
         },
         tabId: {
           type: 'number',
           description:
-            'Target tab ID (default: active tab). Used with "start"/"auto_start" for recording, and with "export" (download=false) for drag&drop upload target.',
+            '目标标签页 ID（默认：当前激活标签页）。"start"/"auto_start" 用于录制；"export"（download=false）用于指定拖拽上传目标。',
         },
         fps: {
           type: 'number',
-          description:
-            'Frames per second for fixed-FPS mode (1-30, default: 5). Higher values = smoother but larger file.',
+          description: '固定帧率模式的帧率（1-30，默认 5）。越高越流畅但文件越大。',
         },
         durationMs: {
           type: 'number',
-          description:
-            'Maximum recording duration in milliseconds (default: 5000, max: 60000). Only for fixed-FPS mode.',
+          description: '最大录制时长（毫秒，默认 5000，上限 60000）。仅固定帧率模式。',
         },
         maxFrames: {
           type: 'number',
-          description:
-            'Maximum number of frames to capture (default: 50 for fixed-FPS, 100 for auto mode, max: 300).',
+          description: '最多采集的帧数（固定帧率默认 50，自动模式默认 100，上限 300）。',
         },
         width: {
           type: 'number',
-          description: 'Output GIF width in pixels (default: 800, max: 1920).',
+          description: '输出 GIF 宽度（像素，默认 800，上限 1920）。',
         },
         height: {
           type: 'number',
-          description: 'Output GIF height in pixels (default: 600, max: 1080).',
+          description: '输出 GIF 高度（像素，默认 600，上限 1080）。',
         },
         maxColors: {
           type: 'number',
-          description:
-            'Maximum colors in palette (default: 256). Lower values = smaller file size.',
+          description: '调色板最大颜色数（默认 256）。值越小文件越小。',
         },
         filename: {
           type: 'string',
-          description: 'Output filename (without extension). Defaults to timestamped name.',
+          description: '输出文件名（不含扩展名）。默认使用时间戳命名。',
         },
         captureDelayMs: {
           type: 'number',
-          description:
-            'Auto-capture mode only: Delay in ms after action before capturing frame (default: 150). Allows UI to stabilize.',
+          description: '仅自动采集模式：操作后延迟多少毫秒再采集帧（默认 150），让 UI 稳定。',
         },
         frameDelayCs: {
           type: 'number',
-          description:
-            'Auto-capture mode only: Display duration per frame in centiseconds (default: 20 = 200ms per frame).',
+          description: '仅自动采集模式：每帧显示时长（百分之一秒，默认 20 = 每帧 200ms）。',
         },
         annotation: {
           type: 'string',
-          description:
-            'Auto-capture mode only (action="capture"): Optional text label to render on the captured frame.',
+          description: '仅自动采集模式（action="capture"）：渲染在采集帧上的可选文字标签。',
         },
         download: {
           type: 'boolean',
-          description:
-            'Export action only: Set to true (default) to download the GIF, or false to upload via drag&drop.',
+          description: '仅导出操作：设为 true（默认）下载 GIF，或 false 通过拖拽上传。',
         },
         coordinates: {
           type: 'object',
-          description:
-            'Export action only (when download=false): Target coordinates for drag&drop upload.',
+          description: '仅导出操作（download=false）：拖拽上传的目标坐标。',
           properties: {
             x: { type: 'number' },
             y: { type: 'number' },
@@ -1788,17 +1747,16 @@ export const TOOL_SCHEMAS: Tool[] = [
         ref: {
           type: 'string',
           description:
-            'Export action only (when download=false): Element ref from chrome_read_page for drag&drop target.',
+            '仅导出操作（download=false）：拖拽目标的元素引用（来自 chrome_read_page）。',
         },
         selector: {
           type: 'string',
-          description:
-            'Export action only (when download=false): CSS selector for drag&drop target element.',
+          description: '仅导出操作（download=false）：拖拽目标元素的 CSS 选择器。',
         },
         enhancedRendering: {
           type: 'object',
           description:
-            'Auto-capture mode only: Configure visual overlays for recorded actions (click indicators, drag paths, labels). Pass `true` to enable all defaults.',
+            '仅自动采集模式：配置录制操作的视觉效果（点击指示、拖拽轨迹、标签）。传 `true` 启用全部默认效果。',
           properties: {
             clickIndicators: {
               oneOf: [
@@ -1808,31 +1766,29 @@ export const TOOL_SCHEMAS: Tool[] = [
                   properties: {
                     enabled: {
                       type: 'boolean',
-                      description: 'Enable click indicators (default: true)',
+                      description: '启用点击指示（默认 true）',
                     },
                     color: {
                       type: 'string',
-                      description:
-                        'CSS color for click indicator (default: "rgba(255, 87, 34, 0.8)")',
+                      description: '点击指示的 CSS 颜色（默认 "rgba(255, 87, 34, 0.8)"）',
                     },
-                    radius: { type: 'number', description: 'Initial radius in px (default: 20)' },
+                    radius: { type: 'number', description: '初始半径（像素，默认 20）' },
                     animationDurationMs: {
                       type: 'number',
-                      description: 'Animation duration in ms (default: 400)',
+                      description: '动画时长（毫秒，默认 400）',
                     },
                     animationFrames: {
                       type: 'number',
-                      description: 'Number of animation frames (default: 3)',
+                      description: '动画帧数（默认 3）',
                     },
                     animationIntervalMs: {
                       type: 'number',
-                      description: 'Interval between animation frames in ms (default: 80)',
+                      description: '动画帧间隔（毫秒，默认 80）',
                     },
                   },
                 },
               ],
-              description:
-                'Click indicator overlay config (true for defaults, or object for custom).',
+              description: '点击指示覆盖层配置（true 使用默认值，或传对象自定义）。',
             },
             dragPaths: {
               oneOf: [
@@ -1842,26 +1798,26 @@ export const TOOL_SCHEMAS: Tool[] = [
                   properties: {
                     enabled: {
                       type: 'boolean',
-                      description: 'Enable drag path rendering (default: true)',
+                      description: '启用拖拽轨迹渲染（默认 true）',
                     },
                     color: {
                       type: 'string',
-                      description: 'CSS color for drag path (default: "rgba(33, 150, 243, 0.7)")',
+                      description: '拖拽轨迹的 CSS 颜色（默认 "rgba(33, 150, 243, 0.7)"）',
                     },
-                    lineWidth: { type: 'number', description: 'Line width in px (default: 3)' },
+                    lineWidth: { type: 'number', description: '线宽（像素，默认 3）' },
                     lineDash: {
                       type: 'array',
                       items: { type: 'number' },
-                      description: 'Dash pattern (default: [6, 4])',
+                      description: '虚线模式（默认 [6, 4]）',
                     },
                     arrowSize: {
                       type: 'number',
-                      description: 'Arrow head size in px (default: 10)',
+                      description: '箭头大小（像素，默认 10）',
                     },
                   },
                 },
               ],
-              description: 'Drag path overlay config (true for defaults, or object for custom).',
+              description: '拖拽轨迹覆盖层配置（true 使用默认值，或传对象自定义）。',
             },
             labels: {
               oneOf: [
@@ -1871,35 +1827,35 @@ export const TOOL_SCHEMAS: Tool[] = [
                   properties: {
                     enabled: {
                       type: 'boolean',
-                      description: 'Enable action labels (default: true)',
+                      description: '启用操作标签（默认 true）',
                     },
                     font: {
                       type: 'string',
-                      description: 'Font for labels (default: "bold 12px sans-serif")',
+                      description: '标签字体（默认 "bold 12px sans-serif"）',
                     },
-                    textColor: { type: 'string', description: 'Text color (default: "#fff")' },
+                    textColor: { type: 'string', description: '文字颜色（默认 "#fff"）' },
                     bgColor: {
                       type: 'string',
-                      description: 'Background color (default: "rgba(0,0,0,0.7)")',
+                      description: '背景颜色（默认 "rgba(0,0,0,0.7)"）',
                     },
-                    padding: { type: 'number', description: 'Padding in px (default: 4)' },
+                    padding: { type: 'number', description: '内边距（像素，默认 4）' },
                     borderRadius: {
                       type: 'number',
-                      description: 'Border radius in px (default: 4)',
+                      description: '边框圆角（像素，默认 4）',
                     },
                     offset: {
                       type: 'object',
                       properties: { x: { type: 'number' }, y: { type: 'number' } },
-                      description: 'Offset from action position (default: {x: 10, y: -20})',
+                      description: '相对操作位置的偏移（默认 {x: 10, y: -20}）',
                     },
                   },
                 },
               ],
-              description: 'Action label overlay config (true for defaults, or object for custom).',
+              description: '操作标签覆盖层配置（true 使用默认值，或传对象自定义）。',
             },
             durationMs: {
               type: 'number',
-              description: 'How long overlays remain visible in ms (default: 1500).',
+              description: '覆盖层保持可见的时长（毫秒，默认 1500）。',
             },
           },
         },
@@ -1910,19 +1866,18 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.GET_PAGE_TEXT,
     description:
-      'Extract the readable main article from a page using Readability. Returns clean text, article HTML, and metadata such as title, excerpt, author, site name, language, and length.',
+      '使用 Readability 提取页面可读的正文。返回纯净文本、文章 HTML 以及标题、摘要、作者、站点名、语言、长度等元数据。',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description:
-            'Optional CSS selector. When provided, returns text from that element instead of Readability article extraction.',
+          description: '可选 CSS 选择器。提供后返回该元素内的文本，而不是 Readability 正文提取。',
         },
-        tabId: { type: 'number', description: 'Target tab ID (default: active tab).' },
+        tabId: { type: 'number', description: '目标标签页 ID（默认：当前激活标签页）。' },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: [],
@@ -1931,49 +1886,47 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SPA_FETCH,
     description:
-      'Navigate to a SPA (Single Page Application) URL, wait for JS rendering, auto-scroll to trigger lazy content loading, then extract the full rendered text content. Designed for sites like X/Twitter, Reddit, and other JS-heavy pages where plain HTTP fetch returns no meaningful text.\n\nTypical usage: call once with url and maxScrolls=5-10, the tool handles scrolling and text extraction automatically.',
+      '打开 SPA（单页应用）URL，等待 JS 渲染，自动滚动触发懒加载内容，然后提取完整的渲染后文本内容。适用于 X/Twitter、Reddit 等 JS 重页面（普通 HTTP 抓取拿不到有效文本）。\n\n典型用法：传入 url 和 maxScrolls=5-10 调用一次，工具会自动完成滚动和文本提取。',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'Target SPA URL to fetch content from.',
+          description: '要抓取内容的 SPA 目标 URL。',
         },
         maxScrolls: {
           type: 'number',
           description:
-            'Maximum number of scroll-to-bottom passes (default: 5). Each pass scrolls to the bottom, waits for lazy content to load, then extracts text. Increase for feeds with infinite scroll (e.g. Twitter timeline).',
+            '最大滚到底部轮数（默认 5）。每轮滚动到底部、等待懒加载内容加载，再提取文本。无限滚动信息流（如 Twitter 时间线）可调大。',
           default: 5,
         },
         scrollDelay: {
           type: 'number',
-          description:
-            'Delay in ms between scroll steps (default: 2000). Longer delays give more time for dynamic content to render.',
+          description: '滚动步进之间的延迟（毫秒，默认 2000）。延迟越长，动态内容渲染时间越充足。',
           default: 2000,
         },
         waitForSelector: {
           type: 'string',
           description:
-            'Optional CSS selector to wait for before starting extraction (e.g. "[data-testid="tweet"]" for Twitter). If omitted, waits for body to be present and a 2s stabilization delay.',
+            '开始提取前要等待出现的可选 CSS 选择器（如 Twitter 的 "[data-testid="tweet"]"）。省略时等待 body 出现并延迟 2 秒稳定。',
         },
         waitTimeout: {
           type: 'number',
-          description: 'Maximum time in ms to wait for waitForSelector (default: 20000).',
+          description: '等待 waitForSelector 出现的最长时间（毫秒，默认 20000）。',
           default: 20000,
         },
         extractHtml: {
           type: 'boolean',
-          description:
-            'Whether to also return the rendered HTML content (default: false). Only text is returned by default.',
+          description: '是否同时返回渲染后的 HTML 内容（默认 false）。默认只返回文本。',
           default: false,
         },
         tabId: {
           type: 'number',
-          description: 'Target an existing tab by ID (default: create new tab).',
+          description: '按 ID 指定现有标签页（默认：新建标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to create or reuse tab in.',
+          description: '新建或复用标签页的目标窗口 ID。',
         },
       },
       required: ['url'],
@@ -1982,17 +1935,17 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.GET_TAB_URL,
     description:
-      'Get the current URL and title of a specified browser tab. Returns url, title, tabId, and favIconUrl. Simpler and faster than get_windows_and_tabs when you only need the current URL.',
+      '获取指定浏览器标签页的当前 URL 和标题。返回 url、title、tabId 和 favIconUrl。只需当前 URL 时比 get_windows_and_tabs 更简单更快。',
     inputSchema: {
       type: 'object',
       properties: {
         tabId: {
           type: 'number',
-          description: 'Target tab ID (default: active tab in current window).',
+          description: '目标标签页 ID（默认：当前窗口中的激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: [],
@@ -2001,32 +1954,29 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.GET_SCROLL_STATE,
     description:
-      'Get the native state of the page or a scrollable container. Returns target, y, maxY, atTop, and atBottom. Fails explicitly when a requested scroll container cannot be found.',
+      '获取页面或可滚动容器的原生状态。返回 target、y、maxY、atTop 和 atBottom。找不到请求的滚动容器时明确报错。',
     inputSchema: {
       type: 'object',
       properties: {
         containerSelector: {
           type: 'string',
-          description:
-            'CSS selector of the scroll container. Auto-detects the main container if omitted.',
+          description: '滚动容器的 CSS 选择器。省略时自动检测主容器。',
         },
         anchorSelector: {
           type: 'string',
-          description:
-            'Optional CSS selector for content inside the intended scroll container. Improves auto-detection for nested or virtualized lists.',
+          description: '目标滚动容器内内容的可选 CSS 选择器。可改善嵌套或虚拟化列表的自动检测。',
         },
         frameSelector: {
           type: 'string',
-          description:
-            'Optional CSS selector for a same-origin iframe containing the scroll container.',
+          description: '包含滚动容器的同源 iframe 的可选 CSS 选择器。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID (default: active tab).',
+          description: '目标标签页 ID（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: [],
@@ -2035,91 +1985,93 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCROLL,
     description:
-      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to take one paced step so lazy content can render, then repeat until atBottom=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the visible scrollable container; anchorSelector can identify content inside a nested or virtualized list.',
+      '滚动页面或可滚动容器。支持多种滚动模式：\n- 像素滚动：指定 amount（正数=向下/向右）和可选 direction\n- 边缘滚动：设置 toBottom=true 或 toTop=true；加 lazyLoad=true 可每次迈一步让懒加载内容渲染，然后重复直到 atBottom=true\n- 元素滚动：设置 selector 将元素滚动到视图中\n省略 containerSelector 时自动检测可见的可滚动容器；anchorSelector 可定位嵌套或虚拟化列表中的内容。',
     inputSchema: {
       type: 'object',
       properties: {
         amount: {
           type: 'number',
           description:
-            'Pixels to scroll. Positive scrolls down/right, negative scrolls up/left. When direction is set without amount, defaults to 300.',
+            '要滚动的像素数。正值向下/向右，负值向上/向左。只设 direction 未设 amount 时默认 300。',
         },
         direction: {
           type: 'string',
           enum: ['down', 'up', 'left', 'right'],
-          description: 'Scroll direction. Used with amount or defaults to 300px.',
+          description: '滚动方向。与 amount 配合使用，否则默认 300 像素。',
+        },
+        steps: {
+          type: 'number',
+          description: '像素滚动时，将移动拆分为这么多步（默认 1；上限 50）。',
+        },
+        intervalMs: {
+          type: 'number',
+          description: '像素滚动时，每步之间等待的毫秒数（默认 0；上限 2000）。',
         },
         toBottom: {
           type: 'boolean',
-          description: 'Scroll to the very bottom of the scroll container.',
+          description: '滚动到滚动容器的底部。',
         },
         lazyLoad: {
           type: 'boolean',
           description:
-            'With toBottom=true, take a short paced step and pause for lazy-loaded content. Repeat until the response has atBottom=true (default: false).',
+            'toBottom=true 时，迈一小步并暂停等待懒加载内容，重复直到响应中 atBottom=true（默认 false）。',
         },
         lazyLoadStep: {
           type: 'number',
           description:
-            'Pixels per paced lazy-load step (default: 400; only used with toBottom=true and lazyLoad=true).',
+            '每次懒加载步进的像素数（默认 400；仅在 toBottom=true 且 lazyLoad=true 时使用）。',
         },
         lazyLoadWaitMs: {
           type: 'number',
           description:
-            'Milliseconds to wait after each paced lazy-load step (default: 800; only used with toBottom=true and lazyLoad=true).',
+            '每次懒加载步进后等待的毫秒数（默认 800；仅在 toBottom=true 且 lazyLoad=true 时使用）。',
         },
         lazyLoadMaxSteps: {
           type: 'number',
-          description:
-            'Maximum paced lazy-load steps per request (default: 1; capped to keep the request below 2 seconds).',
+          description: '每次请求的最大懒加载步进数（默认 1；上限以保证请求在 2 秒内）。',
         },
         toTop: {
           type: 'boolean',
-          description: 'Scroll to the very top of the scroll container.',
+          description: '滚动到滚动容器的顶部。',
         },
         selector: {
           type: 'string',
-          description:
-            'CSS selector of an element to scroll into view. Uses scrollIntoView by default.',
+          description: '要滚动到视图中的元素的 CSS 选择器。默认使用 scrollIntoView。',
         },
         scrollIntoView: {
           type: 'boolean',
           description:
-            "When selector is given: use scrollIntoView (default: true). When false, sets the container scrollTop to the element's offsetTop.",
+            '给定 selector 时：使用 scrollIntoView（默认 true）。为 false 时将容器 scrollTop 设为元素的 offsetTop。',
         },
         block: {
           type: 'string',
           enum: ['start', 'center', 'end', 'nearest'],
-          description:
-            'scrollIntoView vertical alignment (default: "center" when scrolling element into view).',
+          description: 'scrollIntoView 垂直对齐方式（元素滚入视图时默认 "center"）。',
         },
         behavior: {
           type: 'string',
           enum: ['auto', 'smooth'],
-          description:
-            'Scroll behavior (default: "auto" for instant). Use "smooth" for animated scroll.',
+          description: '滚动行为（默认 "auto" 立即滚动）。使用 "smooth" 可动画滚动。',
         },
         containerSelector: {
           type: 'string',
-          description:
-            'CSS selector of the scroll container. When omitted, auto-detects the visible scrollable container.',
+          description: '滚动容器的 CSS 选择器。省略时自动检测可见的可滚动容器。',
         },
         anchorSelector: {
           type: 'string',
-          description:
-            'Optional CSS selector for content inside the intended scroll container. Improves auto-detection for nested or virtualized lists.',
+          description: '目标滚动容器内内容的可选 CSS 选择器。可改善嵌套或虚拟化列表的自动检测。',
         },
         frameSelector: {
           type: 'string',
-          description: 'Optional CSS selector for a same-origin iframe to scroll inside.',
+          description: '要在其中滚动的同源 iframe 的可选 CSS 选择器。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID (default: active tab).',
+          description: '目标标签页 ID（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: [],
@@ -2134,60 +2086,58 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         selector: {
           type: 'string',
-          description: 'CSS selector of the element to wait for.',
+          description: '要等待的元素的 CSS 选择器。',
         },
         waitFor: {
           type: 'string',
           enum: ['visible', 'present', 'hidden', 'gone', 'enabled'],
           description:
-            'What to check:\n- "visible" (default): element exists AND is visible (offsetParent !== null)\n- "present": element exists in DOM\n- "hidden": element exists but is hidden\n- "gone": element does NOT exist in DOM\n- "enabled": element exists, is visible, and not disabled',
+            '要检查的状态：\n- "visible"（默认）：元素存在且可见（offsetParent !== null）\n- "present"：元素存在于 DOM 中\n- "hidden"：元素存在但被隐藏\n- "gone"：元素不在 DOM 中\n- "enabled"：元素存在、可见且未禁用',
         },
         jsCondition: {
           type: 'string',
           description:
-            'Custom JavaScript expression that returns boolean. Evaluated in the page context. Alternative to selector+waitFor. Example: \'document.querySelectorAll(".item").length >= 10\'',
+            '返回布尔值的自定义 JavaScript 表达式。在页面上下文中求值。是 selector+waitFor 的替代方案。示例：\'document.querySelectorAll(".item").length >= 10\'',
         },
         frameSelector: {
           type: 'string',
-          description:
-            'Optional CSS selector for a same-origin iframe in which to evaluate the condition.',
+          description: '在其中求值条件的同源 iframe 的可选 CSS 选择器。',
         },
         timeout: {
           type: 'number',
-          description: 'Maximum wait time in milliseconds (default: 10000, max: 120000).',
+          description: '最大等待时间（毫秒，默认 10000，上限 120000）。',
         },
         pollInterval: {
           type: 'number',
-          description: 'Polling interval in milliseconds (default: 200, min: 50).',
+          description: '轮询间隔（毫秒，默认 200，最小 50）。',
         },
         stableForMs: {
           type: 'number',
-          description:
-            'Require the condition to remain true continuously for this many milliseconds before returning (default: 0).',
+          description: '要求条件连续成立这么多毫秒后才返回（默认 0）。',
         },
         event: {
           type: 'string',
           enum: ['mutation', 'network'],
           description:
-            'Event-driven wait. mutation observes DOM changes without polling; network waits for a matching response.',
+            '事件驱动等待。mutation 通过观察 DOM 变化实现（无需轮询）；network 等待匹配的响应。',
         },
         observeSelector: {
           type: 'string',
-          description: 'Mutation observer root; defaults to selector or body.',
+          description: 'MutationObserver 的根节点；默认是 selector 或 body。',
         },
-        urlPattern: { type: 'string', description: 'Network response URL substring to match.' },
-        statusCode: { type: 'number', description: 'Optional exact network response status.' },
+        urlPattern: { type: 'string', description: '要匹配的网络响应 URL 子串。' },
+        statusCode: { type: 'number', description: '可选的确切网络响应状态码。' },
         needResponseBody: {
           type: 'boolean',
-          description: 'For network event, return the matching response body when available.',
+          description: '网络事件：可用时返回匹配的响应正文。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID (default: active tab).',
+          description: '目标标签页 ID（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: [],
@@ -2196,49 +2146,46 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.EXTRACT,
     description:
-      'Extract structured data from a web page using CSS selectors. Supports nested field extraction, same-origin iframe targeting, table extraction, and configurable limits.\n\nExample:\n{\n  "selector": ".product-card",\n  "fields": [\n    { "name": "title", "selector": ".product-title", "type": "text" },\n    { "name": "price", "selector": ".price", "type": "number" },\n    { "name": "link", "selector": "a", "type": "href" }\n  ]\n}',
+      '使用 CSS 选择器从网页提取结构化数据。支持嵌套字段提取、同源 iframe 定位、表格提取和可配置上限。\n\n示例：\n{\n  "selector": ".product-card",\n  "fields": [\n    { "name": "title", "selector": ".product-title", "type": "text" },\n    { "name": "price", "selector": ".price", "type": "number" },\n    { "name": "link", "selector": "a", "type": "href" }\n  ]\n}',
     inputSchema: {
       type: 'object',
       properties: {
         selector: {
           type: 'string',
-          description:
-            'CSS selector for elements to extract (each match becomes one item in the result array).',
+          description: '要提取元素的 CSS 选择器（每个匹配成为结果数组中的一个条目）。',
         },
         fields: {
           type: 'array',
           description:
-            'Fields to extract from each matched element. Each field defines a name, a relative CSS selector, and how to extract the value.',
+            '从每个匹配元素中提取的字段。每个字段定义名称、相对 CSS 选择器以及值的提取方式。',
           items: {
             type: 'object',
             properties: {
               name: {
                 type: 'string',
-                description: 'Field name in the output object (required).',
+                description: '输出对象中的字段名（必填）。',
               },
               selector: {
                 type: 'string',
-                description:
-                  'CSS selector relative to the parent element. If omitted, uses the parent element itself.',
+                description: '相对父元素的 CSS 选择器。省略时使用父元素本身。',
               },
               type: {
                 type: 'string',
                 enum: ['text', 'html', 'outerHtml', 'attribute', 'number', 'href', 'src', 'table'],
                 description:
-                  'How to extract the value:\n- "text" (default): element.textContent (trimmed)\n- "html": element.innerHTML\n- "outerHtml": element.outerHTML\n- "attribute": element.getAttribute(attribute)\n- "number": parseFloat(textContent) or null\n- "href": anchor.href (resolved absolute URL)\n- "src": img/video/iframe src (resolved absolute URL)\n- "table": table headers and rows, including colspan/rowspan',
+                  '值的提取方式：\n- "text"（默认）：element.textContent（去空白）\n- "html"：element.innerHTML\n- "outerHtml"：element.outerHTML\n- "attribute"：element.getAttribute(attribute)\n- "number"：parseFloat(textContent) 或 null\n- "href"：anchor.href（解析为绝对 URL）\n- "src"：img/video/iframe 的 src（解析为绝对 URL）\n- "table"：表格的表头和行，含 colspan/rowspan',
               },
               attribute: {
                 type: 'string',
-                description:
-                  'Attribute name when type is "attribute" (e.g. "href", "data-id", "alt").',
+                description: 'type 为 "attribute" 时的属性名（如 "href"、"data-id"、"alt"）。',
               },
               multiple: {
                 type: 'boolean',
                 description:
-                  'When true, returns an array of ALL matching sub-elements. When false (default), returns only the first match.',
+                  '为 true 时返回所有匹配子元素的数组；为 false（默认）时只返回第一个匹配。',
               },
               defaultValue: {
-                description: 'Fallback value when the selector produces no match (default: null).',
+                description: '选择器无匹配时的回退值（默认 null）。',
               },
             },
             required: ['name'],
@@ -2247,37 +2194,35 @@ export const TOOL_SCHEMAS: Tool[] = [
         contextSelector: {
           type: 'string',
           description:
-            'Optional parent container that narrows the extraction scope. Equivalent to calling document.querySelector(contextSelector).querySelectorAll(selector).',
+            '缩小提取范围的可选父容器。等价于调用 document.querySelector(contextSelector).querySelectorAll(selector)。',
         },
         frameSelector: {
           type: 'string',
-          description: 'Optional CSS selector for a same-origin iframe to extract from.',
+          description: '要在其中提取的同源 iframe 的可选 CSS 选择器。',
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of items to return (default: no limit).',
+          description: '最多返回的条目数（默认不限制）。',
         },
         offset: {
           type: 'number',
-          description: 'Skip the first N matched elements (default: 0).',
+          description: '跳过前 N 个匹配元素（默认 0）。',
         },
         waitForSelector: {
           type: 'boolean',
-          description:
-            'When true, waits for the selector to appear in the DOM before extracting (default: true).',
+          description: '为 true 时，提取前等待选择器出现在 DOM 中（默认 true）。',
         },
         waitTimeout: {
           type: 'number',
-          description:
-            'Maximum time in ms to wait for the selector to appear when waitForSelector is true (default: 5000).',
+          description: 'waitForSelector 为 true 时等待选择器出现的最长时间（毫秒，默认 5000）。',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID (default: active tab).',
+          description: '目标标签页 ID（默认：当前激活标签页）。',
         },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
       },
       required: ['selector', 'fields'],
@@ -2285,31 +2230,30 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.CLICK_AND_WAIT,
-    description:
-      'Click a CSS-selected element, then wait for another selector to reach the requested state.',
+    description: '点击 CSS 选中的元素，然后等待另一选择器达到指定状态。',
     inputSchema: {
       type: 'object',
       properties: {
-        selector: { type: 'string', description: 'CSS selector of the element to click.' },
-        waitSelector: { type: 'string', description: 'CSS selector to wait for after clicking.' },
+        selector: { type: 'string', description: '要点击的元素的 CSS 选择器。' },
+        waitSelector: { type: 'string', description: '点击后要等待的 CSS 选择器。' },
         waitFor: {
           type: 'string',
           enum: ['visible', 'present', 'hidden', 'gone', 'enabled'],
-          description: 'Expected state for waitSelector (default: visible).',
+          description: 'waitSelector 的预期状态（默认 visible）。',
         },
         waitTimeout: {
           type: 'number',
-          description: 'Maximum wait time in milliseconds (default: 10000).',
+          description: '最大等待时间（毫秒，默认 10000）。',
         },
-        tabId: { type: 'number', description: 'Target tab ID (default: active tab).' },
+        tabId: { type: 'number', description: '目标标签页 ID（默认：当前激活标签页）。' },
         windowId: {
           type: 'number',
-          description: 'Target window ID to pick active tab from (when tabId is omitted).',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
-        frameId: { type: 'number', description: 'Target frame ID for the click.' },
+        frameId: { type: 'number', description: '点击的目标框架 ID。' },
         frameSelector: {
           type: 'string',
-          description: 'Optional same-origin iframe selector in which to wait.',
+          description: '要在其中等待的同源 iframe 的可选选择器。',
         },
       },
       required: ['selector', 'waitSelector'],
@@ -2326,4 +2270,75 @@ for (const tool of TOOL_SCHEMAS) {
     type: 'string',
     description: '仅当目标标签页 URL 以该值开头时才执行，否则拒绝调用。',
   };
+}
+
+const ZH_PARAMETER_DESCRIPTIONS: Record<string, string> = {
+  action: '要执行的操作。',
+  cardSelector: '要检查的卡片元素 CSS 选择器。',
+  fields: '从每个匹配卡片中提取的字段。',
+  identityFields: '用于唯一标识记录的字段名。',
+  maxItems: '最多返回的记录数量。',
+  scroll: '加载更多列表条目时使用的滚动选项。',
+  state: '要保存或恢复的调用方 JSON 安全状态。',
+  response: '匹配目标 JSON 响应的规则。',
+  extract: '从响应中提取记录的 JSONPath 规则。',
+  reason: '请求诊断快照或轮换代理的原因。',
+  domLimit: '最多包含的 DOM 字符数。',
+  consoleLimit: '最多包含的控制台条目数。',
+  taskId: '调用方定义的稳定任务 ID。',
+  candidates: '按顺序尝试的选择器或可见文本候选项。',
+  scopeSelector: '所属区域的 CSS 选择器。',
+  waitSelector: '操作后要等待的 CSS 选择器。',
+  waitFor: '目标元素的预期状态。',
+  waitTimeout: '最长等待时间，单位为毫秒。',
+  trigger: '展开区域的控件选择器或引用。',
+  expandedAttribute: '表示区域已展开的属性或状态。',
+  contentSelector: '区域内容的 CSS 选择器。',
+  targetSelector: '要查找区域的 CSS 选择器。',
+  stopSelector: '出现此选择器时停止。',
+  direction: '滚动方向。',
+  step: '每次滚动移动的像素数。',
+  maxSteps: '最多滚动的步数。',
+  rescanUpSteps: '到达目标区域后向上复扫的步数。',
+  waitAfterScrollMs: '每次滚动后等待的毫秒数。',
+  next: '下一页控件的选择器或引用。',
+  expectedCount: '当前页面预期的记录数量。',
+  pageSize: '预期的每页记录数。',
+  maxPages: '最多处理的页数。',
+  changeMode: '判断页面发生变化的规则。',
+  excludeIfTextMatches: '排除记录时使用的不区分大小写的文本模式。',
+  includeOuterHtml: '是否包含每张卡片的 outer HTML。',
+  emptyTextMarkers: '表示空状态的文本标记。',
+  countSelector: '用于统计内容条目的 CSS 选择器。',
+  sources: '按优先级合并的记录来源。',
+  textNormalize: '比较身份字段前是否规范化文本。',
+  dateToleranceDays: '匹配记录时允许的日期差天数。',
+  fieldPriority: '字段冲突时的来源优先级。',
+  allowSourceOnlyRecords: '是否保留只出现在一个来源中的记录。',
+  resourceTypes: '要阻止的资源类型。',
+  urlPatterns: '要阻止的 CDP URL 通配符模式。',
+  textQuery: '可选的可见文本过滤条件。',
+  selector: '目标元素的 CSS 选择器。',
+  includeCoordinates: '是否包含元素坐标。',
+  types: '要包含的交互元素类型。',
+  tabId: '目标标签页 ID；默认为当前激活标签页。',
+  windowId: '用于选择激活标签页的目标窗口 ID。',
+  frameSelector: '可选的同源 iframe 选择器。',
+};
+
+function fillChineseDescriptions(schema: Record<string, any>, name: string) {
+  if (!schema.description)
+    schema.description = ZH_PARAMETER_DESCRIPTIONS[name] ?? `参数“${name}”。`;
+  for (const [childName, childSchema] of Object.entries(schema.properties ?? {})) {
+    fillChineseDescriptions(childSchema as Record<string, any>, childName);
+  }
+  if (schema.items && typeof schema.items === 'object') {
+    fillChineseDescriptions(schema.items as Record<string, any>, `${name}项`);
+  }
+}
+
+for (const tool of TOOL_SCHEMAS) {
+  for (const [name, schema] of Object.entries((tool.inputSchema as any).properties ?? {})) {
+    fillChineseDescriptions(schema as Record<string, any>, name);
+  }
 }

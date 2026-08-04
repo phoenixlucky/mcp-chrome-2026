@@ -650,6 +650,8 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
+- `steps` (number, optional): Split pixel scrolling into this many steps (default: `1`; maximum: `50`)
+- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (default: `0`; maximum: `2000`)
 - `toBottom` (boolean, optional): Scroll to the bottom of the container
 - `lazyLoad` (boolean, optional): With `toBottom: true`, use paced steps so lazy-loaded content can render (default: `false`)
 - `lazyLoadStep` (number, optional): Pixels per paced step (default: `400`)
@@ -669,6 +671,7 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 
 ```json
 { "amount": 500 }
+{ "amount": 1000, "direction": "down", "steps": 10, "intervalMs": 150 }
 { "toBottom": true }
 { "selector": "#load-more-button", "block": "center" }
 ```
