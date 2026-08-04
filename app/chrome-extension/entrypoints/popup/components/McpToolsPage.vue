@@ -250,6 +250,10 @@ const zhToolParameterDescriptions: Record<string, string> = {
   'chrome_cookie_delete.url': '用于定位要删除 Cookie 的 URL。',
   'chrome_cookie_delete.name': 'Cookie 名称。',
   'chrome_cookie_delete.storeId': '浏览器配置存储分区 ID。',
+  'chrome_scroll.mode':
+    '滚动速度模式：fast（默认）或 human。human 未传 steps/intervalMs 时，以 600 像素 = 10 步、150 毫秒为基准等比计算。',
+  'chrome_console.mode':
+    '控制台采集模式：snapshot（默认；等待约 2 秒收集消息）或 buffer（每个标签页的持久缓冲，从内存即时读取）。',
 };
 
 const zhParameterDescriptions: Record<string, string> = {
@@ -331,7 +335,7 @@ const zhParameterDescriptions: Record<string, string> = {
   delay: '连续按键之间的延迟时间。',
   includeExceptions: '是否包含未捕获异常。',
   maxMessages: '最多返回的控制台消息数量。',
-  mode: '控制台日志的读取或订阅模式。',
+  mode: '操作模式（因工具而异，参见各工具的说明）。',
   buffer: '是否使用缓冲区模式。',
   clear: '是否在读取前清空日志。',
   clearAfterRead: '是否在读取后清空日志。',
