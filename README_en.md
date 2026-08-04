@@ -28,9 +28,11 @@
 
 ## 📢 What's New in v1.8.1
 
-> **Scroll tool sticky header support** — Scrolling experience improvements.
+> **`chrome_scroll` human-like scrolling mode** — Mimics real wheel behavior, built for dynamic pages and lazy loading.
 >
-> - 📜 **Scroll tool enhancement** — Auto-detect and avoid sticky headers while scrolling so content isn't hidden
+> - 🧑‍🦱 **Human scroll mode (`mode: 'human'`)** — Native wheel input scrolling pixel by pixel, triggering real page scroll listeners; stepped progression with an acceleration/deceleration curve to mimic human rhythm
+> - ⏳ **`humanLazyLoad: true`** — Pauses when reaching dynamic regions, waits for lazy-loaded content, then continues
+> - 📌 **`stickyHeaderSelector`** — Automatically avoids sticky headers so the scroll target isn't hidden
 > - 🔧 Tool descriptions and parameters refined
 > - 🔧 All packages bumped to v1.8.1
 
