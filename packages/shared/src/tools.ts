@@ -1985,7 +1985,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCROLL,
     description:
-      '滚动页面或可滚动容器。支持多种滚动模式：\n- 像素滚动：指定 amount（正数=向下/向右）和可选 direction\n- 边缘滚动：设置 toBottom=true 或 toTop=true；加 lazyLoad=true 可每次迈一步让懒加载内容渲染，然后重复直到 atBottom=true\n- 元素滚动：设置 selector 将元素滚动到视图中\n省略 containerSelector 时自动检测可见的可滚动容器；anchorSelector 可定位嵌套或虚拟化列表中的内容。',
+      '滚动页面或可滚动容器。支持多种滚动模式：\n- 像素滚动：指定 amount（正数=向下/向右）和可选 direction\n- 边缘滚动：设置 toBottom=true 或 toTop=true\n- 元素滚动：设置 selector 将元素滚动到视图中\n省略 containerSelector 时自动检测可见的可滚动容器；anchorSelector 可定位嵌套或虚拟化列表中的内容。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1994,6 +1994,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           enum: ['fast', 'human'],
           description:
             '滚动速度模式：fast（默认）或 human。human 未传 steps/intervalMs 时，以 600 像素 = 10 步、150 毫秒为基准等比计算。',
+        },
+        humanLazyLoad: {
+          type: 'boolean',
+          description:
+            '真人懒加载优化。仅 human 模式生效；每个小步后检测 DOM、布局和网络资源变化，并等待页面加载趋于稳定（默认 false）。',
         },
         amount: {
           type: 'number',
@@ -2017,26 +2022,8 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         toBottom: {
           type: 'boolean',
-          description: '滚动到滚动容器的底部。',
-        },
-        lazyLoad: {
-          type: 'boolean',
           description:
-            'toBottom=true 时，迈一小步并暂停等待懒加载内容，重复直到响应中 atBottom=true（默认 false）。',
-        },
-        lazyLoadStep: {
-          type: 'number',
-          description:
-            '每次懒加载步进的像素数（默认 400；仅在 toBottom=true 且 lazyLoad=true 时使用）。',
-        },
-        lazyLoadWaitMs: {
-          type: 'number',
-          description:
-            '每次懒加载步进后等待的毫秒数（默认 800；仅在 toBottom=true 且 lazyLoad=true 时使用）。',
-        },
-        lazyLoadMaxSteps: {
-          type: 'number',
-          description: '每次请求的最大懒加载步进数（默认 1；上限以保证请求在 2 秒内）。',
+            '滚动到滚动容器的底部；human 模式下按真人小步连续滚动，直到稳定到底部或本次请求达到上限。',
         },
         toTop: {
           type: 'boolean',

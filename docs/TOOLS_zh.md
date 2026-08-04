@@ -594,20 +594,17 @@
 
 滚动页面或可滚动容器，支持多种滚动模式。
 
-懒加载页面可使用 `toBottom: true, lazyLoad: true`，每次以 400px 小步向下滚动、等待 800ms 后立即返回。根据响应中的 `atBottom` 重复调用，直至为 `true`，避免超出单次 MCP 请求时限。
+真人滚动可使用 `humanLazyLoad: true` 开启真人懒加载优化；每个小步后检测 DOM、布局和网络资源变化，并等待页面趋于稳定。默认关闭。
 
 **参数**：
 
 - `mode` (字符串，可选)：滚动速度模式：`fast`（默认）或 `human`；human 未传 `steps`/`intervalMs` 时，以 `amount=600`、`steps=10`、`intervalMs=150` 为基准等比计算
+- `humanLazyLoad` (布尔值，可选)：真人懒加载优化；仅 `mode="human"` 时生效，每小步检测 DOM、布局和网络资源变化并等待稳定（默认 `false`）；与 `toBottom` 配合可持续加载无限列表
 - `amount` (数字，可选)：滚动像素数（正数=下/右，负数=上/左）
 - `direction` (字符串，可选)：`down` | `up` | `left` | `right`
 - `steps` (数字，可选)：将像素滚动拆成多少步（fast 默认 `1`；human 未传时按 amount 等比计算；最多 `50`）；可强行传入覆盖
 - `intervalMs` (数字，可选)：每步之间等待的毫秒数（fast 默认 `0`；human 未传时按 amount 等比计算，600px 基准为 `150`；最多 `2000`）；可强行传入覆盖
-- `toBottom` (布尔值，可选)：滚动到容器底部
-- `lazyLoad` (布尔值，可选)：与 `toBottom: true` 配合，分段缓慢滚动以等待懒加载内容（默认 `false`）
-- `lazyLoadStep` (数字，可选)：每次分段滚动像素数（默认 `400`）
-- `lazyLoadWaitMs` (数字，可选)：每次分段滚动后的等待毫秒数（默认 `800`）
-- `lazyLoadMaxSteps` (数字，可选)：单次请求最大分段次数（默认 `1`；为避免超时会被限制）
+- `toBottom` (布尔值，可选)：滚动到容器底部；human 模式下按真人小步连续滚动，直到稳定到底部或本次请求达到上限
 - `toTop` (布尔值，可选)：滚动到容器顶部
 - `selector` (字符串，可选)：要滚动到视图中的元素 CSS 选择器
 - `scrollIntoView` (布尔值，可选)：使用 `scrollIntoView`（有 selector 时默认 true）
@@ -624,6 +621,8 @@
 ```json
 { "amount": 500 }
 { "mode": "human", "amount": 600 }
+{ "mode": "human", "amount": 600, "humanLazyLoad": true }
+{ "mode": "human", "toBottom": true, "humanLazyLoad": true }
 { "amount": 1000, "direction": "down", "steps": 10, "intervalMs": 150 }
 { "toBottom": true }
 { "selector": "#load-more-button", "block": "center" }

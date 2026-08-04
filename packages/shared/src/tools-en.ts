@@ -2035,7 +2035,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCROLL,
     description:
-      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true; add lazyLoad=true to take one paced step so lazy content can render, then repeat until atBottom=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the visible scrollable container; anchorSelector can identify content inside a nested or virtualized list.',
+      'Scroll the page or a scrollable container. Supports multiple scroll modes:\n- Pixel scroll: specify amount (positive=down/right) and optional direction\n- Edge scroll: set toBottom=true or toTop=true\n- Element scroll: set selector to scroll an element into view\nWhen containerSelector is omitted, auto-detects the visible scrollable container; anchorSelector can identify content inside a nested or virtualized list.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2044,6 +2044,11 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           enum: ['fast', 'human'],
           description:
             'Scroll speed mode: fast (default) or human. In human mode, omitted steps/intervalMs scale proportionally from 600px = 10 steps and 150ms.',
+        },
+        humanLazyLoad: {
+          type: 'boolean',
+          description:
+            'Human lazy-load optimization. Only applies to human mode; after each small step, watches DOM/layout/resource changes and waits for the page to settle (default: false).',
         },
         amount: {
           type: 'number',
@@ -2067,27 +2072,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         },
         toBottom: {
           type: 'boolean',
-          description: 'Scroll to the very bottom of the scroll container.',
-        },
-        lazyLoad: {
-          type: 'boolean',
           description:
-            'With toBottom=true, take a short paced step and pause for lazy-loaded content. Repeat until the response has atBottom=true (default: false).',
-        },
-        lazyLoadStep: {
-          type: 'number',
-          description:
-            'Pixels per paced lazy-load step (default: 400; only used with toBottom=true and lazyLoad=true).',
-        },
-        lazyLoadWaitMs: {
-          type: 'number',
-          description:
-            'Milliseconds to wait after each paced lazy-load step (default: 800; only used with toBottom=true and lazyLoad=true).',
-        },
-        lazyLoadMaxSteps: {
-          type: 'number',
-          description:
-            'Maximum paced lazy-load steps per request (default: 1; capped to keep the request below 2 seconds).',
+            'Scroll to the very bottom; in human mode, keep taking human-paced steps until the bottom is stable or the request limit is reached.',
         },
         toTop: {
           type: 'boolean',

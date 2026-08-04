@@ -29,11 +29,11 @@ const HUMAN_SCROLL_INTERVAL_MS = 150;
 const MAX_SCROLL_STEPS = 50;
 const MAX_SCROLL_INTERVAL_MS = 2_000;
 const MAX_SLOW_SCROLL_DURATION_MS = 9_000;
-const DEFAULT_LAZY_LOAD_STEP = 400;
-const DEFAULT_LAZY_LOAD_WAIT_MS = 800;
-const DEFAULT_LAZY_LOAD_MAX_STEPS = 1;
-// ponytail: keep each MCP request below 2s; repeat chrome_scroll until atBottom is true.
-const MAX_LAZY_LOAD_DURATION_MS = 1_500;
+const HUMAN_LAZY_LOAD_WAIT_MS = 800;
+const HUMAN_LAZY_LOAD_QUIET_MS = 150;
+// ponytail: cap one MCP call; repeat while atBottom is false for longer feeds.
+const MAX_HUMAN_TO_BOTTOM_DURATION_MS = 9_000;
+const MAX_HUMAN_TO_BOTTOM_ROUNDS = 50;
 
 // ============================================================================
 // Types
@@ -48,13 +48,10 @@ interface ScrollToolParams {
   amount?: number;
   direction?: ScrollDirection;
   mode?: ScrollMode;
+  humanLazyLoad?: boolean;
   steps?: number;
   intervalMs?: number;
   toBottom?: boolean;
-  lazyLoad?: boolean;
-  lazyLoadStep?: number;
-  lazyLoadWaitMs?: number;
-  lazyLoadMaxSteps?: number;
   toTop?: boolean;
   selector?: string;
   scrollIntoView?: boolean;
@@ -157,10 +154,6 @@ function buildScrollContainerExpression(
 function buildScrollExpression(params: ScrollToolParams): string {
   const {
     toBottom,
-    lazyLoad,
-    lazyLoadStep,
-    lazyLoadWaitMs,
-    lazyLoadMaxSteps,
     toTop,
     selector,
     scrollIntoView,
@@ -185,28 +178,7 @@ function buildScrollExpression(params: ScrollToolParams): string {
   // Build scroll action
   const actions: string[] = [];
 
-  if (toBottom && lazyLoad) {
-    const step = Math.max(1, lazyLoadStep || DEFAULT_LAZY_LOAD_STEP);
-    const waitMs = Math.min(
-      MAX_LAZY_LOAD_DURATION_MS,
-      Math.max(0, lazyLoadWaitMs ?? DEFAULT_LAZY_LOAD_WAIT_MS),
-    );
-    const maxSteps = Math.min(
-      Math.max(1, lazyLoadMaxSteps || DEFAULT_LAZY_LOAD_MAX_STEPS),
-      Math.max(1, Math.floor(MAX_LAZY_LOAD_DURATION_MS / Math.max(waitMs, 1))),
-    );
-    actions.push(`await (async () => {
-      let bottomChecks = 0;
-      for (let i = 0; i < ${maxSteps}; i++) {
-        const heightBefore = c.scrollHeight;
-        c.scrollTop += ${step};
-        await new Promise(resolve => setTimeout(resolve, ${waitMs}));
-        if (c.scrollTop + c.clientHeight < c.scrollHeight - 1) continue;
-        bottomChecks = c.scrollHeight === heightBefore ? bottomChecks + 1 : 0;
-        if (bottomChecks >= 2) break;
-      }
-    })()`);
-  } else if (toBottom) {
+  if (toBottom) {
     // Scroll to bottom
     actions.push(`c.scrollTop = c.scrollHeight`);
   } else if (toTop) {
@@ -326,6 +298,100 @@ function buildWheelTargetExpression(containerSelector?: string, anchorSelector?:
 })()`;
 }
 
+function buildHumanLazyLoadStartExpression(
+  containerSelector?: string,
+  anchorSelector?: string,
+): string {
+  // ponytail: generic DOM/layout/resource signals; add page-specific loading selectors only when needed.
+  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+  return `(() => {
+  const doc = document;
+  const win = window;
+  const c = ${containerExpr};
+  win.__mcpChromeHumanLazyLoad?.cleanup?.();
+  if (!c) return false;
+
+  const state = {
+    done: false,
+    changed: false,
+    reason: 'timeout',
+    resolve: null,
+    cleanup: null,
+    promise: null,
+    result: null,
+  };
+  const root = c === doc.scrollingElement ? doc.documentElement : c;
+  const baseline = { height: c.scrollHeight, children: c.childElementCount };
+  let quietTimer;
+  let deadlineTimer;
+  const mutationObserver = new MutationObserver(() => {
+    state.changed = true;
+    scheduleQuiet('dom');
+  });
+  const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+    if (c.scrollHeight !== baseline.height || c.childElementCount !== baseline.children) {
+      state.changed = true;
+      scheduleQuiet('layout');
+    }
+  }) : null;
+  const performanceObserver = typeof PerformanceObserver === 'function' ? new PerformanceObserver(() => {
+    state.changed = true;
+    scheduleQuiet('network');
+  }) : null;
+  const finish = (reason) => {
+    if (state.done) return;
+    state.done = true;
+    state.reason = reason;
+    state.result = { changed: state.changed, reason };
+    clearTimeout(quietTimer);
+    clearTimeout(deadlineTimer);
+    clearInterval(pollTimer);
+    mutationObserver.disconnect();
+    resizeObserver?.disconnect();
+    performanceObserver?.disconnect();
+    state.resolve?.(state.result);
+  };
+  const scheduleQuiet = (reason) => {
+    state.reason = reason;
+    clearTimeout(quietTimer);
+    quietTimer = setTimeout(() => {
+      const busy = root.querySelector?.('[aria-busy="true"], [data-loading="true"]');
+      if (busy) return scheduleQuiet('loading');
+      finish(reason);
+    }, ${HUMAN_LAZY_LOAD_QUIET_MS});
+  };
+  const pollTimer = setInterval(() => {
+    if (c.scrollHeight !== baseline.height || c.childElementCount !== baseline.children) {
+      state.changed = true;
+      scheduleQuiet('layout');
+    }
+  }, 50);
+  mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
+  resizeObserver?.observe(c);
+  try { performanceObserver?.observe({ type: 'resource', buffered: false }); } catch {}
+  state.promise = new Promise(resolve => { state.resolve = resolve; });
+  state.cleanup = () => finish('cancelled');
+  win.__mcpChromeHumanLazyLoad = state;
+  deadlineTimer = setTimeout(() => finish('timeout'), ${HUMAN_LAZY_LOAD_WAIT_MS});
+  return true;
+})()`;
+}
+
+function buildHumanLazyLoadWaitExpression(): string {
+  return `(() => {
+  const state = window.__mcpChromeHumanLazyLoad;
+  if (!state) return { changed: false, reason: 'not-started' };
+  if (state.done) {
+    delete window.__mcpChromeHumanLazyLoad;
+    return state.result;
+  }
+  return state.promise.then(result => {
+    delete window.__mcpChromeHumanLazyLoad;
+    return result;
+  });
+})()`;
+}
+
 // ============================================================================
 // Tool Implementation
 // ============================================================================
@@ -356,7 +422,14 @@ class ScrollTool extends BaseBrowserToolExecutor {
       }
 
       // 2. Use native wheel input for pixel scrolling; special modes keep the direct path.
-      const isPixelScroll = !args.toBottom && !args.toTop && !args.selector && !args.frameSelector;
+      const isHumanToBottom =
+        args.toBottom === true &&
+        args.mode === 'human' &&
+        !args.toTop &&
+        !args.selector &&
+        !args.frameSelector;
+      const isPixelScroll =
+        isHumanToBottom || (!args.toBottom && !args.toTop && !args.selector && !args.frameSelector);
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
         if (!isPixelScroll) {
           return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
@@ -385,48 +458,96 @@ class ScrollTool extends BaseBrowserToolExecutor {
           });
         }
 
-        const before = target;
-        const plan = getPixelScrollPlan(args);
-        let previousEased = 0;
+        const humanToBottomPlan = isHumanToBottom
+          ? getPixelScrollPlan({ ...args, amount: Math.abs(args.amount ?? 600), direction: 'down' })
+          : getPixelScrollPlan(args);
+        const humanLazyLoad = args.mode === 'human' && args.humanLazyLoad === true;
+        let before = target;
+        let after = target;
+        let moved = false;
+        let stableBottomRounds = 0;
+        const startedAt = Date.now();
+        const maxRounds = isHumanToBottom ? MAX_HUMAN_TO_BOTTOM_ROUNDS : 1;
 
-        // ponytail: fixed cubic ease-out; use device-specific curves only if realism needs tuning.
-        for (let i = 0; i < plan.steps; i++) {
-          const progress = (i + 1) / plan.steps;
-          const eased = 1 - (1 - progress) ** 3;
-          const factor = eased - previousEased;
-          await cdpSessionManager.sendCommand(tabId, 'Input.dispatchMouseEvent', {
-            type: 'mouseWheel',
-            x: target.x,
-            y: target.y,
-            deltaX: plan.deltaX * factor,
-            deltaY: plan.deltaY * factor,
-          });
-          previousEased = eased;
-          if (i < plan.steps - 1 && plan.intervalMs > 0) {
-            await new Promise((resolve) => setTimeout(resolve, plan.intervalMs));
+        for (let round = 0; round < maxRounds; round++) {
+          let previousEased = 0;
+
+          // ponytail: fixed cubic ease-out; use device-specific curves only if realism needs tuning.
+          for (let i = 0; i < humanToBottomPlan.steps; i++) {
+            if (humanLazyLoad) {
+              await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+                expression: buildHumanLazyLoadStartExpression(
+                  args.containerSelector,
+                  args.anchorSelector,
+                ),
+                returnByValue: true,
+                awaitPromise: false,
+                timeout: DEFAULT_TIMEOUT_MS,
+              });
+            }
+            const progress = (i + 1) / humanToBottomPlan.steps;
+            const eased = 1 - (1 - progress) ** 3;
+            const factor = eased - previousEased;
+            await cdpSessionManager.sendCommand(tabId, 'Input.dispatchMouseEvent', {
+              type: 'mouseWheel',
+              x: target.x,
+              y: target.y,
+              deltaX: humanToBottomPlan.deltaX * factor,
+              deltaY: humanToBottomPlan.deltaY * factor,
+            });
+            if (humanLazyLoad) {
+              await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+                expression: buildHumanLazyLoadWaitExpression(),
+                returnByValue: true,
+                awaitPromise: true,
+                timeout: DEFAULT_TIMEOUT_MS,
+              });
+            }
+            previousEased = eased;
+            if (i < humanToBottomPlan.steps - 1 && humanToBottomPlan.intervalMs > 0) {
+              await new Promise((resolve) => setTimeout(resolve, humanToBottomPlan.intervalMs));
+            }
           }
-        }
 
-        const afterResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-          expression: buildScrollMeasurementExpression(args.containerSelector, args.anchorSelector),
-          returnByValue: true,
-          awaitPromise: true,
-          timeout: DEFAULT_TIMEOUT_MS,
-        });
-        const afterValue = afterResponse?.result?.value;
-        const after = typeof afterValue === 'string' ? JSON.parse(afterValue) : null;
-        if (!after?.success) {
-          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-            expression: buildScrollExpression(args),
+          const afterResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: buildScrollMeasurementExpression(
+              args.containerSelector,
+              args.anchorSelector,
+            ),
             returnByValue: true,
             awaitPromise: true,
             timeout: DEFAULT_TIMEOUT_MS,
           });
+          const afterValue = afterResponse?.result?.value;
+          after = typeof afterValue === 'string' ? JSON.parse(afterValue) : null;
+          if (!after?.success) {
+            return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+              expression: buildScrollExpression(args),
+              returnByValue: true,
+              awaitPromise: true,
+              timeout: DEFAULT_TIMEOUT_MS,
+            });
+          }
+
+          moved ||=
+            before?.scrollTop !== after.scrollTop || before?.scrollLeft !== after.scrollLeft;
+          if (!isHumanToBottom) break;
+
+          const atBottom = after.scrollHeight - after.scrollTop - after.clientHeight < 1;
+          const movedThisRound =
+            before?.scrollTop !== after.scrollTop || before?.scrollLeft !== after.scrollLeft;
+          if (!movedThisRound && !atBottom) break;
+          if (atBottom && after.scrollHeight === before.scrollHeight) {
+            stableBottomRounds += 1;
+            if (stableBottomRounds >= 2) break;
+          } else {
+            stableBottomRounds = 0;
+          }
+          if (Date.now() - startedAt >= MAX_HUMAN_TO_BOTTOM_DURATION_MS) break;
+          before = after;
         }
 
-        const moved =
-          before?.scrollTop !== after.scrollTop || before?.scrollLeft !== after.scrollLeft;
-        if (!moved) {
+        if (!isHumanToBottom && !moved) {
           return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
             expression: buildScrollExpression(args),
             returnByValue: true,

@@ -218,4 +218,94 @@ describe('browser result contracts', () => {
     );
     expect(wheelCalls).toHaveLength(3);
   });
+
+  it('enables per-step human lazy-load detection only when requested', async () => {
+    sendCommand.mockClear();
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method === 'Input.dispatchMouseEvent') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: 'document.scrollingElement',
+            x: 500,
+            y: 450,
+            moved: true,
+            scrollTop: 1000,
+            scrollHeight: 2000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          }),
+        },
+      };
+    });
+
+    await scrollTool.execute({
+      tabId: 12,
+      mode: 'human',
+      amount: 120,
+      steps: 2,
+      humanLazyLoad: true,
+    });
+
+    const expressions = sendCommand.mock.calls
+      .map(([, , params]) => params?.expression)
+      .filter((expression): expression is string => typeof expression === 'string');
+    expect(
+      expressions.filter((expression) => expression.includes('MutationObserver')),
+    ).toHaveLength(2);
+    expect(
+      expressions.filter((expression) => expression.includes('PerformanceObserver')),
+    ).toHaveLength(2);
+    expect(
+      sendCommand.mock.calls.filter(([, method]) => method === 'Input.dispatchMouseEvent'),
+    ).toHaveLength(2);
+  });
+
+  it('keeps scrolling to a stable bottom in human toBottom mode', async () => {
+    sendCommand.mockClear();
+    let scrollTop = 0;
+    sendCommand.mockImplementation(async (_tabId, method, params) => {
+      if (method === 'Input.dispatchMouseEvent') {
+        scrollTop = Math.min(600, scrollTop + Math.max(0, params.deltaY));
+        return {};
+      }
+      const expression = params?.expression || '';
+      const state = expression.includes('getBoundingClientRect')
+        ? {
+            success: true,
+            x: 500,
+            y: 450,
+            scrollTop,
+            scrollLeft: 0,
+          }
+        : {
+            success: true,
+            target: 'document.scrollingElement',
+            scrollTop,
+            scrollHeight: 1500,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          };
+      return { result: { value: JSON.stringify(state) } };
+    });
+
+    const result = await scrollTool.execute({
+      tabId: 12,
+      mode: 'human',
+      toBottom: true,
+      amount: 600,
+      steps: 2,
+      intervalMs: 0,
+    });
+
+    expect(JSON.parse(text(result))).toMatchObject({ atBottom: true, scrollTop: 600 });
+    expect(
+      sendCommand.mock.calls.filter(([, method]) => method === 'Input.dispatchMouseEvent'),
+    ).toHaveLength(6);
+  });
 });

@@ -644,20 +644,17 @@ Get the current URL and title of a browser tab. Lightweight alternative to `get_
 
 Scroll the page or a scrollable container with 4 modes.
 
-For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px step with an 800ms pause, then return. Repeat the call until its `atBottom` result is `true`, keeping each MCP request within its time limit.
+For human scrolling, set `humanLazyLoad: true` to enable human lazy-load optimization. After each small step it watches DOM, layout, and resource changes and waits for the page to settle. Disabled by default.
 
 **Parameters**:
 
 - `mode` (string, optional): Scroll speed mode: `fast` (default) or `human`; in human mode, omitted `steps`/`intervalMs` scale proportionally from `amount=600`, `steps=10`, `intervalMs=150`
+- `humanLazyLoad` (boolean, optional): Human lazy-load optimization; only applies to `mode="human"`, watching DOM, layout, and resource changes after each small step and waiting for the page to settle (default: `false`); combine with `toBottom` for infinite lists
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
 - `steps` (number, optional): Split pixel scrolling into this many steps (fast default: `1`; human auto-scales from amount when omitted; maximum: `50`); explicit values override the automatic value
 - `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human auto-scales from amount when omitted, based on `150` at 600px; maximum: `2000`); explicit values override the automatic value
-- `toBottom` (boolean, optional): Scroll to the bottom of the container
-- `lazyLoad` (boolean, optional): With `toBottom: true`, use paced steps so lazy-loaded content can render (default: `false`)
-- `lazyLoadStep` (number, optional): Pixels per paced step (default: `400`)
-- `lazyLoadWaitMs` (number, optional): Wait after each paced step, in milliseconds (default: `800`)
-- `lazyLoadMaxSteps` (number, optional): Maximum paced steps per request (default: `1`; capped to avoid request timeout)
+- `toBottom` (boolean, optional): Scroll to the bottom; in human mode, keep taking human-paced steps until the bottom is stable or the request limit is reached
 - `toTop` (boolean, optional): Scroll to the top of the container
 - `selector` (string, optional): CSS selector of element to scroll into view
 - `scrollIntoView` (boolean, optional): Use `scrollIntoView` (default: true with selector)
@@ -673,6 +670,8 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 ```json
 { "amount": 500 }
 { "mode": "human", "amount": 600 }
+{ "mode": "human", "amount": 600, "humanLazyLoad": true }
+{ "mode": "human", "toBottom": true, "humanLazyLoad": true }
 { "amount": 1000, "direction": "down", "steps": 10, "intervalMs": 150 }
 { "toBottom": true }
 { "selector": "#load-more-button", "block": "center" }
