@@ -598,10 +598,11 @@
 
 **参数**：
 
+- `mode` (字符串，可选)：滚动速度模式：`fast`（默认）或 `human`；human 未传 `steps`/`intervalMs` 时，以 `amount=600`、`steps=10`、`intervalMs=150` 为基准等比计算
 - `amount` (数字，可选)：滚动像素数（正数=下/右，负数=上/左）
 - `direction` (字符串，可选)：`down` | `up` | `left` | `right`
-- `steps` (数字，可选)：将像素滚动拆成多少步（默认 `1`，最多 `50`）
-- `intervalMs` (数字，可选)：每步之间等待的毫秒数（默认 `0`，最多 `2000`）；与 `steps` 配合可实现慢速滚动
+- `steps` (数字，可选)：将像素滚动拆成多少步（fast 默认 `1`；human 未传时按 amount 等比计算；最多 `50`）；可强行传入覆盖
+- `intervalMs` (数字，可选)：每步之间等待的毫秒数（fast 默认 `0`；human 未传时按 amount 等比计算，600px 基准为 `150`；最多 `2000`）；可强行传入覆盖
 - `toBottom` (布尔值，可选)：滚动到容器底部
 - `lazyLoad` (布尔值，可选)：与 `toBottom: true` 配合，分段缓慢滚动以等待懒加载内容（默认 `false`）
 - `lazyLoadStep` (数字，可选)：每次分段滚动像素数（默认 `400`）
@@ -622,6 +623,7 @@
 
 ```json
 { "amount": 500 }
+{ "mode": "human", "amount": 600 }
 { "amount": 1000, "direction": "down", "steps": 10, "intervalMs": 150 }
 { "toBottom": true }
 { "selector": "#load-more-button", "block": "center" }

@@ -86,14 +86,31 @@ describe('browser result contracts', () => {
   });
 
   it('uses the same anchored container resolver for scroll and state', async () => {
-    sendCommand
-      .mockResolvedValueOnce({
+    sendCommand.mockImplementation(async (_tabId, method, params) => {
+      if (method === 'Input.dispatchMouseEvent') return {};
+      if (params.expression.includes('maxY')) {
+        return {
+          result: {
+            value: JSON.stringify({
+              success: true,
+              target: '[data-testid="primaryColumn"]',
+              y: 600,
+              maxY: 900,
+              atTop: false,
+              atBottom: false,
+            }),
+          },
+        };
+      }
+      return {
         result: {
           value: JSON.stringify({
             success: true,
             target: '[data-testid="primaryColumn"]',
+            x: 100,
+            y: 100,
             moved: true,
-            scrollTop: 600,
+            scrollTop: params.expression.includes('scrollWidth') ? 600 : 0,
             scrollHeight: 1800,
             clientHeight: 900,
             scrollLeft: 0,
@@ -101,26 +118,17 @@ describe('browser result contracts', () => {
             clientWidth: 900,
           }),
         },
-      })
-      .mockResolvedValueOnce({
-        result: {
-          value: JSON.stringify({
-            success: true,
-            target: '[data-testid="primaryColumn"]',
-            y: 600,
-            maxY: 900,
-            atTop: false,
-            atBottom: false,
-          }),
-        },
-      });
+      };
+    });
 
     const args = { tabId: 12, anchorSelector: '[data-testid="cellInnerDiv"]' };
     const scroll = await scrollTool.execute({ ...args, amount: 300 });
     const state = await scrollStateTool.execute(args);
-    const expressions = sendCommand.mock.calls.map(([, , params]) => params.expression);
+    const expressions = sendCommand.mock.calls
+      .map(([, , params]) => params?.expression)
+      .filter((expression): expression is string => typeof expression === 'string');
 
-    expect(expressions).toHaveLength(2);
+    expect(expressions).toHaveLength(3);
     expressions.forEach((expression) => {
       expect(expression).toContain('doc.querySelectorAll("[data-testid=\\"cellInnerDiv\\"]")');
       expect(expression).toContain('win.__mcpChromeScrollRoot');
@@ -136,20 +144,25 @@ describe('browser result contracts', () => {
   });
 
   it('builds paced pixel scrolling when steps and intervalMs are provided', async () => {
-    sendCommand.mockResolvedValue({
-      result: {
-        value: JSON.stringify({
-          success: true,
-          target: 'document.scrollingElement',
-          moved: true,
-          scrollTop: 1000,
-          scrollHeight: 2000,
-          clientHeight: 900,
-          scrollLeft: 0,
-          scrollWidth: 1000,
-          clientWidth: 1000,
-        }),
-      },
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method === 'Input.dispatchMouseEvent') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: 'document.scrollingElement',
+            x: 500,
+            y: 450,
+            moved: true,
+            scrollTop: 1000,
+            scrollHeight: 2000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          }),
+        },
+      };
     });
 
     await scrollTool.execute({
@@ -160,8 +173,49 @@ describe('browser result contracts', () => {
       intervalMs: 150,
     });
 
-    const expression = sendCommand.mock.calls[0][2].expression as string;
-    expect(expression).toContain('for (let i = 0; i < 10; i++)');
-    expect(expression).toContain('setTimeout(resolve, 150)');
+    const wheelCalls = sendCommand.mock.calls.filter(
+      ([, method]) => method === 'Input.dispatchMouseEvent',
+    );
+    expect(wheelCalls).toHaveLength(10);
+    expect(wheelCalls[0][2]).toMatchObject({ type: 'mouseWheel', x: 500, y: 450 });
+    expect(wheelCalls[0][2].deltaY).toBeGreaterThan(wheelCalls[9][2].deltaY);
+    expect(wheelCalls.reduce((sum, [, , params]) => sum + params.deltaY, 0)).toBeCloseTo(1000);
+  });
+
+  it('auto-scales human pacing and accepts explicit overrides', async () => {
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method === 'Input.dispatchMouseEvent') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: 'document.scrollingElement',
+            x: 500,
+            y: 450,
+            moved: true,
+            scrollTop: 1000,
+            scrollHeight: 2000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          }),
+        },
+      };
+    });
+
+    await scrollTool.execute({ tabId: 12, mode: 'human', amount: 300 });
+    let wheelCalls = sendCommand.mock.calls.filter(
+      ([, method]) => method === 'Input.dispatchMouseEvent',
+    );
+    expect(wheelCalls).toHaveLength(5);
+    expect(wheelCalls.reduce((sum, [, , params]) => sum + params.deltaY, 0)).toBeCloseTo(300);
+
+    sendCommand.mockClear();
+    await scrollTool.execute({ tabId: 12, mode: 'human', amount: 600, steps: 3, intervalMs: 10 });
+    wheelCalls = sendCommand.mock.calls.filter(
+      ([, method]) => method === 'Input.dispatchMouseEvent',
+    );
+    expect(wheelCalls).toHaveLength(3);
   });
 });

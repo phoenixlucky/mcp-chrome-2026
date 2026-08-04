@@ -648,10 +648,11 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 
 **Parameters**:
 
+- `mode` (string, optional): Scroll speed mode: `fast` (default) or `human`; in human mode, omitted `steps`/`intervalMs` scale proportionally from `amount=600`, `steps=10`, `intervalMs=150`
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
-- `steps` (number, optional): Split pixel scrolling into this many steps (default: `1`; maximum: `50`)
-- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (default: `0`; maximum: `2000`)
+- `steps` (number, optional): Split pixel scrolling into this many steps (fast default: `1`; human auto-scales from amount when omitted; maximum: `50`); explicit values override the automatic value
+- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human auto-scales from amount when omitted, based on `150` at 600px; maximum: `2000`); explicit values override the automatic value
 - `toBottom` (boolean, optional): Scroll to the bottom of the container
 - `lazyLoad` (boolean, optional): With `toBottom: true`, use paced steps so lazy-loaded content can render (default: `false`)
 - `lazyLoadStep` (number, optional): Pixels per paced step (default: `400`)
@@ -671,6 +672,7 @@ For lazy-loaded pages, use `toBottom: true, lazyLoad: true` to make one 400px st
 
 ```json
 { "amount": 500 }
+{ "mode": "human", "amount": 600 }
 { "amount": 1000, "direction": "down", "steps": 10, "intervalMs": 150 }
 { "toBottom": true }
 { "selector": "#load-more-button", "block": "center" }

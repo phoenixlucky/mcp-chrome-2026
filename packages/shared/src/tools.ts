@@ -1989,10 +1989,16 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        mode: {
+          type: 'string',
+          enum: ['fast', 'human'],
+          description:
+            '滚动速度模式：fast（默认）或 human。human 未传 steps/intervalMs 时，以 600 像素 = 10 步、150 毫秒为基准等比计算。',
+        },
         amount: {
           type: 'number',
           description:
-            '要滚动的像素数。正值向下/向右，负值向上/向左。只设 direction 未设 amount 时默认 300。',
+            '要滚动的像素数。正值向下/向右，负值向上/向左。只设 direction 未设 amount 时，fast 默认 300，human 默认 600。',
         },
         direction: {
           type: 'string',
@@ -2001,11 +2007,13 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         steps: {
           type: 'number',
-          description: '像素滚动时，将移动拆分为这么多步（默认 1；上限 50）。',
+          description:
+            '像素滚动时，将移动拆分为这么多步（fast 默认 1；human 未传时按 amount 相对 600 等比计算；上限 50）。',
         },
         intervalMs: {
           type: 'number',
-          description: '像素滚动时，每步之间等待的毫秒数（默认 0；上限 2000）。',
+          description:
+            '像素滚动时，每步之间等待的毫秒数（fast 默认 0；human 未传时按 amount 相对 600 等比计算，基准 150；上限 2000）。',
         },
         toBottom: {
           type: 'boolean',

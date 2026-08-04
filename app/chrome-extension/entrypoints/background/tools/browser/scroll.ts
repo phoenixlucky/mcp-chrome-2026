@@ -23,6 +23,9 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const CDP_SESSION_KEY = 'scroll';
 const DEFAULT_SCROLL_AMOUNT = 300;
 const DEFAULT_SCROLL_STEPS = 1;
+const HUMAN_SCROLL_AMOUNT = 600;
+const HUMAN_SCROLL_STEPS = 10;
+const HUMAN_SCROLL_INTERVAL_MS = 150;
 const MAX_SCROLL_STEPS = 50;
 const MAX_SCROLL_INTERVAL_MS = 2_000;
 const MAX_SLOW_SCROLL_DURATION_MS = 9_000;
@@ -37,12 +40,14 @@ const MAX_LAZY_LOAD_DURATION_MS = 1_500;
 // ============================================================================
 
 type ScrollDirection = 'down' | 'up' | 'left' | 'right';
+type ScrollMode = 'fast' | 'human';
 type ScrollBlock = 'start' | 'center' | 'end' | 'nearest';
 type ScrollBehavior = 'auto' | 'smooth';
 
 interface ScrollToolParams {
   amount?: number;
   direction?: ScrollDirection;
+  mode?: ScrollMode;
   steps?: number;
   intervalMs?: number;
   toBottom?: boolean;
@@ -68,6 +73,50 @@ interface ScrollStateToolParams {
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
+}
+
+interface PixelScrollPlan {
+  deltaX: number;
+  deltaY: number;
+  steps: number;
+  intervalMs: number;
+}
+
+function getPixelScrollPlan(params: ScrollToolParams): PixelScrollPlan {
+  const mode = params.mode || 'fast';
+  const px =
+    typeof params.amount === 'number'
+      ? params.amount
+      : mode === 'human'
+        ? HUMAN_SCROLL_AMOUNT
+        : DEFAULT_SCROLL_AMOUNT;
+  const dir = params.direction || 'down';
+  const humanScale = Math.abs(px) / HUMAN_SCROLL_AMOUNT;
+  const defaultSteps =
+    mode === 'human' ? Math.round(HUMAN_SCROLL_STEPS * humanScale) : DEFAULT_SCROLL_STEPS;
+  const defaultIntervalMs =
+    mode === 'human' ? Math.round(HUMAN_SCROLL_INTERVAL_MS * humanScale) : 0;
+  const rawSteps =
+    typeof params.steps === 'number' && Number.isFinite(params.steps)
+      ? Math.floor(params.steps)
+      : defaultSteps;
+  const steps = Math.min(MAX_SCROLL_STEPS, Math.max(1, rawSteps));
+  const rawIntervalMs =
+    typeof params.intervalMs === 'number' && Number.isFinite(params.intervalMs)
+      ? Math.floor(params.intervalMs)
+      : defaultIntervalMs;
+  const requestedIntervalMs = Math.min(MAX_SCROLL_INTERVAL_MS, Math.max(0, rawIntervalMs));
+  const intervalMs = Math.min(
+    requestedIntervalMs,
+    Math.floor(MAX_SLOW_SCROLL_DURATION_MS / Math.max(steps - 1, 1)),
+  );
+
+  return {
+    deltaX: dir === 'left' ? -Math.abs(px) : dir === 'right' ? px : 0,
+    deltaY: dir === 'up' ? -Math.abs(px) : dir === 'down' ? px : 0,
+    steps,
+    intervalMs,
+  };
 }
 
 // ============================================================================
@@ -107,10 +156,6 @@ function buildScrollContainerExpression(
 
 function buildScrollExpression(params: ScrollToolParams): string {
   const {
-    amount,
-    direction,
-    steps,
-    intervalMs,
     toBottom,
     lazyLoad,
     lazyLoadStep,
@@ -183,22 +228,12 @@ function buildScrollExpression(params: ScrollToolParams): string {
     })(${elExpr}, c)`);
   } else {
     // Pixel scroll
-    const px = typeof amount === 'number' ? amount : DEFAULT_SCROLL_AMOUNT;
-    const dir = direction || 'down';
-    const rawSteps =
-      typeof steps === 'number' && Number.isFinite(steps)
-        ? Math.floor(steps)
-        : DEFAULT_SCROLL_STEPS;
-    const scrollSteps = Math.min(MAX_SCROLL_STEPS, Math.max(1, rawSteps));
-    const rawIntervalMs =
-      typeof intervalMs === 'number' && Number.isFinite(intervalMs) ? Math.floor(intervalMs) : 0;
-    const requestedIntervalMs = Math.min(MAX_SCROLL_INTERVAL_MS, Math.max(0, rawIntervalMs));
-    const scrollIntervalMs = Math.min(
-      requestedIntervalMs,
-      Math.floor(MAX_SLOW_SCROLL_DURATION_MS / Math.max(scrollSteps - 1, 1)),
-    );
-    const deltaX = dir === 'left' ? -Math.abs(px) : dir === 'right' ? px : 0;
-    const deltaY = dir === 'up' ? -Math.abs(px) : dir === 'down' ? px : 0;
+    const {
+      deltaX,
+      deltaY,
+      steps: scrollSteps,
+      intervalMs: scrollIntervalMs,
+    } = getPixelScrollPlan(params);
     actions.push(`for (let i = 0; i < ${scrollSteps}; i++) {
       c.scrollLeft += ${deltaX} / ${scrollSteps};
       c.scrollTop += ${deltaY} / ${scrollSteps};
@@ -237,6 +272,60 @@ function buildScrollExpression(params: ScrollToolParams): string {
   return fullExpression;
 }
 
+function buildScrollMeasurementExpression(
+  containerSelector?: string,
+  anchorSelector?: string,
+): string {
+  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+  return `(async () => {
+  try {
+    const doc = document;
+    const win = window;
+    const c = ${containerExpr};
+    if (!c) return JSON.stringify({ success: false, error: 'Scroll container not found' });
+    return JSON.stringify({
+      success: true,
+      target: c === doc.scrollingElement ? 'document.scrollingElement' : c.id ? '#' + c.id : c.tagName.toLowerCase(),
+      scrollTop: c.scrollTop,
+      scrollHeight: c.scrollHeight,
+      clientHeight: c.clientHeight,
+      scrollLeft: c.scrollLeft,
+      scrollWidth: c.scrollWidth,
+      clientWidth: c.clientWidth,
+    });
+  } catch (e) {
+    return JSON.stringify({ success: false, error: e.message || String(e) });
+  }
+})()`;
+}
+
+function buildWheelTargetExpression(containerSelector?: string, anchorSelector?: string): string {
+  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+  return `(async () => {
+  try {
+    const doc = document;
+    const win = window;
+    const c = ${containerExpr};
+    if (!c) return JSON.stringify({ success: false, error: 'Scroll container not found' });
+    const rect = c === doc.scrollingElement
+      ? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }
+      : c.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return JSON.stringify({ success: false, error: 'Scroll container is not visible' });
+    }
+    return JSON.stringify({
+      success: true,
+      x: Math.max(1, Math.min(window.innerWidth - 1, rect.left + rect.width / 2)),
+      y: Math.max(1, Math.min(window.innerHeight - 1, rect.top + rect.height / 2)),
+      scrollTop: c.scrollTop,
+      scrollLeft: c.scrollLeft,
+    });
+  } catch (e) {
+    return JSON.stringify({ success: false, error: e.message || String(e) });
+  }
+})()`;
+}
+
 // ============================================================================
 // Tool Implementation
 // ============================================================================
@@ -266,15 +355,94 @@ class ScrollTool extends BaseBrowserToolExecutor {
         tabId = tab.id!;
       }
 
-      // 2. Build and execute scroll JS via CDP
-      const expression = buildScrollExpression(args);
+      // 2. Use native wheel input for pixel scrolling; special modes keep the direct path.
+      const isPixelScroll = !args.toBottom && !args.toTop && !args.selector && !args.frameSelector;
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
-        return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-          expression,
+        if (!isPixelScroll) {
+          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: buildScrollExpression(args),
+            returnByValue: true,
+            awaitPromise: true,
+            timeout: DEFAULT_TIMEOUT_MS,
+          });
+        }
+
+        const targetResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          expression: buildWheelTargetExpression(args.containerSelector, args.anchorSelector),
           returnByValue: true,
           awaitPromise: true,
           timeout: DEFAULT_TIMEOUT_MS,
         });
+        const targetValue = targetResponse?.result?.value;
+        const target = typeof targetValue === 'string' ? JSON.parse(targetValue) : null;
+
+        if (!target?.success) {
+          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: buildScrollExpression(args),
+            returnByValue: true,
+            awaitPromise: true,
+            timeout: DEFAULT_TIMEOUT_MS,
+          });
+        }
+
+        const before = target;
+        const plan = getPixelScrollPlan(args);
+        let previousEased = 0;
+
+        // ponytail: fixed cubic ease-out; use device-specific curves only if realism needs tuning.
+        for (let i = 0; i < plan.steps; i++) {
+          const progress = (i + 1) / plan.steps;
+          const eased = 1 - (1 - progress) ** 3;
+          const factor = eased - previousEased;
+          await cdpSessionManager.sendCommand(tabId, 'Input.dispatchMouseEvent', {
+            type: 'mouseWheel',
+            x: target.x,
+            y: target.y,
+            deltaX: plan.deltaX * factor,
+            deltaY: plan.deltaY * factor,
+          });
+          previousEased = eased;
+          if (i < plan.steps - 1 && plan.intervalMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, plan.intervalMs));
+          }
+        }
+
+        const afterResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          expression: buildScrollMeasurementExpression(args.containerSelector, args.anchorSelector),
+          returnByValue: true,
+          awaitPromise: true,
+          timeout: DEFAULT_TIMEOUT_MS,
+        });
+        const afterValue = afterResponse?.result?.value;
+        const after = typeof afterValue === 'string' ? JSON.parse(afterValue) : null;
+        if (!after?.success) {
+          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: buildScrollExpression(args),
+            returnByValue: true,
+            awaitPromise: true,
+            timeout: DEFAULT_TIMEOUT_MS,
+          });
+        }
+
+        const moved =
+          before?.scrollTop !== after.scrollTop || before?.scrollLeft !== after.scrollLeft;
+        if (!moved) {
+          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: buildScrollExpression(args),
+            returnByValue: true,
+            awaitPromise: true,
+            timeout: DEFAULT_TIMEOUT_MS,
+          });
+        }
+
+        return {
+          result: {
+            value: JSON.stringify({
+              ...after,
+              moved,
+            }),
+          },
+        };
       });
 
       // 3. Parse result

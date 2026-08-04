@@ -2039,10 +2039,16 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        mode: {
+          type: 'string',
+          enum: ['fast', 'human'],
+          description:
+            'Scroll speed mode: fast (default) or human. In human mode, omitted steps/intervalMs scale proportionally from 600px = 10 steps and 150ms.',
+        },
         amount: {
           type: 'number',
           description:
-            'Pixels to scroll. Positive scrolls down/right, negative scrolls up/left. When direction is set without amount, defaults to 300.',
+            'Pixels to scroll. Positive scrolls down/right, negative scrolls up/left. When direction is set without amount, fast defaults to 300 and human defaults to 600.',
         },
         direction: {
           type: 'string',
@@ -2052,12 +2058,12 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         steps: {
           type: 'number',
           description:
-            'For pixel scrolling, split the movement into this many steps (default: 1; maximum: 50).',
+            'For pixel scrolling, split the movement into this many steps (fast default: 1; human auto-scales from amount when omitted; maximum: 50).',
         },
         intervalMs: {
           type: 'number',
           description:
-            'For pixel scrolling, wait this many milliseconds between steps (default: 0; maximum: 2000).',
+            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human auto-scales from amount when omitted, based on 150ms at 600px; maximum: 2000).',
         },
         toBottom: {
           type: 'boolean',
