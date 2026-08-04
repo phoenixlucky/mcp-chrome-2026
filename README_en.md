@@ -26,14 +26,13 @@
 
 ---
 
-## 📢 What's New in v1.8.1
+## 📢 What's New in v1.8.4
 
-> **`chrome_scroll` human-like scrolling mode** — Mimics real wheel behavior, built for dynamic pages and lazy loading.
+> **i18n tool parameter description fixes** — Removes cross-contamination of parameter descriptions in the popup tool catalog.
 >
-> - 🧑‍🦱 **Human scroll mode (`mode: 'human'`)** — Native wheel input scrolling pixel by pixel, triggering real page scroll listeners; stepped progression with an acceleration/deceleration curve to mimic human rhythm
-> - ⏳ **`humanLazyLoad: true`** — Detects DOM/layout/network changes after each small step and waits for the page to settle; combined with `toBottom` it keeps loading infinite lists
-> - 🔧 Tool descriptions and parameters refined
-> - 🔧 All packages bumped to v1.8.1
+> - 🛠️ **26 tool-level parameter description overrides** — Generic parameters (`query` / `text` / `tabIds` / `tabId` / `url` / `action`, etc.) no longer leak bookmark / keyboard / close-tabs semantics into unrelated tools (e.g. `search_tabs_content.query` no longer shows bookmark keywords)
+> - 🔧 **`chrome_scroll.mode` / `chrome_console.mode` descriptions corrected** — The generic `mode` entry previously carried console-only semantics; both tools now have their own accurate descriptions
+> - 🔧 All packages bumped to v1.8.4
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

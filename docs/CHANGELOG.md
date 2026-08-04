@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.8.4] - 2026-08-04
+
+### Fixed
+
+- **i18n 工具参数描述修复** — 为 26 个参数新增工具级描述覆盖，修复通用参数描述（`query` / `text` / `tabIds` / `tabId` / `url` / `action` 等）串扰到无关工具的问题（例如 `search_tabs_content.query` 误显示书签关键词）。
+- **`chrome_scroll.mode` / `chrome_console.mode` 描述修正** — 通用 `mode` 条目原本是控制台专属语义，导致 `chrome_scroll.mode` 显示错误文本；现为两个工具分别补充工具级描述，并将通用条目改为中性文本。
+
+### Changed
+
+- 版本统一为 v1.8.4。
+
 ## [v1.8.1] - 2026-08-04
 
 ### Added
