@@ -11,9 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`chrome_scroll` 真人滚动模式（`mode: 'human'`）** — 全新的人类行为模拟滚动：
   - 使用**原生 wheel 输入**逐像素滚动，而非直接设置 scrollTop，可触发页面真实滚动监听器
-  - 分步推进（每步 600px、150ms 间隔），配合**加减速进度曲线**模拟真人滚轮节奏
-  - `humanLazyLoad: true` 时，滚动到动态区域自动暂停，等待懒加载内容出现后再继续
-  - `stickyHeaderSelector` 支持：自动识别并避让吸顶头部，避免滚动目标被遮挡
+  - 分步推进（每步 600px、150ms 间隔），配合**加减速曲线**（ease-out）模拟真人滚轮节奏
+  - `humanLazyLoad: true`：每小步后检测 DOM、布局和网络资源变化，等待页面稳定后再继续（800ms 超时），`toBottom` 配合可持续加载无限列表（最多 50 轮 / 9 秒上限）
 - Scroll 工具描述与参数同步完善，新增对应测试。
 
 ### Changed

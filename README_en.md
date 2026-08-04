@@ -31,8 +31,7 @@
 > **`chrome_scroll` human-like scrolling mode** — Mimics real wheel behavior, built for dynamic pages and lazy loading.
 >
 > - 🧑‍🦱 **Human scroll mode (`mode: 'human'`)** — Native wheel input scrolling pixel by pixel, triggering real page scroll listeners; stepped progression with an acceleration/deceleration curve to mimic human rhythm
-> - ⏳ **`humanLazyLoad: true`** — Pauses when reaching dynamic regions, waits for lazy-loaded content, then continues
-> - 📌 **`stickyHeaderSelector`** — Automatically avoids sticky headers so the scroll target isn't hidden
+> - ⏳ **`humanLazyLoad: true`** — Detects DOM/layout/network changes after each small step and waits for the page to settle; combined with `toBottom` it keeps loading infinite lists
 > - 🔧 Tool descriptions and parameters refined
 > - 🔧 All packages bumped to v1.8.1
 
