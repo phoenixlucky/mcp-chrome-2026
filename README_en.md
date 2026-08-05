@@ -26,13 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.8.4
+## 📢 What's New in v1.8.6
 
-> **i18n tool parameter description fixes** — Removes cross-contamination of parameter descriptions in the popup tool catalog.
+> **Dynamic MCP version + i18n fixes** — Accuracy and compatibility improvements.
 >
-> - 🛠️ **26 tool-level parameter description overrides** — Generic parameters (`query` / `text` / `tabIds` / `tabId` / `url` / `action`, etc.) no longer leak bookmark / keyboard / close-tabs semantics into unrelated tools (e.g. `search_tabs_content.query` no longer shows bookmark keywords)
-> - 🔧 **`chrome_scroll.mode` / `chrome_console.mode` descriptions corrected** — The generic `mode` entry previously carried console-only semantics; both tools now have their own accurate descriptions
-> - 🔧 All packages bumped to v1.8.4
+> - 🏷️ **Dynamic MCP server version** — Stdio/HTTP channels now report the `package.json` version instead of hardcoded `1.0.0`, so clients see the real plugin version
+> - 🌐 **i18n fixes** — Corrected `chrome_scroll` `mode` parameter description; added tool-specific parameter descriptions to prevent misattribution; aligned Popup tools catalog Chinese translations with README_zh
+> - ⏱️ **Simplified timeouts** — Non-long-running tools now share a 60s ceiling
+> - 🔧 All packages bumped to v1.8.6
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

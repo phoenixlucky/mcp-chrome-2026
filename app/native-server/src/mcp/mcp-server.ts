@@ -1,11 +1,12 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { setupTools } from './register-tools';
+import packageJson from '../../package.json';
 
 export const getMcpServer = () => {
   const mcpServer = new Server(
     {
       name: 'ChromeMcpServer',
-      version: '1.0.0',
+      version: packageJson.version,
     },
     {
       capabilities: {

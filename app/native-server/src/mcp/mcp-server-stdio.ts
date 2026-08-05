@@ -14,6 +14,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import packageJson from '../../package.json';
 
 let stdioMcpServer: Server | null = null;
 let mcpClient: Client | null = null;
@@ -37,7 +38,7 @@ export const getStdioMcpServer = () => {
   stdioMcpServer = new Server(
     {
       name: 'StdioChromeMcpServer',
-      version: '1.0.0',
+      version: packageJson.version,
     },
     {
       capabilities: {

@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 版本统一为 v1.8.4。
 
+## [v1.8.6] - 2026-08-04
+
+### Added
+
+- **MCP Server 版本动态化** — Stdio / HTTP 双通道的 server version 从硬编码 `1.0.0` 改为读取 `package.json`，客户端可准确感知插件版本。
+
+### Fixed
+
+- **i18n 修复** — 修正 `chrome_scroll` 的 `mode` 参数描述；新增工具级参数描述，避免通用文案误配；Popup MCP 工具目录中文翻译与 README_zh 对齐。
+
+### Changed
+
+- 工具超时逻辑简化：非长耗时工具统一 60s 上限（移除 navigate/download/upload 独立分类）。
+- 版本统一为 v1.8.6。
+
 ## [v1.8.1] - 2026-08-04
 
 ### Added

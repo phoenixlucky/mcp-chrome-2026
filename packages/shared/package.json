@@ -1,7 +1,7 @@
 {
   "name": "@ethanwilkins/chrome-mcp-shared-2026",
   "private": true,
-  "version": "1.8.4",
+  "version": "1.8.6",
   "author": "hangye",
   "main": "dist/index.js",
   "module": "./dist/index.mjs",

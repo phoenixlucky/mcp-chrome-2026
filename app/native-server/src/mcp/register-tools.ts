@@ -25,7 +25,6 @@ export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-2
 const WRITE_TOOL =
   /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate)/;
 const LONG_TOOL = /(?:performance|trace|record|download|upload|proxy_diagnostics)/;
-const NAVIGATION_TOOL = /(?:navigate|download|upload)/;
 const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
 
@@ -101,7 +100,7 @@ export const setupTools = (server: Server) => {
 };
 
 function timeoutFor(name: string, args: any): number {
-  const ceiling = LONG_TOOL.test(name) ? 120_000 : NAVIGATION_TOOL.test(name) ? 60_000 : 20_000;
+  const ceiling = LONG_TOOL.test(name) ? 120_000 : 60_000;
   const requested = Number(args.timeoutMs ?? args.timeout);
   return Number.isFinite(requested)
     ? Math.min(Math.max(requested, MIN_TOOL_TRANSPORT_TIMEOUT_MS), ceiling)

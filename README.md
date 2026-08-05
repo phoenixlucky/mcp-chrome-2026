@@ -26,13 +26,14 @@
 
 ---
 
-## 📢 v1.8.4 更新内容
+## 📢 v1.8.6 更新内容
 
-> **i18n 工具参数描述修复** — 消除 Popup 工具目录中参数描述相互串扰的问题。
+> **MCP 版本动态化 + i18n 修复** — 准确性与兼容性提升。
 >
-> - 🛠️ **26 个工具级参数描述覆盖** — 通用参数（`query` / `text` / `tabIds` / `tabId` / `url` / `action` 等）不再把书签 / 键盘 / 关标签页等语义误带入无关工具（如 `search_tabs_content.query` 不再显示书签关键词）
-> - 🔧 **`chrome_scroll.mode` / `chrome_console.mode` 描述修正** — 通用 `mode` 条目原本是控制台专属语义，现为两个工具分别补充正确描述
-> - 🔧 版本统一为 v1.8.4
+> - 🏷️ **MCP Server 版本动态化** — Stdio / HTTP 双通道 version 从硬编码 `1.0.0` 改为读取 `package.json`，客户端可准确感知版本
+> - 🌐 **i18n 修复** — 修正 `chrome_scroll` `mode` 参数描述；新增工具级参数描述避免误配；Popup 工具目录中文翻译对齐 README_zh
+> - ⏱️ **超时逻辑简化** — 非长耗时工具统一 60s 上限
+> - 🔧 版本统一为 v1.8.6
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
