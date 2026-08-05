@@ -208,7 +208,7 @@ describe('browser result contracts', () => {
     let wheelCalls = sendCommand.mock.calls.filter(
       ([, method]) => method === 'Input.dispatchMouseEvent',
     );
-    expect(wheelCalls).toHaveLength(5);
+    expect(wheelCalls).toHaveLength(8);
     expect(wheelCalls.reduce((sum, [, , params]) => sum + params.deltaY, 0)).toBeCloseTo(300);
 
     sendCommand.mockClear();
@@ -217,6 +217,46 @@ describe('browser result contracts', () => {
       ([, method]) => method === 'Input.dispatchMouseEvent',
     );
     expect(wheelCalls).toHaveLength(3);
+  });
+
+  it('uses the standard, fast-human, and slow-human pacing profiles', async () => {
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method === 'Input.dispatchMouseEvent') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: 'document.scrollingElement',
+            x: 500,
+            y: 450,
+            moved: true,
+            scrollTop: 1000,
+            scrollHeight: 2000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          }),
+        },
+      };
+    });
+
+    const intervals = { human: 100, humanFast: 50, humanSlow: 150 } as const;
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+
+    for (const mode of ['human', 'humanFast', 'humanSlow'] as const) {
+      sendCommand.mockClear();
+      timeoutSpy.mockClear();
+      await scrollTool.execute({ tabId: 12, mode, amount: 600 });
+      expect(
+        sendCommand.mock.calls.filter(([, method]) => method === 'Input.dispatchMouseEvent'),
+      ).toHaveLength(15);
+      expect(timeoutSpy.mock.calls.filter(([, delay]) => delay === intervals[mode])).toHaveLength(
+        14,
+      );
+    }
+
+    timeoutSpy.mockRestore();
   });
 
   it('enables per-step human lazy-load detection only when requested', async () => {

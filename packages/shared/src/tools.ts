@@ -1991,19 +1991,19 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         mode: {
           type: 'string',
-          enum: ['fast', 'human'],
+          enum: ['fast', 'human', 'humanFast', 'humanSlow'],
           description:
-            '滚动速度模式：fast（默认）或 human。human 未传 steps/intervalMs 时，以 600 像素 = 10 步、150 毫秒为基准等比计算。',
+            '滚动速度模式：fast（默认）、human（标准真人）、humanFast（快人）或 humanSlow（慢人）。三种真人模式未传 steps/intervalMs 时，分别以 600 像素 = 15 步、100/50/150 毫秒为基准等比计算。',
         },
         humanLazyLoad: {
           type: 'boolean',
           description:
-            '真人懒加载优化。仅 human 模式生效；每个小步后检测 DOM、布局和网络资源变化，并等待页面加载趋于稳定（默认 false）。',
+            '真人懒加载优化。仅 human、humanFast、humanSlow 模式生效；每个小步后检测 DOM、布局和网络资源变化，并等待页面加载趋于稳定（默认 false）。',
         },
         amount: {
           type: 'number',
           description:
-            '要滚动的像素数。正值向下/向右，负值向上/向左。只设 direction 未设 amount 时，fast 默认 300，human 默认 600。',
+            '要滚动的像素数。正值向下/向右，负值向上/向左。只设 direction 未设 amount 时，fast 默认 300，三种真人模式默认 600。',
         },
         direction: {
           type: 'string',
@@ -2013,17 +2013,17 @@ export const TOOL_SCHEMAS: Tool[] = [
         steps: {
           type: 'number',
           description:
-            '像素滚动时，将移动拆分为这么多步（fast 默认 1；human 未传时按 amount 相对 600 等比计算；上限 50）。',
+            '像素滚动时，将移动拆分为这么多步（fast 默认 1；三种真人模式未传时按 amount 相对 600 等比计算，基准 15 步；上限 50）。',
         },
         intervalMs: {
           type: 'number',
           description:
-            '像素滚动时，每步之间等待的毫秒数（fast 默认 0；human 未传时按 amount 相对 600 等比计算，基准 150；上限 2000）。',
+            '像素滚动时，每步之间等待的毫秒数（fast 默认 0；human、humanFast、humanSlow 未传时按 amount 相对 600 等比计算，600px 基准分别为 100、50、150；上限 2000）。',
         },
         toBottom: {
           type: 'boolean',
           description:
-            '滚动到滚动容器的底部；human 模式下按真人小步连续滚动，直到稳定到底部或本次请求达到上限。',
+            '滚动到滚动容器的底部；真人模式下按对应真人速度连续滚动，直到稳定到底部或本次请求达到上限。',
         },
         toTop: {
           type: 'boolean',

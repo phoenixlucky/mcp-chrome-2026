@@ -24,8 +24,11 @@ const CDP_SESSION_KEY = 'scroll';
 const DEFAULT_SCROLL_AMOUNT = 300;
 const DEFAULT_SCROLL_STEPS = 1;
 const HUMAN_SCROLL_AMOUNT = 600;
-const HUMAN_SCROLL_STEPS = 10;
-const HUMAN_SCROLL_INTERVAL_MS = 150;
+const HUMAN_SCROLL_PROFILES = {
+  human: { steps: 15, intervalMs: 100 },
+  humanFast: { steps: 15, intervalMs: 50 },
+  humanSlow: { steps: 15, intervalMs: 150 },
+} as const;
 const MAX_SCROLL_STEPS = 50;
 const MAX_SCROLL_INTERVAL_MS = 2_000;
 const MAX_SLOW_SCROLL_DURATION_MS = 9_000;
@@ -40,7 +43,7 @@ const MAX_HUMAN_TO_BOTTOM_ROUNDS = 50;
 // ============================================================================
 
 type ScrollDirection = 'down' | 'up' | 'left' | 'right';
-type ScrollMode = 'fast' | 'human';
+type ScrollMode = 'fast' | keyof typeof HUMAN_SCROLL_PROFILES;
 type ScrollBlock = 'start' | 'center' | 'end' | 'nearest';
 type ScrollBehavior = 'auto' | 'smooth';
 
@@ -81,18 +84,19 @@ interface PixelScrollPlan {
 
 function getPixelScrollPlan(params: ScrollToolParams): PixelScrollPlan {
   const mode = params.mode || 'fast';
+  const humanProfile = mode === 'fast' ? undefined : HUMAN_SCROLL_PROFILES[mode];
   const px =
     typeof params.amount === 'number'
       ? params.amount
-      : mode === 'human'
+      : humanProfile
         ? HUMAN_SCROLL_AMOUNT
         : DEFAULT_SCROLL_AMOUNT;
   const dir = params.direction || 'down';
   const humanScale = Math.abs(px) / HUMAN_SCROLL_AMOUNT;
-  const defaultSteps =
-    mode === 'human' ? Math.round(HUMAN_SCROLL_STEPS * humanScale) : DEFAULT_SCROLL_STEPS;
-  const defaultIntervalMs =
-    mode === 'human' ? Math.round(HUMAN_SCROLL_INTERVAL_MS * humanScale) : 0;
+  const defaultSteps = humanProfile
+    ? Math.round(humanProfile.steps * humanScale)
+    : DEFAULT_SCROLL_STEPS;
+  const defaultIntervalMs = humanProfile ? Math.round(humanProfile.intervalMs * humanScale) : 0;
   const rawSteps =
     typeof params.steps === 'number' && Number.isFinite(params.steps)
       ? Math.floor(params.steps)
@@ -114,6 +118,10 @@ function getPixelScrollPlan(params: ScrollToolParams): PixelScrollPlan {
     steps,
     intervalMs,
   };
+}
+
+function isHumanMode(mode?: ScrollMode): boolean {
+  return mode === 'human' || mode === 'humanFast' || mode === 'humanSlow';
 }
 
 // ============================================================================
@@ -424,7 +432,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
       // 2. Use native wheel input for pixel scrolling; special modes keep the direct path.
       const isHumanToBottom =
         args.toBottom === true &&
-        args.mode === 'human' &&
+        isHumanMode(args.mode) &&
         !args.toTop &&
         !args.selector &&
         !args.frameSelector;
@@ -461,7 +469,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
         const humanToBottomPlan = isHumanToBottom
           ? getPixelScrollPlan({ ...args, amount: Math.abs(args.amount ?? 600), direction: 'down' })
           : getPixelScrollPlan(args);
-        const humanLazyLoad = args.mode === 'human' && args.humanLazyLoad === true;
+        const humanLazyLoad = isHumanMode(args.mode) && args.humanLazyLoad === true;
         let before = target;
         let after = target;
         let moved = false;

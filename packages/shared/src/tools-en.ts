@@ -2041,19 +2041,19 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       properties: {
         mode: {
           type: 'string',
-          enum: ['fast', 'human'],
+          enum: ['fast', 'human', 'humanFast', 'humanSlow'],
           description:
-            'Scroll speed mode: fast (default) or human. In human mode, omitted steps/intervalMs scale proportionally from 600px = 10 steps and 150ms.',
+            'Scroll speed mode: fast (default), human, humanFast, or humanSlow. For the three human modes, omitted steps/intervalMs scale proportionally from 600px = 15 steps and 100/50/150ms respectively.',
         },
         humanLazyLoad: {
           type: 'boolean',
           description:
-            'Human lazy-load optimization. Only applies to human mode; after each small step, watches DOM/layout/resource changes and waits for the page to settle (default: false).',
+            'Human lazy-load optimization. Applies to human, humanFast, and humanSlow; after each small step, watches DOM/layout/resource changes and waits for the page to settle (default: false).',
         },
         amount: {
           type: 'number',
           description:
-            'Pixels to scroll. Positive scrolls down/right, negative scrolls up/left. When direction is set without amount, fast defaults to 300 and human defaults to 600.',
+            'Pixels to scroll. Positive scrolls down/right, negative scrolls up/left. When direction is set without amount, fast defaults to 300 and the human modes default to 600.',
         },
         direction: {
           type: 'string',
@@ -2063,17 +2063,17 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         steps: {
           type: 'number',
           description:
-            'For pixel scrolling, split the movement into this many steps (fast default: 1; human auto-scales from amount when omitted; maximum: 50).',
+            'For pixel scrolling, split the movement into this many steps (fast default: 1; human modes default to 15 at 600px and auto-scale from amount when omitted; maximum: 50).',
         },
         intervalMs: {
           type: 'number',
           description:
-            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human auto-scales from amount when omitted, based on 150ms at 600px; maximum: 2000).',
+            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human, humanFast, and humanSlow auto-scale from amount when omitted, based on 100ms, 50ms, and 150ms at 600px; maximum: 2000).',
         },
         toBottom: {
           type: 'boolean',
           description:
-            'Scroll to the very bottom; in human mode, keep taking human-paced steps until the bottom is stable or the request limit is reached.',
+            'Scroll to the very bottom; in human modes, keep taking the selected human-paced steps until the bottom is stable or the request limit is reached.',
         },
         toTop: {
           type: 'boolean',
