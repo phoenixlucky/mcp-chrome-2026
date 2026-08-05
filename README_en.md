@@ -26,14 +26,15 @@
 
 ---
 
-## 📢 What's New in v1.8.6
+## 📢 What's New in v1.8.7
 
-> **Dynamic MCP version + i18n fixes** — Accuracy and compatibility improvements.
+> **`chrome_scroll` three human scroll speeds** — Tune wheel rhythm to page load.
 >
-> - 🏷️ **Dynamic MCP server version** — Stdio/HTTP channels now report the `package.json` version instead of hardcoded `1.0.0`, so clients see the real plugin version
-> - 🌐 **i18n fixes** — Corrected `chrome_scroll` `mode` parameter description; added tool-specific parameter descriptions to prevent misattribution; aligned Popup tools catalog Chinese translations with README_zh
-> - ⏱️ **Simplified timeouts** — Non-long-running tools now share a 60s ceiling
-> - 🔧 All packages bumped to v1.8.6
+> - 🐢 **`humanSlow`** — Slow tier (150ms/step), for complex pages needing full rendering
+> - 🧑‍🦱 **`human`** — Standard tier (100ms/step), default human mode
+> - ⚡ **`humanFast`** — Fast tier (50ms/step), for quick paging through simple lists
+> - ⏳ All tiers support `humanLazyLoad` / `toBottom` infinite-list loading
+> - 🔧 All packages bumped to v1.8.7
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

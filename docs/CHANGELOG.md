@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 版本统一为 v1.8.4。
 
+## [v1.8.7] - 2026-08-04
+
+### Added
+
+- **`chrome_scroll` 真人滚动速度档位** — 新增 `humanFast`（每步 100ms→50ms 间隔）与 `humanSlow`（150ms 间隔）两个档位，与 `human` 组成三档真人速度，配合 `humanLazyLoad` / `toBottom` 覆盖更多动态页面场景；工具描述与文档同步更新。
+
+### Changed
+
+- 版本统一为 v1.8.7。
+
 ## [v1.8.6] - 2026-08-04
 
 ### Added
