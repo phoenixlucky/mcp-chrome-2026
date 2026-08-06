@@ -26,13 +26,13 @@
 
 ---
 
-## 📢 v1.8.8 更新内容
+## 📢 v1.8.9 更新内容
 
-> **`chrome_scroll` 真人滚动提速 + 打包脚本增强** — 效率提升。
+> **`chrome_scroll` 真人懒加载性能优化** — 更稳定高效的长距离滚动。
 >
-> - ⚡ **真人滚动整体提速** — 三档基准间隔调整为 `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms，滚动效率提升约一倍
-> - 🛠️ **`package-extension.bat` 增强** — 自动检测 pnpm / corepack（无 pnpm 时回退 `corepack pnpm`）
-> - 🔧 版本统一为 v1.8.8
+> - ⏳ **懒加载等待优化** — 每轮节奏内仅执行一次页面稳定等待（settle），不再每小步都等待，避免超出 MCP 请求预算
+> - 🖥️ Popup 工具页面微调
+> - 🔧 版本统一为 v1.8.9
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 版本统一为 v1.8.4。
 
+## [v1.8.9] - 2026-08-06
+
+### Fixed
+
+- **`chrome_scroll` 真人懒加载性能优化** — 每轮节奏内仅执行一次页面稳定等待（settle），不再每小步都等待，避免超出 MCP 请求预算；长距离真人滚动更稳定高效。
+
+### Changed
+
+- Popup 工具页面微调。
+- 版本统一为 v1.8.9。
+
 ## [v1.8.8] - 2026-08-04
 
 ### Changed

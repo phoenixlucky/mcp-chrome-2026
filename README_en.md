@@ -26,13 +26,13 @@
 
 ---
 
-## 📢 What's New in v1.8.8
+## 📢 What's New in v1.8.9
 
-> **`chrome_scroll` human scroll speed-up + packaging script improvements** — Efficiency boost.
+> **`chrome_scroll` human lazy-load performance optimization** — More stable, efficient long-distance scrolling.
 >
-> - ⚡ **Human scroll speed-up** — Base intervals now `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms, roughly doubling scrolling throughput
-> - 🛠️ **`package-extension.bat` improvements** — Auto-detect pnpm / corepack (falls back to `corepack pnpm` when pnpm is missing)
-> - 🔧 All packages bumped to v1.8.8
+> - ⏳ **Lazy-load wait optimization** — Only one page-settle wait per paced round instead of per small step, avoiding MCP request budget exhaustion
+> - 🖥️ Popup tools page tweaks
+> - 🔧 All packages bumped to v1.8.9
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
