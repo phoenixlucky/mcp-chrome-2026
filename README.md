@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 v1.8.7 更新内容
+## 📢 v1.8.8 更新内容
 
-> **`chrome_scroll` 三档真人滚动速度** — 按页面负载自由调节滚轮节奏。
+> **`chrome_scroll` 真人滚动提速 + 打包脚本增强** — 效率提升。
 >
-> - 🐢 **`humanSlow`** — 慢速档（150ms/步），适合内容复杂、需要充分渲染的页面
-> - 🧑‍🦱 **`human`** — 标准档（100ms/步），默认真人模式
-> - ⚡ **`humanFast`** — 快速档（50ms/步），适合简单列表快速翻阅
-> - ⏳ 三档均支持 `humanLazyLoad` / `toBottom` 无限列表加载
-> - 🔧 版本统一为 v1.8.7
+> - ⚡ **真人滚动整体提速** — 三档基准间隔调整为 `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms，滚动效率提升约一倍
+> - 🛠️ **`package-extension.bat` 增强** — 自动检测 pnpm / corepack（无 pnpm 时回退 `corepack pnpm`）
+> - 🔧 版本统一为 v1.8.8
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

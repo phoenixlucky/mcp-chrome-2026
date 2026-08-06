@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 What's New in v1.8.7
+## 📢 What's New in v1.8.8
 
-> **`chrome_scroll` three human scroll speeds** — Tune wheel rhythm to page load.
+> **`chrome_scroll` human scroll speed-up + packaging script improvements** — Efficiency boost.
 >
-> - 🐢 **`humanSlow`** — Slow tier (150ms/step), for complex pages needing full rendering
-> - 🧑‍🦱 **`human`** — Standard tier (100ms/step), default human mode
-> - ⚡ **`humanFast`** — Fast tier (50ms/step), for quick paging through simple lists
-> - ⏳ All tiers support `humanLazyLoad` / `toBottom` infinite-list loading
-> - 🔧 All packages bumped to v1.8.7
+> - ⚡ **Human scroll speed-up** — Base intervals now `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms, roughly doubling scrolling throughput
+> - 🛠️ **`package-extension.bat` improvements** — Auto-detect pnpm / corepack (falls back to `corepack pnpm` when pnpm is missing)
+> - 🔧 All packages bumped to v1.8.8
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

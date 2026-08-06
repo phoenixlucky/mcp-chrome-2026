@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridge-monorepo-2026",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "private": true,
   "packageManager": "pnpm@11.20.0",
   "author": "hangye",

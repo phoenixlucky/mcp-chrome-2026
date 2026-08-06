@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 版本统一为 v1.8.4。
 
+## [v1.8.8] - 2026-08-04
+
+### Changed
+
+- **`chrome_scroll` 真人滚动速度档位整体提速** — 三档基准间隔调整为 `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms（原 100/50/150ms），滚动效率提升约一倍；工具描述与文档同步更新。
+- **`package-extension.bat` 增强** — 自动检测 pnpm / corepack（无 pnpm 时回退 `corepack pnpm`）；shared 构建改用 `--filter` 方式。
+- 版本统一为 v1.8.8。
+
 ## [v1.8.7] - 2026-08-04
 
 ### Added

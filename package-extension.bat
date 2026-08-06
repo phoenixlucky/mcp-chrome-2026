@@ -2,6 +2,19 @@
 setlocal
 cd /d "%~dp0"
 
+where pnpm >nul 2>&1
+if errorlevel 1 (
+  where corepack >nul 2>&1
+  if errorlevel 1 (
+    echo Node.js 20+ with Corepack or pnpm is required.
+    pause
+    exit /b 1
+  )
+  set "PNPM_CMD=corepack pnpm"
+) else (
+  set "PNPM_CMD=pnpm"
+)
+
 echo.
 echo Current extension version:
 powershell -NoProfile -Command "(Get-Content -Raw 'app/chrome-extension/package.json' | ConvertFrom-Json).version"
@@ -24,7 +37,7 @@ if not defined VERSION_PART (
   exit /b 1
 )
 
-call pnpm --filter @ethanwilkins/chrome-mcp-server-2026 version %VERSION_PART% --no-git-tag-version --no-git-checks
+call %PNPM_CMD% --filter @ethanwilkins/chrome-mcp-server-2026 version %VERSION_PART% --no-git-tag-version --no-git-checks
 if errorlevel 1 (
   echo.
   echo Version update failed.
@@ -33,7 +46,7 @@ if errorlevel 1 (
 )
 
 :build
-call pnpm run build:shared
+call %PNPM_CMD% --filter @ethanwilkins/chrome-mcp-shared-2026 build
 if errorlevel 1 (
   echo.
   echo Extension dependency build failed.
@@ -41,7 +54,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-call pnpm --filter @ethanwilkins/chrome-mcp-server-2026 zip
+call %PNPM_CMD% --filter @ethanwilkins/chrome-mcp-server-2026 zip
 if errorlevel 1 (
   echo.
   echo Packaging failed.
