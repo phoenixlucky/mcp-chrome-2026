@@ -1993,7 +1993,7 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           enum: ['fast', 'human', 'humanFast', 'humanSlow'],
           description:
-            '滚动速度模式：fast（默认）、human（标准真人）、humanFast（快人）或 humanSlow（慢人）。三种真人模式未传 steps/intervalMs 时，分别以 600 像素 = 15 步、100/50/150 毫秒为基准等比计算。',
+            '滚动速度模式：fast（默认）、human（标准真人）、humanFast（快人）或 humanSlow（慢人）。三种真人模式未传 steps/intervalMs 时，分别以 600 像素 = 15 步、50/20/80 毫秒为基准等比计算。',
         },
         humanLazyLoad: {
           type: 'boolean',
@@ -2018,7 +2018,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         intervalMs: {
           type: 'number',
           description:
-            '像素滚动时，每步之间等待的毫秒数（fast 默认 0；human、humanFast、humanSlow 未传时按 amount 相对 600 等比计算，600px 基准分别为 100、50、150；上限 2000）。',
+            '像素滚动时，每步之间等待的毫秒数（fast 默认 0；human、humanFast、humanSlow 未传时按 amount 相对 600 等比计算，600px 基准分别为 50、20、80；上限 2000）。',
         },
         toBottom: {
           type: 'boolean',

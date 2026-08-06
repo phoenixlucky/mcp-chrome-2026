@@ -241,7 +241,7 @@ describe('browser result contracts', () => {
       };
     });
 
-    const intervals = { human: 100, humanFast: 50, humanSlow: 150 } as const;
+    const intervals = { human: 50, humanFast: 20, humanSlow: 80 } as const;
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
     for (const mode of ['human', 'humanFast', 'humanSlow'] as const) {

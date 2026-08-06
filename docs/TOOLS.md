@@ -648,12 +648,12 @@ For human scrolling, set `humanLazyLoad: true` to enable human lazy-load optimiz
 
 **Parameters**:
 
-- `mode` (string, optional): Scroll speed mode: `fast` (default), `human`, `humanFast`, or `humanSlow`; for the three human modes, omitted `steps`/`intervalMs` scale proportionally from `amount=600`, `steps=15`, and intervals of `100/50/150ms` respectively
+- `mode` (string, optional): Scroll speed mode: `fast` (default), `human`, `humanFast`, or `humanSlow`; for the three human modes, omitted `steps`/`intervalMs` scale proportionally from `amount=600`, `steps=15`, and intervals of `50/20/80ms` respectively
 - `humanLazyLoad` (boolean, optional): Human lazy-load optimization; applies to the three human modes, watching DOM, layout, and resource changes after each small step and waiting for the page to settle (default: `false`); combine with `toBottom` for infinite lists
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
 - `steps` (number, optional): Split pixel scrolling into this many steps (fast default: `1`; human modes default to `15` at 600px and auto-scale from amount when omitted; maximum: `50`); explicit values override the automatic value
-- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human, humanFast, and humanSlow auto-scale from amount when omitted, based on `100ms`, `50ms`, and `150ms` at 600px respectively; maximum: `2000`); explicit values override the automatic value
+- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human, humanFast, and humanSlow auto-scale from amount when omitted, based on `50ms`, `20ms`, and `80ms` at 600px respectively; maximum: `2000`); explicit values override the automatic value
 - `toBottom` (boolean, optional): Scroll to the bottom; in human modes, keep taking the selected human-paced steps until the bottom is stable or the request limit is reached
 - `toTop` (boolean, optional): Scroll to the top of the container
 - `selector` (string, optional): CSS selector of element to scroll into view

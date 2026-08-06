@@ -2043,7 +2043,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           type: 'string',
           enum: ['fast', 'human', 'humanFast', 'humanSlow'],
           description:
-            'Scroll speed mode: fast (default), human, humanFast, or humanSlow. For the three human modes, omitted steps/intervalMs scale proportionally from 600px = 15 steps and 100/50/150ms respectively.',
+            'Scroll speed mode: fast (default), human, humanFast, or humanSlow. For the three human modes, omitted steps/intervalMs scale proportionally from 600px = 15 steps and 50/20/80ms respectively.',
         },
         humanLazyLoad: {
           type: 'boolean',
@@ -2068,7 +2068,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         intervalMs: {
           type: 'number',
           description:
-            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human, humanFast, and humanSlow auto-scale from amount when omitted, based on 100ms, 50ms, and 150ms at 600px; maximum: 2000).',
+            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human, humanFast, and humanSlow auto-scale from amount when omitted, based on 50ms, 20ms, and 80ms at 600px; maximum: 2000).',
         },
         toBottom: {
           type: 'boolean',

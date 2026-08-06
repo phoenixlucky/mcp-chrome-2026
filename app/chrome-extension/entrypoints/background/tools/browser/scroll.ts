@@ -25,9 +25,9 @@ const DEFAULT_SCROLL_AMOUNT = 300;
 const DEFAULT_SCROLL_STEPS = 1;
 const HUMAN_SCROLL_AMOUNT = 600;
 const HUMAN_SCROLL_PROFILES = {
-  human: { steps: 15, intervalMs: 100 },
-  humanFast: { steps: 15, intervalMs: 50 },
-  humanSlow: { steps: 15, intervalMs: 150 },
+  human: { steps: 15, intervalMs: 50 },
+  humanFast: { steps: 15, intervalMs: 20 },
+  humanSlow: { steps: 15, intervalMs: 80 },
 } as const;
 const MAX_SCROLL_STEPS = 50;
 const MAX_SCROLL_INTERVAL_MS = 2_000;
