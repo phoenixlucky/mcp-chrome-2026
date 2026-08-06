@@ -480,19 +480,21 @@ class ScrollTool extends BaseBrowserToolExecutor {
         for (let round = 0; round < maxRounds; round++) {
           let previousEased = 0;
 
+          // ponytail: settle once per paced round; per-step observers can exceed the MCP request budget.
+          if (humanLazyLoad) {
+            await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+              expression: buildHumanLazyLoadStartExpression(
+                args.containerSelector,
+                args.anchorSelector,
+              ),
+              returnByValue: true,
+              awaitPromise: false,
+              timeout: DEFAULT_TIMEOUT_MS,
+            });
+          }
+
           // ponytail: fixed cubic ease-out; use device-specific curves only if realism needs tuning.
           for (let i = 0; i < humanToBottomPlan.steps; i++) {
-            if (humanLazyLoad) {
-              await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-                expression: buildHumanLazyLoadStartExpression(
-                  args.containerSelector,
-                  args.anchorSelector,
-                ),
-                returnByValue: true,
-                awaitPromise: false,
-                timeout: DEFAULT_TIMEOUT_MS,
-              });
-            }
             const progress = (i + 1) / humanToBottomPlan.steps;
             const eased = 1 - (1 - progress) ** 3;
             const factor = eased - previousEased;
@@ -503,18 +505,19 @@ class ScrollTool extends BaseBrowserToolExecutor {
               deltaX: humanToBottomPlan.deltaX * factor,
               deltaY: humanToBottomPlan.deltaY * factor,
             });
-            if (humanLazyLoad) {
-              await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-                expression: buildHumanLazyLoadWaitExpression(),
-                returnByValue: true,
-                awaitPromise: true,
-                timeout: DEFAULT_TIMEOUT_MS,
-              });
-            }
             previousEased = eased;
             if (i < humanToBottomPlan.steps - 1 && humanToBottomPlan.intervalMs > 0) {
               await new Promise((resolve) => setTimeout(resolve, humanToBottomPlan.intervalMs));
             }
+          }
+
+          if (humanLazyLoad) {
+            await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+              expression: buildHumanLazyLoadWaitExpression(),
+              returnByValue: true,
+              awaitPromise: true,
+              timeout: DEFAULT_TIMEOUT_MS,
+            });
           }
 
           const afterResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {

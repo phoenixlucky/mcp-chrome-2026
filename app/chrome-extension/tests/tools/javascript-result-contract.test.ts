@@ -259,7 +259,7 @@ describe('browser result contracts', () => {
     timeoutSpy.mockRestore();
   });
 
-  it('enables per-step human lazy-load detection only when requested', async () => {
+  it('checks human lazy-load once per paced scroll round', async () => {
     sendCommand.mockClear();
     sendCommand.mockImplementation(async (_tabId, method) => {
       if (method === 'Input.dispatchMouseEvent') return {};
@@ -295,10 +295,10 @@ describe('browser result contracts', () => {
       .filter((expression): expression is string => typeof expression === 'string');
     expect(
       expressions.filter((expression) => expression.includes('MutationObserver')),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(
       expressions.filter((expression) => expression.includes('PerformanceObserver')),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(
       sendCommand.mock.calls.filter(([, method]) => method === 'Input.dispatchMouseEvent'),
     ).toHaveLength(2);

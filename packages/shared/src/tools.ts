@@ -1998,7 +1998,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         humanLazyLoad: {
           type: 'boolean',
           description:
-            '真人懒加载优化。仅 human、humanFast、humanSlow 模式生效；每个小步后检测 DOM、布局和网络资源变化，并等待页面加载趋于稳定（默认 false）。',
+            '真人懒加载优化。仅 human、humanFast、humanSlow 模式生效；每个分步滚动轮次结束后检测 DOM、布局和网络资源变化，并等待页面加载趋于稳定（默认 false）。',
         },
         amount: {
           type: 'number',

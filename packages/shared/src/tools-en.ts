@@ -2048,7 +2048,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         humanLazyLoad: {
           type: 'boolean',
           description:
-            'Human lazy-load optimization. Applies to human, humanFast, and humanSlow; after each small step, watches DOM/layout/resource changes and waits for the page to settle (default: false).',
+            'Human lazy-load optimization. Applies to human, humanFast, and humanSlow; after each paced scroll round, watches DOM/layout/resource changes and waits for the page to settle (default: false).',
         },
         amount: {
           type: 'number',

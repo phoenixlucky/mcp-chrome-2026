@@ -644,12 +644,12 @@ Get the current URL and title of a browser tab. Lightweight alternative to `get_
 
 Scroll the page or a scrollable container with 4 modes.
 
-For human scrolling, set `humanLazyLoad: true` to enable human lazy-load optimization. After each small step it watches DOM, layout, and resource changes and waits for the page to settle. Disabled by default.
+For human scrolling, set `humanLazyLoad: true` to enable human lazy-load optimization. After each paced scroll round it watches DOM, layout, and resource changes and waits for the page to settle. Disabled by default.
 
 **Parameters**:
 
 - `mode` (string, optional): Scroll speed mode: `fast` (default), `human`, `humanFast`, or `humanSlow`; for the three human modes, omitted `steps`/`intervalMs` scale proportionally from `amount=600`, `steps=15`, and intervals of `50/20/80ms` respectively
-- `humanLazyLoad` (boolean, optional): Human lazy-load optimization; applies to the three human modes, watching DOM, layout, and resource changes after each small step and waiting for the page to settle (default: `false`); combine with `toBottom` for infinite lists
+- `humanLazyLoad` (boolean, optional): Human lazy-load optimization; applies to the three human modes, watching DOM, layout, and resource changes after each paced scroll round and waiting for the page to settle (default: `false`); combine with `toBottom` for infinite lists
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
 - `steps` (number, optional): Split pixel scrolling into this many steps (fast default: `1`; human modes default to `15` at 600px and auto-scale from amount when omitted; maximum: `50`); explicit values override the automatic value
