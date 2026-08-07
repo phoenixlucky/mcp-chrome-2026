@@ -109,8 +109,10 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         if (htmlResponse.success) {
           result.htmlContent = htmlResponse.htmlContent;
         } else {
-          console.error('Failed to get HTML content:', htmlResponse.error);
-          result.htmlContentError = htmlResponse.error;
+          const error =
+            htmlResponse.selectorError || htmlResponse.error || 'Unknown HTML extraction error';
+          console.warn('Failed to get HTML content:', error);
+          result.htmlContentError = error;
         }
       }
 
@@ -140,8 +142,10 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
             result.metadata = textResponse.metadata;
           }
         } else {
-          console.error('Failed to get text content:', textResponse.error);
-          result.textContentError = textResponse.error;
+          const error =
+            textResponse.selectorError || textResponse.error || 'Unknown text extraction error';
+          console.warn('Failed to get text content:', error);
+          result.textContentError = error;
         }
       }
 

@@ -2673,6 +2673,17 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
     minParagraphLength: 2,
   };
 
+  function selectElement(selector) {
+    try {
+      const element = document.querySelector(selector);
+      return element ? { element } : { error: `No element found matching selector: ${selector}` };
+    } catch (error) {
+      return {
+        error: `Invalid CSS selector: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
   // Listen for messages from the extension
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     const pingActions = [
@@ -2693,12 +2704,16 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
 
         // If selector is specified, only get content from the matching element
         if (request.selector) {
-          const element = document.querySelector(request.selector);
-          if (element) {
-            rawHtml = element.outerHTML;
-          } else {
-            throw new Error(`No element found matching selector: ${request.selector}`);
+          const result = selectElement(request.selector);
+          if (!result.element) {
+            sendResponse({
+              success: false,
+              selector: request.selector,
+              selectorError: result.error,
+            });
+            return true;
           }
+          rawHtml = result.element.outerHTML;
         } else {
           // Otherwise get the entire page content
           rawHtml = document.documentElement.outerHTML;
@@ -2724,19 +2739,24 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
       try {
         // If selector is specified, only get content from the matching element
         if (request.selector) {
-          const element = document.querySelector(request.selector);
-          if (element) {
-            // Directly get the text content of the element
-            const textContent = element.innerText;
-
+          const result = selectElement(request.selector);
+          if (!result.element) {
             sendResponse({
-              success: true,
-              textContent: textContent,
+              success: false,
               selector: request.selector,
+              selectorError: result.error,
             });
-          } else {
-            throw new Error(`No element found matching selector: ${request.selector}`);
+            return true;
           }
+
+          // Directly get the text content of the element
+          const textContent = result.element.innerText;
+
+          sendResponse({
+            success: true,
+            textContent: textContent,
+            selector: request.selector,
+          });
         } else {
           // Otherwise use Readability to extract the main content
           const documentClone = document.cloneNode(true);
