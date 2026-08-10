@@ -8,6 +8,7 @@ import fileHandler from './file-handler';
 interface PendingRequest {
   resolve: (value: any) => void;
   reject: (reason?: any) => void;
+  onProgress?: (payload: any) => void | Promise<void>;
   timeoutId: NodeJS.Timeout;
 }
 
@@ -120,6 +121,14 @@ export class NativeMessagingHost {
       return;
     }
 
+    if (message.type === NativeMessageType.TOOL_PROGRESS && message.requestId) {
+      const pending = this.pendingRequests.get(message.requestId);
+      if (pending?.onProgress) {
+        void Promise.resolve(pending.onProgress(message.payload)).catch(() => undefined);
+      }
+      return;
+    }
+
     if (message.responseToRequestId) {
       const requestId = message.responseToRequestId;
       const pending = this.pendingRequests.get(requestId);
@@ -218,6 +227,7 @@ export class NativeMessagingHost {
     messageType: string = 'request_data',
     timeoutMs: number = TIMEOUTS.DEFAULT_REQUEST_TIMEOUT,
     signal?: AbortSignal,
+    onProgress?: (payload: any) => void | Promise<void>,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestId = randomUUID(); // Generate unique request ID
@@ -253,6 +263,7 @@ export class NativeMessagingHost {
           signal?.removeEventListener('abort', cancel);
           reject(reason);
         },
+        onProgress,
         timeoutId,
       });
 

@@ -5,8 +5,21 @@ export interface ToolResult extends CallToolResult {
   isError: boolean;
 }
 
+export type ToolProgress = Record<string, unknown> & {
+  phase?: string;
+  completed?: number;
+  total?: number;
+  message?: string;
+};
+
+export type ToolProgressReporter = (progress: ToolProgress) => void | Promise<void>;
+
 export interface ToolExecutor {
-  execute(args: any): Promise<ToolResult>;
+  execute(
+    args: any,
+    signal?: AbortSignal,
+    reportProgress?: ToolProgressReporter,
+  ): Promise<ToolResult>;
 }
 
 export const createErrorResponse = (

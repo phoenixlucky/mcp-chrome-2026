@@ -1,4 +1,4 @@
-import { createErrorResponse } from '@/common/tool-handler';
+import { createErrorResponse, type ToolProgressReporter } from '@/common/tool-handler';
 import { ERROR_MESSAGES } from '@/common/constants';
 import * as browserTools from './browser';
 
@@ -369,7 +369,11 @@ async function checkExpectedUrl(param: ToolCallParam): Promise<string | null> {
 /**
  * Handle tool execution
  */
-export const handleCallTool = async (param: ToolCallParam, signal?: AbortSignal) => {
+export const handleCallTool = async (
+  param: ToolCallParam,
+  signal?: AbortSignal,
+  reportProgress?: ToolProgressReporter,
+) => {
   const tool = toolsMap.get(param.name);
   if (!tool) {
     return createErrorResponse(`Tool ${param.name} not found`);
@@ -386,7 +390,9 @@ export const handleCallTool = async (param: ToolCallParam, signal?: AbortSignal)
       args.background = backgroundOperations;
     }
     await showOperation(param, '执行中');
-    const result = await tool.execute(args, signal);
+    const result = reportProgress
+      ? await tool.execute(args, signal, reportProgress)
+      : await tool.execute(args, signal);
     void showOperation(param, result.isError ? '失败' : '完成');
     return result;
   } catch (error) {

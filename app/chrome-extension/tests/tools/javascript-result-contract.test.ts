@@ -259,6 +259,40 @@ describe('browser result contracts', () => {
     timeoutSpy.mockRestore();
   });
 
+  it('keeps the human interval constant while steps scale with distance', async () => {
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method === 'Input.dispatchMouseEvent') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: 'document.scrollingElement',
+            x: 500,
+            y: 450,
+            moved: true,
+            scrollTop: 1000,
+            scrollHeight: 2000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          }),
+        },
+      };
+    });
+
+    // amount=1200 → 30 steps (15 × 2), but the per-step interval stays 50ms
+    // instead of scaling up to 100ms. Total duration grows linearly.
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    await scrollTool.execute({ tabId: 12, mode: 'human', amount: 1200 });
+    expect(
+      sendCommand.mock.calls.filter(([, method]) => method === 'Input.dispatchMouseEvent'),
+    ).toHaveLength(30);
+    expect(timeoutSpy.mock.calls.filter(([, delay]) => delay === 50)).toHaveLength(29);
+    expect(timeoutSpy.mock.calls.filter(([, delay]) => delay === 100)).toHaveLength(0);
+    timeoutSpy.mockRestore();
+  });
+
   it('checks human lazy-load once per paced scroll round', async () => {
     sendCommand.mockClear();
     sendCommand.mockImplementation(async (_tabId, method) => {

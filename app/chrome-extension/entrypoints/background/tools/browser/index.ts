@@ -46,6 +46,7 @@ export { listFramesTool } from './list-frames';
 export {
   captureDebugBundleTool,
   collectVirtualListTool,
+  collectVirtualListsTool,
   resumeTabTaskTool,
   waitExtractResponseTool,
 } from './collector-tools';

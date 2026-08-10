@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.9.0] - 2026-08-10
+
+### Added
+
+- **`collect_virtual_lists` 工具** — 在多个标签页或窗口中**并发**采集动态/虚拟列表，按目标返回独立结果、状态、分批数据和失败原因；支持字段映射、去重、时长上限、分批返回与进度上报。
+
+### Changed
+
+- **`chrome_scroll` 真人滚动间隔不再随距离等比放大** — 修复 `intervalMs` 与 `steps` 同时按 amount 缩放导致总时长平方增长的问题；现在步数仍按 `600px = 15` 步为基准按距离等比计算，步间隔恒定（human / humanFast / humanSlow = 50 / 20 / 80ms），长距离真人滚动耗时与距离成线性关系；工具描述与文档同步更新。
+- **MCP 实时进度链路** — 长耗时采集工具可通过 Native Messaging 的 `tool_progress` 消息逐步上报，并转换为标准 `notifications/progress`；最终结果协议保持兼容，取消和多窗口进度继续复用同一个请求上下文。
+- 版本统一为 v1.9.0。
+
 ## [v1.8.4] - 2026-08-04
 
 ### Fixed

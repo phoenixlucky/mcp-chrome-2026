@@ -9,6 +9,7 @@ import {
   ListResourcesRequestSchema,
   ListPromptsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -79,8 +80,8 @@ export const setupTools = (server: Server) => {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOL_SCHEMAS }));
 
   // Call tool handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) =>
-    handleToolCall(request.params.name, request.params.arguments || {}),
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
+    handleToolCall(request.params.name, request.params.arguments || {}, extra),
   );
 
   // List resources handler - REQUIRED BY MCP PROTOCOL
@@ -90,7 +91,11 @@ export const setupTools = (server: Server) => {
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [] }));
 };
 
-const handleToolCall = async (name: string, args: any): Promise<CallToolResult> => {
+const handleToolCall = async (
+  name: string,
+  args: any,
+  extra?: RequestHandlerExtra<any, any>,
+): Promise<CallToolResult> => {
   try {
     const client = await ensureMcpClient();
     if (!client) {
@@ -98,9 +103,33 @@ const handleToolCall = async (name: string, args: any): Promise<CallToolResult> 
     }
     // Use a sane default of 2 minutes; the previous value mistakenly used 2*6*1000 (12s)
     const DEFAULT_CALL_TIMEOUT_MS = 2 * 60 * 1000;
-    const result = await client.callTool({ name, arguments: args }, undefined, {
-      timeout: DEFAULT_CALL_TIMEOUT_MS,
-    });
+    const progressToken = extra?._meta?.progressToken;
+    const result = await client.callTool(
+      {
+        name,
+        arguments: args,
+        ...(extra?._meta ? { _meta: extra._meta } : {}),
+      },
+      undefined,
+      {
+        timeout: DEFAULT_CALL_TIMEOUT_MS,
+        signal: extra?.signal,
+        onprogress:
+          progressToken === undefined
+            ? undefined
+            : (progress) => {
+                void extra?.sendNotification({
+                  method: 'notifications/progress',
+                  params: {
+                    progressToken,
+                    progress: progress.progress,
+                    ...(progress.total === undefined ? {} : { total: progress.total }),
+                    ...(progress.message === undefined ? {} : { message: progress.message }),
+                  },
+                });
+              },
+      },
+    );
     return result as CallToolResult;
   } catch (error: any) {
     return {

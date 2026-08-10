@@ -26,13 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.8.9
+## 📢 What's New in v1.9.0
 
-> **`chrome_scroll` human lazy-load performance optimization** — More stable, efficient long-distance scrolling.
+> **Multi-tab concurrent collection + MCP live progress pipeline** — Large-scale collection upgrade.
 >
-> - ⏳ **Lazy-load wait optimization** — Only one page-settle wait per paced round instead of per small step, avoiding MCP request budget exhaustion
-> - 🖥️ Popup tools page tweaks
-> - 🔧 All packages bumped to v1.8.9
+> - 🧩 **`collect_virtual_lists` tool** — Concurrently collect dynamic lists across multiple tabs/windows, returning per-target results and failure reasons; supports field mapping, dedup, batched returns, and progress reporting
+> - ⏱️ **Human-scroll interval fix** — `intervalMs` and `steps` are no longer both scaled with distance; long-distance human scrolling now scales linearly with distance (human / humanFast / humanSlow = 50 / 20 / 80ms)
+> - 📡 **MCP live progress reporting** — Long-running tools report `tool_progress` step by step over Native Messaging, converted to standard `notifications/progress`; final result protocol stays compatible
+> - 🔧 All packages bumped to v1.9.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

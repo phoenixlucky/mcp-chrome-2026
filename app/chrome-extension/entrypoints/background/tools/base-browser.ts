@@ -1,5 +1,5 @@
 import { ToolExecutor } from '@/common/tool-handler';
-import type { ToolResult } from '@/common/tool-handler';
+import type { ToolProgressReporter, ToolResult } from '@/common/tool-handler';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
 const PING_TIMEOUT_MS = 300;
@@ -9,7 +9,11 @@ const PING_TIMEOUT_MS = 300;
  */
 export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   abstract name: string;
-  abstract execute(args: any): Promise<ToolResult>;
+  abstract execute(
+    args: any,
+    signal?: AbortSignal,
+    reportProgress?: ToolProgressReporter,
+  ): Promise<ToolResult>;
 
   /**
    * Inject content script into tab

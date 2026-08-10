@@ -179,6 +179,7 @@ const launchDates: Record<string, string> = {
   detect_empty_state: '2026-07-31',
   merge_records: '2026-07-31',
   collect_virtual_list: '2026-07-31',
+  collect_virtual_lists: '2026-08-10',
   wait_extract_response: '2026-07-31',
   capture_debug_bundle: '2026-07-31',
   resume_tab_task: '2026-07-31',
@@ -277,7 +278,7 @@ const zhToolParameterDescriptions: Record<string, string> = {
   'chrome_scoped_action.selector': '作用域内的 CSS 选择器。',
   'chrome_scoped_action.timeout': '分页用：每页 DOM 变化的超时时间（毫秒）。',
   'chrome_scroll.mode':
-    '滚动速度模式：fast（默认）、human、humanFast 或 humanSlow。真人模式未传 steps/intervalMs 时，以 600 像素 = 15 步、50/20/80 毫秒为基准等比计算。',
+    '滚动速度模式：fast（默认）、human、humanFast 或 humanSlow。真人模式未传 steps/intervalMs 时，步数以 600 像素 = 15 步为基准按距离等比计算，步间隔恒定分别为 50、20、80 毫秒。',
   'chrome_console.mode':
     '控制台采集模式：snapshot（默认；等待约 2 秒收集消息）或 buffer（每个标签页的持久缓冲，从内存即时读取）。',
 };

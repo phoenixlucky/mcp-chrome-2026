@@ -93,10 +93,13 @@ function getPixelScrollPlan(params: ScrollToolParams): PixelScrollPlan {
         : DEFAULT_SCROLL_AMOUNT;
   const dir = params.direction || 'down';
   const humanScale = Math.abs(px) / HUMAN_SCROLL_AMOUNT;
+  // Steps scale with distance (a human flicks the wheel more times), but the
+  // per-step interval stays constant — real wheel ticks keep a fixed cadence,
+  // so total duration grows linearly with distance, not quadratically.
   const defaultSteps = humanProfile
     ? Math.round(humanProfile.steps * humanScale)
     : DEFAULT_SCROLL_STEPS;
-  const defaultIntervalMs = humanProfile ? Math.round(humanProfile.intervalMs * humanScale) : 0;
+  const defaultIntervalMs = humanProfile ? humanProfile.intervalMs : 0;
   const rawSteps =
     typeof params.steps === 'number' && Number.isFinite(params.steps)
       ? Math.floor(params.steps)
@@ -133,7 +136,7 @@ function isHumanMode(mode?: ScrollMode): boolean {
  * The expression returns { scrollTop, scrollHeight, clientHeight, scrolled }
  * or an error object.
  */
-function buildScrollContainerExpression(
+export function buildScrollContainerExpression(
   containerSelector?: string,
   anchorSelector?: string,
 ): string {

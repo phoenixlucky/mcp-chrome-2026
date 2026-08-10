@@ -648,12 +648,12 @@ For human scrolling, set `humanLazyLoad: true` to enable human lazy-load optimiz
 
 **Parameters**:
 
-- `mode` (string, optional): Scroll speed mode: `fast` (default), `human`, `humanFast`, or `humanSlow`; for the three human modes, omitted `steps`/`intervalMs` scale proportionally from `amount=600`, `steps=15`, and intervals of `50/20/80ms` respectively
+- `mode` (string, optional): Scroll speed mode: `fast` (default), `human`, `humanFast`, or `humanSlow`; for the three human modes, omitted `steps` scale proportionally from `amount=600` → `steps=15` by distance, while `intervalMs` stays constant at `50/20/80ms` per mode (independent of distance)
 - `humanLazyLoad` (boolean, optional): Human lazy-load optimization; applies to the three human modes, watching DOM, layout, and resource changes after each paced scroll round and waiting for the page to settle (default: `false`); combine with `toBottom` for infinite lists
 - `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
 - `direction` (string, optional): `down` | `up` | `left` | `right`
 - `steps` (number, optional): Split pixel scrolling into this many steps (fast default: `1`; human modes default to `15` at 600px and auto-scale from amount when omitted; maximum: `50`); explicit values override the automatic value
-- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human, humanFast, and humanSlow auto-scale from amount when omitted, based on `50ms`, `20ms`, and `80ms` at 600px respectively; maximum: `2000`); explicit values override the automatic value
+- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human, humanFast, and humanSlow keep a constant `50ms`, `20ms`, or `80ms` when omitted — independent of distance; maximum: `2000`); explicit values override the automatic value
 - `toBottom` (boolean, optional): Scroll to the bottom; in human modes, keep taking the selected human-paced steps until the bottom is stable or the request limit is reached
 - `toTop` (boolean, optional): Scroll to the top of the container
 - `selector` (string, optional): CSS selector of element to scroll into view
@@ -876,6 +876,71 @@ Best for: extracting tweet timelines, post feeds, dynamically loaded articles, a
     "excerpt": "...",
     "lang": "en"
   }
+}
+```
+
+### `collect_virtual_list` (since v1.8.12)
+
+Collect and deduplicate records from a dynamic or virtualized list while scrolling. It supports nested scroll containers, adaptive loading waits, resumable state, optional result batches, and progress snapshots.
+
+**Parameters**:
+
+- `cardSelector` (string, required): CSS selector for each record card
+- `fields` (array, required): Fields to extract from each card
+- `identityFields` (array, required): Fields used to deduplicate records
+- `maxItems` (number, optional): Maximum records to collect (default: 100)
+- `containerSelector` / `anchorSelector` (string, optional): Identify a nested scroll container directly or through an anchor inside it
+- `scroll` (object, optional): `step`, `waitMs`, `waitTimeoutMs`, `settleMs`, `stalledLimit`, `rescanUp`, `containerSelector`, and `anchorSelector`
+- `state` (object, optional): Pass back the previous `state` response to resume from `scrollY` and `seenIds`
+- `returnBatches` (boolean, optional): Include `batches` in the final response
+- `batchSize` (number, optional): Records per batch (default: 25 when batching is enabled)
+- `returnProgress` (boolean, optional): Include per-step progress snapshots in the final response
+- `progressEverySteps` (number, optional): Store one progress snapshot every N scroll steps
+- `tabId` or `windowId` (number, optional): Select the target tab; `windowId` selects its active tab
+
+**Example**:
+
+```json
+{
+  "tabId": 123,
+  "cardSelector": ".product-card",
+  "fields": [
+    { "name": "id", "selector": "[data-id]", "type": "attribute", "attribute": "data-id" }
+  ],
+  "identityFields": ["id"],
+  "containerSelector": ".virtual-list",
+  "returnBatches": true,
+  "returnProgress": true,
+  "scroll": { "step": 500, "waitMs": 600, "rescanUp": true }
+}
+```
+
+### `collect_virtual_lists` (since v1.8.12)
+
+Run the same collection workflow across multiple tabs or windows with bounded concurrency. Each target returns an independent result, state, progress, batches, and failure reason.
+
+**Parameters**:
+
+- `targets` (array, required): Objects containing `tabId` or `windowId`; a target may also override `frameSelector`, `containerSelector`, `anchorSelector`, `scroll`, and `state`
+- All single-target collection parameters above, except the root `tabId`, `windowId`, and `state`
+- `maxConcurrency` (number, optional): Concurrent target limit (default: 3, maximum: 8)
+- `failFast` (boolean, optional): Stop starting new targets after the first failure
+
+When the MCP request includes `_meta.progressToken` and the client supports `notifications/progress`, the collector emits live progress notifications while it runs. `returnProgress` still controls snapshots included in the final result.
+
+**Example**:
+
+```json
+{
+  "targets": [
+    { "tabId": 101, "label": "window-a" },
+    { "tabId": 202, "label": "window-b" }
+  ],
+  "cardSelector": ".item",
+  "fields": [{ "name": "id", "selector": ".id" }],
+  "identityFields": ["id"],
+  "maxConcurrency": 2,
+  "returnBatches": true
 }
 ```
 

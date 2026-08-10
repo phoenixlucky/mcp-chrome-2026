@@ -598,12 +598,12 @@
 
 **参数**：
 
-- `mode` (字符串，可选)：滚动速度模式：`fast`（默认）、`human`（标准真人）、`humanFast`（快人）或 `humanSlow`（慢人）；三种真人模式未传 `steps`/`intervalMs` 时，以 `amount=600`、`steps=15`、间隔分别为 `50/20/80ms` 为基准等比计算
+- `mode` (字符串，可选)：滚动速度模式：`fast`（默认）、`human`（标准真人）、`humanFast`（快人）或 `humanSlow`（慢人）；三种真人模式未传 `steps`/`intervalMs` 时，步数以 `amount=600` → `steps=15` 为基准按距离等比计算，步间隔恒定分别为 `50/20/80ms`（不随距离变化）
 - `humanLazyLoad` (布尔值，可选)：真人懒加载优化；仅三种真人模式生效，每个分步滚动轮次结束后检测 DOM、布局和网络资源变化并等待稳定（默认 `false`）；与 `toBottom` 配合可持续加载无限列表
 - `amount` (数字，可选)：滚动像素数（正数=下/右，负数=上/左）
 - `direction` (字符串，可选)：`down` | `up` | `left` | `right`
 - `steps` (数字，可选)：将像素滚动拆成多少步（fast 默认 `1`；真人模式 600px 基准为 `15` 步，并按 amount 等比计算；最多 `50`）；可强行传入覆盖
-- `intervalMs` (数字，可选)：每步之间等待的毫秒数（fast 默认 `0`；human、humanFast、humanSlow 在 600px 时分别为 `50/20/80`，并按 amount 等比计算；最多 `2000`）；可强行传入覆盖
+- `intervalMs` (数字，可选)：每步之间等待的毫秒数（fast 默认 `0`；human、humanFast、humanSlow 未传时恒定分别为 `50/20/80ms`，不随距离变化；最多 `2000`）；可强行传入覆盖
 - `toBottom` (布尔值，可选)：滚动到容器底部；真人模式下按所选真人速度连续滚动，直到稳定到底部或本次请求达到上限
 - `toTop` (布尔值，可选)：滚动到容器顶部
 - `selector` (字符串，可选)：要滚动到视图中的元素 CSS 选择器
@@ -904,6 +904,34 @@
   }
 }
 ```
+
+### `collect_virtual_list`（上线时间：2026-08-10）
+
+边滚动边从动态或虚拟列表中提取并去重记录。支持嵌套滚动容器、自适应等待、断点续采、分批结果和进度快照。
+
+**参数**：
+
+- `cardSelector`、`fields`、`identityFields`（必需）：卡片选择器、字段定义和去重字段
+- `maxItems`（可选）：最多采集的记录数，默认 100
+- `containerSelector` / `anchorSelector`（可选）：直接指定滚动容器，或指定容器内的锚点内容
+- `scroll`（可选）：支持 `step`、`waitMs`、`waitTimeoutMs`、`settleMs`、`stalledLimit`、`rescanUp` 以及容器选择器
+- `state`（可选）：传入上一次返回的 `state`，从 `scrollY` 和 `seenIds` 继续采集
+- `returnBatches`、`batchSize`（可选）：返回分批结果
+- `returnProgress`、`progressEverySteps`（可选）：返回滚动进度快照
+- `tabId` 或 `windowId`（可选）：指定目标标签页；`windowId` 会选择该窗口的活动标签页
+
+### `collect_virtual_lists`（上线时间：2026-08-10）
+
+在多个标签页或窗口中并发执行同一采集任务，并按目标返回独立的结果、状态、进度、分批数据和失败原因。
+
+**参数**：
+
+- `targets`（必需）：目标数组，每项包含 `tabId` 或 `windowId`，也可覆盖 `frameSelector`、滚动容器、滚动参数和 `state`
+- 单标签页采集的其他参数（根级 `tabId`、`windowId`、`state` 除外）
+- `maxConcurrency`（可选）：最大并发目标数，默认 3，最大 8
+- `failFast`（可选）：首个目标失败后停止启动新目标
+
+调用方若在 MCP 请求的 `_meta.progressToken` 中提供令牌，且客户端支持 `notifications/progress`，采集过程中会实时收到进度通知；`returnProgress` 仍表示把进度快照放入最终结果。
 
 ## 📋 响应格式
 

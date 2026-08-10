@@ -14,9 +14,26 @@ describe('MCP tool catalog', () => {
         'chrome_cookie_delete',
         'chrome_proxy_diagnostics',
         'chrome_proxy_rotate',
+        'collect_virtual_list',
+        'collect_virtual_lists',
       ]),
     );
     expect(search?.inputSchema.required).toEqual(expect.arrayContaining(['query', 'tabIds']));
+    const collector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_list');
+    const batchCollector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_lists');
+    expect(collector?.inputSchema.required).toEqual(
+      expect.arrayContaining(['cardSelector', 'fields', 'identityFields']),
+    );
+    expect(collector?.inputSchema.properties).toEqual(
+      expect.objectContaining({
+        containerSelector: expect.any(Object),
+        returnBatches: expect.any(Object),
+        returnProgress: expect.any(Object),
+      }),
+    );
+    expect(batchCollector?.inputSchema.required).toEqual(
+      expect.arrayContaining(['targets', 'cardSelector', 'fields', 'identityFields']),
+    );
     expect(names).not.toEqual(
       expect.arrayContaining([
         'record_replay_flow_run',

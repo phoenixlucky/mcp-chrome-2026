@@ -24,9 +24,11 @@ const recentToolCalls: ToolActivity[] = [];
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
 const WRITE_TOOL =
   /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate)/;
-const LONG_TOOL = /(?:performance|trace|record|download|upload|proxy_diagnostics)/;
+const LONG_TOOL =
+  /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list)/;
 const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
+type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
 
 async function listDynamicFlowTools(): Promise<Tool[]> {
   try {
@@ -94,9 +96,44 @@ export const setupTools = (server: Server) => {
   });
 
   // Call tool handler
-  server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
-    handleToolCall(request.params.name, request.params.arguments || {}, extra.signal),
-  );
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    const progressToken = extra._meta?.progressToken;
+    let lastProgress = -1;
+    const reportProgress: ToolProgressReporter | undefined =
+      progressToken === undefined
+        ? undefined
+        : (progress) =>
+            (() => {
+              const candidate =
+                typeof progress.completed === 'number' && Number.isFinite(progress.completed)
+                  ? Math.max(0, Math.floor(progress.completed))
+                  : 0;
+              const nextProgress = Math.max(lastProgress + 1, candidate);
+              lastProgress = nextProgress;
+              const total =
+                typeof progress.total === 'number' &&
+                Number.isFinite(progress.total) &&
+                progress.total >= nextProgress
+                  ? progress.total
+                  : undefined;
+              return extra.sendNotification({
+                method: 'notifications/progress',
+                params: {
+                  progressToken,
+                  progress: nextProgress,
+                  ...(total === undefined ? {} : { total }),
+                  message: JSON.stringify(progress),
+                },
+              });
+            })();
+
+    return handleToolCall(
+      request.params.name,
+      request.params.arguments || {},
+      extra.signal,
+      reportProgress,
+    );
+  });
 };
 
 function timeoutFor(name: string, args: any): number {
@@ -154,6 +191,7 @@ const handleToolCall = async (
   name: string,
   args: any,
   signal?: AbortSignal,
+  reportProgress?: ToolProgressReporter,
 ): Promise<CallToolResult> => {
   const activity: ToolActivity = {
     requestId: randomUUID(),
@@ -191,6 +229,7 @@ const handleToolCall = async (
               'rr_run_flow',
               timeoutFor('flow.run', args),
               signal,
+              reportProgress,
             ),
           () => {
             activity.queueMs = Date.now() - queuedAt;
@@ -232,6 +271,7 @@ const handleToolCall = async (
           NativeMessageType.CALL_TOOL,
           timeoutFor(name, args),
           signal,
+          reportProgress,
         ),
       () => {
         activity.queueMs = Date.now() - queuedAt;

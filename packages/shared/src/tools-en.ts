@@ -64,6 +64,7 @@ const TOOL_NAMES = {
     DETECT_EMPTY_STATE: 'detect_empty_state',
     MERGE_RECORDS: 'merge_records',
     COLLECT_VIRTUAL_LIST: 'collect_virtual_list',
+    COLLECT_VIRTUAL_LISTS: 'collect_virtual_lists',
     WAIT_EXTRACT_RESPONSE: 'wait_extract_response',
     CAPTURE_DEBUG_BUNDLE: 'capture_debug_bundle',
     RESUME_TAB_TASK: 'resume_tab_task',
@@ -81,6 +82,13 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         fields: { type: 'array', items: { type: 'object' } },
         identityFields: { type: 'array', items: { type: 'string' } },
         maxItems: { type: 'number' },
+        maxDurationMs: { type: 'number' },
+        returnBatches: { type: 'boolean' },
+        batchSize: { type: 'number' },
+        returnProgress: { type: 'boolean' },
+        progressEverySteps: { type: 'number' },
+        containerSelector: { type: 'string' },
+        anchorSelector: { type: 'string' },
         scroll: { type: 'object' },
         state: { type: 'object' },
         tabId: { type: 'number' },
@@ -88,6 +96,32 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         frameSelector: { type: 'string' },
       },
       required: ['cardSelector', 'fields', 'identityFields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.COLLECT_VIRTUAL_LISTS,
+    description:
+      'Collect dynamic or virtualized lists concurrently from multiple tabs or windows, returning per-target results, state, batches, progress, and failures.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targets: { type: 'array', items: { type: 'object' } },
+        cardSelector: { type: 'string' },
+        fields: { type: 'array', items: { type: 'object' } },
+        identityFields: { type: 'array', items: { type: 'string' } },
+        maxItems: { type: 'number' },
+        maxDurationMs: { type: 'number' },
+        returnBatches: { type: 'boolean' },
+        batchSize: { type: 'number' },
+        returnProgress: { type: 'boolean' },
+        progressEverySteps: { type: 'number' },
+        containerSelector: { type: 'string' },
+        anchorSelector: { type: 'string' },
+        scroll: { type: 'object' },
+        maxConcurrency: { type: 'number' },
+        failFast: { type: 'boolean' },
+      },
+      required: ['targets', 'cardSelector', 'fields', 'identityFields'],
     },
   },
   {
@@ -2043,7 +2077,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           type: 'string',
           enum: ['fast', 'human', 'humanFast', 'humanSlow'],
           description:
-            'Scroll speed mode: fast (default), human, humanFast, or humanSlow. For the three human modes, omitted steps/intervalMs scale proportionally from 600px = 15 steps and 50/20/80ms respectively.',
+            'Scroll speed mode: fast (default), human, humanFast, or humanSlow. For the three human modes, omitted steps scale proportionally from 600px = 15 steps by distance, while the per-step interval stays constant at 50ms, 20ms, or 80ms respectively (independent of distance).',
         },
         humanLazyLoad: {
           type: 'boolean',
@@ -2068,7 +2102,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         intervalMs: {
           type: 'number',
           description:
-            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human, humanFast, and humanSlow auto-scale from amount when omitted, based on 50ms, 20ms, and 80ms at 600px; maximum: 2000).',
+            'For pixel scrolling, wait this many milliseconds between steps (fast default: 0; human, humanFast, and humanSlow keep a constant 50ms, 20ms, or 80ms per mode when omitted — independent of distance; maximum: 2000).',
         },
         toBottom: {
           type: 'boolean',
@@ -2321,7 +2355,9 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
 
 const EN_TOOL_DESCRIPTIONS: Record<string, string> = {
   collect_virtual_list:
-    'Extract and deduplicate records from a dynamic or virtualized list with paced scrolling, stall detection, and an upward rescan.',
+    'Extract and deduplicate records from a dynamic or virtualized list with container scrolling, adaptive waits, resumable state, batches, and progress snapshots.',
+  collect_virtual_lists:
+    'Collect dynamic or virtualized lists concurrently from multiple tabs or windows, returning per-target results, state, batches, progress, and failures.',
   wait_extract_response:
     'Wait for a JSON response after navigation or a click, then extract records using caller-provided JSONPath rules.',
   capture_debug_bundle:
@@ -2370,6 +2406,16 @@ const EN_PARAMETER_DESCRIPTIONS: Record<string, string> = {
   fields: 'Fields to extract from each matched card.',
   identityFields: 'Field names that uniquely identify a record.',
   maxItems: 'Maximum number of records to return.',
+  maxDurationMs: 'Maximum collection duration in milliseconds.',
+  returnBatches: 'Whether to return records grouped into batches.',
+  batchSize: 'Number of records per returned batch.',
+  returnProgress: 'Whether to return scroll progress snapshots.',
+  progressEverySteps: 'Record one progress snapshot every N scroll steps.',
+  containerSelector: 'CSS selector for the nested scroll container.',
+  anchorSelector: 'CSS selector for content used to auto-detect the scroll container.',
+  targets: 'Array of tab or window targets to collect.',
+  maxConcurrency: 'Maximum number of targets collected concurrently.',
+  failFast: 'Whether to stop starting new targets after the first failure.',
   scroll: 'Scrolling options used while loading more list items.',
   state: 'Caller-defined JSON-safe state to save or resume.',
   response: 'Rules for matching the target JSON response.',

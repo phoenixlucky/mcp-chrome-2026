@@ -366,7 +366,14 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
         const controller = new AbortController();
         activeToolCalls.set(requestId, controller);
         try {
-          const result = await handleCallTool(message.payload, controller.signal);
+          const result = await handleCallTool(message.payload, controller.signal, (progress) => {
+            if (controller.signal.aborted) return;
+            nativePort?.postMessage({
+              type: NativeMessageType.TOOL_PROGRESS,
+              requestId,
+              payload: progress,
+            });
+          });
           if (controller.signal.aborted) return;
           nativePort?.postMessage({
             responseToRequestId: requestId,
