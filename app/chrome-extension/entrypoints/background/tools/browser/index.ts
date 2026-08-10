@@ -17,6 +17,7 @@ export { keyboardTool } from './keyboard';
 export { historyTool } from './history';
 export { bookmarkSearchTool, bookmarkAddTool, bookmarkDeleteTool } from './bookmark';
 export { javascriptTool } from './javascript';
+export { pasteTextTool } from './paste-text';
 export { consoleTool } from './console';
 export { fileUploadTool } from './file-upload';
 export { readPageTool } from './read-page';

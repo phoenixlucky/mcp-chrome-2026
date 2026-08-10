@@ -27,6 +27,7 @@ const TOOL_NAMES = {
     BOOKMARK_ADD: 'chrome_bookmark_add',
     BOOKMARK_DELETE: 'chrome_bookmark_delete',
     JAVASCRIPT: 'chrome_javascript',
+    PASTE_TEXT: 'chrome_paste_text',
     CONSOLE: 'chrome_console',
     FILE_UPLOAD: 'chrome_upload_file',
     READ_PAGE: 'chrome_read_page',
@@ -2401,6 +2402,28 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       required: ['selector', 'waitSelector'],
     },
   },
+  {
+    name: TOOL_NAMES.BROWSER.PASTE_TEXT,
+    description:
+      'Paste multi-paragraph text into a rich-text editor via a synthesized ClipboardEvent("paste") carrying a DataTransfer (built for Draft.js editors such as Zhihu and Medium). The editor receives the text through its native paste path, so every paragraph is kept, and no window focus or system clipboard is required. Use this instead of chrome_computer type (breaks with newlines), execCommand("insertText") (keeps only the last paragraph), or the Clipboard API (rejected without focus). After pasting, reload the page to verify the draft, then click the publish button.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description:
+            'Text to paste; may contain newlines, blank lines become separate paragraphs.',
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS selector of the editor element; defaults to [contenteditable="true"].',
+        },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+      },
+      required: ['text'],
+    },
+  },
 ];
 
 const EN_TOOL_DESCRIPTIONS: Record<string, string> = {
@@ -2448,6 +2471,8 @@ const EN_TOOL_DESCRIPTIONS: Record<string, string> = {
     'List interactive elements in the current page, optionally filtered by selector and element type.',
   chrome_wait:
     'Wait for a DOM element, JavaScript condition, or mutation/network event to satisfy the requested state.',
+  chrome_paste_text:
+    'Paste multi-paragraph text into a rich-text editor (Draft.js such as Zhihu/Medium) by dispatching a synthesized ClipboardEvent("paste") with a DataTransfer, so the editor receives it via its native paste path without needing window focus.',
 };
 
 const EN_PARAMETER_DESCRIPTIONS: Record<string, string> = {

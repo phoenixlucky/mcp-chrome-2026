@@ -121,6 +121,8 @@ function operationDetail(param: ToolCallParam): string {
       return `发布 X 帖子：${compact(args.text, 60) || '正文'}`;
     case 'chrome_javascript':
       return '执行页面脚本（内容已隐藏）';
+    case 'chrome_paste_text':
+      return `向 ${target(args)} 合成粘贴文本`;
     case 'chrome_console':
       return '读取页面控制台';
     case 'chrome_userscript':
@@ -256,6 +258,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_computer: '模拟操作',
           chrome_post_to_x: '发布 X 帖子',
           chrome_javascript: '执行脚本',
+          chrome_paste_text: '合成粘贴',
           chrome_console: '读取控制台',
           chrome_userscript: '管理用户脚本',
           performance_start_trace: '开始性能追踪',

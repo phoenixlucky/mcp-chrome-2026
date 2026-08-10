@@ -27,6 +27,7 @@ export const TOOL_NAMES = {
     BOOKMARK_ADD: 'chrome_bookmark_add',
     BOOKMARK_DELETE: 'chrome_bookmark_delete',
     JAVASCRIPT: 'chrome_javascript',
+    PASTE_TEXT: 'chrome_paste_text',
     CONSOLE: 'chrome_console',
     FILE_UPLOAD: 'chrome_upload_file',
     READ_PAGE: 'chrome_read_page',
@@ -2339,6 +2340,27 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['selector', 'waitSelector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PASTE_TEXT,
+    description:
+      '向富文本编辑器合成粘贴多段文本（专治 Draft.js 系编辑器：知乎、Medium 等）。原理是给编辑器元素派发一个带 DataTransfer 的合成 ClipboardEvent("paste")，让编辑器走原生 paste 路径完整接收全部段落，且不依赖页面焦点（不读系统剪贴板）。替代 chrome_computer type（带换行会错乱）、execCommand insertText（多段只留最后一段）与剪贴板 API（无焦点被拒）。建议粘贴后刷新页面验证草稿完整，再点击发布按钮。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: '要粘贴的文本，可含换行；空行会被拆成独立段落。',
+        },
+        selector: {
+          type: 'string',
+          description: '编辑器元素 CSS 选择器；缺省自动探测 [contenteditable="true"]。',
+        },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+      },
+      required: ['text'],
     },
   },
 ];
