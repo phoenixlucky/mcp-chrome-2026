@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 
 cd "$(cd "$(dirname "$0")" && pwd)"
@@ -18,7 +18,7 @@ pnpm() {
 }
 
 echo "========================================"
-echo "  Chrome MCP Server v1.9.1"
+echo "  Chrome MCP Server v1.9.2"
 echo "========================================"
 echo
 

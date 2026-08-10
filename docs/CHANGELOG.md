@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.9.2] - 2026-08-10
+
+### Added
+
+- **`chrome_paste_text` 工具** — 向富文本编辑器合成粘贴多段文本，专治 Draft.js 系编辑器（知乎、Medium 等）：给编辑器元素派发带 `DataTransfer` 的合成 `ClipboardEvent('paste')`，走原生 paste 路径完整接收全部段落，不依赖页面焦点、不读系统剪贴板；替代 `chrome_computer` type（带换行会错乱）、`execCommand('insertText')`（多段只留最后一段）与剪贴板 API（无焦点被拒）。建议粘贴后刷新页面验证草稿完整，再点击发布按钮。
+
+### Changed
+
+- 版本统一为 v1.9.2。
+
 ## [v1.9.1] - 2026-08-10
 
 ### Added

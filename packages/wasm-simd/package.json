@@ -1,6 +1,6 @@
 {
   "name": "@chrome-mcp/wasm-simd",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "SIMD-optimized WebAssembly math functions for Chrome MCP",
   "main": "pkg/simd_math.js",
   "types": "pkg/simd_math.d.ts",

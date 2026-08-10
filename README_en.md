@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bridge AI agents with your Chrome browser</b><br />
-  A Model Context Protocol server that exposes 59 browser capabilities to AI assistants
+  A Model Context Protocol server that exposes 68 browser capabilities to AI assistants
 </p>
 
 <p align="center">
@@ -26,14 +26,14 @@
 
 ---
 
-## 📢 What's New in v1.9.1
+## 📢 What's New in v1.9.2
 
-> **X posting tool + dialog handling enhancements** — Social media automation.
+> **`chrome_paste_text` paste tool** — Purpose-built for Draft.js rich-text editors (Zhihu / Medium, etc.).
 >
-> - 🐦 **`chrome_post_to_x` tool** — Post a text tweet on a logged-in X/Twitter page: waits for the editor, fills & verifies, clicks publish, waits for the success marker; returns `published` / `failed` / `unknown`, **no auto-retry** to avoid duplicate posts, custom selectors supported
-> - 💬 **`chrome_handle_dialog` enhancements** — Target a specific tab via `tabId` / `windowId`; covers `beforeunload` dialogs
-> - 🔧 Interaction tool refinements
-> - 🔧 All packages bumped to v1.9.1
+> - 📋 **`chrome_paste_text` tool** — Dispatches a synthetic `ClipboardEvent('paste')` carrying a `DataTransfer` to the editor element, so it receives multi-paragraph text via the native paste path; no page focus required, never reads the system clipboard
+> - 🛠️ Replaces: `chrome_computer` type (breaks on newlines), `execCommand('insertText')` (keeps only the last paragraph), and the Clipboard API (rejected without focus)
+> - 🔧 Refresh the page after pasting to verify the draft is complete, then hit publish
+> - 🔧 All packages bumped to v1.9.2
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -87,7 +87,7 @@
 |                                                                                           |                                                                               |                                                                                 |                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
-| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 59 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 68 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
 ---
 
@@ -222,7 +222,7 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 | ✅ Done                                                                       | 🎯 Planned                                                   |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| **59 MCP Tools** — Full browser API coverage                                  | **Auth & Permission** — API Key / OAuth                      |
+| **68 MCP Tools** — Full browser API coverage                                  | **Auth & Permission** — API Key / OAuth                      |
 | **Streamable HTTP + STDIO** — Dual transport                                  |                                                              |
 | **Smart Assistant** — Claude / Codex / DeepSeek                               | **Monitoring Dashboard** — Web panel for calls, perf, errors |
 | **Semantic Search** — Vector DB + local embeddings                            |                                                              |
