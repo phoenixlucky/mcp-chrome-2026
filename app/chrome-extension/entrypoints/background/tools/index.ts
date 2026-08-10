@@ -117,6 +117,8 @@ function operationDetail(param: ToolCallParam): string {
       return `处理下载${compact(args.action) ? `：${compact(args.action)}` : ''}`;
     case 'chrome_computer':
       return `模拟 ${compact(args.action) || '鼠标'} 操作：${target(args)}`;
+    case 'chrome_post_to_x':
+      return `发布 X 帖子：${compact(args.text, 60) || '正文'}`;
     case 'chrome_javascript':
       return '执行页面脚本（内容已隐藏）';
     case 'chrome_console':
@@ -252,6 +254,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_handle_dialog: '处理对话框',
           chrome_handle_download: '处理下载',
           chrome_computer: '模拟操作',
+          chrome_post_to_x: '发布 X 帖子',
           chrome_javascript: '执行脚本',
           chrome_console: '读取控制台',
           chrome_userscript: '管理用户脚本',

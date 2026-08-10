@@ -12,6 +12,58 @@ if (window.__FILL_HELPER_INITIALIZED__) {
    * @param {string} value - Value to fill into the element
    * @returns {Promise<Object>} - Result of the fill operation
    */
+  function isContentEditableElement(element) {
+    if (!element || !(element instanceof Element)) return false;
+    if (element.isContentEditable === true) return true;
+    const attribute = element.getAttribute('contenteditable');
+    return attribute !== null && attribute.toLowerCase() !== 'false';
+  }
+
+  function normalizeEditableText(value) {
+    return String(value ?? '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\u00a0/g, ' ')
+      .trim();
+  }
+
+  function readElementValue(element) {
+    if (element && ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) {
+      return String(element.value ?? '');
+    }
+    return String(element?.innerText ?? element?.textContent ?? '');
+  }
+
+  function dispatchInput(element, value, inputType = 'insertText') {
+    try {
+      element.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          inputType,
+          data: value,
+        }),
+      );
+    } catch (_) {
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function setNativeValue(element, value) {
+    const prototype =
+      element.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+    if (setter) setter.call(element, value);
+    else element.value = value;
+  }
+
+  function findVisibleElement(selector) {
+    try {
+      const matches = Array.from(document.querySelectorAll(selector));
+      return matches.find((candidate) => isElementVisible(candidate)) || matches[0] || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   async function fillElement(selector, value, ref = null) {
     try {
       // Find the element
@@ -30,7 +82,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
           };
         }
       } else {
-        element = document.querySelector(selector);
+        element = findVisibleElement(selector);
       }
       if (!element) {
         return {
@@ -68,7 +120,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
         };
       }
 
-      // Check if element is an input, textarea, or select
+      // Check if element is an input, textarea, select, or contenteditable editor.
       const validTags = ['INPUT', 'TEXTAREA', 'SELECT'];
       // Keep a permissive list to allow type-specific branches below to handle behavior
       const validInputTypes = [
@@ -90,7 +142,8 @@ if (window.__FILL_HELPER_INITIALIZED__) {
         'range',
       ];
 
-      if (!validTags.includes(element.tagName)) {
+      const contentEditable = isContentEditableElement(element);
+      if (!validTags.includes(element.tagName) && !contentEditable) {
         // If the element is a custom element with open shadow root, try to find a fillable inner control
         try {
           const anyEl = /** @type {any} */ (element);
@@ -100,7 +153,10 @@ if (window.__FILL_HELPER_INITIALIZED__) {
             const queue = Array.from(sr.children || []);
             const isFillable = (el) =>
               !!el &&
-              (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+              (el.tagName === 'INPUT' ||
+                el.tagName === 'TEXTAREA' ||
+                el.tagName === 'SELECT' ||
+                isContentEditableElement(el));
             while (queue.length) {
               const cur = queue.shift();
               if (!cur) continue;
@@ -117,21 +173,21 @@ if (window.__FILL_HELPER_INITIALIZED__) {
                 }
               } catch (_) {}
             }
-            if (!validTags.includes(element.tagName)) {
+            if (!validTags.includes(element.tagName) && !isContentEditableElement(element)) {
               return {
-                error: `Element with selector "${selector}" is not a fillable element (must be INPUT, TEXTAREA, or SELECT)`,
+                error: `Element with selector "${selector}" is not a fillable element (must be INPUT, TEXTAREA, SELECT, or contenteditable)`,
                 elementInfo,
               };
             }
           } else {
             return {
-              error: `Element with selector "${selector}" is not a fillable element (must be INPUT, TEXTAREA, or SELECT)`,
+              error: `Element with selector "${selector}" is not a fillable element (must be INPUT, TEXTAREA, SELECT, or contenteditable)`,
               elementInfo,
             };
           }
         } catch (_) {
           return {
-            error: `Element with selector "${selector}" is not a fillable element (must be INPUT, TEXTAREA, or SELECT)`,
+            error: `Element with selector "${selector}" is not a fillable element (must be INPUT, TEXTAREA, SELECT, or contenteditable)`,
             elementInfo,
           };
         }
@@ -155,6 +211,42 @@ if (window.__FILL_HELPER_INITIALIZED__) {
 
       // Focus the element
       element.focus();
+
+      if (isContentEditableElement(element)) {
+        const textValue = String(value ?? '');
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+
+        let inserted = false;
+        try {
+          inserted = document.execCommand('insertText', false, textValue);
+        } catch (_) {
+          inserted = false;
+        }
+
+        if (!inserted) {
+          element.textContent = textValue;
+          dispatchInput(element, textValue);
+        }
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+
+        const actualValue = readElementValue(element);
+        element.blur();
+        if (normalizeEditableText(actualValue) !== normalizeEditableText(textValue)) {
+          return {
+            error: `Contenteditable value verification failed: expected "${textValue}", got "${actualValue}"`,
+            elementInfo: { ...elementInfo, value: actualValue, contentEditable: true },
+          };
+        }
+        return {
+          success: true,
+          message: 'Contenteditable element filled and verified successfully',
+          elementInfo: { ...elementInfo, value: actualValue, contentEditable: true },
+        };
+      }
 
       // Type-specific handling for tricky inputs first
       if (element.tagName === 'INPUT' && element.type === 'checkbox') {
@@ -266,12 +358,12 @@ if (window.__FILL_HELPER_INITIALIZED__) {
       } else {
         // For input and textarea elements
         // Clear the current value then set new value
-        element.value = '';
-        element.dispatchEvent(new Event('input', { bubbles: true }));
+        setNativeValue(element, '');
+        dispatchInput(element, '', 'deleteContentBackward');
 
-        element.value = String(value);
+        setNativeValue(element, String(value));
 
-        element.dispatchEvent(new Event('input', { bubbles: true }));
+        dispatchInput(element, String(value));
         element.dispatchEvent(new Event('change', { bubbles: true }));
       }
 

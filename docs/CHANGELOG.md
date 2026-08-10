@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.9.1] - 2026-08-10
+
+### Added
+
+- **`chrome_post_to_x` 工具** — 在已登录的 X/Twitter 页面发布文本帖子：等待编辑框、填充并回读验证、等待发布按钮、点击一次、等待成功标记；明确返回 `published` / `failed` / `unknown`，未知时**不自动重试**避免重复发帖；支持自定义选择器兼容 X 页面变体。
+
+### Changed
+
+- **`chrome_handle_dialog` 增强** — 支持 `tabId` / `windowId` 指定目标标签页；覆盖 `beforeunload` 对话框处理。
+- 交互工具（点击/填充助手、等待）细节增强。
+- 版本统一为 v1.9.1。
+
 ## [v1.9.0] - 2026-08-10
 
 ### Added

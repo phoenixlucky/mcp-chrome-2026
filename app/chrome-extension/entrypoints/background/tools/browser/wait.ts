@@ -84,12 +84,12 @@ function buildConditionExpression(params: WaitToolParams): string {
     case 'visible':
       return `(() => {
         ${framePrelude}
-        const el = doc.querySelector(${escapedSelector});
+        const el = Array.from(doc.querySelectorAll(${escapedSelector})).find((candidate) => {
+          if (candidate.offsetParent === null) return false;
+          const style = win.getComputedStyle(candidate);
+          return style.display !== 'none' && style.visibility !== 'hidden';
+        }) || null;
         if (!el) return false;
-        if (el.offsetParent === null) return false;
-        const style = win.getComputedStyle(el);
-        if (style.display === 'none') return false;
-        if (style.visibility === 'hidden') return false;
         return true;
       })()`;
     case 'hidden':
@@ -104,11 +104,15 @@ function buildConditionExpression(params: WaitToolParams): string {
     case 'enabled':
       return `(() => {
         ${framePrelude}
-        const el = doc.querySelector(${escapedSelector});
+        const el = Array.from(doc.querySelectorAll(${escapedSelector})).find((candidate) => {
+          if (candidate.offsetParent === null) return false;
+          const style = win.getComputedStyle(candidate);
+          if (style.display === 'none' || style.visibility === 'hidden') return false;
+          if (candidate.disabled === true) return false;
+          if (candidate.getAttribute('aria-disabled') === 'true') return false;
+          return true;
+        }) || null;
         if (!el) return false;
-        if (el.offsetParent === null) return false;
-        if (el.disabled === true) return false;
-        if (el.getAttribute('aria-disabled') === 'true') return false;
         return true;
       })()`;
     default:

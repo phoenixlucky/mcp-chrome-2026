@@ -21,6 +21,8 @@ describe('MCP tool catalog', () => {
     expect(search?.inputSchema.required).toEqual(expect.arrayContaining(['query', 'tabIds']));
     const collector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_list');
     const batchCollector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_lists');
+    const dialog = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_handle_dialog');
+    const postToX = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_post_to_x');
     expect(collector?.inputSchema.required).toEqual(
       expect.arrayContaining(['cardSelector', 'fields', 'identityFields']),
     );
@@ -33,6 +35,19 @@ describe('MCP tool catalog', () => {
     );
     expect(batchCollector?.inputSchema.required).toEqual(
       expect.arrayContaining(['targets', 'cardSelector', 'fields', 'identityFields']),
+    );
+    expect(dialog?.description).toContain('beforeunload');
+    expect(dialog?.inputSchema.properties).toEqual(
+      expect.objectContaining({ tabId: expect.any(Object), windowId: expect.any(Object) }),
+    );
+    expect(postToX?.inputSchema.required).toEqual(['text']);
+    expect(postToX?.inputSchema.properties).toEqual(
+      expect.objectContaining({
+        editorSelector: expect.any(Object),
+        submitSelector: expect.any(Object),
+        successSelector: expect.any(Object),
+        successText: expect.any(Object),
+      }),
     );
     expect(names).not.toEqual(
       expect.arrayContaining([

@@ -21,6 +21,7 @@ export { consoleTool } from './console';
 export { fileUploadTool } from './file-upload';
 export { readPageTool } from './read-page';
 export { computerTool } from './computer';
+export { postToXTool } from './post-to-x';
 export { handleDialogTool } from './dialog';
 export { handleDownloadTool } from './download';
 export { userscriptTool } from './userscript';

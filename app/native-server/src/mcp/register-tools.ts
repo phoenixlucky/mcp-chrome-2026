@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import nativeMessagingHostInstance from '../native-messaging-host';
-import { NativeMessageType, TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { NativeMessageType, TOOL_NAMES, TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
 
@@ -24,6 +24,13 @@ const recentToolCalls: ToolActivity[] = [];
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
 const WRITE_TOOL =
   /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate)/;
+// A native browser dialog can block the helper call used to resolve the active tab.
+// Let the dialog tool resolve its own tab instead of adding a second request that
+// is guaranteed to time out while beforeunload is visible.
+const SELF_RESOLVING_WRITE_TOOLS = new Set([
+  TOOL_NAMES.BROWSER.HANDLE_DIALOG,
+  TOOL_NAMES.BROWSER.POST_TO_X,
+]);
 const LONG_TOOL =
   /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list)/;
 const tabQueues = new Map<string, Promise<void>>();
@@ -202,7 +209,7 @@ const handleToolCall = async (
   recentToolCalls.push(activity);
   if (recentToolCalls.length > 100) recentToolCalls.shift();
   try {
-    if (WRITE_TOOL.test(name) && !name.startsWith('flow.'))
+    if (WRITE_TOOL.test(name) && !name.startsWith('flow.') && !SELF_RESOLVING_WRITE_TOOLS.has(name))
       args = await resolveWriteTab(args, signal);
     activity.tabId = args.tabId;
     // If calling a dynamic flow tool (name starts with flow.), proxy to common flow-run tool

@@ -31,6 +31,7 @@ const TOOL_NAMES = {
     FILE_UPLOAD: 'chrome_upload_file',
     READ_PAGE: 'chrome_read_page',
     COMPUTER: 'chrome_computer',
+    POST_TO_X: 'chrome_post_to_x',
     HANDLE_DIALOG: 'chrome_handle_dialog',
     HANDLE_DOWNLOAD: 'chrome_handle_download',
     USERSCRIPT: 'chrome_userscript',
@@ -765,6 +766,47 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         },
       },
       required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.POST_TO_X,
+    description:
+      'Publish one text post on an already signed-in X/Twitter page. The tool waits for the editor, fills and read-back verifies the text, waits for an enabled submit button, clicks once, and waits for a new confirmation marker. It returns published, failed, or unknown; unknown never retries automatically to avoid duplicate posts. Custom selectors support compatible X page variants.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Post body. The tool never retries automatically.' },
+        editorSelector: {
+          type: 'string',
+          description:
+            'Optional editor CSS selector; defaults cover X tweetTextarea and contenteditable editors.',
+        },
+        submitSelector: {
+          type: 'string',
+          description:
+            'Optional submit-button CSS selector; defaults cover X tweetButtonInline and tweetButton.',
+        },
+        successSelector: {
+          type: 'string',
+          description:
+            'Optional success-marker CSS selector; defaults observe X toast or role=status elements.',
+        },
+        successText: {
+          type: 'string',
+          description:
+            'Optional success-marker text; a new marker must contain this text when provided.',
+        },
+        timeout: {
+          type: 'number',
+          description: 'Maximum wait per stage in milliseconds (default 20000, maximum 120000).',
+        },
+        tabId: { type: 'number', description: 'Target X tab ID; defaults to the active tab.' },
+        windowId: {
+          type: 'number',
+          description: 'Window ID used to select the active tab when tabId is omitted.',
+        },
+      },
+      required: ['text'],
     },
   },
   // {
@@ -1726,7 +1768,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.HANDLE_DIALOG,
-    description: 'Handle JavaScript dialogs (alert/confirm/prompt) via CDP',
+    description: 'Handle JavaScript and beforeunload dialogs (alert/confirm/prompt) via CDP',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1734,6 +1776,14 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         promptText: {
           type: 'string',
           description: 'Optional prompt text when accepting a prompt',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Optional target tab ID; defaults to the active tab',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Optional target window ID when resolving the active tab',
         },
       },
       required: ['action'],

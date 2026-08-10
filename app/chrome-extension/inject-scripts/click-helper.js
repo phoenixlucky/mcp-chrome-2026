@@ -116,7 +116,9 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           };
         }
       } else {
-        element = document.querySelector(selector);
+        const matches = document.querySelectorAll(selector);
+        element =
+          Array.from(matches).find((candidate) => isElementVisible(candidate)) || matches[0];
         if (!element) {
           return {
             error: `Element with selector "${selector}" not found`,
@@ -161,6 +163,25 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         clickY = updatedRect.top + updatedRect.height / 2;
       }
 
+      const disabledTarget =
+        element?.closest?.('button, input, select, textarea, [role="button"]') || element;
+      if (
+        disabledTarget?.disabled === true ||
+        disabledTarget?.getAttribute?.('aria-disabled') === 'true'
+      ) {
+        return {
+          error: 'Target element is disabled',
+          elementInfo,
+        };
+      }
+
+      if (coordinates && !element) {
+        return {
+          error: 'No element found at the specified coordinates',
+          elementInfo,
+        };
+      }
+
       let navigationPromise;
       if (waitForNavigation) {
         navigationPromise = new Promise((resolve) => {
@@ -199,6 +220,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
 
       return {
         success: true,
+        clicked: true,
         message: 'Element clicked successfully',
         elementInfo,
         navigationOccurred,

@@ -26,14 +26,14 @@
 
 ---
 
-## 📢 v1.9.0 更新内容
+## 📢 v1.9.1 更新内容
 
-> **多标签页并发采集 + MCP 实时进度链路** — 大规模采集能力升级。
+> **X 发帖工具 + 对话框处理增强** — 社交媒体自动化能力。
 >
-> - 🧩 **`collect_virtual_lists` 工具** — 多标签页/窗口**并发**采集动态列表，按目标返回独立结果与失败原因；支持字段映射、去重、分批返回与进度上报
-> - ⏱️ **真人滚动间隔修复** — `intervalMs` 与 `steps` 不再同时随距离等比放大，长距离真人滚动耗时与距离呈线性关系（human / humanFast / humanSlow = 50 / 20 / 80ms）
-> - 📡 **MCP 实时进度上报** — 长耗时采集工具通过 Native Messaging 逐步上报 `tool_progress`，并转换为标准 `notifications/progress`，最终结果协议保持兼容
-> - 🔧 版本统一为 v1.9.0
+> - 🐦 **`chrome_post_to_x` 工具** — 在已登录的 X/Twitter 页面发布帖子：等待编辑框、回读验证、点击发布、等待成功标记；明确返回 `published` / `failed` / `unknown`，**不自动重试**避免重复发帖，支持自定义选择器
+> - 💬 **`chrome_handle_dialog` 增强** — 支持 `tabId` / `windowId` 指定目标；覆盖 `beforeunload` 对话框
+> - 🔧 交互工具细节增强
+> - 🔧 版本统一为 v1.9.1
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

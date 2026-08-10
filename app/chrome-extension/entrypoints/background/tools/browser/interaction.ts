@@ -117,6 +117,12 @@ class ClickTool extends BaseBrowserToolExecutor {
         frameId,
       );
 
+      if (!result || result.error || result.success === false) {
+        return createErrorResponse(
+          result?.error || 'Click operation did not report a successful click',
+        );
+      }
+
       // Determine actual click method used
       let clickMethod: string;
       if (coordinates) {

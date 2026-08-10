@@ -31,6 +31,7 @@ export const TOOL_NAMES = {
     FILE_UPLOAD: 'chrome_upload_file',
     READ_PAGE: 'chrome_read_page',
     COMPUTER: 'chrome_computer',
+    POST_TO_X: 'chrome_post_to_x',
     HANDLE_DIALOG: 'chrome_handle_dialog',
     HANDLE_DOWNLOAD: 'chrome_handle_download',
     USERSCRIPT: 'chrome_userscript',
@@ -754,6 +755,50 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.POST_TO_X,
+    description:
+      '在已登录的 X/Twitter 页面发布一条文本帖子。工具会等待编辑框、填充并回读验证文本、等待发布按钮可用、点击一次，然后等待新的成功标记。发布结果明确返回 published、failed 或 unknown；unknown 时不会自动重试，以避免重复发帖。支持自定义选择器以兼容 X 的页面变体。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: '要发布的帖子正文。工具不会自动重试。',
+        },
+        editorSelector: {
+          type: 'string',
+          description:
+            '可选的编辑框 CSS 选择器；默认兼容 X 的 tweetTextarea 和 contenteditable 编辑框。',
+        },
+        submitSelector: {
+          type: 'string',
+          description: '可选的发布按钮 CSS 选择器；默认使用 X 的 tweetButtonInline/tweetButton。',
+        },
+        successSelector: {
+          type: 'string',
+          description: '可选的发布成功标记 CSS 选择器；默认观察 X 的 toast 或 role=status 元素。',
+        },
+        successText: {
+          type: 'string',
+          description: '可选的成功标记文本；提供后会要求新出现的标记包含该文本。',
+        },
+        timeout: {
+          type: 'number',
+          description: '每个阶段的最大等待时间（毫秒，默认 20000，最大 120000）。',
+        },
+        tabId: {
+          type: 'number',
+          description: '目标 X 标签页 ID；省略时使用当前活动标签页。',
+        },
+        windowId: {
+          type: 'number',
+          description: '省略 tabId 时，用于选择活动标签页的窗口 ID。',
+        },
+      },
+      required: ['text'],
     },
   },
   // {
@@ -1694,7 +1739,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.HANDLE_DIALOG,
-    description: '通过 CDP 处理 JavaScript 对话框（alert/confirm/prompt）',
+    description: '通过 CDP 处理 JavaScript 和 beforeunload 对话框（alert/confirm/prompt）',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1702,6 +1747,14 @@ export const TOOL_SCHEMAS: Tool[] = [
         promptText: {
           type: 'string',
           description: '接受 prompt 对话框时的可选输入文本',
+        },
+        tabId: {
+          type: 'number',
+          description: '可选的目标标签页 ID，默认使用当前激活标签页',
+        },
+        windowId: {
+          type: 'number',
+          description: '解析当前激活标签页时可选的目标窗口 ID',
         },
       },
       required: ['action'],
