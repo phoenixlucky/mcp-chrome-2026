@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.0] - 2026-08-12
+
+### Changed
+
+- **CDP 会话管理重构** — 为每个 tab 的 `attach` / `detach` / `sendCommand` 增加 per-tab 串行锁，杜绝两个工具调用在 `getTargets()` 与 `debugger.attach()` 之间竞态导致的并发会话冲突；owner 从 `Set` 改为引用计数 `Map`，修复同一 owner 多次引用导致 detach 提前释放的会话泄漏。
+- **`chrome_javascript` 取消支持** — 工具执行接入 `AbortSignal`：调用方取消或超时后通过新增的 `cdpSessionManager.abortOwner()` 主动 `debugger.detach()` 释放残留会话（1s 超时兜底），防止挂起的 `Runtime.evaluate` 长期占用 tab 的 debugger 导致后续工具连锁卡住；错误契约新增 `cancelled` 种类。
+- **回归测试** — 新增 `cdp-session-manager.test.ts`（并发 attach 串行化、超时强制释放、owner 重复引用平衡）与 `chrome_javascript` 取消契约测试。
+- 版本统一为 v2.0.0。
+
 ## [v1.9.2] - 2026-08-10
 
 ### Added

@@ -26,14 +26,15 @@
 
 ---
 
-## 📢 What's New in v1.9.2
+## 📢 What's New in v2.0.0
 
-> **`chrome_paste_text` paste tool** — Purpose-built for Draft.js rich-text editors (Zhihu / Medium, etc.).
+> **CDP session management rework + `chrome_javascript` cancellation support**
 >
-> - 📋 **`chrome_paste_text` tool** — Dispatches a synthetic `ClipboardEvent('paste')` carrying a `DataTransfer` to the editor element, so it receives multi-paragraph text via the native paste path; no page focus required, never reads the system clipboard
-> - 🛠️ Replaces: `chrome_computer` type (breaks on newlines), `execCommand('insertText')` (keeps only the last paragraph), and the Clipboard API (rejected without focus)
-> - 🔧 Refresh the page after pasting to verify the draft is complete, then hit publish
-> - 🔧 All packages bumped to v1.9.2
+> - 🔒 **Per-tab serial lock** — CDP attach / detach / sendCommand for each tab are fully serialized, eliminating concurrent session races
+> - 🛑 **Proactive release on timeout/cancel** — `chrome_javascript` detaches stale debugger sessions on timeout or cancellation to prevent cascading hangs
+> - 🧩 **Session leak fix** — owners now use reference counting (Set → Map); repeated references from the same owner no longer detach early
+> - ✅ **Regression tests** — new concurrency, cancellation, and timeout tests
+> - 🔧 All packages bumped to v2.0.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

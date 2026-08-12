@@ -26,14 +26,15 @@
 
 ---
 
-## 📢 v1.9.2 更新内容
+## 📢 v2.0.0 更新内容
 
-> **`chrome_paste_text` 粘贴工具** — 专治 Draft.js 系富文本编辑器（知乎 / Medium 等）。
+> **CDP 会话管理重构 + `chrome_javascript` 取消支持**
 >
-> - 📋 **`chrome_paste_text` 工具** — 向编辑器元素派发带 `DataTransfer` 的合成 `ClipboardEvent('paste')`，走原生 paste 路径**完整接收多段文本**；不依赖页面焦点、不读系统剪贴板
-> - 🛠️ 替代方案对比：`chrome_computer` type 带换行会错乱；`execCommand('insertText')` 多段只留最后一段；剪贴板 API 无焦点被拒
-> - 🔧 建议粘贴后刷新页面验证草稿完整，再点击发布按钮
-> - 🔧 版本统一为 v1.9.2
+> - 🔒 **per-tab 串行锁** — 每个 tab 的 CDP attach / detach / sendCommand 全部串行化，杜绝并发会话冲突
+> - 🛑 **超时/取消主动释放** — `chrome_javascript` 超时或取消时主动 detach 残留 debugger 会话，防止残留会话连锁卡住
+> - 🧩 **会话泄漏修复** — owner 改为引用计数（Set → Map），同一 owner 多次引用不再提前释放
+> - ✅ **回归测试** — 新增并发、取消、超时测试
+> - 🔧 版本统一为 v2.0.0
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
