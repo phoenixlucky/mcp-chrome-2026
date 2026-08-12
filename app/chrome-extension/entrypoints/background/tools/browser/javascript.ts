@@ -39,6 +39,7 @@ type ExecutionEngine = 'cdp' | 'scripting';
 type ErrorKind =
   | 'debugger_conflict'
   | 'timeout'
+  | 'cancelled'
   | 'no_result'
   | 'syntax_error'
   | 'runtime_error'
@@ -115,6 +116,13 @@ class TimeoutError extends Error {
   }
 }
 
+class CancelledError extends Error {
+  constructor() {
+    super('Execution cancelled');
+    this.name = 'CancelledError';
+  }
+}
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -126,21 +134,44 @@ function normalizePositiveInt(value: unknown, fallback: number): number {
   return Math.max(1, Math.floor(value));
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, signal?: AbortSignal): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new TimeoutError(timeoutMs));
-    }, timeoutMs);
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    };
+    const resolveOnce = (value: T) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const rejectOnce = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const onAbort = () => rejectOnce(new CancelledError());
+    const timer = setTimeout(() => rejectOnce(new TimeoutError(timeoutMs)), timeoutMs);
 
-    promise
-      .then(resolve)
-      .catch(reject)
-      .finally(() => clearTimeout(timer));
+    if (signal?.aborted) {
+      rejectOnce(new CancelledError());
+      return;
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+    promise.then(resolveOnce, rejectOnce);
   });
 }
 
 function isTimeoutError(error: unknown): error is TimeoutError {
   return error instanceof Error && error.name === 'TimeoutError';
+}
+
+function isCancelledError(error: unknown): error is CancelledError {
+  return error instanceof Error && error.name === 'CancelledError';
 }
 
 function isDebuggerConflictError(error: unknown): boolean {
@@ -227,6 +258,7 @@ async function executeViaCdp(
   tabId: number,
   code: string,
   options: ExecutionOptions,
+  signal?: AbortSignal,
 ): Promise<ExecutionResult> {
   try {
     const expression = wrapUserCode(code);
@@ -243,6 +275,7 @@ async function executeViaCdp(
       }),
       // 外层超时稍长，给 CDP 一点余量处理超时响应
       options.timeoutMs + 1000,
+      signal,
     );
 
     // Check for exception
@@ -267,11 +300,18 @@ async function executeViaCdp(
       redacted: sanitized.redacted,
     };
   } catch (error) {
-    if (isTimeoutError(error)) {
+    if (isTimeoutError(error) || isCancelledError(error)) {
+      // withTimeout() cannot cancel chrome.debugger.sendCommand(). Release
+      // this tool's owner immediately so a pending Runtime.evaluate cannot
+      // keep the tab's debugger session alive after the caller gave up.
+      void cdpSessionManager.abortOwner(tabId, CDP_SESSION_KEY);
       return {
         ok: false,
         engine: 'cdp',
-        error: { kind: 'timeout', message: error.message },
+        error: {
+          kind: isCancelledError(error) ? 'cancelled' : 'timeout',
+          message: error.message,
+        },
       };
     }
 
@@ -311,6 +351,7 @@ async function executeViaScripting(
   tabId: number,
   code: string,
   options: ExecutionOptions,
+  signal?: AbortSignal,
 ): Promise<ExecutionResult> {
   const innerExecute = async (): Promise<ExecutionResult> => {
     const run = () =>
@@ -387,13 +428,16 @@ async function executeViaScripting(
   };
 
   try {
-    return await withTimeout(innerExecute(), options.timeoutMs);
+    return await withTimeout(innerExecute(), options.timeoutMs, signal);
   } catch (error) {
-    if (isTimeoutError(error)) {
+    if (isTimeoutError(error) || isCancelledError(error)) {
       return {
         ok: false,
         engine: 'scripting',
-        error: { kind: 'timeout', message: error.message },
+        error: {
+          kind: isCancelledError(error) ? 'cancelled' : 'timeout',
+          message: error.message,
+        },
       };
     }
 
@@ -413,7 +457,7 @@ async function executeViaScripting(
 class JavaScriptTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.JAVASCRIPT;
 
-  async execute(args: JavaScriptToolParams): Promise<ToolResult> {
+  async execute(args: JavaScriptToolParams, signal?: AbortSignal): Promise<ToolResult> {
     const startTime = performance.now();
 
     try {
@@ -446,7 +490,7 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
       const warnings: string[] = [];
 
       // Try CDP execution first
-      const cdpResult = await executeViaCdp(tabId, code, options);
+      const cdpResult = await executeViaCdp(tabId, code, options, signal);
 
       if (cdpResult.ok) {
         return args.requireResult && !cdpResult.returned
@@ -464,7 +508,7 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
         'Debugger is busy (DevTools or another extension attached). Falling back to chrome.scripting.executeScript (runs in ISOLATED world, not page context).',
       );
 
-      const scriptingResult = await executeViaScripting(tabId, code, options);
+      const scriptingResult = await executeViaScripting(tabId, code, options, signal);
 
       if (scriptingResult.ok) {
         return args.requireResult && !scriptingResult.returned

@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { sendCommand } = vi.hoisted(() => ({ sendCommand: vi.fn() }));
+const { sendCommand, abortOwner } = vi.hoisted(() => ({
+  sendCommand: vi.fn(),
+  abortOwner: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('@/utils/cdp-session-manager', () => ({
   cdpSessionManager: {
     withSession: vi.fn((_tabId: number, _key: string, run: () => unknown) => run()),
     sendCommand,
+    abortOwner,
   },
 }));
 
@@ -47,6 +51,24 @@ describe('browser result contracts', () => {
 
     const actionOnly = await javascriptTool.execute({ code: 'document.body.click()', tabId: 12 });
     expect(payload(actionOnly)).toMatchObject({ success: true, returned: false });
+  });
+
+  it('releases the debugger owner when the caller cancels a pending script', async () => {
+    sendCommand.mockImplementation(() => new Promise(() => undefined));
+    const controller = new AbortController();
+
+    const pending = javascriptTool.execute(
+      { code: 'return document.body.innerText', tabId: 12, timeoutMs: 10_000 },
+      controller.signal,
+    );
+    controller.abort();
+
+    const result = await pending;
+    expect(payload(result)).toMatchObject({
+      success: false,
+      error: { kind: 'cancelled' },
+    });
+    expect(abortOwner).toHaveBeenCalledWith(12, 'javascript');
   });
 
   it('keeps a returned zero distinct from undefined', async () => {
