@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bridge AI agents with your Chrome browser</b><br />
-  A Model Context Protocol server that exposes 68 browser capabilities to AI assistants
+  A Model Context Protocol server that exposes 70 browser capabilities to AI assistants
 </p>
 
 <p align="center">
@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.0.1
+## 📢 What's New in v2.0.2
 
-> **Interaction stability & robustness improvements**
+> **Element locating & bulk-action capabilities**
 >
-> - 🛡️ **Restricted-page injection guard** — detect `chrome://`, `edge://`, `devtools:` etc. before injecting scripts and throw a clear error instead of an obscure Chrome rejection
-> - ⌨️ **Strict keyboard validation** — `chrome_keyboard` `keys` must be a non-empty string at runtime; rejects arrays/objects
-> - 🖱️ **Click helper improvements** — wait for the element to be visible before clicking; promote invisible elements to a clickable ancestor
-> - 📝 **Fill helper improvements** — handle offscreen renderable candidates before hit-testing
-> - 🔧 All packages bumped to v2.0.1
+> - 🎯 **`chrome_locate_element`** — locate page elements via saved `markerId`/`markerName`, stale `ref`, CSS/XPath, visible text, ARIA role, `aria-label`, `data-testid` or form `name`; auto-scrolls & highlights the target and returns a fresh reusable `ref` with coordinates, ready for `chrome_click_element` or `chrome_fill_or_select`
+> - ☑️ **`chrome_select_all_items`** — safe select-all for lazy/virtualized lists: scroll to the bottom, wait for the card count to stabilize, then toggle each card's checkbox — no reliance on broken page-level "select all" controls or optimistic DOM counts
+> - ⏳ **`wait_extract_response` improvements** — new `confirm` parameter to optionally click a confirmation control; returns HTTP status, request and response bodies so async operations (e.g. deletes) can be truly verified
+> - 🖱️ **`chrome_click_element` improvements** — supports `markerId`/`markerName` with automatic re-locating before click
+> - 🔧 All packages bumped to v2.0.2
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -88,7 +88,7 @@
 |                                                                                           |                                                                               |                                                                                 |                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
-| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 68 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 70 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
 ---
 
@@ -223,7 +223,7 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 | ✅ Done                                                                       | 🎯 Planned                                                   |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| **68 MCP Tools** — Full browser API coverage                                  | **Auth & Permission** — API Key / OAuth                      |
+| **70 MCP Tools** — Full browser API coverage                                  | **Auth & Permission** — API Key / OAuth                      |
 | **Streamable HTTP + STDIO** — Dual transport                                  |                                                              |
 | **Smart Assistant** — Claude / Codex / DeepSeek                               | **Monitoring Dashboard** — Web panel for calls, perf, errors |
 | **Semantic Search** — Vector DB + local embeddings                            |                                                              |
