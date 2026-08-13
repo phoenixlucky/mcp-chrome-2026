@@ -246,6 +246,42 @@
 }
 ```
 
+### `wait_extract_response`（since v2.0.2）
+
+执行导航或点击后等待指定网络响应。可选地点击确认按钮，并返回 HTTP 状态、请求体和响应体，用于核验删除等异步操作是否真正成功；仅在需要抽取 JSON 记录时提供 `extract`。
+
+**参数**：
+
+- `action` (对象，必需)：触发网络请求的导航或点击动作
+- `confirm` (对象，可选)：可选的确认控件（如确认弹窗按钮）
+- `response` (对象，必需)：期望的响应条件（URL 模式、方法、状态等）
+- `extract` (对象，可选)：基于 JSONPath 从响应体抽取记录
+- `tabId` (数字，可选)：目标标签页 ID
+- `windowId` (数字，可选)：目标窗口 ID
+- `frameSelector` (字符串，可选)：同源 iframe 选择器
+
+**示例**：
+
+```json
+{
+  "action": { "type": "click", "selector": "#delete-button" },
+  "confirm": { "selector": ".confirm-dialog button" },
+  "response": { "urlPattern": "/api/items/*", "method": "DELETE" }
+}
+```
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "httpStatus": 200,
+  "requestBody": "...",
+  "responseBody": "{ \"deleted\": 3 }",
+  "elapsedMs": 850
+}
+```
+
 ### `chrome_block_images`（上线时间：2026-07-17）
 
 通过 CDP 阻止标签页中的图片 HTTP 请求。适合在导航或刷新前调用，以节省带宽、加速页面加载。
@@ -351,6 +387,51 @@
 ```
 
 ## 🎯 交互操作
+
+### `chrome_locate_element`（since v2.0.2）
+
+定位网页元素并返回当前有效的 ref、selector、坐标和元素信息。支持已保存的 markerId/markerName、ref、CSS/XPath、可见文本、ARIA role、aria-label、data-testid 和表单 name；定位时可自动滚动并高亮目标。返回的 ref 可直接传给 `chrome_click_element` 或 `chrome_fill_or_select`。
+
+**参数**：
+
+- `markerId` / `markerName` (字符串，可选)：已保存的元素标记 ID/名称（来自 `chrome_read_page` 的 markedElements）
+- `ref` (字符串，可选)：来自 `chrome_read_page` 或此前定位结果的元素引用
+- `selector` (字符串，可选)：CSS 选择器或 XPath
+- `selectorType` (字符串，可选)：`css`（默认）| `xpath`
+- `text` (字符串，可选)：可见或可访问的文本，支持模糊匹配
+- `role` (字符串，可选)：ARIA 或推断出的 role，如 `button`、`textbox`、`link`
+- `ariaLabel` (字符串，可选)：要匹配的 `aria-label` 值
+- `testId` (字符串，可选)：`data-testid` / `data-test` / `data-qa` / `data-cy` 值
+- `name` (字符串，可选)：表单元素 `name` 属性
+- `allowMultiple` (布尔值，可选)：允许多个匹配并返回第一个（默认：false）
+- `scrollIntoView` (布尔值，可选)：将目标滚动到视口中央（默认：true）
+- `highlight` (布尔值，可选)：短暂高亮目标（默认：true）
+- `timeout` (数字，可选)：最大等待时间（毫秒，默认：5000）
+- `tabId` / `windowId` / `frameId` (数字，可选)：目标标签页/窗口/iframe
+
+**示例**：
+
+```json
+{
+  "text": "Delete",
+  "role": "button",
+  "allowMultiple": true
+}
+```
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "ref": "ref_42",
+  "selector": "button[data-testid=\"delete\"]",
+  "coordinates": { "x": 420, "y": 260 },
+  "tagName": "BUTTON",
+  "text": "Delete",
+  "matchCount": 1
+}
+```
 
 ### `chrome_click_element`（上线时间：2025-06-09）
 
@@ -902,6 +983,46 @@
     "excerpt": "...",
     "lang": "en"
   }
+}
+```
+
+### `chrome_select_all_items`（since v2.0.2）
+
+对懒加载或虚拟列表执行安全的全选：滚动到底部，等待卡片数量连续稳定若干轮，再逐个操作每张卡片内的 checkbox。不依赖页面自身可能失效的"选择全部"按钮，也不把乐观 DOM 数量当成服务端操作成功。
+
+**参数**：
+
+- `cardSelector` (字符串，必需)：每个列表卡片的 CSS 选择器
+- `checkboxSelector` (字符串，必需)：卡片内部 checkbox 的 CSS 选择器，如 `input[type="checkbox"]`
+- `containerSelector` (字符串，可选)：滚动容器选择器（默认：页面滚动条）
+- `step` (数字，可选)：每轮滚动像素（默认：500）
+- `settleMs` (数字，可选)：每轮滚动后等待懒加载的毫秒数（默认：500）
+- `stableRounds` (数字，可选)：底部连续稳定轮数（默认：3）
+- `maxRounds` (数字，可选)：最大滚动轮数（默认：200）
+- `maxDurationMs` (数字，可选)：最大执行时间（默认：120000 毫秒）
+- `restoreScroll` (布尔值，可选)：完成后恢复原滚动位置（默认：false）
+- `tabId` / `windowId` (数字，可选)：目标标签页/窗口
+
+**示例**：
+
+```json
+{
+  "cardSelector": ".product-card",
+  "checkboxSelector": "input[type=\"checkbox\"]",
+  "step": 500,
+  "stableRounds": 3
+}
+```
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "cardsFound": 128,
+  "selected": 128,
+  "rounds": 42,
+  "elapsedMs": 18500
 }
 ```
 

@@ -250,6 +250,42 @@ Send custom HTTP requests.
 }
 ```
 
+### `wait_extract_response` (since v2.0.2)
+
+Wait for a network response after navigation or a click. Optionally click a confirmation control, and return HTTP status, request body, and response body so async operations (e.g. deletes) can be verified. Provide `extract` only when JSON records need to be extracted via JSONPath.
+
+**Parameters**:
+
+- `action` (object, required): Navigation or click action that triggers the network request
+- `confirm` (object, optional): Optional confirmation control to click (e.g. a confirm-dialog button)
+- `response` (object, required): Expected response conditions (URL pattern, method, status, etc.)
+- `extract` (object, optional): JSONPath-based record extraction from the response body
+- `tabId` (number, optional): Target tab ID
+- `windowId` (number, optional): Target window ID
+- `frameSelector` (string, optional): Same-origin iframe selector
+
+**Example**:
+
+```json
+{
+  "action": { "type": "click", "selector": "#delete-button" },
+  "confirm": { "selector": ".confirm-dialog button" },
+  "response": { "urlPattern": "/api/items/*", "method": "DELETE" }
+}
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "httpStatus": 200,
+  "requestBody": "...",
+  "responseBody": "{ \"deleted\": 3 }",
+  "elapsedMs": 850
+}
+```
+
 ### `chrome_block_images` (Launched: 2026-07-17)
 
 Block image HTTP requests in a tab via CDP. Useful to save bandwidth and speed up page loads when called before navigation or reload.
@@ -398,6 +434,51 @@ Examples:
 ```json
 { "action": "left_click_drag", "startRef": "ref_10", "ref": "ref_15" }
 ````
+
+### `chrome_locate_element` (since v2.0.2)
+
+Locate a page element and return a fresh ref, selector, coordinates, and element metadata. Supports persisted marker IDs/names, refs, CSS/XPath, visible text, ARIA role, aria-label, data-testid, and form name. It can scroll to and briefly highlight the target. The returned ref can be passed directly to `chrome_click_element` or `chrome_fill_or_select`.
+
+**Parameters**:
+
+- `markerId` / `markerName` (string, optional): Persisted element marker ID/name (from `chrome_read_page` markedElements)
+- `ref` (string, optional): Element ref from `chrome_read_page` or a previous locate call
+- `selector` (string, optional): CSS selector or XPath
+- `selectorType` (string, optional): `css` (default) | `xpath`
+- `text` (string, optional): Visible or accessible element text (fuzzy matching supported)
+- `role` (string, optional): ARIA or inferred role, e.g. `button`, `textbox`, `link`
+- `ariaLabel` (string, optional): `aria-label` value to match
+- `testId` (string, optional): `data-testid` / `data-test` / `data-qa` / `data-cy` value
+- `name` (string, optional): Form element `name` attribute
+- `allowMultiple` (boolean, optional): Allow multiple matches and return the first (default: false)
+- `scrollIntoView` (boolean, optional): Scroll target to viewport center (default: true)
+- `highlight` (boolean, optional): Briefly highlight the target (default: true)
+- `timeout` (number, optional): Max wait in ms (default: 5000)
+- `tabId` / `windowId` / `frameId` (number, optional): Target tab/window/iframe
+
+**Example**:
+
+```json
+{
+  "text": "Delete",
+  "role": "button",
+  "allowMultiple": true
+}
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "ref": "ref_42",
+  "selector": "button[data-testid=\"delete\"]",
+  "coordinates": { "x": 420, "y": 260 },
+  "tagName": "BUTTON",
+  "text": "Delete",
+  "matchCount": 1
+}
+```
 
 ### `chrome_click_element` (Launched: 2025-06-09)
 
@@ -876,6 +957,46 @@ Best for: extracting tweet timelines, post feeds, dynamically loaded articles, a
     "excerpt": "...",
     "lang": "en"
   }
+}
+```
+
+### `chrome_select_all_items` (since v2.0.2)
+
+Safely select all items in a lazy or virtualized list: scroll to the bottom, wait for the card count to stabilize over consecutive rounds, then toggle the checkbox inside each card. It does not rely on a broken page-level "select all" control, nor does it treat optimistic DOM counts as server-side success.
+
+**Parameters**:
+
+- `cardSelector` (string, required): CSS selector for each list card
+- `checkboxSelector` (string, required): CSS selector for the checkbox inside each card, e.g. `input[type="checkbox"]`
+- `containerSelector` (string, optional): Scroll container selector (default: page scroll)
+- `step` (number, optional): Scroll step in pixels (default: 500)
+- `settleMs` (number, optional): Wait after each scroll for lazy loading (default: 500)
+- `stableRounds` (number, optional): Consecutive stable bottom rounds (default: 3)
+- `maxRounds` (number, optional): Max scroll rounds (default: 200)
+- `maxDurationMs` (number, optional): Max runtime (default: 120000)
+- `restoreScroll` (boolean, optional): Restore original scroll position (default: false)
+- `tabId` / `windowId` (number, optional): Target tab/window
+
+**Example**:
+
+```json
+{
+  "cardSelector": ".product-card",
+  "checkboxSelector": "input[type=\"checkbox\"]",
+  "step": 500,
+  "stableRounds": 3
+}
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "cardsFound": 128,
+  "selected": 128,
+  "rounds": 42,
+  "elapsedMs": 18500
 }
 ```
 
