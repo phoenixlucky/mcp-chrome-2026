@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.1] - 2026-08-13
+
+### Changed
+
+- **受限页面注入保护** — `BaseBrowserToolExecutor.injectFiles` 注入前检查标签页 URL 协议，对 `chrome:` / `edge:` / `devtools:` / `view-source:` 等受限页面主动抛出清晰错误，替代 Chrome 底层的晦涩拒绝。
+- **键盘参数强校验** — `chrome_keyboard` 的 `keys` 参数在运行时校验必须为非空字符串，拒绝数组/对象等 MCP 传入的非法类型。
+- **点击助手增强** — `click-helper` 等待目标元素可见后再触发点击；对不可见元素自动向上提升到可点击祖先（`button` / `[role="button"]` / `a` / `[data-testid]`）。
+- **填充助手增强** — `fill-helper` 命中测试前先处理屏幕外可渲染候选元素，避免命中错误元素。
+- 版本统一为 v2.0.1。
+
 ## [v2.0.0] - 2026-08-12
 
 ### Changed

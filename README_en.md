@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.0.0
+## 📢 What's New in v2.0.1
 
-> **CDP session management rework + `chrome_javascript` cancellation support**
+> **Interaction stability & robustness improvements**
 >
-> - 🔒 **Per-tab serial lock** — CDP attach / detach / sendCommand for each tab are fully serialized, eliminating concurrent session races
-> - 🛑 **Proactive release on timeout/cancel** — `chrome_javascript` detaches stale debugger sessions on timeout or cancellation to prevent cascading hangs
-> - 🧩 **Session leak fix** — owners now use reference counting (Set → Map); repeated references from the same owner no longer detach early
-> - ✅ **Regression tests** — new concurrency, cancellation, and timeout tests
-> - 🔧 All packages bumped to v2.0.0
+> - 🛡️ **Restricted-page injection guard** — detect `chrome://`, `edge://`, `devtools:` etc. before injecting scripts and throw a clear error instead of an obscure Chrome rejection
+> - ⌨️ **Strict keyboard validation** — `chrome_keyboard` `keys` must be a non-empty string at runtime; rejects arrays/objects
+> - 🖱️ **Click helper improvements** — wait for the element to be visible before clicking; promote invisible elements to a clickable ancestor
+> - 📝 **Fill helper improvements** — handle offscreen renderable candidates before hit-testing
+> - 🔧 All packages bumped to v2.0.1
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

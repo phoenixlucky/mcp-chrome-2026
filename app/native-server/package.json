@@ -1,6 +1,6 @@
 {
   "name": "@ethanwilkins/mcp-chrome-bridge-2026",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Chrome Native-Messaging host (Node)",
   "main": "dist/index.js",
   "bin": {
