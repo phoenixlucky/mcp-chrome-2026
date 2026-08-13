@@ -182,6 +182,14 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
    */
   async function simulateKeyboard(keysSequenceString, targetElement = null, delay = 0) {
     try {
+      if (typeof keysSequenceString !== 'string' || keysSequenceString.trim().length === 0) {
+        return {
+          success: false,
+          error: 'Keys parameter must be a non-empty string',
+          results: [],
+        };
+      }
+
       const element = targetElement || document.activeElement || document.body;
 
       if (element !== document.activeElement && typeof element.focus === 'function') {

@@ -58,7 +58,14 @@ if (window.__FILL_HELPER_INITIALIZED__) {
   function findVisibleElement(selector) {
     try {
       const matches = Array.from(document.querySelectorAll(selector));
-      return matches.find((candidate) => isElementVisible(candidate)) || matches[0] || null;
+      // Prefer a currently visible match, but keep an off-viewport renderable
+      // match so fillElement can scroll it into view before the final check.
+      return (
+        matches.find((candidate) => isElementVisible(candidate)) ||
+        matches.find((candidate) => isElementRenderable(candidate)) ||
+        matches[0] ||
+        null
+      );
     } catch (_) {
       return null;
     }
@@ -90,6 +97,14 @@ if (window.__FILL_HELPER_INITIALIZED__) {
             ? `Element with selector "${selector}" not found`
             : `Element for ref not found`,
         };
+      }
+
+      // Bring off-viewport controls into view before checking hit-test
+      // visibility. This matters for search inputs rendered outside the
+      // current viewport by dynamic pages.
+      if (!isElementVisible(element) && typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Get element information
@@ -421,6 +436,20 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     if (!elementAtPoint) return false;
 
     return element === elementAtPoint || element.contains(elementAtPoint);
+  }
+
+  /**
+   * Check whether an element can be rendered, without requiring it to be in
+   * the current viewport. Used to select an offscreen candidate before scroll.
+   */
+  function isElementRenderable(element) {
+    if (!element || !element.isConnected) return false;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
   }
 
   // Listen for messages from the extension

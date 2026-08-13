@@ -4,6 +4,21 @@ import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
 const PING_TIMEOUT_MS = 300;
 
+const NON_INJECTABLE_PROTOCOLS = new Set([
+  'chrome-error:',
+  'chrome:',
+  'edge:',
+  'devtools:',
+  'view-source:',
+]);
+
+/** Return a user-facing reason when Chrome will reject script injection. */
+export function getNonInjectablePageReason(url?: string): string | null {
+  const protocol = /^([a-z][a-z\d+.-]*:)/i.exec(url?.trim() || '')?.[1]?.toLowerCase();
+  if (!protocol || !NON_INJECTABLE_PROTOCOLS.has(protocol)) return null;
+  return `Tab is not script-injectable because it is on a restricted page (${protocol})`;
+}
+
 /**
  * Base class for browser tool executors
  */
@@ -27,6 +42,19 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
     frameIds?: number[],
   ): Promise<void> {
     console.log(`Injecting ${files.join(', ')} into tab ${tabId}`);
+
+    let tabUrl: string | undefined;
+    try {
+      tabUrl = (await chrome.tabs.get(tabId)).url;
+    } catch {
+      // Let the actual injection call report a closed/missing tab.
+    }
+    const nonInjectableReason = getNonInjectablePageReason(tabUrl);
+    if (nonInjectableReason) {
+      const message = `Cannot inject ${files.join(', ')} into tab ${tabId}: ${nonInjectableReason}`;
+      console.warn(message);
+      throw new Error(`${ERROR_MESSAGES.TOOL_EXECUTION_FAILED}: ${message}`);
+    }
 
     const isAccessibilityHelper =
       files.length === 1 && files[0] === 'inject-scripts/accessibility-tree-helper.js';

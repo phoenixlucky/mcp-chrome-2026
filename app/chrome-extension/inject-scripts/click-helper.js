@@ -117,13 +117,18 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         }
       } else {
         const matches = document.querySelectorAll(selector);
-        element =
-          Array.from(matches).find((candidate) => isElementVisible(candidate)) || matches[0];
+        element = await waitForVisibleElement(selector, timeout);
         if (!element) {
           return {
             error: `Element with selector "${selector}" not found`,
           };
         }
+
+        // Some sites put the actual click handler on a button while the
+        // generated selector points at a zero-sized descendant. Promote only
+        // when that descendant is not clickable; normal selector behavior is
+        // preserved for already-visible targets.
+        element = promoteToClickableElement(element);
 
         const rect = element.getBoundingClientRect();
         elementInfo = {
@@ -133,7 +138,8 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           text: element.textContent?.trim().substring(0, 100) || '',
           href: element.href || null,
           type: element.type || null,
-          isVisible: true,
+          isVisible: isElementVisible(element),
+          matchCount: matches.length,
           rect: {
             x: rect.x,
             y: rect.y,
@@ -358,6 +364,40 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     if (!elementAtPoint) return false;
 
     return element === elementAtPoint || element.contains(elementAtPoint);
+  }
+
+  /**
+   * Wait briefly for a selector to become visible. Dynamic pages often render
+   * the target after the tool call has already started.
+   */
+  async function waitForVisibleElement(selector, timeout = 0) {
+    const waitMs = Number.isFinite(timeout) ? Math.min(Math.max(timeout, 0), 5000) : 5000;
+    const deadline = Date.now() + waitMs;
+    let firstMatch = null;
+
+    do {
+      const matches = document.querySelectorAll(selector);
+      if (!firstMatch && matches.length > 0) firstMatch = matches[0];
+      const visible = Array.from(matches).find((candidate) => isElementVisible(candidate));
+      if (visible) return visible;
+      if (Date.now() >= deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } while (true);
+
+    return firstMatch;
+  }
+
+  /**
+   * Use a visible interactive ancestor when a generated selector targets a
+   * decorative or zero-sized child inside a button.
+   */
+  function promoteToClickableElement(element) {
+    if (!element || isElementVisible(element) || typeof element.closest !== 'function') {
+      return element;
+    }
+
+    const ancestor = element.closest('button, [role="button"], a, [data-testid]');
+    return ancestor && isElementVisible(ancestor) ? ancestor : element;
   }
 
   // Listen for messages from the extension

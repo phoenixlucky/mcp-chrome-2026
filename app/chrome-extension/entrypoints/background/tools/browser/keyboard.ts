@@ -28,9 +28,11 @@ class KeyboardTool extends BaseBrowserToolExecutor {
 
     console.log(`Starting keyboard operation with options:`, args);
 
-    if (!keys) {
+    // MCP arguments arrive from JSON at runtime, so the TypeScript annotation
+    // alone cannot protect the injected helper from arrays/objects.
+    if (typeof keys !== 'string' || keys.trim().length === 0) {
       return createErrorResponse(
-        ERROR_MESSAGES.INVALID_PARAMETERS + ': Keys parameter must be provided',
+        ERROR_MESSAGES.INVALID_PARAMETERS + ': Keys parameter must be a non-empty string',
       );
     }
 
