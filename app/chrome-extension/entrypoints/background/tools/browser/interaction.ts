@@ -3,6 +3,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
+import { listMarkersForUrl } from '@/entrypoints/background/element-marker/element-marker-storage';
 
 interface Coordinates {
   x: number;
@@ -12,6 +13,8 @@ interface Coordinates {
 interface ClickToolParams {
   selector?: string; // CSS selector or XPath for the element to click
   selectorType?: 'css' | 'xpath'; // Type of selector (default: 'css')
+  markerId?: string; // Persisted element marker id
+  markerName?: string; // Persisted element marker name
   ref?: string; // Element ref from accessibility tree (window.__claudeElementMap)
   coordinates?: Coordinates; // Coordinates to click at (x, y relative to viewport)
   waitForNavigation?: boolean; // Whether to wait for navigation to complete after click
@@ -24,6 +27,34 @@ interface ClickToolParams {
   modifiers?: { altKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean };
   tabId?: number; // target existing tab id
   windowId?: number; // when no tabId, pick active tab from this window
+}
+
+function normalizeMarkerName(value: unknown): string {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+async function findMarkerForTab(tab: chrome.tabs.Tab, markerId?: string, markerName?: string) {
+  const id = String(markerId || '').trim();
+  const name = normalizeMarkerName(markerName);
+  if (!id && !name) return null;
+
+  const markers = await listMarkersForUrl(String(tab.url || ''));
+  if (id) {
+    const marker = markers.find((item) => item.id === id);
+    if (!marker) throw new Error(`Element marker "${id}" was not found for the current URL`);
+    return marker;
+  }
+
+  const matches = markers.filter((item) => normalizeMarkerName(item.name) === name);
+  if (matches.length > 1) {
+    throw new Error(`Element marker name "${markerName}" matched multiple markers; use markerId`);
+  }
+  if (!matches[0])
+    throw new Error(`Element marker "${markerName}" was not found for the current URL`);
+  return matches[0];
 }
 
 /**
@@ -51,9 +82,10 @@ class ClickTool extends BaseBrowserToolExecutor {
 
     console.log(`Starting click operation with options:`, args);
 
-    if (!selector && !coordinates && !args.ref) {
+    if (!selector && !coordinates && !args.ref && !args.markerId && !args.markerName) {
       return createErrorResponse(
-        ERROR_MESSAGES.INVALID_PARAMETERS + ': Provide ref or selector or coordinates',
+        ERROR_MESSAGES.INVALID_PARAMETERS +
+          ': Provide markerId, markerName, ref, selector, or coordinates',
       );
     }
 
@@ -65,18 +97,48 @@ class ClickTool extends BaseBrowserToolExecutor {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       }
 
+      const marker = await findMarkerForTab(tab, args.markerId, args.markerName);
       let finalRef = args.ref;
-      let finalSelector = selector;
+      let finalSelector = marker?.selector || selector;
+      const finalSelectorType = marker?.selectorType || selectorType;
+
+      if (marker) {
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/accessibility-tree-helper.js'],
+          false,
+          'ISOLATED',
+          true,
+          typeof frameId === 'number' ? [frameId] : undefined,
+        );
+        const located = await this.sendMessageToTab(
+          tab.id,
+          {
+            action: 'locateElement',
+            selector: marker.selector,
+            selectorType: marker.selectorType || 'css',
+            allowMultiple: !!marker.listMode,
+            scrollIntoView: true,
+            highlight: false,
+          },
+          frameId,
+        );
+        if (!located?.success || !located.ref) {
+          return createErrorResponse(located?.error || `Failed to locate marker "${marker.id}"`);
+        }
+        finalRef = located.ref;
+        finalSelector = undefined;
+      }
 
       // If selector is XPath, convert to ref first
-      if (selector && selectorType === 'xpath') {
+      if (finalSelector && finalSelectorType === 'xpath') {
         await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
         try {
           const resolved = await this.sendMessageToTab(
             tab.id,
             {
               action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
-              selector,
+              selector: finalSelector,
               isXPath: true,
             },
             frameId,
@@ -128,7 +190,7 @@ class ClickTool extends BaseBrowserToolExecutor {
       if (coordinates) {
         clickMethod = 'coordinates';
       } else if (finalRef) {
-        clickMethod = 'ref';
+        clickMethod = marker ? 'marker' : 'ref';
       } else if (finalSelector) {
         clickMethod = 'selector';
       } else {
@@ -145,6 +207,7 @@ class ClickTool extends BaseBrowserToolExecutor {
               elementInfo: result.elementInfo,
               navigationOccurred: result.navigationOccurred,
               clickMethod,
+              markerId: marker?.id,
             }),
           },
         ],
@@ -164,6 +227,8 @@ export const clickTool = new ClickTool();
 interface FillToolParams {
   selector?: string;
   selectorType?: 'css' | 'xpath'; // Type of selector (default: 'css')
+  markerId?: string;
+  markerName?: string;
   ref?: string; // Element ref from accessibility tree
   // Accept string | number | boolean for broader form input coverage
   value: string | number | boolean;
@@ -186,8 +251,10 @@ class FillTool extends BaseBrowserToolExecutor {
 
     console.log(`Starting fill operation with options:`, args);
 
-    if (!selector && !ref) {
-      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': Provide ref or selector');
+    if (!selector && !ref && !args.markerId && !args.markerName) {
+      return createErrorResponse(
+        ERROR_MESSAGES.INVALID_PARAMETERS + ': Provide markerId, markerName, ref, or selector',
+      );
     }
 
     if (value === undefined || value === null) {
@@ -201,18 +268,48 @@ class FillTool extends BaseBrowserToolExecutor {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       }
 
+      const marker = await findMarkerForTab(tab, args.markerId, args.markerName);
       let finalRef = ref;
-      let finalSelector = selector;
+      let finalSelector = marker?.selector || selector;
+      const finalSelectorType = marker?.selectorType || selectorType;
+
+      if (marker) {
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/accessibility-tree-helper.js'],
+          false,
+          'ISOLATED',
+          true,
+          typeof frameId === 'number' ? [frameId] : undefined,
+        );
+        const located = await this.sendMessageToTab(
+          tab.id,
+          {
+            action: 'locateElement',
+            selector: marker.selector,
+            selectorType: marker.selectorType || 'css',
+            allowMultiple: !!marker.listMode,
+            scrollIntoView: true,
+            highlight: false,
+          },
+          frameId,
+        );
+        if (!located?.success || !located.ref) {
+          return createErrorResponse(located?.error || `Failed to locate marker "${marker.id}"`);
+        }
+        finalRef = located.ref;
+        finalSelector = undefined;
+      }
 
       // If selector is XPath, convert to ref first
-      if (selector && selectorType === 'xpath') {
+      if (finalSelector && finalSelectorType === 'xpath') {
         await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
         try {
           const resolved = await this.sendMessageToTab(
             tab.id,
             {
               action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
-              selector,
+              selector: finalSelector,
               isXPath: true,
             },
             frameId,
@@ -258,6 +355,7 @@ class FillTool extends BaseBrowserToolExecutor {
               success: true,
               message: result.message || 'Fill operation successful',
               elementInfo: result.elementInfo,
+              markerId: marker?.id,
             }),
           },
         ],

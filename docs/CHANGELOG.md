@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.2] - 2026-08-13
+
+### Added
+
+- **`chrome_locate_element`** — 网页元素定位工具：支持已保存的 `markerId`/`markerName`、旧 `ref`、CSS/XPath、可见文本、ARIA role、`aria-label`、`data-testid` 和表单 `name` 多种定位方式；定位时自动滚动并高亮目标，返回当前有效的 `ref`/`selector`/坐标，可直接传给 `chrome_click_element` 或 `chrome_fill_or_select`。
+- **`chrome_select_all_items`** — 懒加载/虚拟列表安全全选工具：滚动到底部、等待卡片数量连续稳定数轮后再逐个操作卡片内 checkbox，不依赖页面可能失效的"选择全部"按钮，也不把乐观 DOM 数量当作操作成功依据。
+
+### Changed
+
+- **`chrome_wait_for_extract_response` 增强** — 新增 `confirm` 参数（可选地点击确认按钮）；返回 HTTP 状态、请求体和响应体，用于核验删除等异步操作是否真正成功；`extract` 变为可选，仅在需要抽取 JSON 记录时提供。
+- **`chrome_click_element` 增强** — 支持 `markerId`/`markerName`，点击前自动重新定位目标。
+- **`chrome_javascript` 文档修正** — 明确参数名为 `code`（非 `script`），读取结果必须显式 `return`。
+- 版本统一为 v2.0.2。
+
 ## [v2.0.1] - 2026-08-13
 
 ### Changed

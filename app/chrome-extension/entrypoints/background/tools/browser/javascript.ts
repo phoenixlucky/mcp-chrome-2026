@@ -48,6 +48,8 @@ type ErrorKind =
 
 interface JavaScriptToolParams {
   code: string;
+  /** Backward-compatible alias; the public schema uses code. */
+  script?: string;
   tabId?: number;
   timeoutMs?: number;
   maxOutputBytes?: number;
@@ -462,9 +464,14 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
 
     try {
       // Validate required parameter
-      const code = typeof args?.code === 'string' ? args.code.trim() : '';
+      const code =
+        typeof args?.code === 'string'
+          ? args.code.trim()
+          : typeof args?.script === 'string'
+            ? args.script.trim()
+            : '';
       if (!code) {
-        return createErrorResponse('Parameter [code] is required');
+        return createErrorResponse('Parameter [code] is required (legacy alias: script)');
       }
 
       // Resolve target tab

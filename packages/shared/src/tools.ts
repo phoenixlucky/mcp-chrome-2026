@@ -10,6 +10,8 @@ export const TOOL_NAMES = {
     WEB_FETCHER: 'chrome_get_web_content',
     CLICK: 'chrome_click_element',
     FILL: 'chrome_fill_or_select',
+    LOCATE_ELEMENT: 'chrome_locate_element',
+    SELECT_ALL_ITEMS: 'chrome_select_all_items',
     REQUEST_ELEMENT_SELECTION: 'chrome_request_element_selection',
     GET_INTERACTIVE_ELEMENTS: 'chrome_get_interactive_elements',
     NETWORK_CAPTURE: 'chrome_network_capture',
@@ -128,18 +130,20 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.WAIT_EXTRACT_RESPONSE,
-    description: '执行导航或点击后等待指定 JSON 响应，并按调用方提供的 JSONPath 抽取记录。',
+    description:
+      '执行导航或点击后等待指定网络响应。可选地点击确认按钮、返回 HTTP 状态、请求体和响应体，用于核验删除等异步操作是否真正成功；若要抽取 JSON 记录再提供 extract。',
     inputSchema: {
       type: 'object',
       properties: {
         action: { type: 'object' },
+        confirm: { type: 'object' },
         response: { type: 'object' },
         extract: { type: 'object' },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
       },
-      required: ['action', 'response', 'extract'],
+      required: ['action', 'response'],
     },
   },
   {
@@ -1370,7 +1374,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         code: {
           type: 'string',
           description:
-            '要执行的 JavaScript 代码。在 async 函数体内运行，支持顶层 await 和 "return ..."。',
+            '要执行的 JavaScript 代码（参数名是 code，不是 script）。在 async 函数体内运行，支持顶层 await；若要读取结果，必须显式写 return，例如 return document.querySelectorAll(...).length。仅执行动作时可不 return。',
         },
         tabId: {
           type: 'number',
@@ -1394,9 +1398,112 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.LOCATE_ELEMENT,
+    description:
+      '定位网页元素并返回当前有效的 ref、selector、坐标和元素信息。支持已保存的 markerId/markerName、旧 ref、CSS/XPath、文本、ARIA role、aria-label、data-testid 和 name；定位时可自动滚动并高亮目标。返回的 ref 可直接传给 chrome_click_element 或 chrome_fill_or_select。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        markerId: {
+          type: 'string',
+          description:
+            '已保存的元素标记 ID。优先从 chrome_read_page 返回的 markedElements.id 获取。',
+        },
+        markerName: {
+          type: 'string',
+          description: '已保存的元素标记名称。',
+        },
+        ref: {
+          type: 'string',
+          description: '来自 chrome_read_page 或此前定位结果的元素引用。失效时会返回明确错误。',
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS 选择器或 XPath。',
+        },
+        selectorType: {
+          type: 'string',
+          enum: ['css', 'xpath'],
+          description: 'selector 的类型，默认 css。',
+        },
+        text: {
+          type: 'string',
+          description: '元素可访问名称或可见文本，支持模糊匹配。',
+        },
+        role: {
+          type: 'string',
+          description: 'ARIA role 或原生元素推断出的 role，例如 button、textbox、link。',
+        },
+        ariaLabel: {
+          type: 'string',
+          description: 'aria-label 的精确值或不区分大小写的匹配值。',
+        },
+        testId: {
+          type: 'string',
+          description: 'data-testid、data-test、data-qa 或 data-cy 的值。',
+        },
+        name: {
+          type: 'string',
+          description: '表单元素 name 属性的值。',
+        },
+        allowMultiple: {
+          type: 'boolean',
+          description: '允许多个匹配时返回第一个并报告匹配数量，默认 false。',
+        },
+        scrollIntoView: {
+          type: 'boolean',
+          description: '是否将目标滚动到视口中央，默认 true。',
+        },
+        highlight: {
+          type: 'boolean',
+          description: '是否在页面上短暂高亮目标，默认 true。',
+        },
+        timeout: {
+          type: 'number',
+          description: '等待目标出现的最长时间（毫秒），默认 5000。',
+        },
+        tabId: { type: 'number', description: '目标标签页 ID。' },
+        windowId: { type: 'number', description: '未指定 tabId 时用于选择活动标签页的窗口 ID。' },
+        frameId: { type: 'number', description: '目标 iframe 的 Chrome frame ID。' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.SELECT_ALL_ITEMS,
+    description:
+      '对懒加载或虚拟列表执行安全的选择全部：滚动到底部，等待卡片数量连续稳定若干轮，并逐个操作每张卡片内的 checkbox。不会依赖页面自身可能失效的“选择全部”按钮，也不会把乐观 DOM 数量当成服务端删除成功。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardSelector: {
+          type: 'string',
+          description: '每个列表卡片的 CSS 选择器。',
+        },
+        checkboxSelector: {
+          type: 'string',
+          description: '卡片内部 checkbox 的 CSS 选择器，例如 input[type="checkbox"]。',
+        },
+        containerSelector: {
+          type: 'string',
+          description: '可选的滚动容器；不填时使用页面滚动条。',
+        },
+        step: { type: 'number', description: '每轮滚动像素，默认 500。' },
+        settleMs: { type: 'number', description: '每轮滚动后等待懒加载的毫秒数，默认 500。' },
+        stableRounds: { type: 'number', description: '底部列表连续稳定轮数，默认 3。' },
+        maxRounds: { type: 'number', description: '最大滚动轮数，默认 200。' },
+        maxDurationMs: { type: 'number', description: '最大执行时间，默认 120000 毫秒。' },
+        restoreScroll: { type: 'boolean', description: '完成后是否恢复原滚动位置，默认 false。' },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+      },
+      required: ['cardSelector', 'checkboxSelector'],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.CLICK,
     description:
-      '点击网页元素。支持多种定位方式：CSS 选择器、XPath、元素引用（来自 chrome_read_page）或视口坐标。简单点击操作比 chrome_computer 更聚焦。',
+      '点击网页元素。支持已保存的 markerId/markerName、CSS 选择器、XPath、元素引用（来自 chrome_read_page）或视口坐标。markerId 会在点击前重新定位目标。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1408,6 +1515,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           enum: ['css', 'xpath'],
           description: '选择器类型（默认 "css"）。',
+        },
+        markerId: { type: 'string', description: '已保存的元素标记 ID。' },
+        markerName: {
+          type: 'string',
+          description: '已保存的元素标记名称；匹配多个标记时请改用 markerId。',
         },
         ref: {
           type: 'string',
@@ -1468,7 +1580,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.FILL,
     description:
-      '填写或选择网页表单元素。支持 input、textarea、select、checkbox 和 radio。可使用 CSS 选择器、XPath 或元素引用定位。',
+      '填写或选择网页表单元素。支持 input、textarea、select、checkbox 和 radio。可使用 markerId/markerName、CSS 选择器、XPath 或元素引用定位；标记会在输入前重新解析。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1480,6 +1592,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           enum: ['css', 'xpath'],
           description: '选择器类型（默认 "css"）。',
+        },
+        markerId: { type: 'string', description: '已保存的元素标记 ID。' },
+        markerName: {
+          type: 'string',
+          description: '已保存的元素标记名称；匹配多个标记时请改用 markerId。',
         },
         ref: {
           type: 'string',

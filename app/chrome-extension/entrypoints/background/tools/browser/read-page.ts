@@ -102,6 +102,7 @@ class ReadPageTool extends BaseBrowserToolExecutor {
 
       // Build user-marked elements for inclusion
       const markedElements = userMarkers.map((m) => ({
+        id: m.id,
         name: m.name,
         selector: m.selector,
         selectorType: m.selectorType || 'css',
@@ -187,6 +188,7 @@ class ReadPageTool extends BaseBrowserToolExecutor {
           const limited = fallback.elements.slice(0, 150);
           // Merge user markers at the front, de-duplicated by selector
           const markerEls = userMarkers.map((m) => ({
+            id: m.id,
             type: 'marker',
             selector: m.selector,
             text: m.name,

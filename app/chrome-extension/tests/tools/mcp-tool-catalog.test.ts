@@ -16,11 +16,14 @@ describe('MCP tool catalog', () => {
         'chrome_proxy_rotate',
         'collect_virtual_list',
         'collect_virtual_lists',
+        'chrome_select_all_items',
       ]),
     );
     expect(search?.inputSchema.required).toEqual(expect.arrayContaining(['query', 'tabIds']));
     const collector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_list');
     const batchCollector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_lists');
+    const selectAll = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_select_all_items');
+    const waitResponse = TOOL_SCHEMAS.find((tool) => tool.name === 'wait_extract_response');
     const dialog = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_handle_dialog');
     const postToX = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_post_to_x');
     expect(collector?.inputSchema.required).toEqual(
@@ -36,6 +39,14 @@ describe('MCP tool catalog', () => {
     expect(batchCollector?.inputSchema.required).toEqual(
       expect.arrayContaining(['targets', 'cardSelector', 'fields', 'identityFields']),
     );
+    expect(selectAll?.inputSchema.required).toEqual(['cardSelector', 'checkboxSelector']);
+    expect(selectAll?.inputSchema.properties).toEqual(
+      expect.objectContaining({
+        stableRounds: expect.any(Object),
+        containerSelector: expect.any(Object),
+      }),
+    );
+    expect(waitResponse?.inputSchema.required).toEqual(['action', 'response']);
     expect(dialog?.description).toContain('beforeunload');
     expect(dialog?.inputSchema.properties).toEqual(
       expect.objectContaining({ tabId: expect.any(Object), windowId: expect.any(Object) }),

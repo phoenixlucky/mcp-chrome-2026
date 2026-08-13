@@ -707,6 +707,127 @@
     return weak && typeof weak.deref === 'function' ? weak.deref() : null;
   }
 
+  function ensureRefForElement(el) {
+    if (!el || !(el instanceof Element)) return null;
+    if (!window.__claudeElementMap) window.__claudeElementMap = {};
+    if (!window.__claudeRefCounter) window.__claudeRefCounter = 0;
+    for (const k in window.__claudeElementMap) {
+      const weak = window.__claudeElementMap[k];
+      if (weak && typeof weak.deref === 'function' && weak.deref() === el) return k;
+    }
+    const refId = `ref_${++window.__claudeRefCounter}`;
+    window.__claudeElementMap[refId] = new WeakRef(el);
+    return refId;
+  }
+
+  function normalizeLocatorText(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function collectLocatorElements() {
+    const elements = [];
+    const seen = new Set();
+    const stack = [document.documentElement];
+    let visited = 0;
+    while (stack.length && visited < 12000) {
+      const node = stack.pop();
+      if (!node || !(node instanceof Element) || seen.has(node)) continue;
+      seen.add(node);
+      elements.push(node);
+      visited++;
+      try {
+        const children = node.children || [];
+        for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
+        const shadowRoot = /** @type {any} */ (node).shadowRoot;
+        if (shadowRoot && shadowRoot.children) {
+          for (let i = shadowRoot.children.length - 1; i >= 0; i--)
+            stack.push(shadowRoot.children[i]);
+        }
+      } catch (_) {}
+    }
+    return elements;
+  }
+
+  function elementIsVisibleForLocator(el) {
+    if (!el || !el.isConnected) return false;
+    try {
+      const style = window.getComputedStyle(/** @type {HTMLElement} */ (el));
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0')
+        return false;
+      const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function locatorElementMetadata(el, ref, matchCount) {
+    const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
+    const role = inferRole(el);
+    const label = inferLabel(el);
+    const ariaLabel = el.getAttribute('aria-label') || '';
+    const testId =
+      el.getAttribute('data-testid') ||
+      el.getAttribute('data-test') ||
+      el.getAttribute('data-qa') ||
+      el.getAttribute('data-cy') ||
+      '';
+    const name = el.getAttribute('name') || '';
+    const text = (label || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    const id = el.getAttribute('id') || '';
+    return {
+      ref,
+      selector: generateSelector(el),
+      selectorType: 'css',
+      tagName: String(el.tagName || '').toLowerCase(),
+      role,
+      text,
+      ariaLabel,
+      testId,
+      name,
+      href: el instanceof HTMLAnchorElement ? el.href : undefined,
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      center: {
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2),
+      },
+      visible: elementIsVisibleForLocator(el),
+      interactive: isInteractive(el),
+      disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true',
+      fingerprint: `${String(el.tagName || '').toLowerCase()}|id=${id}|role=${role}|testId=${testId}`,
+      matchCount,
+    };
+  }
+
+  function highlightLocatorElement(el) {
+    try {
+      const highlightId = '__mcp_locator_highlight__';
+      document.getElementById(highlightId)?.remove();
+      const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
+      const highlight = document.createElement('div');
+      highlight.id = highlightId;
+      Object.assign(highlight.style, {
+        position: 'fixed',
+        zIndex: 2147483646,
+        pointerEvents: 'none',
+        boxSizing: 'border-box',
+        border: '3px solid #2563eb',
+        borderRadius: '6px',
+        background: 'rgba(37,99,235,.12)',
+        boxShadow: '0 0 0 2px rgba(255,255,255,.9)',
+        left: `${Math.round(rect.left)}px`,
+        top: `${Math.round(rect.top)}px`,
+        width: `${Math.round(rect.width)}px`,
+        height: `${Math.round(rect.height)}px`,
+      });
+      (document.documentElement || document.body).append(highlight);
+      setTimeout(() => highlight.remove(), 1800);
+    } catch (_) {}
+  }
+
   function dispatchHoverEvents(el) {
     const rect = el.getBoundingClientRect();
     const center = {
@@ -1052,6 +1173,183 @@
         }
         sendResponse({ success: true, ...result });
         return true;
+      }
+      if (request && request.action === 'locateElement') {
+        try {
+          const allowMultiple = !!request.allowMultiple;
+          const selectorType = request.selectorType === 'xpath' ? 'xpath' : 'css';
+          const ref = String(request.ref || '').trim();
+          const selector = String(request.selector || '').trim();
+          const textQuery = normalizeLocatorText(request.text);
+          const roleQuery = normalizeLocatorText(request.role);
+          const ariaQuery = normalizeLocatorText(request.ariaLabel);
+          const testIdQuery = normalizeLocatorText(request.testId);
+          const nameQuery = normalizeLocatorText(request.name);
+
+          if (
+            !ref &&
+            !selector &&
+            !textQuery &&
+            !roleQuery &&
+            !ariaQuery &&
+            !testIdQuery &&
+            !nameQuery
+          ) {
+            sendResponse({
+              success: false,
+              error:
+                'Provide ref, selector, text, role, ariaLabel, testId, name, or marker selector',
+            });
+            return true;
+          }
+
+          let el = null;
+          let matchCount = 0;
+          let resolvedBy = '';
+          let matchedSelector = selector || undefined;
+          let matchedSelectorType = selector ? selectorType : undefined;
+
+          if (ref) {
+            el = resolveRef(ref);
+            if (!el || !(el instanceof Element)) {
+              sendResponse({ success: false, error: `ref "${ref}" not found or expired` });
+              return true;
+            }
+            matchCount = 1;
+            resolvedBy = 'ref';
+          } else if (selector) {
+            const result =
+              selectorType === 'xpath'
+                ? queryXPathWithUniquenessCheck(selector, allowMultiple)
+                : querySelectorWithUniquenessCheck(selector, allowMultiple);
+            if (result.error) {
+              sendResponse({ success: false, error: result.error });
+              return true;
+            }
+            matchCount = result.matchCount;
+            if (!result.element) {
+              sendResponse({ success: false, error: `selector not found: ${selector}` });
+              return true;
+            }
+            if (!allowMultiple && matchCount > 1) {
+              sendResponse({
+                success: false,
+                error: `Selector "${selector}" matched multiple elements. Please refine it or set allowMultiple=true.`,
+                matchCount,
+              });
+              return true;
+            }
+            el = result.element;
+            resolvedBy = selectorType === 'xpath' ? 'xpath' : 'css';
+          } else {
+            const candidates = [];
+            for (const candidate of collectLocatorElements()) {
+              if (!elementIsVisibleForLocator(candidate)) continue;
+              const candidateRole = normalizeLocatorText(inferRole(candidate));
+              const candidateLabel = normalizeLocatorText(inferLabel(candidate));
+              const candidateContent = normalizeLocatorText(candidate.textContent);
+              const candidateAria = normalizeLocatorText(candidate.getAttribute('aria-label'));
+              const candidateTestId = normalizeLocatorText(
+                candidate.getAttribute('data-testid') ||
+                  candidate.getAttribute('data-test') ||
+                  candidate.getAttribute('data-qa') ||
+                  candidate.getAttribute('data-cy'),
+              );
+              const candidateName = normalizeLocatorText(candidate.getAttribute('name'));
+              let score = 0;
+              let matches = true;
+
+              if (textQuery) {
+                if (candidateLabel === textQuery) score += 100;
+                else if (candidateLabel.includes(textQuery)) score += 80;
+                else if (candidateContent.includes(textQuery)) score += 55;
+                else matches = false;
+              }
+              if (roleQuery) {
+                if (candidateRole === roleQuery) score += 40;
+                else matches = false;
+              }
+              if (ariaQuery) {
+                if (candidateAria === ariaQuery) score += 95;
+                else if (candidateAria.includes(ariaQuery)) score += 70;
+                else matches = false;
+              }
+              if (testIdQuery) {
+                if (candidateTestId === testIdQuery) score += 120;
+                else matches = false;
+              }
+              if (nameQuery) {
+                if (candidateName === nameQuery) score += 110;
+                else matches = false;
+              }
+              if (!matches) continue;
+              if (isInteractive(candidate)) score += 5;
+              candidates.push({ element: candidate, score });
+            }
+
+            candidates.sort((a, b) => b.score - a.score);
+            matchCount = candidates.length;
+            if (!candidates.length) {
+              sendResponse({ success: false, error: 'No visible element matched the locator' });
+              return true;
+            }
+            if (
+              !allowMultiple &&
+              candidates.length > 1 &&
+              candidates[0].score === candidates[1].score
+            ) {
+              sendResponse({
+                success: false,
+                error:
+                  'Locator matched multiple equally likely elements. Add role, ariaLabel, testId, name, or a more specific text.',
+                matchCount,
+              });
+              return true;
+            }
+            el = candidates[0].element;
+            resolvedBy = textQuery
+              ? 'text'
+              : roleQuery
+                ? 'role'
+                : ariaQuery
+                  ? 'ariaLabel'
+                  : testIdQuery
+                    ? 'testId'
+                    : 'name';
+          }
+
+          if (!el || !(el instanceof Element)) {
+            sendResponse({ success: false, error: 'Element not found' });
+            return true;
+          }
+          if (request.scrollIntoView !== false) {
+            try {
+              el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+            } catch (_) {
+              try {
+                el.scrollIntoView({ block: 'center', inline: 'center' });
+              } catch (_) {}
+            }
+          }
+          const refId = ensureRefForElement(el);
+          if (!refId) {
+            sendResponse({ success: false, error: 'Failed to create element ref' });
+            return true;
+          }
+          if (request.highlight !== false) highlightLocatorElement(el);
+
+          sendResponse({
+            success: true,
+            resolvedBy,
+            matchedSelector,
+            matchedSelectorType,
+            ...locatorElementMetadata(el, refId, matchCount),
+          });
+          return true;
+        } catch (e) {
+          sendResponse({ success: false, error: String(e && e.message ? e.message : e) });
+          return true;
+        }
       }
       if (request && request.action === 'ensureRefForSelector') {
         try {

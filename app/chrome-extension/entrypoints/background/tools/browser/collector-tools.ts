@@ -582,11 +582,17 @@ class WaitExtractResponseTool extends CollectorTool {
       action:
         | { type: 'navigate'; url: string }
         | { type: 'click'; candidates: Candidate[]; scopeSelector?: string };
-      response: { urlPattern: string; timeoutMs?: number };
-      extract: { recordsPath: string; fields: Record<string, string> };
+      confirm?: { candidates: Candidate[]; scopeSelector?: string; delayMs?: number };
+      response: {
+        urlPattern: string;
+        timeoutMs?: number;
+        includeBody?: boolean;
+        maxBodyBytes?: number;
+      };
+      extract?: { recordsPath: string; fields: Record<string, string> };
     },
   ): Promise<ToolResult> {
-    if (!args.action || !args.response?.urlPattern || !args.extract?.recordsPath)
+    if (!args.action || !args.response?.urlPattern)
       return result({ success: false, reason: 'invalid_parameters', records: [] }, true);
     let tabId: number | undefined;
     let captureStarted = false;
@@ -612,32 +618,78 @@ class WaitExtractResponseTool extends CollectorTool {
       else {
         const click = await findAndClickTool.execute({ ...args, ...args.action });
         if (click.isError) return click;
+        if (args.confirm?.candidates?.length) {
+          await sleep(Math.max(0, Math.min(args.confirm.delayMs || 150, 5_000)));
+          const confirm = await findAndClickTool.execute({
+            ...args,
+            candidates: args.confirm.candidates,
+            scopeSelector: args.confirm.scopeSelector,
+          });
+          if (confirm.isError) return confirm;
+        }
       }
       const started = Date.now();
       while (Date.now() - started < timeoutMs) {
         const request = Object.values(capture.captureData.get(tabId)?.requests || {}).find(
           (entry) =>
             String(entry.url || '').includes(args.response.urlPattern) &&
-            entry.status === 'complete' &&
-            typeof entry.responseBody === 'string',
+            (entry.status === 'complete' || entry.status === 'error'),
         );
         if (request) {
-          const raw = request.base64Encoded
-            ? new TextDecoder().decode(
-                Uint8Array.from(atob(String(request.responseBody)), (char) => char.charCodeAt(0)),
-              )
-            : String(request.responseBody);
-          const records = extractJsonRecords(
-            JSON.parse(raw),
-            args.extract.recordsPath,
-            args.extract.fields,
+          const raw =
+            typeof request.responseBody === 'string'
+              ? request.base64Encoded
+                ? new TextDecoder().decode(
+                    Uint8Array.from(atob(String(request.responseBody)), (char) =>
+                      char.charCodeAt(0),
+                    ),
+                  )
+                : String(request.responseBody)
+              : '';
+          const responseBody =
+            args.response.includeBody === false
+              ? undefined
+              : raw.slice(0, Math.max(256, Math.min(args.response.maxBodyBytes || 16_000, 64_000)));
+          let records: Record<string, unknown>[] = [];
+          let parseError: string | undefined;
+          if (args.extract?.recordsPath) {
+            try {
+              records = extractJsonRecords(
+                JSON.parse(raw),
+                args.extract.recordsPath,
+                args.extract.fields,
+              );
+            } catch (error) {
+              parseError = error instanceof Error ? error.message : 'response_json_parse_failed';
+            }
+          }
+          const statusCode = Number(request.statusCode || 0);
+          const httpOk = statusCode >= 200 && statusCode < 300;
+          return result(
+            {
+              success: httpOk,
+              matched: true,
+              httpOk,
+              matchedCount: records.length,
+              records,
+              parseError,
+              response: {
+                url: request.url,
+                method: request.method,
+                statusCode: request.statusCode,
+                statusText: request.statusText,
+                requestBody: request.requestBody,
+                responseBody,
+                errorText: request.errorText,
+              },
+              reason: httpOk
+                ? undefined
+                : request.status === 'error'
+                  ? 'network_error'
+                  : 'http_error',
+            },
+            !httpOk,
           );
-          return result({
-            success: true,
-            matchedCount: records.length,
-            records,
-            response: { url: request.url, statusCode: request.statusCode },
-          });
         }
         await sleep(100);
       }

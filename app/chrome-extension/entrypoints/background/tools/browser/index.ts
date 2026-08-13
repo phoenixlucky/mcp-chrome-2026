@@ -5,7 +5,9 @@ export { vectorSearchTabsContentTool as searchTabsContentTool } from './vector-s
 export { screenshotTool } from './screenshot';
 export { webFetcherTool, getInteractiveElementsTool } from './web-fetcher';
 export { clickTool, fillTool } from './interaction';
+export { elementLocatorTool } from './element-locator';
 export { elementPickerTool } from './element-picker';
+export { selectAllItemsTool } from './select-all-items';
 export { networkRequestTool } from './network-request';
 export { networkCaptureTool } from './network-capture';
 export { blockImagesTool } from './block-images';

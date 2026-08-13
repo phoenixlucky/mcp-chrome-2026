@@ -10,6 +10,8 @@ const TOOL_NAMES = {
     WEB_FETCHER: 'chrome_get_web_content',
     CLICK: 'chrome_click_element',
     FILL: 'chrome_fill_or_select',
+    LOCATE_ELEMENT: 'chrome_locate_element',
+    SELECT_ALL_ITEMS: 'chrome_select_all_items',
     REQUEST_ELEMENT_SELECTION: 'chrome_request_element_selection',
     GET_INTERACTIVE_ELEMENTS: 'chrome_get_interactive_elements',
     NETWORK_CAPTURE: 'chrome_network_capture',
@@ -128,18 +130,20 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.WAIT_EXTRACT_RESPONSE,
-    description: '执行导航或点击后等待指定 JSON 响应，并按调用方提供的 JSONPath 抽取记录。',
+    description:
+      'Wait for a network response after navigation or a click. Optionally click a confirmation control and return HTTP status, request body, and response body so async delete operations can be verified; provide extract only when JSON records are needed.',
     inputSchema: {
       type: 'object',
       properties: {
         action: { type: 'object' },
+        confirm: { type: 'object' },
         response: { type: 'object' },
         extract: { type: 'object' },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
       },
-      required: ['action', 'response', 'extract'],
+      required: ['action', 'response'],
     },
   },
   {
@@ -1393,7 +1397,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         code: {
           type: 'string',
           description:
-            'JavaScript code to execute. Runs inside an async function body, so top-level await and "return ..." are supported.',
+            'JavaScript code to execute (the parameter is code, not script). Runs inside an async function body with top-level await. Add an explicit return to read a value, for example return document.querySelectorAll(...).length; action-only scripts may omit return.',
         },
         tabId: {
           type: 'number',
@@ -1418,9 +1422,106 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.LOCATE_ELEMENT,
+    description:
+      'Locate a page element and return a fresh ref, selector, coordinates, and element metadata. Supports persisted markerId/markerName, refs, CSS/XPath, text, ARIA role, aria-label, data-testid, and name. It can scroll to and briefly highlight the target; the returned ref can be passed to click or fill.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        markerId: { type: 'string', description: 'Persisted element marker ID.' },
+        markerName: { type: 'string', description: 'Persisted element marker name.' },
+        ref: {
+          type: 'string',
+          description: 'Element ref from chrome_read_page or a previous locate call.',
+        },
+        selector: { type: 'string', description: 'CSS selector or XPath.' },
+        selectorType: {
+          type: 'string',
+          enum: ['css', 'xpath'],
+          description: 'Selector type; defaults to css.',
+        },
+        text: {
+          type: 'string',
+          description: 'Visible or accessible element text; fuzzy matching is supported.',
+        },
+        role: {
+          type: 'string',
+          description: 'ARIA or inferred role, such as button, textbox, or link.',
+        },
+        ariaLabel: { type: 'string', description: 'aria-label value to match.' },
+        testId: {
+          type: 'string',
+          description: 'data-testid, data-test, data-qa, or data-cy value.',
+        },
+        name: { type: 'string', description: 'Form element name attribute.' },
+        allowMultiple: {
+          type: 'boolean',
+          description: 'Allow multiple matches and return the first one.',
+        },
+        scrollIntoView: {
+          type: 'boolean',
+          description: 'Scroll the target to the center of the viewport; defaults to true.',
+        },
+        highlight: {
+          type: 'boolean',
+          description: 'Briefly highlight the target; defaults to true.',
+        },
+        timeout: {
+          type: 'number',
+          description: 'Maximum wait time in milliseconds; defaults to 5000.',
+        },
+        tabId: { type: 'number', description: 'Target tab ID.' },
+        windowId: {
+          type: 'number',
+          description: 'Window used to choose the active tab when tabId is omitted.',
+        },
+        frameId: { type: 'number', description: 'Target iframe frame ID.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.SELECT_ALL_ITEMS,
+    description:
+      'Safely select all items in a lazy or virtualized list by scrolling to the bottom, waiting for a stable list, and toggling each card checkbox. Does not rely on a broken page-level select-all control or treat optimistic DOM changes as server success.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardSelector: { type: 'string', description: 'CSS selector for each list card.' },
+        checkboxSelector: {
+          type: 'string',
+          description:
+            'CSS selector for the checkbox inside each card, for example input[type="checkbox"].',
+        },
+        containerSelector: { type: 'string', description: 'Optional scroll container selector.' },
+        step: { type: 'number', description: 'Scroll step in pixels. Defaults to 500.' },
+        settleMs: {
+          type: 'number',
+          description: 'Wait after each scroll in milliseconds. Defaults to 500.',
+        },
+        stableRounds: {
+          type: 'number',
+          description: 'Consecutive stable bottom rounds. Defaults to 3.',
+        },
+        maxRounds: { type: 'number', description: 'Maximum scroll rounds. Defaults to 200.' },
+        maxDurationMs: {
+          type: 'number',
+          description: 'Maximum runtime in milliseconds. Defaults to 120000.',
+        },
+        restoreScroll: {
+          type: 'boolean',
+          description: 'Restore the original scroll position after selection.',
+        },
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+      },
+      required: ['cardSelector', 'checkboxSelector'],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.CLICK,
     description:
-      'Click on an element in a web page. Supports multiple targeting methods: CSS selector, XPath, element ref (from chrome_read_page), or viewport coordinates. More focused than chrome_computer for simple click operations.',
+      'Click on an element in a web page. Supports persisted markerId/markerName, CSS selector, XPath, element ref, or viewport coordinates. markerId is re-resolved before clicking.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1433,6 +1534,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           enum: ['css', 'xpath'],
           description: 'Type of selector (default: "css").',
         },
+        markerId: { type: 'string', description: 'Persisted element marker ID.' },
+        markerName: { type: 'string', description: 'Persisted element marker name.' },
         ref: {
           type: 'string',
           description: 'Element ref from chrome_read_page (takes precedence over selector).',
@@ -1492,7 +1595,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.FILL,
     description:
-      'Fill or select a form element on a web page. Supports input, textarea, select, checkbox, and radio elements. Use CSS selector, XPath, or element ref to target the element.',
+      'Fill or select a form element on a web page. Supports persisted markerId/markerName, CSS selector, XPath, or element ref; markers are re-resolved before filling.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1505,6 +1608,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           enum: ['css', 'xpath'],
           description: 'Type of selector (default: "css").',
         },
+        markerId: { type: 'string', description: 'Persisted element marker ID.' },
+        markerName: { type: 'string', description: 'Persisted element marker name.' },
         ref: {
           type: 'string',
           description: 'Element ref from chrome_read_page (takes precedence over selector).',

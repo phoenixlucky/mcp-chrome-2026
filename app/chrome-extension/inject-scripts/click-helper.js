@@ -116,7 +116,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           };
         }
       } else {
-        const matches = document.querySelectorAll(selector);
+        const matches = querySelectorAllRobust(selector);
         element = await waitForVisibleElement(selector, timeout);
         if (!element) {
           return {
@@ -125,9 +125,8 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         }
 
         // Some sites put the actual click handler on a button while the
-        // generated selector points at a zero-sized descendant. Promote only
-        // when that descendant is not clickable; normal selector behavior is
-        // preserved for already-visible targets.
+        // generated selector points at a descendant. Promote that descendant
+        // to the nearest actionable control when possible.
         element = promoteToClickableElement(element);
 
         const rect = element.getBoundingClientRect();
@@ -157,9 +156,9 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
         await new Promise((resolve) => setTimeout(resolve, 100));
         elementInfo.isVisible = isElementVisible(element);
-        if (!elementInfo.isVisible) {
+        if (!isElementActionable(element)) {
           return {
-            error: `Element with selector "${selector}" is not visible`,
+            error: `Element with selector "${selector}" is not actionable`,
             elementInfo,
           };
         }
@@ -292,18 +291,8 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
 
   function dispatchClickSequence(element, x, y, options = {}, isDouble = false) {
     const base = normalizeMouseOpts(x, y, options);
-    const down = new MouseEvent('mousedown', base);
-    const up = new MouseEvent('mouseup', base);
-    const click = new MouseEvent('click', base);
-    try {
-      element.dispatchEvent(down);
-    } catch {}
-    try {
-      element.dispatchEvent(up);
-    } catch {}
-    try {
-      element.dispatchEvent(click);
-    } catch {}
+    dispatchPressEvents(element, base);
+    dispatchClickEvent(element, base);
     if (base.button === 2) {
       // right button contextmenu
       const ctx = new MouseEvent('contextmenu', base);
@@ -314,20 +303,57 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     if (isDouble) {
       // second sequence + dblclick
       setTimeout(() => {
-        try {
-          element.dispatchEvent(new MouseEvent('mousedown', base));
-        } catch {}
-        try {
-          element.dispatchEvent(new MouseEvent('mouseup', base));
-        } catch {}
-        try {
-          element.dispatchEvent(new MouseEvent('click', base));
-        } catch {}
+        dispatchPressEvents(element, base);
+        dispatchClickEvent(element, base);
         try {
           element.dispatchEvent(new MouseEvent('dblclick', base));
         } catch {}
       }, 30);
     }
+  }
+
+  /**
+   * Dispatch the pointer and mouse press phases. The native click call below
+   * is intentional: unlike dispatchEvent(new MouseEvent('click')), it also
+   * performs default actions such as toggling a checkbox or opening a button.
+   */
+  function dispatchPressEvents(element, base) {
+    const pointerBase = {
+      ...base,
+      pointerId: 1,
+      pointerType: 'mouse',
+      isPrimary: true,
+    };
+    try {
+      const PointerEventCtor = window.PointerEvent;
+      if (typeof PointerEventCtor === 'function') {
+        element.dispatchEvent(new PointerEventCtor('pointerdown', pointerBase));
+      }
+    } catch {}
+    try {
+      element.dispatchEvent(new MouseEvent('mousedown', base));
+    } catch {}
+    try {
+      const PointerEventCtor = window.PointerEvent;
+      if (typeof PointerEventCtor === 'function') {
+        element.dispatchEvent(new PointerEventCtor('pointerup', pointerBase));
+      }
+    } catch {}
+    try {
+      element.dispatchEvent(new MouseEvent('mouseup', base));
+    } catch {}
+  }
+
+  function dispatchClickEvent(element, base) {
+    try {
+      if (base.button === 0 && typeof element.click === 'function') {
+        element.click();
+        return;
+      }
+    } catch {}
+    try {
+      element.dispatchEvent(new MouseEvent('click', base));
+    } catch {}
   }
 
   /**
@@ -367,6 +393,56 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
   }
 
   /**
+   * A control can be visually hidden with opacity:0 and still be a valid
+   * programmatic target. Keep display/visibility/size/disabled checks, but do
+   * not require it to win hit-testing at its center point.
+   */
+  function isElementActionable(element) {
+    if (!element || !element.isConnected) return false;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+    const control =
+      element.closest?.('button, input, select, textarea, [role="button"]') || element;
+    return control.disabled !== true && control.getAttribute?.('aria-disabled') !== 'true';
+  }
+
+  function normalizeAriaLabel(value) {
+    return String(value || '')
+      .normalize('NFKC')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLocaleLowerCase();
+  }
+
+  /**
+   * CSS selectors containing non-ASCII aria-label values are valid CSS, but a
+   * few pages/extensions produce selectors that fail intermittently. Retry
+   * those selectors through the DOM attribute instead of relying on CSS
+   * parsing alone.
+   */
+  function querySelectorAllRobust(selector) {
+    let matches = [];
+    try {
+      matches = Array.from(document.querySelectorAll(selector));
+    } catch {}
+    if (matches.length > 0 || typeof selector !== 'string') return matches;
+
+    const labelMatch = selector.match(
+      /\[\s*aria-label\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*\]/i,
+    );
+    if (!labelMatch) return matches;
+    const expected = normalizeAriaLabel(labelMatch[1] ?? labelMatch[2] ?? labelMatch[3]);
+    const tagMatch = selector.match(/(?:^|[\s>+~])([a-z][a-z0-9-]*)\s*(?:\[|$)/i);
+    const expectedTag = tagMatch?.[1]?.toLowerCase();
+    return Array.from(document.querySelectorAll('[aria-label]')).filter((candidate) => {
+      if (expectedTag && candidate.tagName.toLowerCase() !== expectedTag) return false;
+      return normalizeAriaLabel(candidate.getAttribute('aria-label')) === expected;
+    });
+  }
+
+  /**
    * Wait briefly for a selector to become visible. Dynamic pages often render
    * the target after the tool call has already started.
    */
@@ -376,9 +452,13 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     let firstMatch = null;
 
     do {
-      const matches = document.querySelectorAll(selector);
+      const matches = querySelectorAllRobust(selector);
       if (!firstMatch && matches.length > 0) firstMatch = matches[0];
-      const visible = Array.from(matches).find((candidate) => isElementVisible(candidate));
+      const visible = matches.find(
+        (candidate) =>
+          isElementActionable(candidate) ||
+          isElementActionable(candidate.closest?.('button, [role="button"], a, [data-testid]')),
+      );
       if (visible) return visible;
       if (Date.now() >= deadline) break;
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -392,12 +472,14 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
    * decorative or zero-sized child inside a button.
    */
   function promoteToClickableElement(element) {
-    if (!element || isElementVisible(element) || typeof element.closest !== 'function') {
+    if (!element || typeof element.closest !== 'function') {
       return element;
     }
 
+    if (element.matches?.('button, input, select, textarea, a, [role="button"]')) return element;
+
     const ancestor = element.closest('button, [role="button"], a, [data-testid]');
-    return ancestor && isElementVisible(ancestor) ? ancestor : element;
+    return ancestor && isElementActionable(ancestor) ? ancestor : element;
   }
 
   // Listen for messages from the extension

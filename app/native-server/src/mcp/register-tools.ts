@@ -23,7 +23,7 @@ interface ToolActivity {
 const recentToolCalls: ToolActivity[] = [];
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
 const WRITE_TOOL =
-  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate)/;
+  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate|locate_element|select_all_items)/;
 // A native browser dialog can block the helper call used to resolve the active tab.
 // Let the dialog tool resolve its own tab instead of adding a second request that
 // is guaranteed to time out while beforeunload is visible.
@@ -32,7 +32,7 @@ const SELF_RESOLVING_WRITE_TOOLS = new Set([
   TOOL_NAMES.BROWSER.POST_TO_X,
 ]);
 const LONG_TOOL =
-  /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list)/;
+  /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|select_all_items)/;
 const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
