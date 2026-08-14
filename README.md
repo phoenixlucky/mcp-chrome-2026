@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 v2.0.2 更新内容
+## 📢 v2.0.3 更新内容
 
-> **元素定位与批量操作能力增强**
+> **图片粘贴 + 表单值读取工具** — 表单自动化闭环。
 >
-> - 🎯 **`chrome_locate_element` 元素定位工具** — 支持已保存的 `markerId`/`markerName`、旧 `ref`、CSS/XPath、可见文本、ARIA role、`aria-label`、`data-testid` 和表单 `name` 多种定位方式；自动滚动并高亮目标，返回可直接复用的最新 `ref` 与坐标，可直接传给 `chrome_click_element` 或 `chrome_fill_or_select`
-> - ☑️ **`chrome_select_all_items` 安全全选工具** — 懒加载/虚拟列表滚动到底、等待卡片数量连续稳定后再逐个勾选，不依赖页面可能失效的"选择全部"按钮，也不把乐观 DOM 数量当作操作成功依据
-> - ⏳ **`wait_extract_response` 增强** — 新增 `confirm` 参数可选点击确认按钮；返回 HTTP 状态、请求体和响应体，用于核验删除等异步操作是否真正成功
-> - 🖱️ **`chrome_click_element` 增强** — 支持 `markerId`/`markerName`，点击前自动重新定位目标
-> - 🔧 版本统一为 v2.0.2
+> - 🖼️ **`chrome_paste_image` 工具** — 将本地图片/图片数据作为合成 paste 事件粘贴到 textarea / input / contenteditable；不读系统剪贴板
+> - 📋 **`chrome_get_form_value` 工具** — 读取表单元素当前值，配合表单自动化流程
+> - 🎯 **`chrome_javascript` 目标优化** — 省略 `tabId` 时优先使用最近操作的标签页
+> - 🔧 文件上传 / 表格提取 / 点击填充助手健壮性增强
+> - 🔧 版本统一为 v2.0.3
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

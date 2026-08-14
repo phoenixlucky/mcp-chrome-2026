@@ -186,8 +186,108 @@ function isDebuggerConflictError(error: unknown): boolean {
 /**
  * Wrap user code in an async IIFE to support top-level await and return statements.
  */
+function hasTopLevelReturn(code: string): boolean {
+  let paren = 0;
+  let bracket = 0;
+  let brace = 0;
+  let quote = '';
+
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      const end = code.indexOf('\n', i + 2);
+      i = end === -1 ? code.length : end;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '*') {
+      const end = code.indexOf('*/', i + 2);
+      i = end === -1 ? code.length : end + 1;
+      continue;
+    }
+    if (ch === '(') paren++;
+    else if (ch === ')') paren = Math.max(0, paren - 1);
+    else if (ch === '[') bracket++;
+    else if (ch === ']') bracket = Math.max(0, bracket - 1);
+    else if (ch === '{') brace++;
+    else if (ch === '}') brace = Math.max(0, brace - 1);
+    else if (paren === 0 && bracket === 0 && brace === 0 && /[A-Za-z_$]/.test(ch)) {
+      const word = code.slice(i, i + 6);
+      if (
+        word === 'return' &&
+        !/[A-Za-z0-9_$]/.test(code[i - 1] || '') &&
+        !/[A-Za-z0-9_$]/.test(code[i + 6] || '')
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function hasTopLevelSemicolon(code: string): boolean {
+  let paren = 0;
+  let bracket = 0;
+  let brace = 0;
+  let quote = '';
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      const end = code.indexOf('\n', i + 2);
+      i = end === -1 ? code.length : end;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '*') {
+      const end = code.indexOf('*/', i + 2);
+      i = end === -1 ? code.length : end + 1;
+      continue;
+    }
+    if (ch === '(') paren++;
+    else if (ch === ')') paren = Math.max(0, paren - 1);
+    else if (ch === '[') bracket++;
+    else if (ch === ']') bracket = Math.max(0, bracket - 1);
+    else if (ch === '{') brace++;
+    else if (ch === '}') brace = Math.max(0, brace - 1);
+    else if (ch === ';' && paren === 0 && bracket === 0 && brace === 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Execute code as an async function body while also accepting a final
+ * expression such as `(function () { return 'x' })()`. The old contract only
+ * returned values after an explicit top-level `return`, which made normal
+ * expression/IIFE snippets unexpectedly report no_result.
+ */
 function wrapUserCode(code: string): string {
-  return `(async () => {\n${code}\n})()`;
+  const trimmed = code.trim();
+  const expression = trimmed.replace(/;+\s*$/, '');
+  const statementLike =
+    /^(?:const|let|var|if|for|while|switch|try|throw|class|function|return|break|continue|debugger)\b/.test(
+      expression,
+    );
+  const autoReturn =
+    !hasTopLevelReturn(expression) && !hasTopLevelSemicolon(expression) && !statementLike;
+  return autoReturn
+    ? `(async () => {\nreturn (${expression});\n})()`
+    : `(async () => {\n${code}\n})()`;
 }
 
 // ============================================================================
@@ -377,7 +477,7 @@ async function executeViaScripting(
             };
           }
         },
-        args: [code],
+        args: [wrapUserCode(code)],
       });
     let results = await run();
     if (!results?.some((frame) => Object.prototype.hasOwnProperty.call(frame, 'result'))) {

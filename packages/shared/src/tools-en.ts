@@ -30,8 +30,10 @@ const TOOL_NAMES = {
     BOOKMARK_DELETE: 'chrome_bookmark_delete',
     JAVASCRIPT: 'chrome_javascript',
     PASTE_TEXT: 'chrome_paste_text',
+    PASTE_IMAGE: 'chrome_paste_image',
     CONSOLE: 'chrome_console',
     FILE_UPLOAD: 'chrome_upload_file',
+    GET_FORM_VALUE: 'chrome_get_form_value',
     READ_PAGE: 'chrome_read_page',
     COMPUTER: 'chrome_computer',
     POST_TO_X: 'chrome_post_to_x',
@@ -735,7 +737,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         // For action=fill
         selector: {
           type: 'string',
-          description: 'CSS selector for fill (alternative to ref).',
+          description:
+            'CSS selector for fill or scroll_to (alternative to ref); scroll_to can also locate by text.',
         },
         value: {
           oneOf: [{ type: 'string' }, { type: 'boolean' }, { type: 'number' }],
@@ -1397,11 +1400,12 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         code: {
           type: 'string',
           description:
-            'JavaScript code to execute (the parameter is code, not script). Runs inside an async function body with top-level await. Add an explicit return to read a value, for example return document.querySelectorAll(...).length; action-only scripts may omit return.',
+            'JavaScript code to execute (the parameter is code, not script). Runs inside an async function body with top-level await. An explicit return or a trailing expression/IIFE returns its value. When tabId is omitted, the most recently operated tab is preferred, falling back to the active tab only when no target history exists.',
         },
         tabId: {
           type: 'number',
-          description: 'Target tab ID. If omitted, uses the current active tab.',
+          description:
+            'Target tab ID. If omitted, uses the most recently operated tab, then the active tab.',
         },
         timeoutMs: {
           type: 'number',
@@ -1867,6 +1871,61 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         multiple: {
           type: 'boolean',
           description: 'Whether the input accepts multiple files (default: false)',
+        },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PASTE_IMAGE,
+    description:
+      'Paste a local image or image data into a textarea, input, or contenteditable element using a synthesized paste event. It does not read the system clipboard; it uses a temporary file input, DataTransfer, and ClipboardEvent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: most recently operated tab)',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Window used to resolve the target tab when tabId is omitted',
+        },
+        targetSelector: {
+          type: 'string',
+          description:
+            'CSS selector for the paste target; defaults to the focused element or page editor',
+        },
+        selector: { type: 'string', description: 'Compatibility alias for targetSelector' },
+        filePath: { type: 'string', description: 'Absolute local path to the image file' },
+        fileUrl: { type: 'string', description: 'URL to download as an image before pasting' },
+        base64Data: {
+          type: 'string',
+          description: 'Base64 image data, optionally with a data:image/... prefix',
+        },
+        fileName: { type: 'string', description: 'Filename used for base64 or URL data' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_FORM_VALUE,
+    description:
+      'Read the actual DOM value of a form control, including React/Vue controlled inputs and textareas; this reads the value property rather than an HTML attribute or text node.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description: 'CSS selector for an input, textarea, select, or contenteditable element',
+        },
+        tabId: {
+          type: 'number',
+          description: 'Target tab ID (default: most recently operated tab)',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Window used to resolve the target tab when tabId is omitted',
         },
       },
       required: ['selector'],
@@ -2415,14 +2474,28 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
               },
               type: {
                 type: 'string',
-                enum: ['text', 'html', 'outerHtml', 'attribute', 'number', 'href', 'src', 'table'],
+                enum: [
+                  'text',
+                  'html',
+                  'outerHtml',
+                  'attribute',
+                  'attr',
+                  'number',
+                  'href',
+                  'src',
+                  'table',
+                ],
                 description:
-                  'How to extract the value:\n- "text" (default): element.textContent (trimmed)\n- "html": element.innerHTML\n- "outerHtml": element.outerHTML\n- "attribute": element.getAttribute(attribute)\n- "number": parseFloat(textContent) or null\n- "href": anchor.href (resolved absolute URL)\n- "src": img/video/iframe src (resolved absolute URL)\n- "table": table headers and rows, including colspan/rowspan',
+                  'How to extract the value:\n- "text" (default): element.textContent (trimmed); input/textarea/select fall back to the live value\n- "html": element.innerHTML\n- "outerHtml": element.outerHTML\n- "attribute": element.getAttribute(attribute); attribute="value" reads the live form value\n- "number": parseFloat(textContent) or null\n- "href": anchor.href (resolved absolute URL)\n- "src": img/video/iframe src (resolved absolute URL)\n- "table": table headers and rows, including colspan/rowspan',
               },
               attribute: {
                 type: 'string',
                 description:
                   'Attribute name when type is "attribute" (e.g. "href", "data-id", "alt").',
+              },
+              attr: {
+                type: 'string',
+                description: 'Compatibility alias for attribute; for example attr="value".',
               },
               multiple: {
                 type: 'boolean',

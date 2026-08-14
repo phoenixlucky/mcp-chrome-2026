@@ -82,6 +82,19 @@ describe('browser result contracts', () => {
     expect(payload(result)).toMatchObject({ success: true, returned: true, result: '0' });
   });
 
+  it('auto-returns a trailing expression or IIFE', async () => {
+    sendCommand.mockResolvedValue({ result: { type: 'string', value: 'x' } });
+
+    const result = await javascriptTool.execute({
+      code: "(function () { return 'x'; })()",
+      tabId: 12,
+      requireResult: true,
+    });
+
+    expect(payload(result)).toMatchObject({ success: true, returned: true, result: 'x' });
+    expect(sendCommand.mock.calls[0][2].expression).toContain('return ((function ()');
+  });
+
   it('returns native scroll state without a caller-provided script', async () => {
     sendCommand.mockResolvedValue({
       result: {

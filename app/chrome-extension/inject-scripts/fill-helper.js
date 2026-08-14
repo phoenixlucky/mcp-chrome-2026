@@ -84,9 +84,14 @@ if (window.__FILL_HELPER_INITIALIZED__) {
           // ignore
         }
         if (!element || !(element instanceof Element)) {
-          return {
-            error: `Element ref "${ref}" not found. Please call chrome_read_page first and ensure the ref is still valid.`,
-          };
+          // React re-renders can invalidate a ref between read_page and fill.
+          // When a selector is available, resolve the current element instead.
+          element = selector ? findVisibleElement(selector) : null;
+          if (!element) {
+            return {
+              error: `Element ref "${ref}" not found. Please call chrome_read_page first and ensure the ref is still valid.`,
+            };
+          }
         }
       } else {
         element = findVisibleElement(selector);
@@ -385,12 +390,27 @@ if (window.__FILL_HELPER_INITIALIZED__) {
       // Blur the element
       element.blur();
 
+      // Read back the property after the input/change events. This catches
+      // controlled components that reject a synthetic value assignment.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const actualValue = readElementValue(element);
+      const expectedValue = String(value ?? '');
+      if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+        if (actualValue !== expectedValue) {
+          return {
+            error: `Element value verification failed: expected "${expectedValue}", got "${actualValue}"`,
+            elementInfo: { ...elementInfo, value: actualValue, verified: false },
+          };
+        }
+      }
+
       return {
         success: true,
-        message: 'Element filled successfully',
+        message: 'Element filled and verified successfully',
         elementInfo: {
           ...elementInfo,
-          value: element.value, // Include the final value in the response
+          value: actualValue,
+          verified: true,
         },
       };
     } catch (error) {

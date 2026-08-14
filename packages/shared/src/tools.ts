@@ -30,8 +30,10 @@ export const TOOL_NAMES = {
     BOOKMARK_DELETE: 'chrome_bookmark_delete',
     JAVASCRIPT: 'chrome_javascript',
     PASTE_TEXT: 'chrome_paste_text',
+    PASTE_IMAGE: 'chrome_paste_image',
     CONSOLE: 'chrome_console',
     FILE_UPLOAD: 'chrome_upload_file',
+    GET_FORM_VALUE: 'chrome_get_form_value',
     READ_PAGE: 'chrome_read_page',
     COMPUTER: 'chrome_computer',
     POST_TO_X: 'chrome_post_to_x',
@@ -726,7 +728,8 @@ export const TOOL_SCHEMAS: Tool[] = [
         // For action=fill
         selector: {
           type: 'string',
-          description: '用于 fill 的 CSS 选择器（ref 的替代）。',
+          description:
+            '用于 fill 或 scroll_to 的 CSS 选择器（ref 的替代）；scroll_to 也可用 text 定位。',
         },
         value: {
           oneOf: [{ type: 'string' }, { type: 'boolean' }, { type: 'number' }],
@@ -1374,11 +1377,12 @@ export const TOOL_SCHEMAS: Tool[] = [
         code: {
           type: 'string',
           description:
-            '要执行的 JavaScript 代码（参数名是 code，不是 script）。在 async 函数体内运行，支持顶层 await；若要读取结果，必须显式写 return，例如 return document.querySelectorAll(...).length。仅执行动作时可不 return。',
+            '要执行的 JavaScript 代码（参数名是 code，不是 script）。在 async 函数体内运行，支持顶层 await；显式 return 或末尾表达式/IIFE 都会返回值。省略 tabId 时优先使用最近操作的标签页，没有历史目标时才使用当前激活标签页。',
         },
         tabId: {
           type: 'number',
-          description: '目标标签页 ID；省略时使用当前激活标签页。',
+          description:
+            '目标标签页 ID；省略时优先使用最近操作的标签页，没有历史目标时使用当前激活标签页。',
         },
         timeoutMs: {
           type: 'number',
@@ -1851,6 +1855,48 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'boolean',
           description: '输入控件是否接受多个文件（默认 false）',
         },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PASTE_IMAGE,
+    description:
+      '将本地图片或图片数据作为合成 paste 事件粘贴到 textarea、input 或 contenteditable 元素。它不读取系统剪贴板；内部使用临时 file input、DataTransfer 和 ClipboardEvent。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: '目标标签页 ID（默认：最近操作的标签页）' },
+        windowId: { type: 'number', description: '省略 tabId 时用于选取目标标签页的窗口 ID' },
+        targetSelector: {
+          type: 'string',
+          description: '接收 paste 事件的 CSS 选择器；省略时使用当前焦点或页面编辑器',
+        },
+        selector: {
+          type: 'string',
+          description: 'targetSelector 的兼容别名',
+        },
+        filePath: { type: 'string', description: '本地图片文件的绝对路径' },
+        fileUrl: { type: 'string', description: '下载后作为图片粘贴的 URL' },
+        base64Data: { type: 'string', description: '图片的 Base64 数据，可带 data:image/... 前缀' },
+        fileName: { type: 'string', description: 'base64 或 URL 数据使用的文件名' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_FORM_VALUE,
+    description:
+      '读取表单控件的实际 DOM value，适用于 React/Vue 受控 input 和 textarea；返回值不是 HTML 属性或文本节点。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description: 'input、textarea、select 或 contenteditable 的 CSS 选择器',
+        },
+        tabId: { type: 'number', description: '目标标签页 ID（默认：最近操作的标签页）' },
+        windowId: { type: 'number', description: '省略 tabId 时用于选取目标标签页的窗口 ID' },
       },
       required: ['selector'],
     },
@@ -2371,13 +2417,27 @@ export const TOOL_SCHEMAS: Tool[] = [
               },
               type: {
                 type: 'string',
-                enum: ['text', 'html', 'outerHtml', 'attribute', 'number', 'href', 'src', 'table'],
+                enum: [
+                  'text',
+                  'html',
+                  'outerHtml',
+                  'attribute',
+                  'attr',
+                  'number',
+                  'href',
+                  'src',
+                  'table',
+                ],
                 description:
-                  '值的提取方式：\n- "text"（默认）：element.textContent（去空白）\n- "html"：element.innerHTML\n- "outerHtml"：element.outerHTML\n- "attribute"：element.getAttribute(attribute)\n- "number"：parseFloat(textContent) 或 null\n- "href"：anchor.href（解析为绝对 URL）\n- "src"：img/video/iframe 的 src（解析为绝对 URL）\n- "table"：表格的表头和行，含 colspan/rowspan',
+                  '值的提取方式：\n- "text"（默认）：普通元素取 element.textContent（去空白）；input/textarea/select 回退读取实时 value\n- "html"：element.innerHTML\n- "outerHtml"：element.outerHTML\n- "attribute"：element.getAttribute(attribute)；attribute="value" 时表单控件读取实时 value\n- "number"：parseFloat(textContent) 或 null\n- "href"：anchor.href（解析为绝对 URL）\n- "src"：img/video/iframe 的 src（解析为绝对 URL）\n- "table"：表格的表头和行，含 colspan/rowspan',
               },
               attribute: {
                 type: 'string',
                 description: 'type 为 "attribute" 时的属性名（如 "href"、"data-id"、"alt"）。',
+              },
+              attr: {
+                type: 'string',
+                description: 'attribute 的兼容别名；例如 attr="value"。',
               },
               multiple: {
                 type: 'boolean',

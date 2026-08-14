@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.3] - 2026-08-13
+
+### Added
+
+- **`chrome_paste_image` 工具** — 将本地图片或图片数据作为合成 paste 事件粘贴到 textarea / input / contenteditable 元素；不读取系统剪贴板，内部使用临时 file input、DataTransfer 和 ClipboardEvent。
+- **`chrome_get_form_value` 工具** — 读取表单元素当前值，配合表单自动化流程。
+
+### Changed
+
+- **`chrome_javascript` 目标标签页优化** — 省略 `tabId` 时优先使用最近操作的标签页，无历史目标时才使用当前激活标签页。
+- 文件上传 / 表格提取 / 点击填充助手（click-helper / fill-helper）健壮性增强。
+- Popup 工具目录补充 6 个工具的 launch dates。
+- 版本统一为 v2.0.3。
+
 ## [v2.0.2] - 2026-08-13
 
 ### Added

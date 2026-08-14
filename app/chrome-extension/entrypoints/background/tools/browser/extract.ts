@@ -33,13 +33,14 @@ const CDP_SESSION_KEY = 'extract';
 // ============================================================================
 
 type ExtractFieldType =
-  'text' | 'html' | 'outerHtml' | 'attribute' | 'number' | 'href' | 'src' | 'table';
+  'text' | 'html' | 'outerHtml' | 'attribute' | 'attr' | 'number' | 'href' | 'src' | 'table';
 
 interface ExtractField {
   name: string;
   selector?: string;
   type?: ExtractFieldType;
   attribute?: string;
+  attr?: string;
   multiple?: boolean;
   defaultValue?: unknown;
 }
@@ -116,17 +117,24 @@ export function buildExtractionScript(params: ExtractToolParams): string {
 
     function extractSingleValue(el, field) {
       const type = field.type || 'text';
+      const formValue = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)
+        ? String(el.value ?? '')
+        : null;
       try {
         switch (type) {
           case 'text':
-            return (el.textContent || '').trim();
+            return formValue !== null ? formValue : (el.textContent || '').trim();
           case 'html':
             return el.innerHTML || '';
           case 'outerHtml':
             return el.outerHTML || '';
           case 'attribute':
-            if (!field.attribute) return null;
-            return el.getAttribute(field.attribute) || null;
+          case 'attr': {
+            const attribute = field.attribute || field.attr;
+            if (!attribute) return null;
+            if (attribute === 'value' && formValue !== null) return formValue;
+            return el.getAttribute(attribute) || null;
+          }
           case 'number': {
             const raw = (el.textContent || '').trim();
             // Strip currency symbols, commas, whitespace

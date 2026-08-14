@@ -25,4 +25,28 @@ describe('chrome_extract table mode', () => {
       ],
     });
   });
+
+  it('reads controlled form values for text and value-attribute extraction', () => {
+    document.body.innerHTML = '<textarea class="draft"></textarea>';
+    const textarea = document.querySelector('.draft') as HTMLTextAreaElement;
+    textarea.value = 'React draft';
+
+    const raw = window.eval(
+      buildExtractionScript({
+        selector: '.draft',
+        fields: [
+          { name: 'text', type: 'text' },
+          { name: 'valueAttribute', type: 'attribute', attribute: 'value' },
+          { name: 'attrAlias', type: 'attr', attr: 'value' },
+        ],
+      }),
+    );
+    const result = JSON.parse(raw);
+
+    expect(result.items[0]).toEqual({
+      text: 'React draft',
+      valueAttribute: 'React draft',
+      attrAlias: 'React draft',
+    });
+  });
 });

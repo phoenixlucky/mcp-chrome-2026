@@ -23,13 +23,37 @@ interface ToolActivity {
 const recentToolCalls: ToolActivity[] = [];
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
 const WRITE_TOOL =
-  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|proxy_rotate|locate_element|select_all_items)/;
+  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|paste|proxy_rotate|locate_element|select_all_items)/;
 // A native browser dialog can block the helper call used to resolve the active tab.
 // Let the dialog tool resolve its own tab instead of adding a second request that
 // is guaranteed to time out while beforeunload is visible.
 const SELF_RESOLVING_WRITE_TOOLS = new Set([
   TOOL_NAMES.BROWSER.HANDLE_DIALOG,
   TOOL_NAMES.BROWSER.POST_TO_X,
+]);
+// A call may be issued while another tab is active (side panels, devtools,
+// file:// tabs, etc.). Keep single-tab inspection/interaction tools attached
+// to the tab used by the previous browser operation when tabId is omitted.
+const RECENT_TAB_DEFAULT_TOOLS = new Set([
+  'chrome_javascript',
+  'chrome_extract',
+  'chrome_get_web_content',
+  'chrome_get_page_text',
+  'chrome_read_page',
+  'chrome_get_interactive_elements',
+  'chrome_console',
+  'chrome_screenshot',
+  'chrome_scroll',
+  'chrome_get_scroll_state',
+  'chrome_wait',
+  'chrome_keyboard',
+  'chrome_paste_text',
+  'chrome_paste_image',
+  'chrome_get_form_value',
+  'chrome_computer',
+  'chrome_click_element',
+  'chrome_fill_or_select',
+  'chrome_upload_file',
 ]);
 const LONG_TOOL =
   /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|select_all_items)/;
@@ -194,6 +218,37 @@ async function resolveWriteTab(args: any, signal?: AbortSignal): Promise<any> {
   return { ...args, tabId };
 }
 
+function getRecentTargetTabId(excludeRequestId: string): number | undefined {
+  for (let i = recentToolCalls.length - 1; i >= 0; i--) {
+    const call = recentToolCalls[i];
+    if (call.requestId === excludeRequestId) continue;
+    if (typeof call.tabId === 'number' && call.outcome !== 'cancelled') return call.tabId;
+  }
+  return undefined;
+}
+
+async function resolveRecentOrActiveTab(
+  args: any,
+  signal: AbortSignal | undefined,
+  excludeRequestId: string,
+): Promise<any> {
+  if (typeof args.tabId === 'number' || args.newWindow || Array.isArray(args.tabIds)) return args;
+
+  const recentTabId = getRecentTargetTabId(excludeRequestId);
+  if (typeof recentTabId === 'number') return { ...args, tabId: recentTabId };
+
+  const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+    { name: 'chrome_get_tab_url', args: { windowId: args.windowId } },
+    NativeMessageType.CALL_TOOL,
+    5_000,
+    signal,
+  );
+  const text = response?.data?.content?.[0]?.text;
+  const tabId = typeof text === 'string' ? JSON.parse(text).tabId : undefined;
+  if (typeof tabId !== 'number') throw new Error('Could not resolve the target tab');
+  return { ...args, tabId };
+}
+
 const handleToolCall = async (
   name: string,
   args: any,
@@ -209,6 +264,8 @@ const handleToolCall = async (
   recentToolCalls.push(activity);
   if (recentToolCalls.length > 100) recentToolCalls.shift();
   try {
+    if (RECENT_TAB_DEFAULT_TOOLS.has(name))
+      args = await resolveRecentOrActiveTab(args, signal, activity.requestId);
     if (WRITE_TOOL.test(name) && !name.startsWith('flow.') && !SELF_RESOLVING_WRITE_TOOLS.has(name))
       args = await resolveWriteTab(args, signal);
     activity.tabId = args.tabId;

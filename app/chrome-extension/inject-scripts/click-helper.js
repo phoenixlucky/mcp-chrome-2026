@@ -42,40 +42,47 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         }
 
         if (!target || !(target instanceof Element)) {
-          return {
-            error: `Element ref "${ref}" not found. Please call chrome_read_page first and ensure the ref is still valid.`,
+          // A ref can expire after React re-renders. If the caller also sent
+          // a selector, resolve the current element instead of failing early.
+          if (selector) ref = null;
+          else {
+            return {
+              error: `Element ref "${ref}" not found. Please call chrome_read_page first and ensure the ref is still valid.`,
+            };
+          }
+        } else {
+          element = target;
+          element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+          await new Promise((resolve) => setTimeout(resolve, 80));
+
+          const rect = element.getBoundingClientRect();
+          clickX = rect.left + rect.width / 2;
+          clickY = rect.top + rect.height / 2;
+          elementInfo = {
+            tagName: element.tagName,
+            id: element.id,
+            className: element.className,
+            text: element.textContent?.trim().substring(0, 100) || '',
+            href: element.href || null,
+            type: element.type || null,
+            isVisible: true,
+            rect: {
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+              top: rect.top,
+              right: rect.right,
+              bottom: rect.bottom,
+              left: rect.left,
+            },
+            clickMethod: 'ref',
+            ref,
           };
         }
-
-        element = target;
-        element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
-        await new Promise((resolve) => setTimeout(resolve, 80));
-
-        const rect = element.getBoundingClientRect();
-        clickX = rect.left + rect.width / 2;
-        clickY = rect.top + rect.height / 2;
-        elementInfo = {
-          tagName: element.tagName,
-          id: element.id,
-          className: element.className,
-          text: element.textContent?.trim().substring(0, 100) || '',
-          href: element.href || null,
-          type: element.type || null,
-          isVisible: true,
-          rect: {
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            top: rect.top,
-            right: rect.right,
-            bottom: rect.bottom,
-            left: rect.left,
-          },
-          clickMethod: 'ref',
-          ref,
-        };
-      } else if (
+      }
+      if (
+        !element &&
         coordinates &&
         typeof coordinates.x === 'number' &&
         typeof coordinates.y === 'number'
@@ -115,7 +122,8 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
             warning: 'No element found at the specified coordinates',
           };
         }
-      } else {
+      }
+      if (!element && !coordinates) {
         const matches = querySelectorAllRobust(selector);
         element = await waitForVisibleElement(selector, timeout);
         if (!element) {
@@ -291,6 +299,16 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
 
   function dispatchClickSequence(element, x, y, options = {}, isDouble = false) {
     const base = normalizeMouseOpts(x, y, options);
+    // Synthetic mouse events do not perform the browser's default focus step.
+    // Focus before dispatching so subsequent CDP keyboard/text input is routed
+    // to the element the caller just clicked.
+    try {
+      if (typeof element.focus === 'function') element.focus({ preventScroll: true });
+    } catch (_) {
+      try {
+        element.focus();
+      } catch (_) {}
+    }
     dispatchPressEvents(element, base);
     dispatchClickEvent(element, base);
     if (base.button === 2) {

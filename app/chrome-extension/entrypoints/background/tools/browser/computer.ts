@@ -231,6 +231,9 @@ class ComputerTool extends BaseBrowserToolExecutor {
       const tab = explicit || (await this.getActiveTabOrThrowInWindow(args.windowId));
       if (!tab.id)
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+      if (params.background === false) {
+        await this.ensureFocus(tab, { activate: true, focusWindow: true });
+      }
 
       // Execute the action and capture frame on success
       const result = await this.executeAction(params, tab);
@@ -501,6 +504,8 @@ class ComputerTool extends BaseBrowserToolExecutor {
           // Prefer DOM click via ref
           const domResult = await clickTool.execute({
             ref: params.ref,
+            tabId: tab.id,
+            frameId: params.frameId,
             waitForNavigation: false,
             timeout: TIMEOUTS.DEFAULT_WAIT * 5,
             button: params.action === 'right_click' ? 'right' : 'left',
@@ -514,6 +519,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
             selector: params.selector,
             selectorType: params.selectorType,
             frameId: params.frameId,
+            tabId: tab.id,
             waitForNavigation: false,
             timeout: TIMEOUTS.DEFAULT_WAIT * 5,
             button: params.action === 'right_click' ? 'right' : 'left',
@@ -548,6 +554,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
         // Prefer DOM path via existing click tool
         const domResult = await clickTool.execute({
           coordinates: coord,
+          tabId: tab.id,
           waitForNavigation: false,
           timeout: TIMEOUTS.DEFAULT_WAIT * 5,
           button: params.action === 'right_click' ? 'right' : 'left',
@@ -930,12 +937,17 @@ class ComputerTool extends BaseBrowserToolExecutor {
         if (!params.text) return createErrorResponse('Text parameter is required for type action');
         try {
           // Optional focus via ref before typing
-          if (params.ref) {
-            await clickTool.execute({
+          if (params.ref || params.selector) {
+            const focusResult = await clickTool.execute({
               ref: params.ref,
+              selector: params.selector,
+              selectorType: params.selectorType,
+              tabId: tab.id,
+              frameId: params.frameId,
               waitForNavigation: false,
               timeout: TIMEOUTS.DEFAULT_WAIT * 5,
             });
+            if (focusResult.isError) return focusResult;
           }
           await CDPHelper.attach(tab.id);
           // Use CDP insertText to avoid complex KeyboardEvent emulation for long text
@@ -961,6 +973,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
             keys: params.text.split('').join(','),
             delay: 0,
             selector: undefined,
+            tabId: tab.id,
           });
           return res;
         }
@@ -975,6 +988,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
           selectorType: params.selectorType as any,
           ref: params.ref as any,
           value: params.value as any,
+          tabId: tab.id,
         } as any);
         return res;
       }
@@ -996,6 +1010,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
             const r = await fillTool.execute({
               ref: item.ref as any,
               value: item.value as any,
+              tabId: tab.id,
             } as any);
             const ok = !r.isError;
             results.push({ ref: item.ref, ok, error: ok ? undefined : 'failed' });
@@ -1036,12 +1051,17 @@ class ComputerTool extends BaseBrowserToolExecutor {
         }
         try {
           // Optional focus via ref before key events
-          if (params.ref) {
-            await clickTool.execute({
+          if (params.ref || params.selector) {
+            const focusResult = await clickTool.execute({
               ref: params.ref,
+              selector: params.selector,
+              selectorType: params.selectorType,
+              tabId: tab.id,
+              frameId: params.frameId,
               waitForNavigation: false,
               timeout: TIMEOUTS.DEFAULT_WAIT * 5,
             });
+            if (focusResult.isError) return focusResult;
           }
           await CDPHelper.attach(tab.id);
           for (let i = 0; i < repeat; i++) {
@@ -1139,15 +1159,33 @@ class ComputerTool extends BaseBrowserToolExecutor {
         }
       }
       case 'scroll_to': {
-        if (!params.ref) {
-          return createErrorResponse('ref is required for scroll_to action');
+        if (!params.ref && !params.selector && !params.text) {
+          return createErrorResponse('Provide ref, selector, or text for scroll_to action');
         }
         try {
           await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
-          const resp = await this.sendMessageToTab(tab.id, {
-            action: 'focusByRef',
-            ref: params.ref,
-          });
+          let resp: any = null;
+          if (params.ref) {
+            resp = await this.sendMessageToTab(tab.id, { action: 'focusByRef', ref: params.ref });
+          }
+          // Re-resolve after a DOM re-render when a selector/text hint is also
+          // available. This makes scroll_to useful with stale read_page refs.
+          if ((!resp || resp.success !== true) && (params.selector || params.text)) {
+            const located = await this.sendMessageToTab(tab.id, {
+              action: 'locateElement',
+              selector: params.selector,
+              selectorType: params.selectorType || 'css',
+              text: params.selector ? undefined : params.text,
+              scrollIntoView: true,
+              highlight: false,
+            });
+            if (located?.success && located.ref) {
+              resp = await this.sendMessageToTab(tab.id, {
+                action: 'focusByRef',
+                ref: located.ref,
+              });
+            }
+          }
           if (!resp || resp.success !== true) {
             return createErrorResponse(resp?.error || 'scroll_to failed: element not found');
           }
@@ -1158,7 +1196,8 @@ class ComputerTool extends BaseBrowserToolExecutor {
                 text: JSON.stringify({
                   success: true,
                   action: 'scroll_to',
-                  ref: params.ref,
+                  ref: params.ref || undefined,
+                  selector: params.selector || undefined,
                 }),
               },
             ],

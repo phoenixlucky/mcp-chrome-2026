@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.0.2
+## 📢 What's New in v2.0.3
 
-> **Element locating & bulk-action capabilities**
+> **Image paste + form value reading tools** — Closing the form-automation loop.
 >
-> - 🎯 **`chrome_locate_element`** — locate page elements via saved `markerId`/`markerName`, stale `ref`, CSS/XPath, visible text, ARIA role, `aria-label`, `data-testid` or form `name`; auto-scrolls & highlights the target and returns a fresh reusable `ref` with coordinates, ready for `chrome_click_element` or `chrome_fill_or_select`
-> - ☑️ **`chrome_select_all_items`** — safe select-all for lazy/virtualized lists: scroll to the bottom, wait for the card count to stabilize, then toggle each card's checkbox — no reliance on broken page-level "select all" controls or optimistic DOM counts
-> - ⏳ **`wait_extract_response` improvements** — new `confirm` parameter to optionally click a confirmation control; returns HTTP status, request and response bodies so async operations (e.g. deletes) can be truly verified
-> - 🖱️ **`chrome_click_element` improvements** — supports `markerId`/`markerName` with automatic re-locating before click
-> - 🔧 All packages bumped to v2.0.2
+> - 🖼️ **`chrome_paste_image` tool** — Paste a local image / image data into a textarea / input / contenteditable as a synthetic paste event; does not read the system clipboard
+> - 📋 **`chrome_get_form_value` tool** — Read the current value of form elements, complementing form automation flows
+> - 🎯 **`chrome_javascript` target optimization** — When `tabId` is omitted, prefers the most recently operated tab
+> - 🔧 File upload / table extraction / click-fill helper robustness improvements
+> - 🔧 All packages bumped to v2.0.3
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
