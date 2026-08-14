@@ -55,9 +55,77 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     else element.value = value;
   }
 
-  function findVisibleElement(selector) {
+  function normalizeAriaLabel(value) {
+    return String(value || '')
+      .normalize('NFKC')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLocaleLowerCase();
+  }
+
+  function queryXPathAll(selector) {
+    if (typeof selector !== 'string' || !selector.trim()) return [];
     try {
-      const matches = Array.from(document.querySelectorAll(selector));
+      const result = document.evaluate(
+        selector,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
+      const matches = [];
+      for (let i = 0; i < result.snapshotLength; i++) {
+        const node = result.snapshotItem(i);
+        if (node instanceof Element) matches.push(node);
+      }
+      return matches;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function querySelectorAllRobust(selector) {
+    let matches = [];
+    try {
+      matches = Array.from(document.querySelectorAll(selector));
+    } catch (_) {}
+    if (matches.length > 0 || typeof selector !== 'string') return matches;
+
+    const labelMatch = selector.match(
+      /\[\s*(aria-label|value)\s*(=|\^=|\$=|\*=)\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*\]/i,
+    );
+    if (!labelMatch) return matches;
+    const attribute = labelMatch[1].toLowerCase();
+    const operator = labelMatch[2];
+    const expected = labelMatch[3] ?? labelMatch[4] ?? labelMatch[5];
+    const tagMatch = selector.match(/(?:^|[\s>+~])([a-z][a-z0-9-]*)\s*(?:\[|$)/gi);
+    const expectedTag = tagMatch?.length
+      ? tagMatch[tagMatch.length - 1].match(/[a-z][a-z0-9-]*/i)?.[0]?.toLowerCase()
+      : undefined;
+
+    const candidates = Array.from(
+      document.querySelectorAll(
+        attribute === 'value' ? 'input, textarea, select, option' : '[aria-label]',
+      ),
+    );
+    return candidates.filter((candidate) => {
+      if (expectedTag && candidate.tagName.toLowerCase() !== expectedTag) return false;
+      const actual =
+        attribute === 'value'
+          ? String(candidate.value ?? candidate.getAttribute('value') ?? '')
+          : normalizeAriaLabel(candidate.getAttribute('aria-label'));
+      const expectedValue = attribute === 'value' ? expected : normalizeAriaLabel(expected);
+      if (operator === '^=') return actual.startsWith(expectedValue);
+      if (operator === '$=') return actual.endsWith(expectedValue);
+      if (operator === '*=') return actual.includes(expectedValue);
+      return actual === expectedValue;
+    });
+  }
+
+  function findVisibleElement(selector, selectorType = 'css') {
+    try {
+      const matches =
+        selectorType === 'xpath' ? queryXPathAll(selector) : querySelectorAllRobust(selector);
       // Prefer a currently visible match, but keep an off-viewport renderable
       // match so fillElement can scroll it into view before the final check.
       return (
@@ -71,7 +139,21 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     }
   }
 
-  async function fillElement(selector, value, ref = null) {
+  async function waitForElement(selector, timeout = 5000, selectorType = 'css') {
+    const waitMs = Number.isFinite(timeout) ? Math.min(Math.max(timeout, 0), 5000) : 5000;
+    const deadline = Date.now() + waitMs;
+
+    do {
+      const element = findVisibleElement(selector, selectorType);
+      if (element) return element;
+      if (Date.now() >= deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } while (true);
+
+    return null;
+  }
+
+  async function fillElement(selector, value, ref = null, selectorType = 'css', timeout = 5000) {
     try {
       // Find the element
       let element = null;
@@ -86,7 +168,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
         if (!element || !(element instanceof Element)) {
           // React re-renders can invalidate a ref between read_page and fill.
           // When a selector is available, resolve the current element instead.
-          element = selector ? findVisibleElement(selector) : null;
+          element = selector ? await waitForElement(selector, timeout, selectorType) : null;
           if (!element) {
             return {
               error: `Element ref "${ref}" not found. Please call chrome_read_page first and ensure the ref is still valid.`,
@@ -94,7 +176,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
           }
         }
       } else {
-        element = findVisibleElement(selector);
+        element = await waitForElement(selector, timeout, selectorType);
       }
       if (!element) {
         return {
@@ -475,7 +557,13 @@ if (window.__FILL_HELPER_INITIALIZED__) {
   // Listen for messages from the extension
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === 'fillElement') {
-      fillElement(request.selector, request.value, request.ref)
+      fillElement(
+        request.selector,
+        request.value,
+        request.ref,
+        request.selectorType,
+        request.timeout,
+      )
         .then(sendResponse)
         .catch((error) => {
           sendResponse({

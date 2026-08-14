@@ -26,6 +26,23 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     options = {},
   ) {
     try {
+      const selectorType = options?.selectorType === 'xpath' ? 'xpath' : 'css';
+      if (
+        !ref &&
+        !(
+          coordinates &&
+          typeof coordinates.x === 'number' &&
+          Number.isFinite(coordinates.x) &&
+          typeof coordinates.y === 'number' &&
+          Number.isFinite(coordinates.y)
+        ) &&
+        (typeof selector !== 'string' || selector.trim().length === 0)
+      ) {
+        return {
+          error: 'Click target is missing a valid selector, ref, or coordinates',
+        };
+      }
+
       let element = null;
       let elementInfo = null;
       let clickX, clickY;
@@ -124,8 +141,8 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         }
       }
       if (!element && !coordinates) {
-        const matches = querySelectorAllRobust(selector);
-        element = await waitForVisibleElement(selector, timeout);
+        const matches = querySelectorAllByType(selector, selectorType);
+        element = await waitForVisibleElement(selector, timeout, selectorType);
         if (!element) {
           return {
             error: `Element with selector "${selector}" not found`,
@@ -434,6 +451,27 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
       .toLocaleLowerCase();
   }
 
+  function queryXPathAll(selector) {
+    if (typeof selector !== 'string' || !selector.trim()) return [];
+    try {
+      const result = document.evaluate(
+        selector,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
+      const matches = [];
+      for (let i = 0; i < result.snapshotLength; i++) {
+        const node = result.snapshotItem(i);
+        if (node instanceof Element) matches.push(node);
+      }
+      return matches;
+    } catch {
+      return [];
+    }
+  }
+
   /**
    * CSS selectors containing non-ASCII aria-label values are valid CSS, but a
    * few pages/extensions produce selectors that fail intermittently. Retry
@@ -448,29 +486,40 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     if (matches.length > 0 || typeof selector !== 'string') return matches;
 
     const labelMatch = selector.match(
-      /\[\s*aria-label\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*\]/i,
+      /\[\s*aria-label\s*(=|\^=|\$=|\*=)\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*\]/i,
     );
     if (!labelMatch) return matches;
-    const expected = normalizeAriaLabel(labelMatch[1] ?? labelMatch[2] ?? labelMatch[3]);
-    const tagMatch = selector.match(/(?:^|[\s>+~])([a-z][a-z0-9-]*)\s*(?:\[|$)/i);
-    const expectedTag = tagMatch?.[1]?.toLowerCase();
+    const operator = labelMatch[1];
+    const expected = normalizeAriaLabel(labelMatch[2] ?? labelMatch[3] ?? labelMatch[4]);
+    const tagMatch = selector.match(/(?:^|[\s>+~])([a-z][a-z0-9-]*)\s*(?:\[|$)/gi);
+    const expectedTag = tagMatch?.length
+      ? tagMatch[tagMatch.length - 1].match(/[a-z][a-z0-9-]*/i)?.[0]?.toLowerCase()
+      : undefined;
     return Array.from(document.querySelectorAll('[aria-label]')).filter((candidate) => {
       if (expectedTag && candidate.tagName.toLowerCase() !== expectedTag) return false;
-      return normalizeAriaLabel(candidate.getAttribute('aria-label')) === expected;
+      const actual = normalizeAriaLabel(candidate.getAttribute('aria-label'));
+      if (operator === '^=') return actual.startsWith(expected);
+      if (operator === '$=') return actual.endsWith(expected);
+      if (operator === '*=') return actual.includes(expected);
+      return actual === expected;
     });
+  }
+
+  function querySelectorAllByType(selector, selectorType = 'css') {
+    return selectorType === 'xpath' ? queryXPathAll(selector) : querySelectorAllRobust(selector);
   }
 
   /**
    * Wait briefly for a selector to become visible. Dynamic pages often render
    * the target after the tool call has already started.
    */
-  async function waitForVisibleElement(selector, timeout = 0) {
+  async function waitForVisibleElement(selector, timeout = 0, selectorType = 'css') {
     const waitMs = Number.isFinite(timeout) ? Math.min(Math.max(timeout, 0), 5000) : 5000;
     const deadline = Date.now() + waitMs;
     let firstMatch = null;
 
     do {
-      const matches = querySelectorAllRobust(selector);
+      const matches = querySelectorAllByType(selector, selectorType);
       if (!firstMatch && matches.length > 0) firstMatch = matches[0];
       const visible = matches.find(
         (candidate) =>

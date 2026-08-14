@@ -1967,9 +1967,21 @@
       if (request && request.action === 'focusByRef') {
         try {
           const ref = String(request.ref || '');
+          const selector = String(request.selector || '').trim();
+          const selectorType = request.selectorType === 'xpath' ? 'xpath' : 'css';
           const map = window.__claudeElementMap || {};
           const weak = map[ref];
-          const el = weak && typeof weak.deref === 'function' ? weak.deref() : null;
+          let el = weak && typeof weak.deref === 'function' ? weak.deref() : null;
+          // Ref handles point to concrete DOM nodes and can become stale after
+          // a framework re-render. If the caller supplied a selector, recover
+          // the current node before reporting the ref as expired.
+          if ((!el || !(el instanceof Element)) && selector) {
+            const result =
+              selectorType === 'xpath'
+                ? queryXPathWithUniquenessCheck(selector, true)
+                : querySelectorWithUniquenessCheck(selector, true);
+            if (!result.error && result.element) el = result.element;
+          }
           if (!el || !(el instanceof Element)) {
             sendResponse({ success: false, error: `ref "${ref}" not found or expired` });
             return true;

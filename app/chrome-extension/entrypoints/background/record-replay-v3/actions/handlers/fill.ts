@@ -76,7 +76,11 @@ export const fillHandler: ActionHandler<'fill'> = {
 
     const frameId = located?.frameId ?? ctx.frameId;
     const refToUse = located?.ref ?? selectorTarget.ref;
-    const cssSelector = !located?.ref ? firstCssOrAttr : undefined;
+    // Keep the original CSS/attribute selector alongside a fresh ref. The
+    // ref may become stale when React replaces the input before the fill
+    // message is handled.
+    const cssSelector =
+      firstCssOrAttr && !firstCssOrAttr.includes('|>') ? firstCssOrAttr : undefined;
 
     if (!refToUse && !cssSelector) {
       return failed('TARGET_NOT_FOUND', 'Could not locate target element');
@@ -144,7 +148,15 @@ export const fillHandler: ActionHandler<'fill'> = {
 
     // Focus element (best-effort, ignore errors)
     if (located?.ref) {
-      await sendMessageToTab(tabId, { action: 'focusByRef', ref: located.ref }, frameId);
+      await sendMessageToTab(
+        tabId,
+        {
+          action: 'focusByRef',
+          ref: located.ref,
+          selector: cssSelector,
+        },
+        frameId,
+      );
     } else if (cssSelector) {
       try {
         await chrome.scripting.executeScript({

@@ -36,6 +36,10 @@ function normalizeMarkerName(value: unknown): string {
     .toLowerCase();
 }
 
+function frameIdsFor(frameId?: number): number[] | undefined {
+  return typeof frameId === 'number' ? [frameId] : undefined;
+}
+
 async function findMarkerForTab(tab: chrome.tabs.Tab, markerId?: string, markerName?: string) {
   const id = String(markerId || '').trim();
   const name = normalizeMarkerName(markerName);
@@ -100,7 +104,7 @@ class ClickTool extends BaseBrowserToolExecutor {
       const marker = await findMarkerForTab(tab, args.markerId, args.markerName);
       let finalRef = args.ref;
       let finalSelector = marker?.selector || selector;
-      const finalSelectorType = marker?.selectorType || selectorType;
+      let finalSelectorType = marker?.selectorType || selectorType;
 
       if (marker) {
         await this.injectContentScript(
@@ -109,7 +113,7 @@ class ClickTool extends BaseBrowserToolExecutor {
           false,
           'ISOLATED',
           true,
-          typeof frameId === 'number' ? [frameId] : undefined,
+          frameIdsFor(frameId),
         );
         const located = await this.sendMessageToTab(
           tab.id,
@@ -127,12 +131,18 @@ class ClickTool extends BaseBrowserToolExecutor {
           return createErrorResponse(located?.error || `Failed to locate marker "${marker.id}"`);
         }
         finalRef = located.ref;
-        finalSelector = undefined;
       }
 
       // If selector is XPath, convert to ref first
       if (finalSelector && finalSelectorType === 'xpath') {
-        await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/accessibility-tree-helper.js'],
+          false,
+          'ISOLATED',
+          false,
+          frameIdsFor(frameId),
+        );
         try {
           const resolved = await this.sendMessageToTab(
             tab.id,
@@ -145,7 +155,9 @@ class ClickTool extends BaseBrowserToolExecutor {
           );
           if (resolved && resolved.success && resolved.ref) {
             finalRef = resolved.ref;
-            finalSelector = undefined; // Use ref instead of selector
+            // Keep the XPath as a recovery hint. The injected helper receives
+            // selectorType and can re-resolve it if a framework replaces the
+            // DOM node after this lookup.
           } else {
             return createErrorResponse(
               `Failed to resolve XPath selector: ${resolved?.error || 'unknown error'}`,
@@ -158,7 +170,44 @@ class ClickTool extends BaseBrowserToolExecutor {
         }
       }
 
-      await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
+      // A ref is an ephemeral DOM handle. Resolve its current selector so the
+      // content script can recover if the page re-renders between lookup and
+      // click. This also gives marker/ref-only calls a useful fallback.
+      if (finalRef && !finalSelector) {
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/accessibility-tree-helper.js'],
+          false,
+          'ISOLATED',
+          false,
+          frameIdsFor(frameId),
+        );
+        const resolved = await this.sendMessageToTab(
+          tab.id,
+          { action: TOOL_MESSAGE_TYPES.RESOLVE_REF, ref: finalRef },
+          frameId,
+        );
+        if (resolved?.success && typeof resolved.selector === 'string') {
+          finalSelector = resolved.selector;
+          finalSelectorType = 'css';
+        }
+      }
+
+      if (!coordinates && !finalRef && !finalSelector) {
+        return createErrorResponse(
+          ERROR_MESSAGES.INVALID_PARAMETERS +
+            ': Click target could not be resolved; provide a fresh ref or selector',
+        );
+      }
+
+      await this.injectContentScript(
+        tab.id,
+        ['inject-scripts/click-helper.js'],
+        false,
+        'ISOLATED',
+        false,
+        frameIdsFor(frameId),
+      );
 
       // Send click message to content script
       const result = await this.sendMessageToTab(
@@ -170,6 +219,7 @@ class ClickTool extends BaseBrowserToolExecutor {
           ref: finalRef,
           waitForNavigation,
           timeout,
+          selectorType: finalSelectorType,
           double: args.double === true,
           button,
           bubbles,
@@ -232,6 +282,7 @@ interface FillToolParams {
   ref?: string; // Element ref from accessibility tree
   // Accept string | number | boolean for broader form input coverage
   value: string | number | boolean;
+  timeout?: number; // Timeout in milliseconds for waiting for the element
   frameId?: number;
   tabId?: number; // target existing tab id
   windowId?: number; // when no tabId, pick active tab from this window
@@ -247,7 +298,14 @@ class FillTool extends BaseBrowserToolExecutor {
    * Execute fill operation
    */
   async execute(args: FillToolParams): Promise<ToolResult> {
-    const { selector, selectorType = 'css', ref, value, frameId } = args;
+    const {
+      selector,
+      selectorType = 'css',
+      ref,
+      value,
+      timeout = TIMEOUTS.DEFAULT_WAIT * 5,
+      frameId,
+    } = args;
 
     console.log(`Starting fill operation with options:`, args);
 
@@ -271,7 +329,7 @@ class FillTool extends BaseBrowserToolExecutor {
       const marker = await findMarkerForTab(tab, args.markerId, args.markerName);
       let finalRef = ref;
       let finalSelector = marker?.selector || selector;
-      const finalSelectorType = marker?.selectorType || selectorType;
+      let finalSelectorType = marker?.selectorType || selectorType;
 
       if (marker) {
         await this.injectContentScript(
@@ -280,7 +338,7 @@ class FillTool extends BaseBrowserToolExecutor {
           false,
           'ISOLATED',
           true,
-          typeof frameId === 'number' ? [frameId] : undefined,
+          frameIdsFor(frameId),
         );
         const located = await this.sendMessageToTab(
           tab.id,
@@ -298,12 +356,18 @@ class FillTool extends BaseBrowserToolExecutor {
           return createErrorResponse(located?.error || `Failed to locate marker "${marker.id}"`);
         }
         finalRef = located.ref;
-        finalSelector = undefined;
       }
 
       // If selector is XPath, convert to ref first
       if (finalSelector && finalSelectorType === 'xpath') {
-        await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/accessibility-tree-helper.js'],
+          false,
+          'ISOLATED',
+          false,
+          frameIdsFor(frameId),
+        );
         try {
           const resolved = await this.sendMessageToTab(
             tab.id,
@@ -316,7 +380,7 @@ class FillTool extends BaseBrowserToolExecutor {
           );
           if (resolved && resolved.success && resolved.ref) {
             finalRef = resolved.ref;
-            finalSelector = undefined; // Use ref instead of selector
+            // Keep the XPath as a recovery hint for DOM replacement.
           } else {
             return createErrorResponse(
               `Failed to resolve XPath selector: ${resolved?.error || 'unknown error'}`,
@@ -329,7 +393,43 @@ class FillTool extends BaseBrowserToolExecutor {
         }
       }
 
-      await this.injectContentScript(tab.id, ['inject-scripts/fill-helper.js']);
+      // Recover a selector from a live ref before filling. The selector is
+      // sent alongside the ref so fill-helper can recover after re-render.
+      if (finalRef && !finalSelector) {
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/accessibility-tree-helper.js'],
+          false,
+          'ISOLATED',
+          false,
+          frameIdsFor(frameId),
+        );
+        const resolved = await this.sendMessageToTab(
+          tab.id,
+          { action: TOOL_MESSAGE_TYPES.RESOLVE_REF, ref: finalRef },
+          frameId,
+        );
+        if (resolved?.success && typeof resolved.selector === 'string') {
+          finalSelector = resolved.selector;
+          finalSelectorType = 'css';
+        }
+      }
+
+      if (!finalRef && !finalSelector) {
+        return createErrorResponse(
+          ERROR_MESSAGES.INVALID_PARAMETERS +
+            ': Fill target could not be resolved; provide a fresh ref or selector',
+        );
+      }
+
+      await this.injectContentScript(
+        tab.id,
+        ['inject-scripts/fill-helper.js'],
+        false,
+        'ISOLATED',
+        false,
+        frameIdsFor(frameId),
+      );
 
       // Send fill message to content script
       const result = await this.sendMessageToTab(
@@ -337,7 +437,9 @@ class FillTool extends BaseBrowserToolExecutor {
         {
           action: TOOL_MESSAGE_TYPES.FILL_ELEMENT,
           selector: finalSelector,
+          selectorType: finalSelectorType,
           ref: finalRef,
+          timeout,
           value,
         },
         frameId,
