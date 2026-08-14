@@ -26,6 +26,9 @@ describe('MCP tool catalog', () => {
     const waitResponse = TOOL_SCHEMAS.find((tool) => tool.name === 'wait_extract_response');
     const dialog = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_handle_dialog');
     const postToX = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_post_to_x');
+    const javascript = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_javascript');
+    const readPage = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_read_page');
+    const spaFetch = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_spa_fetch');
     expect(collector?.inputSchema.required).toEqual(
       expect.arrayContaining(['cardSelector', 'fields', 'identityFields']),
     );
@@ -58,6 +61,29 @@ describe('MCP tool catalog', () => {
         submitSelector: expect.any(Object),
         successSelector: expect.any(Object),
         successText: expect.any(Object),
+      }),
+    );
+    expect(javascript?.inputSchema.required).toEqual(['code']);
+    expect(javascript?.inputSchema.properties).toEqual(
+      expect.objectContaining({
+        tabId: expect.any(Object),
+        windowId: expect.any(Object),
+      }),
+    );
+    expect(readPage?.inputSchema.required).toEqual([]);
+    expect(readPage?.inputSchema.properties).toEqual(
+      expect.objectContaining({
+        url: expect.any(Object),
+        tabId: expect.any(Object),
+        windowId: expect.any(Object),
+      }),
+    );
+    expect(spaFetch?.inputSchema.required).toEqual([]);
+    expect(spaFetch?.inputSchema.properties).toEqual(
+      expect.objectContaining({
+        tabId: expect.any(Object),
+        windowId: expect.any(Object),
+        background: expect.any(Object),
       }),
     );
     expect(names).not.toEqual(

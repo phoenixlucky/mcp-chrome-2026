@@ -617,6 +617,14 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        url: {
+          type: 'string',
+          description: '可选 URL；提供后先导航到该 URL，再读取目标标签页。省略时读取当前目标标签页。',
+        },
+        maxOutputBytes: {
+          type: 'number',
+          description: '限制返回 JSON 大小，默认 24000，最大 200000；超限时返回截断元数据。',
+        },
         filter: {
           type: 'string',
           description: '元素筛选："interactive" 表示仅按钮/链接/输入框等（默认：所有可见元素）',
@@ -650,6 +658,10 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {
         tabId: { type: 'number', description: '目标标签页 ID（默认：当前激活标签页）' },
+        windowId: {
+          type: 'number',
+          description: '省略 tabId 时用于选择活动标签页的窗口 ID。',
+        },
         background: {
           type: 'boolean',
           description:
@@ -1384,6 +1396,10 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             '目标标签页 ID；省略时优先使用最近操作的标签页，没有历史目标时使用当前激活标签页。',
         },
+        windowId: {
+          type: 'number',
+          description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
+        },
         timeoutMs: {
           type: 'number',
           description: '执行超时时间（毫秒，默认 15000）。',
@@ -1687,6 +1703,10 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: {
           type: 'number',
           description: '目标标签页 ID。如果省略，使用当前活动标签页。',
+        },
+        windowId: {
+          type: 'number',
+          description: '省略 tabId 时用于选择活动标签页的窗口 ID。',
         },
         textQuery: {
           type: 'string',
@@ -2179,8 +2199,12 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'number',
           description: '新建或复用标签页的目标窗口 ID。',
         },
+        background: {
+          type: 'boolean',
+          description: '提供 URL 时是否在后台打开；默认 false，会激活目标标签页。',
+        },
       },
-      required: ['url'],
+      required: [],
     },
   },
   {

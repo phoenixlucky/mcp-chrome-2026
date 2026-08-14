@@ -483,6 +483,49 @@
     return isFormishContainer(el);
   }
 
+  function collectDialogState() {
+    const candidates = Array.from(
+      document.querySelectorAll(
+        '[role="dialog"], [role="alertdialog"], [aria-modal="true"], [id*="dialog" i], [class*="dialog" i], [id*="modal" i], [class*="modal" i], [id*="overlay" i], [class*="overlay" i], [id*="popover" i], [class*="popover" i]',
+      ),
+    );
+    const dialogs = [];
+    const overlays = [];
+    for (const el of candidates) {
+      if (!(el instanceof Element) || el.id.startsWith('__rr_') || !isVisible(el)) continue;
+      const role = el.getAttribute('role') || '';
+      const className = el.getAttribute('class') || '';
+      const text = String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      const item = {
+        selector: generateSelector(el),
+        role: role || null,
+        className,
+        text,
+        isModal: role === 'dialog' || role === 'alertdialog' || el.getAttribute('aria-modal') === 'true',
+        zIndex: style.zIndex || null,
+        rect: {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left,
+        },
+      };
+      if (role === 'dialog' || role === 'alertdialog' || el.getAttribute('aria-modal') === 'true' || /dialog|modal/i.test(`${el.id} ${className}`)) {
+        dialogs.push(item);
+      } else {
+        overlays.push(item);
+      }
+      if (dialogs.length >= 20 && overlays.length >= 20) break;
+    }
+    return { dialogs: dialogs.slice(0, 20), overlays: overlays.slice(0, 20) };
+  }
+
   /**
    * Generate a fairly stable CSS selector
    * @param {Element} el
@@ -660,6 +703,7 @@
       const pageContent = out
         .filter((line) => !/^\s*- generic \[ref=ref_\d+\]$/.test(line))
         .join('\n');
+      const dialogState = collectDialogState();
       const end = performance && performance.now ? performance.now() : Date.now();
       return {
         pageContent,
@@ -675,6 +719,8 @@
           durationMs: Math.round(end - start),
         },
         refMap,
+        dialogs: dialogState.dialogs,
+        overlays: dialogState.overlays,
       };
     } catch (err) {
       throw new Error(

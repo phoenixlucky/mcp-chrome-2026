@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.0.3
+## 📢 What's New in v2.1.0
 
-> **Image paste + form value reading tools** — Closing the form-automation loop.
+> **Target-tab resolution refactor + stale-ref recovery** — Big interaction stability and tool usability boost.
 >
-> - 🖼️ **`chrome_paste_image` tool** — Paste a local image / image data into a textarea / input / contenteditable as a synthetic paste event; does not read the system clipboard
-> - 📋 **`chrome_get_form_value` tool** — Read the current value of form elements, complementing form automation flows
-> - 🎯 **`chrome_javascript` target optimization** — When `tabId` is omitted, prefers the most recently operated tab
-> - 🔧 File upload / table extraction / click-fill helper robustness improvements
-> - 🔧 All packages bumped to v2.0.3
+> - 🎯 **Target-tab resolution refactor** — An explicit `tabId` is authoritative; a closed/missing target is reported instead of silently falling back to an unrelated active tab; multiple tools now support `windowId`
+> - 🔧 **click/fill target recovery** — When a `ref` expires, the original CSS/XPath selector re-resolves the target (works even after React rebuilds the DOM node); XPath selectors supported in click/fill helpers
+> - 🌐 **Read tools accept `url`** — Navigate to a URL first, then read the target tab (optional `background` open)
+> - 📏 **`maxOutputBytes` limit** — Cap the returned JSON size (default 24000, max 200000); oversized results return truncation metadata
+> - 🔧 All packages bumped to v2.1.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

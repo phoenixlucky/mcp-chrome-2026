@@ -330,12 +330,12 @@ class ConsoleTool extends BaseBrowserToolExecutor {
       if (typeof windowId === 'number') createInfo.windowId = windowId;
       const newTab = await chrome.tabs.create(createInfo);
       // Wait for tab to be ready
-      await this.waitForTabReady(newTab.id!);
+      await this.waitForConsoleTabReady(newTab.id!);
       return newTab;
     }
   }
 
-  private async waitForTabReady(tabId: number): Promise<void> {
+  private async waitForConsoleTabReady(tabId: number): Promise<void> {
     return new Promise((resolve) => {
       const checkTab = async () => {
         try {

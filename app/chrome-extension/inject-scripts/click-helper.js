@@ -163,6 +163,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           href: element.href || null,
           type: element.type || null,
           isVisible: isElementVisible(element),
+          isHitTestVisible: isElementHitTestVisible(element),
           matchCount: matches.length,
           rect: {
             x: rect.x,
@@ -181,6 +182,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
         await new Promise((resolve) => setTimeout(resolve, 100));
         elementInfo.isVisible = isElementVisible(element);
+        elementInfo.isHitTestVisible = isElementHitTestVisible(element);
         if (!isElementActionable(element)) {
           return {
             error: `Element with selector "${selector}" is not actionable`,
@@ -418,13 +420,16 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
       return false;
     }
 
+    return true;
+  }
+
+  function isElementHitTestVisible(element) {
+    if (!element) return false;
+    const rect = element.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-
     const elementAtPoint = document.elementFromPoint(centerX, centerY);
-    if (!elementAtPoint) return false;
-
-    return element === elementAtPoint || element.contains(elementAtPoint);
+    return !!elementAtPoint && (element === elementAtPoint || element.contains(elementAtPoint));
   }
 
   /**

@@ -176,6 +176,8 @@ interface GetInteractiveElementsToolParams {
   selector?: string; // CSS selector to filter interactive elements
   includeCoordinates?: boolean; // Include element coordinates in the response (default: true)
   types?: string[]; // Types of interactive elements to include (default: all types)
+  tabId?: number;
+  windowId?: number;
 }
 
 class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
@@ -190,14 +192,8 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
     console.log(`Starting get interactive elements with options:`, args);
 
     try {
-      // Get current tab
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs[0]) {
-        return createErrorResponse('No active tab found');
-      }
-
-      const tab = tabs[0];
-      if (!tab.id) {
+      const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      if (typeof tab.id !== 'number') {
         return createErrorResponse('Active tab has no ID');
       }
 
@@ -223,6 +219,10 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
+              tabId: tab.id,
+              windowId: tab.windowId,
+              active: tab.active === true,
+              url: tab.url || '',
               elements: result.elements,
               count: result.elements.length,
               query: {

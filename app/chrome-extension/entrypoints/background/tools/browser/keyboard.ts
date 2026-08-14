@@ -37,9 +37,8 @@ class KeyboardTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      const explicit = await this.tryGetTab(args.tabId);
-      const tab = explicit || (await this.getActiveTabOrThrowInWindow(args.windowId));
-      if (!tab.id) {
+      const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      if (typeof tab.id !== 'number') {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       }
 

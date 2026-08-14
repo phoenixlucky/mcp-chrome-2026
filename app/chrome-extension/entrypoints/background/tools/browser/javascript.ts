@@ -51,6 +51,7 @@ interface JavaScriptToolParams {
   /** Backward-compatible alias; the public schema uses code. */
   script?: string;
   tabId?: number;
+  windowId?: number;
   timeoutMs?: number;
   maxOutputBytes?: number;
   requireResult?: boolean;
@@ -574,15 +575,18 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
         return createErrorResponse('Parameter [code] is required (legacy alias: script)');
       }
 
-      // Resolve target tab
-      const tab = await this.resolveTargetTab(args.tabId);
-      if (!tab) {
+      // Resolve target tab. An explicit tabId is authoritative and must not
+      // silently fall back to an unrelated active tab when it is stale.
+      let tab: chrome.tabs.Tab;
+      try {
+        tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      } catch {
         return createErrorResponse(
           typeof args.tabId === 'number' ? `Tab not found: ${args.tabId}` : 'No active tab found',
         );
       }
 
-      if (!tab.id) {
+      if (typeof tab.id !== 'number') {
         return createErrorResponse('Tab has no ID');
       }
       const tabId = tab.id;
@@ -629,17 +633,6 @@ class JavaScriptTool extends BaseBrowserToolExecutor {
       return createErrorResponse(
         `JavaScript tool error: ${error instanceof Error ? error.message : String(error)}`,
       );
-    }
-  }
-
-  private async resolveTargetTab(tabId?: number): Promise<chrome.tabs.Tab | null> {
-    if (typeof tabId === 'number') {
-      return this.tryGetTab(tabId);
-    }
-    try {
-      return await this.getActiveTabOrThrow();
-    } catch {
-      return null;
     }
   }
 

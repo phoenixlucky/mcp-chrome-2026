@@ -159,11 +159,58 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   }
 
   /**
+   * Resolve the tab targeted by a browser tool.
+   *
+   * An explicit tabId is authoritative: a closed/missing tab must be reported
+   * instead of silently falling back to an unrelated active tab.
+   */
+  protected async resolveTargetTab(tabId?: number, windowId?: number): Promise<chrome.tabs.Tab> {
+    if (typeof tabId === 'number') {
+      const explicit = await this.tryGetTab(tabId);
+      if (!explicit || typeof explicit.id !== 'number') {
+        throw new Error(`Target tab ${tabId} not found`);
+      }
+      return explicit;
+    }
+
+    const active = await this.getActiveTabInWindow(windowId);
+    if (!active || typeof active.id !== 'number') {
+      throw new Error(
+        typeof windowId === 'number'
+          ? `Active tab not found in window ${windowId}`
+          : 'Active tab not found',
+      );
+    }
+    return active;
+  }
+
+  /**
+   * Wait until Chrome reports that a tab has left the loading state.
+   */
+  protected async waitForTabReady(tabId: number, timeoutMs = 15_000): Promise<chrome.tabs.Tab> {
+    const deadline = Date.now() + Math.max(0, timeoutMs);
+    let lastTab: chrome.tabs.Tab | null = null;
+
+    while (Date.now() <= deadline) {
+      try {
+        lastTab = await chrome.tabs.get(tabId);
+        if (lastTab.status !== 'loading') return lastTab;
+      } catch {
+        throw new Error(`Target tab ${tabId} was closed during navigation`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (lastTab) return lastTab;
+    throw new Error(`Timed out waiting for tab ${tabId} to load`);
+  }
+
+  /**
    * Get the active tab in the current window. Throws when not found.
    */
   protected async getActiveTabOrThrow(): Promise<chrome.tabs.Tab> {
     const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!active || !active.id) throw new Error('Active tab not found');
+    if (!active || typeof active.id !== 'number') throw new Error('Active tab not found');
     return active;
   }
 
@@ -202,7 +249,7 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
    */
   protected async getActiveTabOrThrowInWindow(windowId?: number): Promise<chrome.tabs.Tab> {
     const tab = await this.getActiveTabInWindow(windowId);
-    if (!tab || !tab.id) throw new Error('Active tab not found');
+    if (!tab || typeof tab.id !== 'number') throw new Error('Active tab not found');
     return tab;
   }
 }

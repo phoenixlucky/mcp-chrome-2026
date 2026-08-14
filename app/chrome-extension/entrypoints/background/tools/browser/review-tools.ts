@@ -20,10 +20,8 @@ function json(value: unknown, isError = false): ToolResult {
 
 abstract class ReviewTool extends BaseBrowserToolExecutor {
   protected async tabId(args: Target): Promise<number> {
-    const tab =
-      (typeof args.tabId === 'number' ? await this.tryGetTab(args.tabId) : null) ||
-      (await this.getActiveTabInWindow(args.windowId));
-    if (!tab?.id) throw new Error('target_tab_not_found');
+    const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+    if (typeof tab.id !== 'number') throw new Error('target_tab_not_found');
     return tab.id;
   }
 
@@ -52,8 +50,16 @@ class FindAndClickTool extends ReviewTool {
       waitTimeout?: number;
     },
   ): Promise<ToolResult> {
-    if (!args?.candidates?.length)
-      return json({ success: false, reason: 'invalid_candidates' }, true);
+    if (!Array.isArray(args?.candidates) || args.candidates.length === 0)
+      return json(
+        {
+          success: false,
+          reason: 'invalid_candidates',
+          message:
+            'candidates must be a non-empty array, e.g. [{"selector":"button[type=submit]"}]',
+        },
+        true,
+      );
     try {
       const tabId = await this.tabId(args);
       const result = await this.eval(

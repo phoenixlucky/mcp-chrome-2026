@@ -94,10 +94,10 @@ class ClickTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      // Resolve tab
-      const explicit = await this.tryGetTab(args.tabId);
-      const tab = explicit || (await this.getActiveTabOrThrowInWindow(args.windowId));
-      if (!tab.id) {
+      // Resolve tab. An explicit tabId is authoritative and must not fall back
+      // to an unrelated active tab when the tab has been closed.
+      const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      if (typeof tab.id !== 'number') {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       }
 
@@ -320,9 +320,8 @@ class FillTool extends BaseBrowserToolExecutor {
     }
 
     try {
-      const explicit = await this.tryGetTab(args.tabId);
-      const tab = explicit || (await this.getActiveTabOrThrowInWindow(args.windowId));
-      if (!tab.id) {
+      const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      if (typeof tab.id !== 'number') {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       }
 

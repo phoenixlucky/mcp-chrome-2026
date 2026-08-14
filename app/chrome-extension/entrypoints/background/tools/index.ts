@@ -390,7 +390,7 @@ export const handleCallTool = async (
     const urlError = await checkExpectedUrl(param);
     if (urlError) return createErrorResponse(urlError);
     const args = { ...(param.args || {}) };
-    if (args.background === undefined) {
+    if (args.background === undefined && param.name !== 'chrome_spa_fetch') {
       const { backgroundOperations = true } =
         await chrome.storage.local.get('backgroundOperations');
       args.background = backgroundOperations;

@@ -12,19 +12,29 @@ interface ReadPageStats {
 }
 
 interface ReadPageParams {
+  url?: string;
   filter?: 'interactive'; // when omitted, return all visible elements
   depth?: number; // maximum DOM depth to traverse (0 = root only)
   refId?: string; // focus on subtree rooted at this refId
   tabId?: number; // target existing tab id
   windowId?: number; // when no tabId, pick active tab from this window
+  maxOutputBytes?: number;
 }
+
+const DEFAULT_MAX_OUTPUT_BYTES = 24_000;
+const MAX_MAX_OUTPUT_BYTES = 200_000;
 
 class ReadPageTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.READ_PAGE;
 
   // Execute read page
   async execute(args: ReadPageParams): Promise<ToolResult> {
-    const { filter, depth, refId } = args || {};
+    const { filter, depth, refId, url } = args || {};
+    const requestedMaxOutputBytes = Number(args?.maxOutputBytes);
+    const maxOutputBytes =
+      Number.isFinite(requestedMaxOutputBytes) && requestedMaxOutputBytes > 0
+        ? Math.min(Math.floor(requestedMaxOutputBytes), MAX_MAX_OUTPUT_BYTES)
+        : DEFAULT_MAX_OUTPUT_BYTES;
 
     // Validate refId parameter
     const focusRefId = typeof refId === 'string' ? refId.trim() : '';
@@ -50,9 +60,15 @@ class ReadPageTool extends BaseBrowserToolExecutor {
       const standardTips =
         "If the specific element you need is missing from the returned data, use the 'screenshot' tool to capture the current viewport and confirm the element's on-screen coordinates. Also note: 'markedElements' are user-marked elements and have the highest priority when choosing targets.";
 
-      const explicit = await this.tryGetTab(args?.tabId);
-      const tab = explicit || (await this.getActiveTabOrThrowInWindow(args?.windowId));
-      if (!tab.id)
+      let tab = await this.resolveTargetTab(args?.tabId, args?.windowId);
+      if (url) {
+        if (typeof tab.id !== 'number') {
+          return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Target tab has no ID');
+        }
+        await chrome.tabs.update(tab.id, { url });
+        tab = await this.waitForTabReady(tab.id);
+      }
+      if (typeof tab.id !== 'number')
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
 
       // Load any user-marked elements for this URL (priority hints)
@@ -142,6 +158,11 @@ class ReadPageTool extends BaseBrowserToolExecutor {
         viewport: treeOk ? resp.viewport : { width: null, height: null, dpr: null },
         stats: stats || { processed: 0, included: 0, durationMs: 0 },
         refMapCount: refCount,
+        tabId: tab.id,
+        windowId: tab.windowId,
+        active: tab.active === true,
+        url: tab.url || url || '',
+        title: tab.title || '',
         sparse: treeOk ? isSparse : false,
         depth: requestedDepth ?? null,
         focus: focusRefId ? { refId: focusRefId, found: treeOk } : null,
@@ -156,12 +177,48 @@ class ReadPageTool extends BaseBrowserToolExecutor {
         fallbackUsed: false,
         fallbackSource: null,
         reason: null,
+        dialogs: Array.isArray(resp?.dialogs) ? resp.dialogs : [],
+        overlays: Array.isArray(resp?.overlays) ? resp.overlays : [],
+      };
+
+      const serializePayload = (payload: Record<string, any>): string => {
+        const originalPageContent = String(payload.pageContent || '');
+        const originalPageContentBytes = new TextEncoder().encode(originalPageContent).length;
+        let serialized = JSON.stringify(payload);
+        if (new TextEncoder().encode(serialized).length <= maxOutputBytes) return serialized;
+
+        let low = 0;
+        let high = originalPageContent.length;
+        let best = '';
+        while (low <= high) {
+          const mid = Math.floor((low + high) / 2);
+          payload.pageContent = originalPageContent.slice(0, mid);
+          payload.outputTruncated = true;
+          payload.originalPageContentBytes = originalPageContentBytes;
+          serialized = JSON.stringify(payload);
+          if (new TextEncoder().encode(serialized).length <= maxOutputBytes) {
+            best = serialized;
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
+        if (best) return best;
+
+        payload.pageContent = '';
+        payload.elements = Array.isArray(payload.elements) ? payload.elements.slice(0, 25) : [];
+        payload.markedElements = Array.isArray(payload.markedElements)
+          ? payload.markedElements.slice(0, 10)
+          : [];
+        payload.outputTruncated = true;
+        payload.originalPageContentBytes = originalPageContentBytes;
+        return JSON.stringify(payload);
       };
 
       // Normal path: return tree
       if (treeOk && !isSparse) {
         return {
-          content: [{ type: 'text', text: JSON.stringify(basePayload) }],
+          content: [{ type: 'text', text: serializePayload(basePayload) }],
           isError: false,
         };
       }
@@ -210,7 +267,7 @@ class ReadPageTool extends BaseBrowserToolExecutor {
           }
 
           return {
-            content: [{ type: 'text', text: JSON.stringify(basePayload) }],
+            content: [{ type: 'text', text: serializePayload(basePayload) }],
             isError: false,
           };
         }

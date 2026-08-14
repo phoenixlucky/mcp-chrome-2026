@@ -207,7 +207,6 @@ class CDPHelper {
       type: 'rawKeyDown',
       key: def.key,
       code: def.code,
-      text: def.text,
       modifiers: mask,
     });
     await this.send(tabId, 'Input.dispatchKeyEvent', {
@@ -227,16 +226,20 @@ class ComputerTool extends BaseBrowserToolExecutor {
     if (!params.action) return createErrorResponse('Action parameter is required');
 
     try {
-      const explicit = await this.tryGetTab(args.tabId);
-      const tab = explicit || (await this.getActiveTabOrThrowInWindow(args.windowId));
-      if (!tab.id)
+      const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      if (typeof tab.id !== 'number')
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
-      if (params.background === false) {
+      const needsForeground = params.action === 'type' || params.action === 'key';
+      if (params.background === false || needsForeground) {
         await this.ensureFocus(tab, { activate: true, focusWindow: true });
       }
 
       // Execute the action and capture frame on success
-      const result = await this.executeAction(params, tab);
+      const result = await this.addTargetFeedback(
+        await this.executeAction(params, tab),
+        tab,
+        needsForeground,
+      );
 
       // Trigger auto-capture on successful actions (except screenshot which is read-only)
       if (!result.isError && params.action !== 'screenshot' && params.action !== 'wait') {
@@ -296,7 +299,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
   }
 
   private async executeAction(params: ComputerParams, tab: chrome.tabs.Tab): Promise<ToolResult> {
-    if (!tab.id) {
+    if (typeof tab.id !== 'number') {
       return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
     }
 
@@ -1086,7 +1089,11 @@ class ComputerTool extends BaseBrowserToolExecutor {
           const keysStr = tokens.join(',');
           const repeatedKeys =
             repeat === 1 ? keysStr : Array.from({ length: repeat }, () => keysStr).join(',');
-          const res = await keyboardTool.execute({ keys: repeatedKeys });
+          const res = await keyboardTool.execute({
+            keys: repeatedKeys,
+            tabId: tab.id,
+            windowId: tab.windowId,
+          });
           return res;
         }
       }
@@ -1320,6 +1327,9 @@ class ComputerTool extends BaseBrowserToolExecutor {
         // Reuse existing screenshot tool; it already supports base64 save option
         const result = await screenshotTool.execute({
           name: 'computer',
+          tabId: tab.id,
+          windowId: tab.windowId,
+          background: params.background,
           storeBase64: true,
           fullPage: false,
         });
@@ -1327,6 +1337,72 @@ class ComputerTool extends BaseBrowserToolExecutor {
       }
       default:
         return createErrorResponse(`Unsupported action: ${params.action}`);
+    }
+  }
+
+  private async addTargetFeedback(
+    result: ToolResult,
+    tab: chrome.tabs.Tab,
+    keyboardAction: boolean,
+  ): Promise<ToolResult> {
+    if (result.isError) return result;
+    try {
+      const currentTab = typeof tab.id === 'number' ? await chrome.tabs.get(tab.id) : tab;
+      let focus: Record<string, unknown> | null = null;
+      if (keyboardAction && typeof currentTab.id === 'number') {
+        await CDPHelper.attach(currentTab.id);
+        try {
+          const response = await CDPHelper.send(
+            currentTab.id,
+            'Runtime.evaluate',
+            {
+              expression: `(() => {
+                const el = document.activeElement;
+                if (!el) return null;
+                const type = el.getAttribute('type') || '';
+                return {
+                  tagName: el.tagName,
+                  id: el.id || null,
+                  name: el.getAttribute('name') || null,
+                  role: el.getAttribute('role') || null,
+                  type,
+                  ariaLabel: el.getAttribute('aria-label') || null,
+                  placeholder: el.getAttribute('placeholder') || null,
+                  valueLength: typeof el.value === 'string' ? el.value.length : null,
+                  valuePreview: type === 'password' ? null : (typeof el.value === 'string' ? el.value.slice(0, 120) : null),
+                };
+              })()`,
+              returnByValue: true,
+              awaitPromise: false,
+            },
+          );
+          focus = response?.result?.value || null;
+        } finally {
+          await CDPHelper.detach(currentTab.id);
+        }
+      }
+
+      const raw = result.content?.[0];
+      if (!raw || raw.type !== 'text') return result;
+      const payload = JSON.parse(raw.text);
+      payload.target = {
+        tabId: currentTab.id,
+        windowId: currentTab.windowId,
+        active: currentTab.active === true,
+        url: currentTab.url || '',
+        title: currentTab.title || '',
+        focusScope: keyboardAction ? 'page' : undefined,
+        addressBar: keyboardAction
+          ? 'Browser chrome/address-bar focus is not observable through page DOM.'
+          : undefined,
+      };
+      if (keyboardAction) payload.focus = focus;
+      return {
+        ...result,
+        content: [{ type: 'text', text: JSON.stringify(payload) }],
+      };
+    } catch {
+      return result;
     }
   }
 

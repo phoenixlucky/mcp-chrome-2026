@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.0] - 2026-08-14
+
+### Added
+
+- **目标标签页解析重构（`resolveTargetTab`）** — 显式 `tabId` 权威：目标标签页已关闭/缺失时明确报错，不再静默回退到无关的激活标签页；省略 `tabId` 时可传 `windowId` 选择目标窗口。
+- **click/fill 目标恢复（stale ref recovery）** — 保留原始 CSS/XPath selector 作为 ref 的伴随定位；React 等框架重建 DOM 节点导致 ref 过期时，内容脚本用 selector 重新解析目标；背景层新增 RESOLVE_REF selector 查找，ref-only 调用在分发前获得恢复提示；点击/填充助手支持 XPath 选择器。
+- **读取类工具支持 `url` 导航参数** — `read_page` / `spa_fetch` 等提供 `url` 时先导航再读取目标标签页，可传 `background` 后台打开。
+- **`maxOutputBytes` 输出限制** — 限制返回 JSON 大小（默认 24000，最大 200000），超限返回截断元数据。
+- 新增 `base-browser.test.ts`（目标解析与恢复测试）。
+
+### Changed
+
+- 版本统一为 v2.1.0。
+
 ## [v2.0.3] - 2026-08-13
 
 ### Added

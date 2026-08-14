@@ -126,6 +126,12 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     try {
       const matches =
         selectorType === 'xpath' ? queryXPathAll(selector) : querySelectorAllRobust(selector);
+      if (matches.length === 0 && typeof selector === 'string' && /\bplaceholder\b/i.test(selector)) {
+        const comboboxes = Array.from(
+          document.querySelectorAll('input[role="combobox"], textarea[role="combobox"], [role="combobox"]'),
+        ).filter((candidate) => isElementRenderable(candidate));
+        if (comboboxes.length === 1) return comboboxes[0];
+      }
       // Prefer a currently visible match, but keep an off-viewport renderable
       // match so fillElement can scroll it into view before the final check.
       return (

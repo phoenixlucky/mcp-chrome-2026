@@ -622,6 +622,16 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        url: {
+          type: 'string',
+          description:
+            'Optional URL. When provided, navigate the target tab before reading it; when omitted, read the current target tab.',
+        },
+        maxOutputBytes: {
+          type: 'number',
+          description:
+            'Maximum JSON response size. Defaults to 24000 bytes and is capped at 200000; oversized output is truncated with metadata.',
+        },
         filter: {
           type: 'string',
           description:
@@ -657,6 +667,10 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       type: 'object',
       properties: {
         tabId: { type: 'number', description: 'Target tab ID (default: active tab)' },
+        windowId: {
+          type: 'number',
+          description: 'Window ID used to choose the active tab when tabId is omitted.',
+        },
         background: {
           type: 'boolean',
           description:
@@ -1407,6 +1421,10 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           description:
             'Target tab ID. If omitted, uses the most recently operated tab, then the active tab.',
         },
+        windowId: {
+          type: 'number',
+          description: 'Target window ID used to choose the active tab when tabId is omitted.',
+        },
         timeoutMs: {
           type: 'number',
           description: 'Execution timeout in milliseconds (default: 15000).',
@@ -1700,6 +1718,10 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         tabId: {
           type: 'number',
           description: '目标标签页 ID。如果省略，使用当前活动标签页。',
+        },
+        windowId: {
+          type: 'number',
+          description: 'Window ID used to choose the active tab when tabId is omitted.',
         },
         textQuery: {
           type: 'string',
@@ -2186,7 +2208,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       properties: {
         url: {
           type: 'string',
-          description: 'Target SPA URL to fetch content from.',
+          description:
+            'Optional SPA URL. When omitted, read the current target tab without creating a new tab.',
         },
         maxScrolls: {
           type: 'number',
@@ -2224,8 +2247,13 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           type: 'number',
           description: 'Target window ID to create or reuse tab in.',
         },
+        background: {
+          type: 'boolean',
+          description:
+            'When a URL is provided, keep the target tab in the background. Defaults to false and activates it.',
+        },
       },
-      required: ['url'],
+      required: [],
     },
   },
   {

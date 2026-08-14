@@ -32,7 +32,7 @@ const POLL_INTERVAL_MS = 500;
 // ============================================================================
 
 interface SpaFetchParams {
-  url: string;
+  url?: string;
   maxScrolls?: number;
   scrollDelay?: number;
   waitForSelector?: string;
@@ -40,6 +40,7 @@ interface SpaFetchParams {
   extractHtml?: boolean;
   tabId?: number;
   windowId?: number;
+  background?: boolean;
 }
 
 // ============================================================================
@@ -59,27 +60,39 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
       extractHtml = false,
     } = args;
 
-    if (!url) {
-      return createErrorResponse('url is required');
-    }
-
     try {
       // ── Step 1: Navigate to the URL ──────────────────────────────
       let tab: chrome.tabs.Tab;
+      const background = args.background === true;
 
-      if (typeof args.tabId === 'number') {
-        tab = await chrome.tabs.get(args.tabId);
-        await chrome.tabs.update(tab.id!, { url });
+      if (url) {
+        if (typeof args.tabId === 'number') {
+          tab = await this.resolveTargetTab(args.tabId, args.windowId);
+          await chrome.tabs.update(tab.id!, { url });
+        } else {
+          tab = await chrome.tabs.create({
+            url,
+            active: !background,
+            ...(typeof args.windowId === 'number' ? { windowId: args.windowId } : {}),
+          });
+        }
+
+        if (typeof tab.id !== 'number') {
+          return createErrorResponse('Failed to get tab ID after navigation');
+        }
+        if (!background) {
+          await this.ensureFocus(tab, { activate: true, focusWindow: true });
+        }
+        tab = await this.waitForTabReady(tab.id, waitTimeout);
       } else {
-        tab = await chrome.tabs.create({
-          url,
-          active: false,
-          ...(typeof args.windowId === 'number' ? { windowId: args.windowId } : {}),
-        });
+        tab = await this.resolveTargetTab(args.tabId, args.windowId);
+        if (!background) {
+          await this.ensureFocus(tab, { activate: true, focusWindow: true });
+        }
       }
 
-      if (!tab.id) {
-        return createErrorResponse('Failed to get tab ID after navigation');
+      if (typeof tab.id !== 'number') {
+        return createErrorResponse('Target tab has no ID');
       }
 
       // ── Step 2: Wait for page to render ──────────────────────────
@@ -98,8 +111,12 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
       // Build result
       const result: Record<string, unknown> = {
         success: true,
-        url: tab.url || url,
+        url: tab.url || url || '',
         title: tab.title || '',
+        tabId: tab.id,
+        windowId: tab.windowId,
+        active: tab.active === true,
+        background,
         scrollsPerformed,
         reachedMaxScrolls: scrollsPerformed >= maxScrolls,
       };

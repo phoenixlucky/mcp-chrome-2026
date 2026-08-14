@@ -35,11 +35,14 @@
     checkbox: 'input[type="checkbox"], [role="checkbox"]',
     radio: 'input[type="radio"], [role="radio"]',
     textarea: 'textarea, [role="textbox"], [role="searchbox"]',
-    select: 'select, [role="combobox"]',
+    select: 'select',
+    combobox: '[role="combobox"]',
+    option: 'option, [role="option"]',
+    listbox: '[role="listbox"]',
     tab: '[role="tab"]',
     // Generic interactive elements: combines tabindex, common roles, and explicit handlers.
     // This is the key to finding custom-built interactive components.
-    interactive: `[onclick], [tabindex]:not([tabindex^="-"]), [role="menuitem"], [role="slider"], [role="option"], [role="treeitem"], [role="switch"]`,
+    interactive: `[onclick], [tabindex]:not([tabindex^="-"]), [role="menuitem"], [role="slider"], [role="option"], [role="listbox"], [role="treeitem"], [role="switch"]`,
   };
 
   // A combined selector for ANY interactive element, used in the fallback logic.
@@ -173,8 +176,12 @@
   function getAccessibleName(el) {
     const labelledby = el.getAttribute('aria-labelledby');
     if (labelledby) {
-      const labelElement = document.getElementById(labelledby);
-      if (labelElement) return labelElement.textContent?.trim() || '';
+      const labelledText = labelledby
+        .split(/\s+/)
+        .map((id) => document.getElementById(id)?.textContent?.trim() || '')
+        .filter(Boolean)
+        .join(' ');
+      if (labelledText) return labelledText;
     }
     const ariaLabel = el.getAttribute('aria-label');
     if (ariaLabel) return ariaLabel.trim();
@@ -184,13 +191,14 @@
     }
     const parentLabel = el.closest('label');
     if (parentLabel) return parentLabel.textContent?.trim() || '';
-    return (
-      el.getAttribute('placeholder') ||
-      el.getAttribute('value') ||
-      el.textContent?.trim() ||
-      el.getAttribute('title') ||
-      ''
-    );
+    return [
+      el.getAttribute('placeholder'),
+      el.getAttribute('value'),
+      el.textContent,
+      el.getAttribute('title'),
+    ]
+      .map((value) => String(value || '').replace(/\s+/g, ' ').trim())
+      .find(Boolean) || '';
   }
 
   /**
@@ -267,8 +275,17 @@
     for (const el of uniqueElements) {
       if (!isElementVisible(el) || !isElementInteractive(el)) continue;
 
-      const accessibleName = getAccessibleName(el);
-      if (textQuery && !fuzzyMatch(accessibleName, textQuery)) continue;
+      const searchableText = [
+        getAccessibleName(el),
+        el.textContent,
+        el.getAttribute('aria-label'),
+        el.getAttribute('title'),
+        el.getAttribute('value'),
+        el.getAttribute('placeholder'),
+      ]
+        .map((value) => String(value || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+      if (textQuery && !searchableText.some((value) => fuzzyMatch(value, textQuery))) continue;
 
       let elementType = 'unknown';
       for (const [type, typeSelector] of Object.entries(ELEMENT_CONFIG)) {
@@ -277,7 +294,10 @@
           break;
         }
       }
-      results.push(createElementInfo(el, elementType, includeCoordinates));
+      results.push({
+        ...createElementInfo(el, elementType, includeCoordinates),
+        role: el.getAttribute('role') || null,
+      });
     }
     return results;
   }

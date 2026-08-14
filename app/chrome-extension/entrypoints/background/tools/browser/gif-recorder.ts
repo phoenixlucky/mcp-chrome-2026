@@ -624,7 +624,7 @@ class GifRecorderTool extends BaseBrowserToolExecutor {
       switch (action) {
         case 'start': {
           // Fixed-FPS mode: captures frames at regular intervals
-          const tab = await this.resolveTargetTab(args.tabId);
+          const tab = await this.resolveGifTargetTab(args.tabId);
           if (!tab?.id) {
             return createErrorResponse(
               typeof args.tabId === 'number'
@@ -673,7 +673,7 @@ class GifRecorderTool extends BaseBrowserToolExecutor {
 
         case 'auto_start': {
           // Auto-capture mode: captures frames when tools succeed
-          const tab = await this.resolveTargetTab(args.tabId);
+          const tab = await this.resolveGifTargetTab(args.tabId);
           if (!tab?.id) {
             return createErrorResponse(
               typeof args.tabId === 'number'
@@ -746,7 +746,7 @@ class GifRecorderTool extends BaseBrowserToolExecutor {
 
         case 'capture': {
           // Manual frame capture in auto mode
-          const tab = await this.resolveTargetTab(args.tabId);
+          const tab = await this.resolveGifTargetTab(args.tabId);
           if (!tab?.id) {
             return createErrorResponse(
               typeof args.tabId === 'number'
@@ -1022,7 +1022,7 @@ class GifRecorderTool extends BaseBrowserToolExecutor {
             }
 
             // Resolve target tab
-            const tab = await this.resolveTargetTab(args.tabId);
+            const tab = await this.resolveGifTargetTab(args.tabId);
             if (!tab?.id) {
               return createErrorResponse(
                 typeof args.tabId === 'number'
@@ -1205,7 +1205,7 @@ class GifRecorderTool extends BaseBrowserToolExecutor {
     );
   }
 
-  private async resolveTargetTab(tabId?: number): Promise<chrome.tabs.Tab | null> {
+  private async resolveGifTargetTab(tabId?: number): Promise<chrome.tabs.Tab | null> {
     if (typeof tabId === 'number') {
       return this.tryGetTab(tabId);
     }

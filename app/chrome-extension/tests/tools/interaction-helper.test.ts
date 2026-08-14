@@ -139,4 +139,80 @@ describe('interaction helpers', () => {
     await expect(responsePromise).resolves.toMatchObject({ success: true });
     expect(input.value).toBe('updated');
   });
+
+  it('finds ARIA autocomplete options by visible text', async () => {
+    const option = document.createElement('div');
+    option.setAttribute('role', 'option');
+    option.textContent = 'dsh-plugin';
+    setRect(option);
+    document.body.append(option);
+
+    const handler = loadInjectedHelper(
+      'interactive-elements-helper.js',
+      '__INTERACTIVE_ELEMENTS_HELPER_INITIALIZED__',
+    );
+
+    await expect(
+      callHelper(handler, {
+        action: 'getInteractiveElements',
+        textQuery: 'dsh-plugin',
+        includeCoordinates: false,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      elements: [
+        expect.objectContaining({
+          role: 'option',
+          text: 'dsh-plugin',
+        }),
+      ],
+    });
+  });
+
+  it('uses the only visible combobox when a placeholder selector is stale', async () => {
+    const input = document.createElement('input');
+    input.setAttribute('role', 'combobox');
+    setRect(input);
+    document.body.append(input);
+    mockElementFromPoint(input);
+
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'fillElement',
+        selector: 'input[placeholder="Add topics"]',
+        value: 'dsh-plugin',
+      }),
+    ).resolves.toMatchObject({ success: true });
+    expect(input.value).toBe('dsh-plugin');
+  });
+
+  it('clicks a visible element even when another element wins center-point hit testing', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Edit repository metadata';
+    setRect(button);
+    document.body.append(button);
+
+    const overlay = document.createElement('div');
+    setRect(overlay);
+    document.body.append(overlay);
+    mockElementFromPoint(overlay);
+
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        selector: 'button',
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      clicked: true,
+      elementInfo: {
+        isVisible: true,
+        isHitTestVisible: false,
+      },
+    });
+  });
 });
