@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.1] - 2026-08-15
+
+### Changed
+
+- **Node 24 要求** — 项目 engines 与 `.nvmrc` 锁定 Node 24；`start-server.bat` / `start-server.sh` 启动时自动切换/提示 Node 24（优先 nvm）。
+- **Jest 配置修复** — native-server 测试配置修复 NodeNext 模块解析（`extensionAlias` / `moduleNameMapper`），构建与测试在 Node 24 下稳定运行。
+- 版本统一为 v2.1.1。
+
 ## [v2.1.0] - 2026-08-14
 
 ### Added

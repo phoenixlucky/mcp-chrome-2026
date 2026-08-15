@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 What's New in v2.1.0
+## 📢 What's New in v2.1.1
 
-> **Target-tab resolution refactor + stale-ref recovery** — Big interaction stability and tool usability boost.
+> **Node 24 support + build fixes** — Runtime environment upgrade.
 >
-> - 🎯 **Target-tab resolution refactor** — An explicit `tabId` is authoritative; a closed/missing target is reported instead of silently falling back to an unrelated active tab; multiple tools now support `windowId`
-> - 🔧 **click/fill target recovery** — When a `ref` expires, the original CSS/XPath selector re-resolves the target (works even after React rebuilds the DOM node); XPath selectors supported in click/fill helpers
-> - 🌐 **Read tools accept `url`** — Navigate to a URL first, then read the target tab (optional `background` open)
-> - 📏 **`maxOutputBytes` limit** — Cap the returned JSON size (default 24000, max 200000); oversized results return truncation metadata
-> - 🔧 All packages bumped to v2.1.0
+> - 🟢 **Node 24 requirement** — The project and launcher scripts (bat/sh) now require Node 24, pinned in `.nvmrc`; launching under an older Node prints a switch hint
+> - 🔧 **Jest config fix** — native-server tests fixed for NodeNext module resolution; builds and tests run reliably on Node 24
+> - 🔧 All packages bumped to v2.1.1
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
