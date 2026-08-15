@@ -8,6 +8,15 @@ echo   Chrome MCP Server v2.1.0
 echo ========================================
 echo.
 
+echo Switching to Node 24 via nvm (if installed)...
+where nvm >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    call nvm use 24
+)
+for /f %%i in ('node -v') do set NODE_VERSION=%%i
+echo   Node version: !NODE_VERSION!
+echo.
+
 echo [1/3] Checking dependencies...
 if not exist "node_modules" (
     call pnpm install

@@ -8,10 +8,17 @@ fail() {
   exit 1
 }
 
-command -v node >/dev/null || fail "Node.js 20 or newer is required."
+command -v node >/dev/null || fail "Node.js 24 or newer is required."
+
+# Prefer Node 24 via nvm when available (best effort; the check below still
+# fails loudly if the active Node is older than 24).
+if command -v nvm >/dev/null 2>&1 && nvm use 24 >/dev/null 2>&1; then
+  echo "Using Node $(node -v) via nvm."
+fi
+
 node_major="$(node -p "process.versions.node.split('.')[0]")"
-[ "$node_major" -ge 20 ] || fail "Node.js 20 or newer is required (found $(node -v))."
-command -v corepack >/dev/null || fail "Corepack is required; reinstall Node.js 20 or newer."
+[ "$node_major" -ge 24 ] || fail "Node.js 24 or newer is required (found $(node -v)). Run 'nvm use 24' and retry."
+command -v corepack >/dev/null || fail "Corepack is required; reinstall Node.js 24 or newer."
 
 pnpm() {
   corepack pnpm "$@"
