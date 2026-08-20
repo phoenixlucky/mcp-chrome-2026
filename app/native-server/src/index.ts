@@ -23,13 +23,14 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-process.on('exit', (code) => {
-});
+process.on('exit', (code) => {});
 
 process.on('uncaughtException', (error) => {
+  console.error('[NativeHost] Uncaught exception:', error);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  // Don't exit immediately, let the program continue running
+  // Keep the host alive, but retain the failure in the native-host stderr log.
+  console.error('[NativeHost] Unhandled rejection:', reason);
 });

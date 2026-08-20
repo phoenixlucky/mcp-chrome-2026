@@ -234,8 +234,27 @@ async function resolveRecentOrActiveTab(
 ): Promise<any> {
   if (typeof args.tabId === 'number' || args.newWindow || Array.isArray(args.tabIds)) return args;
 
+  // A URL-backed web fetch resolves its own URL in the extension. Injecting
+  // the most recently used tab here changes the meaning of the request and
+  // can point it at a tab that has already been closed.
+  if (typeof args.url === 'string' && args.url.trim().length > 0) return args;
+
   const recentTabId = getRecentTargetTabId(excludeRequestId);
-  if (typeof recentTabId === 'number') return { ...args, tabId: recentTabId };
+  if (typeof recentTabId === 'number') {
+    try {
+      const recentTab = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+        { name: 'chrome_get_tab_url', args: { tabId: recentTabId } },
+        NativeMessageType.CALL_TOOL,
+        5_000,
+        signal,
+      );
+      if (recentTab?.status === 'success' && recentTab.data?.isError !== true) {
+        return { ...args, tabId: recentTabId };
+      }
+    } catch {
+      // Fall back to the current active tab when the cached tab disappeared.
+    }
+  }
 
   const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
     { name: 'chrome_get_tab_url', args: { windowId: args.windowId } },

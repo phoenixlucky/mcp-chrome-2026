@@ -17,9 +17,24 @@ for /f %%i in ('node -v') do set NODE_VERSION=%%i
 echo   Node version: !NODE_VERSION!
 echo.
 
+where corepack >nul 2>&1
+if not errorlevel 1 (
+    set "PNPM_CMD=corepack pnpm"
+) else (
+    where pnpm >nul 2>&1
+    if errorlevel 1 (
+        echo Node.js 24+ with Corepack or pnpm is required.
+        pause
+        exit /b 1
+    )
+    set "PNPM_CMD=pnpm"
+)
+echo   Package manager: !PNPM_CMD!
+echo.
+
 echo [1/3] Checking dependencies...
 if not exist "node_modules" (
-    call pnpm install
+    call !PNPM_CMD! install
     if %ERRORLEVEL% NEQ 0 (
         echo Install failed
         pause
@@ -33,13 +48,13 @@ echo.
 
 echo [2/3] Building app and embedded bridge package...
 echo [Tip] If native-server\dist reports EPERM, close Chrome and rerun this script.
-call pnpm run build:native
+call !PNPM_CMD! run build:native
 if %ERRORLEVEL% NEQ 0 (
     echo Build native-server failed, check dependencies
     pause
     exit /b 1
 )
-call pnpm run build:extension
+call !PNPM_CMD! run build:extension
 if %ERRORLEVEL% NEQ 0 (
     echo Build extension failed, check dependencies
     pause
@@ -49,10 +64,10 @@ echo Done.
 echo.
 
 echo [3/3] Registering Native Messaging Host...
-call pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 run register:dev
+call !PNPM_CMD! --filter @ethanwilkins/mcp-chrome-bridge-2026 run register:dev
 if %ERRORLEVEL% NEQ 0 (
     echo Register failed - may need admin rights.
-    echo Run as admin or manually: pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 register:dev
+    echo Run as admin or manually: !PNPM_CMD! --filter @ethanwilkins/mcp-chrome-bridge-2026 register:dev
 ) else (
     echo Registered OK.
 )

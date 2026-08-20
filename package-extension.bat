@@ -2,16 +2,16 @@
 setlocal
 cd /d "%~dp0"
 
-where pnpm >nul 2>&1
-if errorlevel 1 (
-  where corepack >nul 2>&1
+where corepack >nul 2>&1
+if not errorlevel 1 (
+  set "PNPM_CMD=corepack pnpm"
+) else (
+  where pnpm >nul 2>&1
   if errorlevel 1 (
-    echo Node.js 20+ with Corepack or pnpm is required.
+    echo Node.js 24+ with Corepack or pnpm is required.
     pause
     exit /b 1
   )
-  set "PNPM_CMD=corepack pnpm"
-) else (
   set "PNPM_CMD=pnpm"
 )
 

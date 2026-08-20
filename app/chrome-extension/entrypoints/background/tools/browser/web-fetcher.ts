@@ -1,7 +1,19 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
-import { BaseBrowserToolExecutor } from '../base-browser';
+import {
+  BaseBrowserToolExecutor,
+  getNonInjectablePageReason,
+  isExpectedTabError,
+  isNavigationErrorPage,
+} from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
+
+const WEB_FETCHER_SCRIPT = 'inject-scripts/web-fetcher-helper.js';
+const ERROR_PAGE_RECOVERY_DELAYS_MS = [1_000, 2_000] as const;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 interface WebFetcherToolParams {
   htmlContent?: boolean; // get the visible HTML content of the current page. default: false
@@ -15,6 +27,40 @@ interface WebFetcherToolParams {
 
 class WebFetcherTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.WEB_FETCHER;
+
+  /**
+   * Retry a URL-backed fetch after Chrome reports that the navigation ended on
+   * its error page. A closed tab is never replaced with another tab.
+   */
+  private async injectWithNavigationRecovery(tabId: number, retryUrl?: string): Promise<void> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await this.injectContentScript(tabId, [WEB_FETCHER_SCRIPT]);
+        return;
+      } catch (error) {
+        const delayMs = ERROR_PAGE_RECOVERY_DELAYS_MS[attempt];
+        const canRecover =
+          typeof retryUrl === 'string' &&
+          retryUrl.length > 0 &&
+          !getNonInjectablePageReason(retryUrl) &&
+          isNavigationErrorPage(error) &&
+          delayMs !== undefined;
+
+        if (!canRecover) throw error;
+
+        console.warn(
+          `[WebFetcher] Tab ${tabId} is on an error page; re-navigating ${retryUrl} (attempt ${attempt + 1}/${ERROR_PAGE_RECOVERY_DELAYS_MS.length})`,
+        );
+        await delay(delayMs);
+
+        if (!(await this.tryGetTab(tabId))) {
+          throw new Error(`Target tab ${tabId} not found`);
+        }
+        await chrome.tabs.update(tabId, { url: retryUrl });
+        await this.waitForTabReady(tabId);
+      }
+    }
+  }
 
   /**
    * Execute web fetcher operation
@@ -64,9 +110,9 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
           console.log(`No existing tab found with URL: ${url}, creating new tab`);
           tab = await chrome.tabs.create({ url, active: background ? false : true });
 
-          // Wait for page to load
+          // Wait for the actual navigation state instead of guessing with a
+          // fixed delay. Error pages are handled by the recovery path below.
           console.log('Waiting for page to load...');
-          await new Promise((resolve) => setTimeout(resolve, 3000));
         }
       } else {
         // Use active tab (prefer specified window)
@@ -83,10 +129,15 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
       if (!tab.id) {
         return createErrorResponse('Tab has no ID');
       }
+      const tabId = tab.id;
+
+      if (tab.status === 'loading') {
+        tab = await this.waitForTabReady(tabId);
+      }
 
       // Optionally bring tab/window to foreground
       if (!background) {
-        await chrome.tabs.update(tab.id, { active: true });
+        await chrome.tabs.update(tabId, { active: true });
         await chrome.windows.update(tab.windowId, { focused: true });
       }
 
@@ -97,11 +148,14 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         title: tab.title,
       };
 
-      await this.injectContentScript(tab.id, ['inject-scripts/web-fetcher-helper.js']);
+      await this.injectWithNavigationRecovery(tabId, url);
+
+      // Navigation can update title/url while the helper is being injected.
+      tab = (await this.tryGetTab(tabId)) || tab;
 
       // Get HTML content if requested
       if (htmlContent) {
-        const htmlResponse = await this.sendMessageToTab(tab.id, {
+        const htmlResponse = await this.sendMessageToTab(tabId, {
           action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_HTML_CONTENT,
           selector: selector,
         });
@@ -118,7 +172,7 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 
       // Get text content if requested (and htmlContent is not true)
       if (textContent) {
-        const textResponse = await this.sendMessageToTab(tab.id, {
+        const textResponse = await this.sendMessageToTab(tabId, {
           action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_TEXT_CONTENT,
           selector: selector,
         });
@@ -161,7 +215,8 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in web fetcher:', error);
+      const log = isExpectedTabError(error) ? console.warn : console.error;
+      log('Error in web fetcher:', error);
       return createErrorResponse(
         `Error fetching web content: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -236,7 +291,8 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
-      console.error('Error in get interactive elements operation:', error);
+      const log = isExpectedTabError(error) ? console.warn : console.error;
+      log('Error in get interactive elements operation:', error);
       return createErrorResponse(
         `Error getting interactive elements: ${error instanceof Error ? error.message : String(error)}`,
       );

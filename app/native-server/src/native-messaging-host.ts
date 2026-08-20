@@ -2,7 +2,7 @@ import { stdin, stdout } from 'process';
 import { randomUUID } from 'node:crypto';
 import { Server } from './server';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
-import { TIMEOUTS } from './constant';
+import { NATIVE_SERVER_PORT, TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
 
 interface PendingRequest {
@@ -39,12 +39,15 @@ export class NativeMessagingHost {
     this.associatedServer = serverInstance;
   }
 
-  // add message handler to wait for start server
+  // Start the HTTP server as soon as the native host is connected. The
+  // extension still sends START, but startup must not depend on that single
+  // message arriving after a reconnect.
   public start(): void {
     try {
       this.connected = true;
       this.lastActivityAt = new Date();
       this.setupMessageHandling();
+      void this.startServer(NATIVE_SERVER_PORT);
     } catch (error: any) {
       process.exit(1);
     }
@@ -287,8 +290,8 @@ export class NativeMessagingHost {
     try {
       if (this.associatedServer.isRunning) {
         this.sendMessage({
-          type: NativeMessageType.ERROR,
-          payload: { message: 'Server is already running' },
+          type: NativeMessageType.SERVER_STARTED,
+          payload: { port },
         });
         return;
       }

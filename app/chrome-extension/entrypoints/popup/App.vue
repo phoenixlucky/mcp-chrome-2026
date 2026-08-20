@@ -8,7 +8,7 @@
           <img class="header-logo" :src="extensionLogoUrl" alt="" />
         </div>
       </div>
-      <div class="content">
+      <div ref="homeContentRef" class="content">
         <!-- 服务配置卡片 -->
         <div class="section">
           <h2 class="section-title">{{ getMessage('nativeServerConfigLabel') }}</h2>
@@ -720,7 +720,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onBeforeUpdate, onMounted, onUnmounted, onUpdated, reactive, ref } from 'vue';
 import {
   PREDEFINED_MODELS,
   type ModelPreset,
@@ -763,6 +763,23 @@ const rrRpc = useRRV3Rpc();
 
 // 当前视图状态：首页 or 本地模型页
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
+const homeContentRef = ref<HTMLElement | null>(null);
+let preservedHomeScrollTop = 0;
+
+onBeforeUpdate(() => {
+  const content = homeContentRef.value;
+  if (content) {
+    preservedHomeScrollTop = content.scrollTop;
+  }
+});
+
+onUpdated(() => {
+  const content = homeContentRef.value;
+  if (content && content.scrollTop !== preservedHomeScrollTop) {
+    content.scrollTop = preservedHomeScrollTop;
+  }
+});
+
 const showErrorLogs = ref(false);
 const showProxyModal = ref(false);
 const proxySaving = ref(false);
@@ -3403,11 +3420,13 @@ onUnmounted(() => {
   border-radius: var(--ac-radius-button, 8px);
   color: var(--ac-text-muted, #6e6e6e);
   cursor: pointer;
-  transition: all var(--ac-motion-fast, 120ms) ease;
+  transition:
+    background-color var(--ac-motion-fast, 120ms) ease,
+    color var(--ac-motion-fast, 120ms) ease,
+    box-shadow var(--ac-motion-fast, 120ms) ease;
 }
 
 .rr-icon-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
   box-shadow: var(--ac-shadow-float, 0 4px 20px -2px rgba(0, 0, 0, 0.05));
 }
 

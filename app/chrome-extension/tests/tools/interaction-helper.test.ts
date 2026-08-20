@@ -215,4 +215,51 @@ describe('interaction helpers', () => {
       },
     });
   });
+
+  it("accepts legacy text locators such as button('Start discussion')", async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Start discussion';
+    setRect(button);
+    document.body.append(button);
+    mockElementFromPoint(button);
+
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        selector: "button('Start discussion')",
+        timeout: 100,
+      }),
+    ).resolves.toMatchObject({ success: true, clicked: true });
+  });
+
+  it('accepts legacy indexed path selectors and forwards XPath mode', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Start discussion';
+    setRect(button);
+    const firstContainer = document.createElement('div');
+    firstContainer.append(button);
+    document.body.append(firstContainer);
+    mockElementFromPoint(button);
+
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        selector: 'body > div(1) > button',
+        timeout: 100,
+      }),
+    ).resolves.toMatchObject({ success: true, clicked: true });
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        selector: "//button[normalize-space(.)='Start discussion']",
+        selectorType: 'xpath',
+        timeout: 100,
+      }),
+    ).resolves.toMatchObject({ success: true, clicked: true });
+  });
 });

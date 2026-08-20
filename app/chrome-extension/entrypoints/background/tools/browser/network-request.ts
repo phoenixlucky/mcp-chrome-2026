@@ -5,6 +5,97 @@ import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
 const DEFAULT_NETWORK_REQUEST_TIMEOUT = 30000; // For sending a single request via content script
 
+const FORBIDDEN_REQUEST_HEADERS =
+  /^(accept-charset|accept-encoding|access-control-request-|connection|content-length|cookie2?|date|dnt|expect|host|keep-alive|origin|proxy-|sec-|te|trailer|transfer-encoding|upgrade|via)$/i;
+
+function browserSafeHeaders(headers: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers).filter(([name]) => !FORBIDDEN_REQUEST_HEADERS.test(name)),
+  );
+}
+
+function isSameOrigin(left: string, right: string): boolean {
+  try {
+    return new URL(left).origin === new URL(right).origin;
+  } catch {
+    return false;
+  }
+}
+
+async function readResponse(response: Response) {
+  const responseData: {
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    body?: unknown;
+  } = {
+    status: response.status,
+    statusText: response.statusText,
+    headers: {},
+  };
+
+  response.headers.forEach((value, key) => {
+    responseData.headers[key] = value;
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  try {
+    if (contentType.includes('application/json')) {
+      responseData.body = await response.json();
+    } else if (
+      contentType.includes('text/') ||
+      contentType.includes('application/xml') ||
+      contentType.includes('application/javascript')
+    ) {
+      responseData.body = await response.text();
+    } else {
+      responseData.body = '[Binary data not displayed]';
+    }
+  } catch (error) {
+    responseData.body = `[Error parsing response body: ${error instanceof Error ? error.message : String(error)}]`;
+  }
+
+  return responseData;
+}
+
+async function requestFromExtension(args: NetworkRequestToolParams) {
+  const method = (args.method || 'GET').toUpperCase();
+  const timeout = Number.isFinite(args.timeout)
+    ? Math.max(0, args.timeout!)
+    : DEFAULT_NETWORK_REQUEST_TIMEOUT;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(args.url, {
+      method,
+      headers: browserSafeHeaders(args.headers || {}),
+      credentials: 'include',
+      cache: 'no-store',
+      redirect: 'follow',
+      ...(method !== 'GET' && method !== 'HEAD' && args.body !== undefined
+        ? { body: typeof args.body === 'string' ? args.body : JSON.stringify(args.body) }
+        : {}),
+      signal: controller.signal,
+    });
+
+    return { success: true, response: await readResponse(response) };
+  } catch (error) {
+    const message =
+      error instanceof DOMException && error.name === 'AbortError'
+        ? `Request timed out after ${timeout}ms`
+        : error instanceof Error
+          ? error.message || error.name
+          : String(error);
+    return {
+      success: false,
+      error: `Network request failed for ${args.url}: ${message || 'Failed to fetch'}`,
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 interface NetworkRequestToolParams {
   url: string; // URL is always required
   method?: string; // Defaults to GET
@@ -51,6 +142,22 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
       }
       const activeTabId = activeTab.id;
 
+      // Page fetches are useful for same-origin requests and file-backed
+      // multipart bodies because they retain the page context. Cross-origin
+      // requests must use the extension context or the page's CORS policy
+      // turns a valid request into the opaque "Failed to fetch" error.
+      if (!args.formData && !isSameOrigin(url, activeTab.url || '')) {
+        const resultFromExtension = await requestFromExtension({
+          ...args,
+          method: method.toUpperCase(),
+          headers: browserSafeHeaders(headers),
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(resultFromExtension) }],
+          isError: !resultFromExtension.success,
+        };
+      }
+
       // Ensure content script is available in the target tab
       await this.injectContentScript(activeTabId, ['inject-scripts/network-helper.js']);
 
@@ -61,8 +168,8 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
       const resultFromContentScript = await this.sendMessageToTab(activeTabId, {
         action: TOOL_MESSAGE_TYPES.NETWORK_SEND_REQUEST,
         url: url,
-        method: method,
-        headers: headers,
+        method: method.toUpperCase(),
+        headers: browserSafeHeaders(headers),
         body: body,
         formData: args.formData || null,
         timeout: timeout,

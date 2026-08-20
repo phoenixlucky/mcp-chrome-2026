@@ -14,10 +14,8 @@ class PageTextTool extends BaseBrowserToolExecutor {
 
   async execute(args: PageTextParams): Promise<ToolResult> {
     try {
-      const tab =
-        (await this.tryGetTab(args.tabId)) ||
-        (await this.getActiveTabOrThrowInWindow(args.windowId));
-      if (!tab.id) return createErrorResponse('Active tab has no ID');
+      const tab = await this.resolveTargetTab(args.tabId, args.windowId);
+      if (typeof tab.id !== 'number') return createErrorResponse('Target tab has no ID');
 
       await this.injectContentScript(tab.id, ['inject-scripts/web-fetcher-helper.js']);
       const response = await this.sendMessageToTab(tab.id, {

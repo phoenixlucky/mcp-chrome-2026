@@ -490,6 +490,32 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     } catch {}
     if (matches.length > 0 || typeof selector !== 'string') return matches;
 
+    // Keep accepting selectors produced by older agents. `div(1)` means the
+    // first same-tag child in those selectors, while `button('Save')` is a
+    // Playwright-like text locator rather than CSS.
+    const indexedSelector = selector.replace(
+      /(^|[\s>+~])([a-z][a-z0-9-]*)\((\d+)\)/gi,
+      '$1$2:nth-of-type($3)',
+    );
+    if (indexedSelector !== selector) {
+      try {
+        matches = Array.from(document.querySelectorAll(indexedSelector));
+      } catch {}
+      if (matches.length > 0) return matches;
+    }
+
+    const textLocator = selector.match(/^([a-z][a-z0-9-]*)\(\s*(['"])([\s\S]*?)\2\s*\)$/i);
+    if (textLocator) {
+      const tagName = textLocator[1].toLowerCase();
+      const expected = normalizeAriaLabel(textLocator[3]);
+      return Array.from(document.querySelectorAll(tagName)).filter((candidate) => {
+        const text = normalizeAriaLabel(candidate.textContent);
+        const label = normalizeAriaLabel(candidate.getAttribute('aria-label'));
+        const title = normalizeAriaLabel(candidate.getAttribute('title'));
+        return text === expected || label === expected || title === expected;
+      });
+    }
+
     const labelMatch = selector.match(
       /\[\s*aria-label\s*(=|\^=|\$=|\*=)\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*\]/i,
     );
@@ -569,6 +595,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           bubbles: request.bubbles,
           cancelable: request.cancelable,
           modifiers: request.modifiers,
+          selectorType: request.selectorType,
         },
       )
         .then(sendResponse)

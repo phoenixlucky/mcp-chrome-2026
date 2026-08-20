@@ -12,6 +12,10 @@ class TestBrowserTool extends BaseBrowserToolExecutor {
   resolve(tabId?: number, windowId?: number) {
     return this.resolveTargetTab(tabId, windowId);
   }
+
+  inject(tabId: number, files: string[]) {
+    return this.injectContentScript(tabId, files);
+  }
 }
 
 describe('BaseBrowserToolExecutor target tab resolution', () => {
@@ -42,5 +46,22 @@ describe('BaseBrowserToolExecutor target tab resolution', () => {
       windowId: 4,
     });
     expect(queryTabs).toHaveBeenCalledWith({ active: true, windowId: 4 });
+  });
+
+  it('does not inject into a frame whose navigation ended on an error page', async () => {
+    const getTab = chrome.tabs.get as unknown as ReturnType<typeof vi.fn>;
+    const getFrame = vi.fn().mockResolvedValue({ errorOccurred: true });
+    const executeScript = vi.fn();
+    getTab.mockResolvedValue({ id: 12, url: 'https://example.com' });
+    (chrome.webNavigation as any).getFrame = getFrame;
+    (chrome.scripting as any) = { executeScript };
+
+    const tool = new TestBrowserTool();
+
+    await expect(tool.inject(12, ['inject-scripts/web-fetcher-helper.js'])).rejects.toThrow(
+      'Frame with ID 0 is showing error page',
+    );
+    expect(getFrame).toHaveBeenCalledWith({ tabId: 12, frameId: 0 });
+    expect(executeScript).not.toHaveBeenCalled();
   });
 });

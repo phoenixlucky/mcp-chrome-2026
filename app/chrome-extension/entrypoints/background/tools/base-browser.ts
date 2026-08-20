@@ -19,6 +19,19 @@ export function getNonInjectablePageReason(url?: string): string | null {
   return `Tab is not script-injectable because it is on a restricted page (${protocol})`;
 }
 
+export function isExpectedTabError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Frame with ID \d+ is showing error page|(?:Target )?tab \d+ not found|No tab with id|tab \d+ was closed during navigation/i.test(
+    message,
+  );
+}
+
+/** Whether Chrome rejected an injection because the navigation ended on an error page. */
+export function isNavigationErrorPage(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Frame with ID \d+ is showing error page/i.test(message);
+}
+
 /**
  * Base class for browser tool executors
  */
@@ -52,6 +65,23 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
     const nonInjectableReason = getNonInjectablePageReason(tabUrl);
     if (nonInjectableReason) {
       const message = `Cannot inject ${files.join(', ')} into tab ${tabId}: ${nonInjectableReason}`;
+      console.warn(message);
+      throw new Error(`${ERROR_MESSAGES.TOOL_EXECUTION_FAILED}: ${message}`);
+    }
+
+    let frameHasNavigationError = false;
+    try {
+      const frame = await chrome.webNavigation?.getFrame?.({
+        tabId,
+        frameId: frameIds?.[0] ?? 0,
+      });
+      frameHasNavigationError = frame?.errorOccurred === true;
+    } catch {
+      // Frame inspection is best-effort; executeScript remains the source of truth.
+    }
+    if (frameHasNavigationError) {
+      const frameId = frameIds?.[0] ?? 0;
+      const message = `Cannot inject ${files.join(', ')} into tab ${tabId}: Frame with ID ${frameId} is showing error page`;
       console.warn(message);
       throw new Error(`${ERROR_MESSAGES.TOOL_EXECUTION_FAILED}: ${message}`);
     }
@@ -109,7 +139,8 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
     } catch (injectionError) {
       const errorMessage =
         injectionError instanceof Error ? injectionError.message : String(injectionError);
-      console.error(
+      const log = isExpectedTabError(injectionError) ? console.warn : console.error;
+      log(
         `Content script '${files.join(', ')}' injection failed for tab ${tabId}: ${errorMessage}`,
       );
       throw new Error(

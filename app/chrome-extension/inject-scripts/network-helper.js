@@ -29,10 +29,17 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
     formDataDescriptor = null,
   ) {
     try {
+      const requestMethod = String(method || 'GET').toUpperCase();
+      const forbiddenRequestHeader =
+        /^(accept-charset|accept-encoding|access-control-request-|connection|content-length|cookie2?|date|dnt|expect|host|keep-alive|origin|proxy-|sec-|te|trailer|transfer-encoding|upgrade|via)$/i;
+      const safeHeaders = Object.fromEntries(
+        Object.entries(headers || {}).filter(([name]) => !forbiddenRequestHeader.test(name)),
+      );
+
       // Create fetch options
       const options = {
-        method: method,
-        headers: headers || {},
+        method: requestMethod,
+        headers: safeHeaders,
         credentials: 'include', // Include cookies
         mode: 'cors',
         cache: 'no-cache',
@@ -93,7 +100,7 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
         });
 
       // Build multipart/form-data if descriptor is provided
-      if (method !== 'GET' && method !== 'HEAD' && formDataDescriptor) {
+      if (requestMethod !== 'GET' && requestMethod !== 'HEAD' && formDataDescriptor) {
         const fd = new FormData();
         try {
           if (Array.isArray(formDataDescriptor)) {
@@ -169,7 +176,7 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
           }
         } catch {}
         options.body = fd;
-      } else if (method !== 'GET' && method !== 'HEAD' && body !== undefined) {
+      } else if (requestMethod !== 'GET' && requestMethod !== 'HEAD' && body !== undefined) {
         // Fallback to raw body
         options.body = body;
       }
@@ -233,9 +240,13 @@ if (window.__NETWORK_CAPTURE_HELPER_INITIALIZED__) {
       };
     } catch (error) {
       console.error('Error replaying request:', error);
+      const message =
+        error?.name === 'AbortError'
+          ? `Request timed out after ${timeout}ms`
+          : error?.message || error?.name || 'Failed to fetch';
       return {
         success: false,
-        error: `Error replaying request: ${error.message}`,
+        error: `Error replaying request for ${url}: ${message}`,
       };
     }
   }
