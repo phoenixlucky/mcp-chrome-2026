@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.5] - 2026-08-15
+
+### Fixed
+
+- **网络请求工具加固** — `chrome_network_request` 过滤浏览器禁用的请求头（`accept-encoding` / `host` / `origin` / `sec-*` 等），避免触发 Chrome 请求校验失败；增加同源检查与更清晰的错误信息。
+- **Web fetcher 错误处理增强** — 抓取失败时返回结构化错误与重试提示。
+- **遗留定位器支持** — click/fill 在 ref 过期且无可用 selector 时支持旧式 `ref`/`name` 定位器兜底解析；`get_page_text` 等工具同步适配。
+
+### Changed
+
+- **start-server.bat 增强** — 自动检测 pnpm / corepack（无 pnpm 时回退 `corepack pnpm`），与 `package-extension.bat` 一致。
+- Popup 界面与网络助手微调，新增 network-request / web-fetcher / interaction-helper 测试。
+- 版本统一为 v2.1.5。
+
 ## [v2.1.1] - 2026-08-15
 
 ### Changed

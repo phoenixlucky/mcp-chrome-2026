@@ -26,13 +26,15 @@
 
 ---
 
-## 📢 v2.1.1 更新内容
+## 📢 v2.1.5 更新内容
 
-> **Node 24 支持 + 构建修复** — 运行环境升级。
+> **网络请求加固 + 遗留定位器支持** — 稳定性与兼容性提升。
 >
-> - 🟢 **Node 24 要求** — 项目与启动脚本（bat/sh）现在要求 Node 24，`.nvmrc` 已锁定；启动时若检测到旧版本 Node 会提示切换
-> - 🔧 **Jest 配置修复** — native-server 测试修复 NodeNext 模块解析，构建与测试在 Node 24 下稳定运行
-> - 🔧 版本统一为 v2.1.1
+> - 🌐 **`chrome_network_request` 加固** — 过滤浏览器禁用请求头（`accept-encoding` / `host` / `origin` / `sec-*` 等），避免请求校验失败；同源检查 + 更清晰错误信息
+> - 🔧 **Web fetcher 错误处理增强** — 抓取失败返回结构化错误与重试提示
+> - 🎯 **遗留定位器支持** — ref 过期且无 selector 时兜底解析旧式 `ref`/`name` 定位器
+> - 🛠️ **start-server.bat 增强** — 自动检测 pnpm / corepack（与打包脚本一致）
+> - 🔧 版本统一为 v2.1.5
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

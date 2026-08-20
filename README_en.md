@@ -26,13 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.1.1
+## 📢 What's New in v2.1.5
 
-> **Node 24 support + build fixes** — Runtime environment upgrade.
+> **Network request hardening + legacy locator support** — Stability and compatibility improvements.
 >
-> - 🟢 **Node 24 requirement** — The project and launcher scripts (bat/sh) now require Node 24, pinned in `.nvmrc`; launching under an older Node prints a switch hint
-> - 🔧 **Jest config fix** — native-server tests fixed for NodeNext module resolution; builds and tests run reliably on Node 24
-> - 🔧 All packages bumped to v2.1.1
+> - 🌐 **`chrome_network_request` hardening** — Filters browser-forbidden request headers (`accept-encoding` / `host` / `origin` / `sec-*`, etc.) to avoid request validation failures; same-origin check and clearer errors
+> - 🔧 **Web fetcher error handling** — Structured errors with retry hints on fetch failures
+> - 🎯 **Legacy locator support** — Falls back to legacy `ref`/`name` locators when a `ref` expires without an available selector
+> - 🛠️ **start-server.bat enhancements** — Auto-detects pnpm / corepack (aligned with the packaging script)
+> - 🔧 All packages bumped to v2.1.5
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
