@@ -62,6 +62,29 @@ export const LINKS = {
     'https://github.com/phoenixlucky/mcp-chrome-2026/blob/master/docs/TROUBLESHOOTING.md',
 } as const;
 
+// Oxylabs Residential country targeting. The HTTP ports are the country
+// entry points; the HTTPS ports are the corresponding sticky entry points.
+export const PROXY_COUNTRIES = [
+  { code: 'us', name: '美国', httpPort: 10000, httpsPort: 10001 },
+  { code: 'ca', name: '加拿大', httpPort: 30000, httpsPort: 30001 },
+  { code: 'mx', name: '墨西哥', httpPort: 10000, httpsPort: 10001 },
+  { code: 'bs', name: '巴哈马', httpPort: 41000, httpsPort: 41001 },
+  { code: 'bz', name: '伯利兹', httpPort: 42000, httpsPort: 42001 },
+  { code: 'vg', name: '英属维尔京群岛', httpPort: 43000, httpsPort: 43001 },
+  { code: 'cr', name: '哥斯达黎加', httpPort: 44000, httpsPort: 44001 },
+  { code: 'cu', name: '古巴', httpPort: 45000, httpsPort: 45001 },
+  { code: 'dm', name: '多米尼克', httpPort: 46000, httpsPort: 46001 },
+  { code: 'ht', name: '海地', httpPort: 47000, httpsPort: 47001 },
+  { code: 'hn', name: '洪都拉斯', httpPort: 48000, httpsPort: 48001 },
+  { code: 'jm', name: '牙买加', httpPort: 49000, httpsPort: 49001 },
+  { code: 'aw', name: '阿鲁巴', httpPort: 10000, httpsPort: 10001 },
+  { code: 'pa', name: '巴拿马', httpPort: 11000, httpsPort: 11001 },
+  { code: 'pr', name: '波多黎各', httpPort: 12000, httpsPort: 12001 },
+  { code: 'tt', name: '特立尼达和多巴哥', httpPort: 13000, httpsPort: 13001 },
+  { code: 'do', name: '多米尼加共和国', httpPort: 21000, httpsPort: 21001 },
+  { code: 'br', name: '巴西', httpPort: 20000, httpsPort: 20001 },
+] as const;
+
 // File Extensions and MIME Types
 export const FILE_TYPES = {
   STATIC_EXTENSIONS: [
@@ -229,6 +252,7 @@ export const STORAGE_KEYS = {
   USERSCRIPTS: 'userscripts',
   USERSCRIPTS_DISABLED: 'userscripts_disabled',
   PROXY_CONFIG: 'proxyConfig',
+  PROXY_SESSION_IDS: 'proxySessionIds',
   PROXY_TEST_RESULT: 'proxyTestResult',
   WEB_EDITOR_SEND_SCROLL_COORDINATES: 'webEditorSendScrollCoordinates',
   // Record & Replay storage keys

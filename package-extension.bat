@@ -2,17 +2,10 @@
 setlocal
 cd /d "%~dp0"
 
-where corepack >nul 2>&1
-if not errorlevel 1 (
-  set "PNPM_CMD=corepack pnpm"
-) else (
-  where pnpm >nul 2>&1
-  if errorlevel 1 (
-    echo Node.js 24+ with Corepack or pnpm is required.
-    pause
-    exit /b 1
-  )
-  set "PNPM_CMD=pnpm"
+call "%~dp0scripts\ensure-pnpm.bat"
+if errorlevel 1 (
+  pause
+  exit /b 1
 )
 
 echo.

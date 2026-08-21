@@ -14,9 +14,9 @@
       <h2>住宅代理</h2>
       <p class="description"
         >反向入口 <code>pr.oxylabs.io:7777</code> 在用户名中使用
-        <code>cc-us</code>/<code>cc-ca</code>；具体国家入口的 HTTP 为
-        <code>us-pr.oxylabs.io:10000</code>/<code>ca-pr.oxylabs.io:30000</code>，HTTPS 为
-        <code>:10001</code>/<code>:30001</code>，用户名不带 <code>cc</code>。</p
+        <code>cc-XX</code>；具体国家入口使用对应国家主机和端口，用户名不带
+        <code>cc</code>。插件按站点保持同一出口，未指定 <code>sesstime</code> 时默认约 5 分钟；
+        需要更长粘性时再加 <code>sesstime-60</code> 或更长时长。</p
       >
       <div class="grid">
         <label class="toggle">
@@ -43,7 +43,7 @@
           输出格式 / 连接协议
           <select v-model="proxy.protocol" :disabled="!proxy.enabled">
             <option value="http">端点：端口 / HTTP</option>
-            <option value="https">HTTPS</option>
+            <option value="https">HTTPS（北京/香港入口必选）</option>
             <option value="socks5" disabled>SOCKS5（Oxylabs 不支持 Chrome）</option>
           </select>
         </label>
@@ -78,20 +78,14 @@
           <select v-model="proxy.countryCode" :disabled="!proxy.enabled">
             <option v-if="proxy.endpointType === 'reverse'" value="">不指定（保留用户名）</option>
             <option v-if="proxy.endpointType === 'reverse'" value="random">随机（移除 cc）</option>
-            <option value="us"
-              >美国{{
+            <option v-for="country in PROXY_COUNTRIES" :key="country.code" :value="country.code">
+              {{ country.name
+              }}{{
                 proxy.endpointType === 'reverse'
-                  ? '（cc-us）'
-                  : `（us-pr.oxylabs.io:${proxy.protocol === 'https' ? '10001' : '10000'}）`
-              }}</option
-            >
-            <option value="ca"
-              >加拿大{{
-                proxy.endpointType === 'reverse'
-                  ? '（cc-ca）'
-                  : `（ca-pr.oxylabs.io:${proxy.protocol === 'https' ? '30001' : '30000'}）`
-              }}</option
-            >
+                  ? `（cc-${country.code}）`
+                  : `（${country.code}-pr.oxylabs.io:${proxy.protocol === 'https' ? country.httpsPort : country.httpPort}）`
+              }}
+            </option>
           </select>
         </label>
         <label>
@@ -108,7 +102,7 @@
           <input v-model="proxy.sessionId" placeholder="0366443321" :disabled="!proxy.enabled" />
         </label>
         <label class="toggle">
-          页面异常自动轮换 IP
+          页面异常自动轮换 IP（同站点最短 5 分钟，不设每小时次数上限）
           <input type="checkbox" v-model="proxy.rotateOnError" :disabled="!proxy.enabled" />
         </label>
       </div>
@@ -261,7 +255,7 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
-import { STORAGE_KEYS } from '@/common/constants';
+import { PROXY_COUNTRIES, STORAGE_KEYS } from '@/common/constants';
 
 type ListItem = {
   id: string;

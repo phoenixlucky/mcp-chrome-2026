@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.2.0] - 2026-08-21
+
+### Added
+
+- **代理会话管理系统** — 重构 `proxy.ts`：新增多国家代理选择（`PROXY_COUNTRIES`）、会话维度轮换（`sessionIdsByScope`）、默认会话时长 5 分钟、显式轮换窗口（60s 内最多 3 次）与自动轮换冷却（5 分钟，窗口 1 小时）；会话 ID 生成支持 `sessid` / `sesstime` 组合格式。
+- **Popup 代理设置界面** — 大幅扩展代理配置 UI（国家选择、会话管理入口），Options 页面同步增强。
+
+### Changed
+
+- **`ensure-pnpm.bat` 脚本** — 新增 `scripts/ensure-pnpm.bat`，`start-server.bat` 与 `package-extension.bat` 统一复用 pnpm/corepack 检测逻辑。
+- 代理测试更新覆盖新会话管理逻辑。
+- 版本统一为 v2.2.0。
+
 ## [v2.1.5] - 2026-08-15
 
 ### Fixed

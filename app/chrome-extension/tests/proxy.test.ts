@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildProxyUsername,
   createProxyPac,
+  getProxyScope,
   isClosedTabError,
   isFatalProxyNetworkError,
   isKnownPageError,
@@ -18,11 +19,17 @@ describe('proxy config', () => {
     expect(buildProxyUsername('customer-user-sessid-old-sesstime-5', '0366')).toBe(
       'customer-user-sessid-0366-sesstime-5',
     );
+    expect(buildProxyUsername('customer-user-sessid-old_id-sesstime-1440', 'new-id')).toBe(
+      'customer-user-sessid-new-id-sesstime-1440',
+    );
     expect(buildProxyUsername('customer-user-cc-us', '0366')).toBe(
-      'customer-user-cc-us-sessid-0366',
+      'customer-user-cc-us-sessid-0366-sesstime-5',
     );
     expect(buildProxyUsername('customer-user-sessid-old', '0366', 'ca')).toBe(
-      'customer-user-cc-ca-sessid-0366',
+      'customer-user-cc-ca-sessid-0366-sesstime-5',
+    );
+    expect(buildProxyUsername('customer-user', '0366', 'mx')).toBe(
+      'customer-user-cc-mx-sessid-0366-sesstime-5',
     );
     expect(buildProxyUsername('customer-user-cc-us', '', 'random')).toBe('customer-user');
   });
@@ -92,6 +99,28 @@ describe('proxy config', () => {
     ).toMatchObject({ host: 'us-pr.oxylabs.io', port: 10000, username: 'customer-user' });
   });
 
+  it('supports Mexico and Brazil country-specific entry nodes', () => {
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        endpointType: 'country',
+        countryCode: 'mx',
+        protocol: 'https',
+        username: 'user',
+        password: 'secret',
+      }),
+    ).toMatchObject({ host: 'mx-pr.oxylabs.io', port: 10001, username: 'customer-user' });
+    expect(
+      normalizeProxyConfig({
+        enabled: true,
+        endpointType: 'country',
+        countryCode: 'br',
+        username: 'user',
+        password: 'secret',
+      }),
+    ).toMatchObject({ host: 'br-pr.oxylabs.io', port: 20000, username: 'customer-user' });
+  });
+
   it('adds the Oxylabs customer prefix for a country-specific entry node', () => {
     expect(
       normalizeProxyConfig({
@@ -125,7 +154,20 @@ describe('proxy config', () => {
         username: 'customer-user-cc-us-sessid-1',
         password: 'secret',
       }),
-    ).toMatchObject({ host: 'cnt9t1is.com', port: 8000, username: 'customer-user-cc-us-sessid-1' });
+    ).toMatchObject({
+      host: 'cnt9t1is.com',
+      port: 8000,
+      protocol: 'https',
+      username: 'customer-user-cc-us-sessid-1',
+    });
+  });
+
+  it('groups subdomains into a stable site session scope', () => {
+    expect(getProxyScope('https://www.lowes.com/store/123')).toBe('lowes.com');
+    expect(getProxyScope('https://sub.homedepot.com/products')).toBe('homedepot.com');
+    expect(getProxyScope('https://assets.example.com/app.js', ['*.example.com'])).toBe(
+      'example.com',
+    );
   });
 
   it('recognizes proxy connection failures that must stop the global proxy', () => {

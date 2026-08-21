@@ -153,6 +153,16 @@
               />
             </label>
             <p v-if="proxyQuickResult" class="proxy-quick-result">{{ proxyQuickResult }}</p>
+            <div class="proxy-quick-actions">
+              <button
+                class="copy-config-button"
+                type="button"
+                :disabled="!proxy.enabled || proxySaving"
+                @click="rotateCurrentProxy"
+              >
+                {{ proxySaving ? '正在处理…' : '手动切换当前页 IP' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -409,6 +419,38 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
+            <button class="entry-item" @click="openCookieManager">
+              <div class="entry-icon tools">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="8.5" />
+                  <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none" />
+                  <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
+                  <circle cx="11" cy="15" r="1" fill="currentColor" stroke="none" />
+                </svg>
+              </div>
+              <div class="entry-content">
+                <span class="entry-title">Cookie 管理</span>
+                <span class="entry-desc">查看并选择清除所有网页标签页 Cookie</span>
+              </div>
+              <svg
+                class="entry-arrow"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
             <button class="entry-item" @click="openRecentRecordedScripts">
               <div class="entry-icon recordings">
                 <svg
@@ -514,8 +556,9 @@
         </header>
         <p class="proxy-description"
           >反向入口使用 <code>pr.oxylabs.io:7777</code> +
-          <code>cc-us/cc-ca</code>；具体国家入口使用对应国家主机和端口，用户名不带
-          <code>cc</code>。</p
+          <code>cc-XX</code>；具体国家入口使用对应国家主机和端口，用户名不带
+          <code>cc</code>。插件会按站点保持同一出口，未指定 <code>sesstime</code> 时默认约 5
+          分钟；需要更长粘性时可加 <code>sesstime-60</code>。</p
         >
         <div class="proxy-form">
           <label class="proxy-toggle"
@@ -538,7 +581,7 @@
           <label
             >输出格式 / 连接协议<select v-model="proxy.protocol"
               ><option value="http">端点：端口 / HTTP</option
-              ><option value="https">HTTPS</option
+              ><option value="https">HTTPS（北京/香港入口必选）</option
               ><option value="socks5" disabled>SOCKS5（Oxylabs 不支持 Chrome）</option></select
             ></label
           >
@@ -557,17 +600,12 @@
               ><option v-if="proxy.endpointType === 'reverse'" value="">不指定（保留用户名）</option
               ><option v-if="proxy.endpointType === 'reverse'" value="random"
                 >随机（移除 cc）</option
-              ><option value="us"
-                >美国{{
+              ><option v-for="country in PROXY_COUNTRIES" :key="country.code" :value="country.code"
+                >{{ country.name
+                }}{{
                   proxy.endpointType === 'reverse'
-                    ? '（cc-us）'
-                    : `（us-pr.oxylabs.io:${proxy.protocol === 'https' ? '10001' : '10000'}）`
-                }}</option
-              ><option value="ca"
-                >加拿大{{
-                  proxy.endpointType === 'reverse'
-                    ? '（cc-ca）'
-                    : `（ca-pr.oxylabs.io:${proxy.protocol === 'https' ? '30001' : '30000'}）`
+                    ? `（cc-${country.code}）`
+                    : `（${country.code}-pr.oxylabs.io:${proxy.protocol === 'https' ? country.httpsPort : country.httpPort}）`
                 }}</option
               ></select
             ></label
@@ -577,7 +615,8 @@
           /></label>
           <label>会话 ID（可选）<input v-model="proxy.sessionId" placeholder="0366443321" /></label>
           <label class="proxy-toggle"
-            ><span>页面异常自动轮换 IP</span><input v-model="proxy.rotateOnError" type="checkbox"
+            ><span>页面异常自动轮换 IP（同站点最短 5 分钟，不设每小时次数上限）</span
+            ><input v-model="proxy.rotateOnError" type="checkbox"
           /></label>
           <label
             >仅对这些网站走代理（留空表示全部网站）<textarea
@@ -592,6 +631,13 @@
           <button
             class="copy-config-button"
             type="button"
+            :disabled="proxySaving || !proxy.enabled"
+            @click="rotateCurrentProxy"
+            >手动切换 IP</button
+          >
+          <button
+            class="copy-config-button"
+            type="button"
             :disabled="proxySaving"
             @click="() => saveProxySettings()"
             >保存</button
@@ -602,6 +648,124 @@
             :disabled="proxySaving"
             @click="testProxyConnection"
             >测试连接</button
+          >
+        </footer>
+      </section>
+    </div>
+
+    <div v-if="showCookieModal" class="error-log-modal" @click.self="showCookieModal = false">
+      <section
+        class="error-log-dialog cookie-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="所有标签页 Cookie"
+      >
+        <header class="error-log-header">
+          <strong>所有标签页 Cookie</strong>
+          <button class="copy-config-button" type="button" @click="showCookieModal = false"
+            >关闭</button
+          >
+        </header>
+        <p class="proxy-description"
+          >选择任意网页标签页，再勾选要清除的 Cookie；未勾选的 Cookie 会保留。仅处理
+          <code>http/https</code> 网页标签，不显示 Cookie 值。</p
+        >
+        <div class="cookie-toolbar">
+          <button
+            class="copy-config-button"
+            type="button"
+            :disabled="cookieLoading || cookieSaving || !cookieCount"
+            @click="selectAllCookies(true)"
+            >全选</button
+          >
+          <button
+            class="copy-config-button"
+            type="button"
+            :disabled="cookieLoading || cookieSaving"
+            @click="selectAllCookies(false)"
+            >全不选</button
+          >
+          <button
+            class="copy-config-button"
+            type="button"
+            :disabled="cookieLoading || cookieSaving || !cookieCount"
+            @click="invertAllCookies"
+            >反选</button
+          >
+          <button
+            class="copy-config-button"
+            type="button"
+            :disabled="cookieLoading || cookieSaving"
+            @click="loadAllCookieTabs"
+            >刷新</button
+          >
+          <span class="cookie-selected-count">已选 {{ selectedCookieCount }} 个</span>
+        </div>
+        <div v-if="cookieLoading" class="cookie-empty">正在读取所有网页标签页的 Cookie…</div>
+        <div v-else-if="!cookieTabs.length" class="cookie-empty"
+          >当前没有可读取 Cookie 的网页标签页。</div
+        >
+        <div v-else class="cookie-tabs-list">
+          <article v-for="tab in cookieTabs" :key="tab.id" class="cookie-tab-card">
+            <div class="cookie-tab-header">
+              <div class="cookie-tab-title">
+                <strong>{{ tab.active ? '当前' : '标签页' }} · {{ tab.title || tab.url }}</strong>
+                <span>{{ tab.url }}</span>
+              </div>
+              <div class="cookie-tab-actions">
+                <button
+                  class="copy-config-button"
+                  type="button"
+                  :disabled="tab.loading || cookieSaving || !tab.cookies.length"
+                  @click="setTabCookiesSelected(tab, true)"
+                  >全选</button
+                >
+                <button
+                  class="copy-config-button"
+                  type="button"
+                  :disabled="tab.loading || cookieSaving || !tab.cookies.length"
+                  @click="invertTabCookies(tab)"
+                  >反选</button
+                >
+                <button
+                  class="copy-config-button"
+                  type="button"
+                  :disabled="tab.loading || cookieSaving"
+                  @click="loadCookiesForTab(tab)"
+                  >刷新</button
+                >
+              </div>
+            </div>
+            <p v-if="tab.loading" class="cookie-empty">正在读取…</p>
+            <p v-else-if="tab.error" class="cookie-error">{{ tab.error }}</p>
+            <p v-else-if="!tab.cookies.length" class="cookie-empty">没有匹配到 Cookie。</p>
+            <div v-else class="cookie-list">
+              <label v-for="entry in tab.cookies" :key="entry.key" class="cookie-row">
+                <input v-model="entry.selected" type="checkbox" :disabled="cookieSaving" />
+                <span class="cookie-info">
+                  <strong>{{ entry.cookie.name }}</strong>
+                  <small
+                    >{{ entry.cookie.domain }}{{ entry.cookie.path }} ·
+                    {{ entry.cookie.secure ? 'Secure' : '普通' }} ·
+                    {{ entry.cookie.httpOnly ? 'HttpOnly' : '脚本可读' }} ·
+                    {{ entry.cookie.session ? '会话' : '持久' }}</small
+                  >
+                </span>
+              </label>
+            </div>
+          </article>
+        </div>
+        <p v-if="cookieResult" class="proxy-result">{{ cookieResult }}</p>
+        <footer class="error-log-actions">
+          <button
+            class="copy-config-button danger-action"
+            type="button"
+            :disabled="cookieSaving || !selectedCookieCount"
+            @click="clearSelectedCookies"
+            >{{ cookieSaving ? '正在清除…' : `清除已选 ${selectedCookieCount} 个` }}</button
+          >
+          <button class="copy-config-button" type="button" @click="showCookieModal = false"
+            >取消</button
           >
         </footer>
       </section>
@@ -731,7 +895,7 @@ import {
 } from '@/utils/semantic-similarity-engine';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { WEB_EDITOR_V2_ACTIONS } from '@/common/web-editor-types';
-import { LINKS, STORAGE_KEYS } from '@/common/constants';
+import { LINKS, PROXY_COUNTRIES, STORAGE_KEYS } from '@/common/constants';
 import { getMessage } from '@/utils/i18n';
 import { useRRV3Rpc } from '@/entrypoints/shared/composables';
 import { useAgentTheme, type AgentThemeId } from '../sidepanel/composables/useAgentTheme';
@@ -799,6 +963,35 @@ const proxy = reactive({
   accessRegion: 'global' as 'global' | 'beijing' | 'hongkong' | 'custom',
   protocol: 'http' as 'http' | 'https' | 'socks5',
 });
+type CookieSelection = {
+  cookie: chrome.cookies.Cookie;
+  key: string;
+  selected: boolean;
+};
+type CookieTabState = {
+  id: number;
+  title: string;
+  url: string;
+  active: boolean;
+  storeId?: string;
+  loading: boolean;
+  error: string;
+  cookies: CookieSelection[];
+};
+const showCookieModal = ref(false);
+const cookieLoading = ref(false);
+const cookieSaving = ref(false);
+const cookieResult = ref('');
+const cookieTabs = ref<CookieTabState[]>([]);
+const cookieCount = computed(() =>
+  cookieTabs.value.reduce((total, tab) => total + tab.cookies.length, 0),
+);
+const selectedCookieCount = computed(() =>
+  cookieTabs.value.reduce(
+    (total, tab) => total + tab.cookies.filter((entry) => entry.selected).length,
+    0,
+  ),
+);
 const isExportingErrorLogs = ref(false);
 const errorLogCopyLabel = ref('复制日志');
 const errorLogs = ref<Array<{ timestamp: string; type: string; message: string; stack?: string }>>(
@@ -1316,6 +1509,176 @@ async function toggleProxy(event: Event) {
 async function openProxySettings() {
   await loadProxySettings();
   showProxyModal.value = true;
+}
+
+async function rotateCurrentProxy() {
+  if (proxySaving.value) return;
+  proxySaving.value = true;
+  proxyQuickResult.value = '正在为当前网页切换 IP…';
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tab?.id) throw new Error('当前没有可切换代理的网页标签');
+    const response = await chrome.runtime.sendMessage({
+      type: 'proxy_rotate_current',
+      tabId: tab.id,
+      reason: '用户在插件中手动切换 IP',
+    });
+    if (!response?.success) throw new Error(response?.error || '切换 IP 失败');
+    const result = response.result;
+    if (!result?.rotated) {
+      const reasons: Record<string, string> = {
+        proxy_disabled: '代理未启用',
+        rotation_in_progress: '该标签页正在切换中',
+        rate_limited: '切换过于频繁，请稍后再试',
+        outside_proxy_scope: '当前网页不在代理网站范围内',
+      };
+      throw new Error(reasons[result?.skipped] || '当前未切换 IP');
+    }
+    proxyQuickResult.value = '当前网页已切换 IP，页面正在重新加载。';
+  } catch (error: any) {
+    proxyQuickResult.value = `错误：${error?.message || String(error)}`;
+  } finally {
+    proxySaving.value = false;
+  }
+}
+
+function isCookiePageUrl(url: unknown): url is string {
+  try {
+    const protocol = new URL(String(url)).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function cookieKey(cookie: chrome.cookies.Cookie): string {
+  return [
+    cookie.storeId,
+    cookie.domain,
+    cookie.path,
+    cookie.name,
+    cookie.partitionKey?.topLevelSite || '',
+    cookie.partitionKey?.hasCrossSiteAncestor ? 'cross-site' : '',
+  ].join('|');
+}
+
+async function loadCookiesForTab(tab: CookieTabState, stores?: chrome.cookies.CookieStore[]) {
+  tab.loading = true;
+  tab.error = '';
+  try {
+    const availableStores = stores || (await chrome.cookies.getAllCookieStores());
+    tab.storeId ||= availableStores.find((store) => store.tabIds.includes(tab.id))?.id;
+    const details: chrome.cookies.GetAllDetails = { url: tab.url };
+    if (tab.storeId) details.storeId = tab.storeId;
+    const cookies = await chrome.cookies.getAll(details);
+    tab.cookies = cookies
+      .sort((a, b) =>
+        `${a.domain}${a.path}${a.name}`.localeCompare(`${b.domain}${b.path}${b.name}`),
+      )
+      .map((cookie) => ({ cookie, key: cookieKey(cookie), selected: false }));
+  } catch (error: any) {
+    tab.cookies = [];
+    tab.error = error?.message || '读取 Cookie 失败';
+  } finally {
+    tab.loading = false;
+  }
+}
+
+async function loadAllCookieTabs() {
+  cookieLoading.value = true;
+  cookieResult.value = '';
+  try {
+    const [tabs, stores] = await Promise.all([
+      chrome.tabs.query({}),
+      chrome.cookies.getAllCookieStores(),
+    ]);
+    cookieTabs.value = tabs
+      .filter((tab): tab is chrome.tabs.Tab & { id: number; url: string } => {
+        return Number.isInteger(tab.id) && isCookiePageUrl(tab.url);
+      })
+      .sort((a, b) => Number(b.active) - Number(a.active))
+      .map((tab) => ({
+        id: tab.id,
+        title: tab.title || '',
+        url: tab.url,
+        active: tab.active,
+        storeId: stores.find((store) => store.tabIds.includes(tab.id))?.id,
+        loading: false,
+        error: '',
+        cookies: [],
+      }));
+    await Promise.all(cookieTabs.value.map((tab) => loadCookiesForTab(tab, stores)));
+  } catch (error: any) {
+    cookieTabs.value = [];
+    cookieResult.value = `错误：${error?.message || String(error)}`;
+  } finally {
+    cookieLoading.value = false;
+  }
+}
+
+async function openCookieManager() {
+  showCookieModal.value = true;
+  await loadAllCookieTabs();
+}
+
+function selectAllCookies(selected: boolean) {
+  for (const tab of cookieTabs.value) {
+    setTabCookiesSelected(tab, selected);
+  }
+}
+
+function setTabCookiesSelected(tab: CookieTabState, selected: boolean) {
+  for (const entry of tab.cookies) entry.selected = selected;
+}
+
+function invertTabCookies(tab: CookieTabState) {
+  for (const entry of tab.cookies) entry.selected = !entry.selected;
+}
+
+function invertAllCookies() {
+  for (const tab of cookieTabs.value) invertTabCookies(tab);
+}
+
+function cookieRemovalUrl(cookie: chrome.cookies.Cookie, pageUrl: string): string {
+  const page = new URL(pageUrl);
+  const host =
+    (cookie.hostOnly ? cookie.domain : cookie.domain.replace(/^\./, '')) || page.hostname;
+  const protocol = cookie.secure ? 'https:' : page.protocol;
+  return `${protocol}//${host}${cookie.path || '/'}`;
+}
+
+async function clearSelectedCookies() {
+  const selected = cookieTabs.value.flatMap((tab) =>
+    tab.cookies.filter((entry) => entry.selected).map((entry) => ({ tab, entry })),
+  );
+  if (!selected.length || cookieSaving.value) return;
+  if (!window.confirm(`确定清除选中的 ${selected.length} 个 Cookie 吗？未选中的会保留。`)) return;
+
+  cookieSaving.value = true;
+  cookieResult.value = '';
+  let removed = 0;
+  let failed = 0;
+  try {
+    for (const { tab, entry } of selected) {
+      try {
+        const result = await chrome.cookies.remove({
+          url: cookieRemovalUrl(entry.cookie, tab.url),
+          name: entry.cookie.name,
+          storeId: entry.cookie.storeId,
+          ...(entry.cookie.partitionKey ? { partitionKey: entry.cookie.partitionKey } : {}),
+        });
+        if (result) removed += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    await loadAllCookieTabs();
+    cookieResult.value = failed
+      ? `已清除 ${removed} 个，${failed} 个清除失败。`
+      : `已清除 ${removed} 个 Cookie，未选中的 Cookie 已保留。`;
+  } finally {
+    cookieSaving.value = false;
+  }
 }
 
 async function toggleWebEditor() {
@@ -2958,6 +3321,144 @@ onUnmounted(() => {
   margin: 0 0 8px;
   color: #475569;
   font-size: 12px;
+}
+
+.proxy-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cookie-dialog {
+  width: min(100%, 520px);
+  height: auto;
+  max-height: calc(100% - 32px);
+  overflow: hidden;
+}
+
+.cookie-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cookie-selected-count {
+  margin-left: auto;
+  color: #475569;
+  font-size: 12px;
+}
+
+.cookie-tabs-list {
+  flex: 1;
+  min-height: 0;
+  max-height: 45vh;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.cookie-tab-card {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.cookie-tab-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cookie-tab-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.cookie-tab-title {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.cookie-tab-title strong,
+.cookie-tab-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cookie-tab-title strong {
+  color: #374151;
+  font-size: 12px;
+}
+
+.cookie-tab-title span,
+.cookie-empty,
+.cookie-error {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.cookie-error {
+  color: #b91c1c;
+}
+
+.cookie-list {
+  display: grid;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.cookie-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.66);
+  cursor: pointer;
+}
+
+.cookie-row:hover {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.cookie-row input {
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--ac-accent, #d97757);
+}
+
+.cookie-info {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.cookie-info strong,
+.cookie-info small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cookie-info strong {
+  color: #374151;
+  font-size: 11px;
+}
+
+.cookie-info small {
+  color: #64748b;
+  font-size: 10px;
 }
 
 .proxy-form {

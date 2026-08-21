@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.1.5
+## 📢 What's New in v2.2.0
 
-> **Network request hardening + legacy locator support** — Stability and compatibility improvements.
+> **Proxy session management system** — Multi-country proxies + session rotation control.
 >
-> - 🌐 **`chrome_network_request` hardening** — Filters browser-forbidden request headers (`accept-encoding` / `host` / `origin` / `sec-*`, etc.) to avoid request validation failures; same-origin check and clearer errors
-> - 🔧 **Web fetcher error handling** — Structured errors with retry hints on fetch failures
-> - 🎯 **Legacy locator support** — Falls back to legacy `ref`/`name` locators when a `ref` expires without an available selector
-> - 🛠️ **start-server.bat enhancements** — Auto-detects pnpm / corepack (aligned with the packaging script)
-> - 🔧 All packages bumped to v2.1.5
+> - 🌐 **Multi-country proxy selection** — Built-in `PROXY_COUNTRIES` list with visual selection in the Popup UI
+> - 🔄 **Session-level rotation** — Per-session `sessionIdsByScope` management, 5-min default session lifetime; max 3 explicit rotations per 60s window, 5-min auto-rotation cooldown (1h window)
+> - 🛠️ **Session ID format enhancements** — Supports `sessid` / `sesstime` combined parsing and generation
+> - 📦 **`ensure-pnpm.bat` extracted** — start-server / package-extension share one pnpm detection script
+> - 🔧 All packages bumped to v2.2.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

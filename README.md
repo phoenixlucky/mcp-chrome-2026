@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 v2.1.5 更新内容
+## 📢 v2.2.0 更新内容
 
-> **网络请求加固 + 遗留定位器支持** — 稳定性与兼容性提升。
+> **代理会话管理系统** — 多国家代理 + 会话轮换控制。
 >
-> - 🌐 **`chrome_network_request` 加固** — 过滤浏览器禁用请求头（`accept-encoding` / `host` / `origin` / `sec-*` 等），避免请求校验失败；同源检查 + 更清晰错误信息
-> - 🔧 **Web fetcher 错误处理增强** — 抓取失败返回结构化错误与重试提示
-> - 🎯 **遗留定位器支持** — ref 过期且无 selector 时兜底解析旧式 `ref`/`name` 定位器
-> - 🛠️ **start-server.bat 增强** — 自动检测 pnpm / corepack（与打包脚本一致）
-> - 🔧 版本统一为 v2.1.5
+> - 🌐 **多国家代理选择** — 内置 `PROXY_COUNTRIES` 国家列表，Popup 界面可视化选择
+> - 🔄 **会话维度轮换** — 会话级 `sessionIdsByScope` 管理，默认会话时长 5 分钟；显式轮换 60s 窗口内最多 3 次，自动轮换冷却 5 分钟（1 小时窗口）
+> - 🛠️ **会话 ID 格式增强** — 支持 `sessid` / `sesstime` 组合解析与生成
+> - 📦 **`ensure-pnpm.bat` 抽取** — start-server / package-extension 统一复用 pnpm 检测脚本
+> - 🔧 版本统一为 v2.2.0
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

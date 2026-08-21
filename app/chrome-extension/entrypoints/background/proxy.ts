@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '@/common/constants';
+import { PROXY_COUNTRIES, STORAGE_KEYS } from '@/common/constants';
 
 export type ProxyConfig = {
   enabled: boolean;
@@ -41,9 +41,14 @@ const DEFAULT_CONFIG: ProxyConfig = {
 
 let config = DEFAULT_CONFIG;
 const rotatingTabs = new Set<number>();
-const rotationTimes = new Map<number, number[]>();
+const rotationTimes = new Map<string, number[]>();
+let sessionIdsByScope: Record<string, string> = {};
 let lastProxyAuth: { host: string; port: number; matched: boolean; at: number } | undefined;
-const AUTO_ROTATION_COOLDOWN_MS = 60_000;
+const AUTO_ROTATION_COOLDOWN_MS = 5 * 60_000;
+const AUTO_ROTATION_WINDOW_MS = 60 * 60_000;
+const EXPLICIT_ROTATION_WINDOW_MS = 60_000;
+const MAX_EXPLICIT_ROTATIONS_PER_WINDOW = 3;
+const DEFAULT_SESSION_TIME_MINUTES = 5;
 
 function applyCountryCode(username: string, countryCode: string): string {
   if (!countryCode) return username;
@@ -61,12 +66,16 @@ function applyCountryCode(username: string, countryCode: string): string {
 export function buildProxyUsername(username: string, sessionId: string, countryCode = ''): string {
   username = applyCountryCode(username, countryCode);
   if (!sessionId) return username;
-  if (/-sessid-[^-]+/.test(username)) {
-    return username.replace(/-sessid-[^-]+/, `-sessid-${sessionId}`);
+  if (/-sessid-/.test(username)) {
+    username = username.replace(/-sessid-.+?(?=-sesstime-|$)/, `-sessid-${sessionId}`);
+  } else if (username.includes('-sesstime-')) {
+    username = username.replace('-sesstime-', `-sessid-${sessionId}-sesstime-`);
+  } else {
+    username = `${username}-sessid-${sessionId}`;
   }
   return username.includes('-sesstime-')
-    ? username.replace('-sesstime-', `-sessid-${sessionId}-sesstime-`)
-    : `${username}-sessid-${sessionId}`;
+    ? username
+    : `${username}-sesstime-${DEFAULT_SESSION_TIME_MINUTES}`;
 }
 
 export function normalizeProxyConfig(value: Partial<ProxyConfig>): ProxyConfig {
@@ -144,15 +153,18 @@ export function normalizeProxyConfig(value: Partial<ProxyConfig>): ProxyConfig {
     };
     const entry = entries[next.accessRegion];
     if (entry) [next.host, next.port] = entry;
+    // Oxylabs documents the Beijing/Hong Kong entry nodes as HTTPS proxy
+    // nodes. Force the matching Chrome scheme for old saved configs too.
+    if (next.accessRegion === 'beijing' || next.accessRegion === 'hongkong') {
+      next.protocol = 'https';
+    }
   }
 
   if (next.endpointType === 'country') {
-    if (next.countryCode === 'us') {
-      next.host = 'us-pr.oxylabs.io';
-      next.port = next.protocol === 'https' ? 10001 : 10000;
-    } else if (next.countryCode === 'ca') {
-      next.host = 'ca-pr.oxylabs.io';
-      next.port = next.protocol === 'https' ? 30001 : 30000;
+    const countryEntry = PROXY_COUNTRIES.find((entry) => entry.code === next.countryCode);
+    if (countryEntry) {
+      next.host = `${countryEntry.code}-pr.oxylabs.io`;
+      next.port = next.protocol === 'https' ? countryEntry.httpsPort : countryEntry.httpPort;
     }
     next.username = next.username.replace(/-cc-[a-z]{2}(?=-|$)/i, '');
     if (next.username && !next.username.startsWith('customer-')) {
@@ -175,10 +187,10 @@ export function normalizeProxyConfig(value: Partial<ProxyConfig>): ProxyConfig {
   if (countryCode && countryCode !== 'random' && !/^[a-z]{2}$/.test(countryCode)) {
     throw new Error('国家代码必须是两个字母，如 us 或 ca');
   }
-  if (endpointType === 'country' && !['us', 'ca'].includes(countryCode)) {
-    throw new Error('具体国家/地区入口目前请选择美国或加拿大');
+  if (endpointType === 'country' && !PROXY_COUNTRIES.some((entry) => entry.code === countryCode)) {
+    throw new Error('当前国家/地区没有配置 Oxylabs 专用入口，请改用反向连接入口');
   }
-  if (protocol === 'socks5')
+  if (next.protocol === 'socks5')
     throw new Error('Oxylabs SOCKS5 当前不支持 Chrome，请选择 HTTP 或 HTTPS');
   return next;
 }
@@ -205,6 +217,91 @@ function nextSessionId(): string {
   return String(crypto.getRandomValues(new Uint32Array(1))[0])
     .padStart(10, '0')
     .slice(-10);
+}
+
+function sessionIdFromUsername(username: string): string | undefined {
+  return username.match(/-sessid-(.+?)(?=-sesstime-|$)/)?.[1];
+}
+
+function registrableDomain(host: string): string {
+  const labels = host.toLowerCase().split('.').filter(Boolean);
+  return labels.length > 2 ? labels.slice(-2).join('.') : labels.join('.');
+}
+
+export function getProxyScope(url: string, domains: string[] = config.domains): string {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    const configuredDomain = domains
+      .map((domain) => domain.replace(/^\*\./, '').toLowerCase())
+      .filter((domain) => host === domain || host.endsWith(`.${domain}`))
+      .sort((a, b) => b.length - a.length)[0];
+    return configuredDomain ?? registrableDomain(host);
+  } catch {
+    return '';
+  }
+}
+
+function isProxyScopedUrl(url: string): boolean {
+  if (!config.domains.length) return true;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return config.domains.some((domain) => {
+      const normalized = domain.replace(/^\*\./, '').toLowerCase();
+      return host === normalized || host.endsWith(`.${normalized}`);
+    });
+  } catch {
+    return false;
+  }
+}
+
+function persistSessionIds(): void {
+  void chrome.storage.local.set({ [STORAGE_KEYS.PROXY_SESSION_IDS]: sessionIdsByScope });
+}
+
+function sessionIdForUrl(url: string): string {
+  const scope = getProxyScope(url) || 'global';
+  const existing = sessionIdsByScope[scope];
+  if (existing) return existing;
+
+  // An explicitly configured session (or one already embedded in the username)
+  // remains the source of truth. Otherwise create a stable per-site session so
+  // a normal page load does not receive a new residential IP for every request.
+  const configured = config.sessionId || sessionIdFromUsername(config.username);
+  if (configured) return configured;
+
+  const generated = nextSessionId();
+  sessionIdsByScope[scope] = generated;
+  persistSessionIds();
+  return generated;
+}
+
+function rotateSessionForUrl(url: string): void {
+  const scope = getProxyScope(url) || 'global';
+  sessionIdsByScope[scope] = nextSessionId();
+  persistSessionIds();
+}
+
+function rotateCountryStickyPort(): void {
+  if (config.endpointType !== 'country') return;
+  const entry = PROXY_COUNTRIES.find((country) => country.code === config.countryCode);
+  if (!entry) return;
+
+  // Oxylabs sticky country entries use a port range. Reusing the same port
+  // keeps the same IP even when the username session id changes.
+  const rangeStart = entry.httpsPort;
+  const rangeSize = 999;
+  const randomOffset = crypto.getRandomValues(new Uint32Array(1))[0] % rangeSize;
+  let nextPort = rangeStart + randomOffset;
+  if (nextPort === config.port) nextPort = rangeStart + ((randomOffset + 1) % rangeSize);
+  config = { ...config, port: nextPort };
+}
+
+async function reconnectProxy(): Promise<void> {
+  // Reapplying the same proxy settings does not always evict Chrome's cached
+  // proxy-authenticated connection. Clear and restore the extension-owned
+  // setting so the next request challenges with the new session id.
+  await chrome.proxy.settings.clear({ scope: 'regular' });
+  await applyProxyConfig(config);
 }
 
 export function shouldRotatePage(statusCode: number): boolean {
@@ -239,30 +336,45 @@ async function rotateAndReload(
   tabId: number,
   error?: string,
   explicit = false,
+  pageUrl?: string,
 ): Promise<ProxyRotationResult> {
   if (tabId < 0) return { rotated: false, tabId, skipped: 'invalid_tab' };
   if (!config.enabled) return { rotated: false, tabId, skipped: 'proxy_disabled' };
   if (!explicit && !config.rotateOnError)
     return { rotated: false, tabId, skipped: 'auto_rotation_disabled' };
   if (rotatingTabs.has(tabId)) return { rotated: false, tabId, skipped: 'rotation_in_progress' };
+  const url =
+    pageUrl ??
+    (await chrome.tabs
+      .get(tabId)
+      .then((tab) => tab.url ?? '')
+      .catch(() => ''));
+  if (!explicit && !isProxyScopedUrl(url))
+    return { rotated: false, tabId, skipped: 'outside_proxy_scope' };
+  const scope = getProxyScope(url) || `tab:${tabId}`;
+  const rotationKey = `${explicit ? 'explicit' : 'auto'}:${scope}`;
   const now = Date.now();
-  const recent = (rotationTimes.get(tabId) ?? []).filter(
-    (time) => now - time < AUTO_ROTATION_COOLDOWN_MS,
-  );
-  // ponytail: one automatic rotation per tab per minute; explicit MCP calls keep the 3/min guard.
-  if (!explicit && recent.length > 0)
+  const windowMs = explicit ? EXPLICIT_ROTATION_WINDOW_MS : AUTO_ROTATION_WINDOW_MS;
+  const recent = (rotationTimes.get(rotationKey) ?? []).filter((time) => now - time < windowMs);
+  const lastRotation = recent.at(-1);
+  // Keep the same residential IP for a useful period. A 429/403 response is
+  // not permission to repeatedly cycle through the pool.
+  if (!explicit && lastRotation !== undefined && now - lastRotation < AUTO_ROTATION_COOLDOWN_MS)
     return { rotated: false, tabId, skipped: 'auto_rotation_cooldown' };
   if (recent.length >= 2 && isFatalProxyNetworkError(error)) {
     await saveProxyConfig({ ...config, enabled: false });
     return { rotated: false, tabId, skipped: 'proxy_disabled_after_fatal_error' };
   }
-  if (recent.length >= 3) return { rotated: false, tabId, skipped: 'rate_limited' };
+  if (explicit && recent.length >= MAX_EXPLICIT_ROTATIONS_PER_WINDOW)
+    return { rotated: false, tabId, skipped: 'rate_limited' };
 
   rotatingTabs.add(tabId);
-  rotationTimes.set(tabId, [...recent, now]);
+  rotationTimes.set(rotationKey, [...recent, now]);
   try {
-    await saveProxyConfig({ ...config, sessionId: nextSessionId() });
-    await chrome.tabs.reload(tabId);
+    rotateCountryStickyPort();
+    rotateSessionForUrl(url);
+    await reconnectProxy();
+    await chrome.tabs.reload(tabId, { bypassCache: true });
     return { rotated: true, tabId };
   } catch (reloadError) {
     if (!isClosedTabError(reloadError)) throw reloadError;
@@ -294,6 +406,8 @@ async function pageContainsKnownError(tabId: number): Promise<boolean> {
 async function detectPageErrorAndRotate(tabId: number): Promise<void> {
   if (tabId < 0 || !config.enabled || !config.rotateOnError) return;
   try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!isProxyScopedUrl(tab.url ?? '')) return;
     if (await pageContainsKnownError(tabId)) await rotateAndReload(tabId);
   } catch (error) {
     if (!isClosedTabError(error)) console.debug('页面异常检测跳过:', error);
@@ -309,7 +423,7 @@ export async function rotateProxyForTab(
   const result = await rotateAndReload(tabId, undefined, true);
   if (!result.rotated && result.skipped === 'proxy_disabled') throw new Error('请先启用并保存代理');
   if (!result.rotated && result.skipped === 'rate_limited')
-    throw new Error('该标签页 1 分钟内已轮换 3 次，请稍后再试');
+    throw new Error('该站点 1 分钟内已轮换 3 次，请稍后再试');
   return { ...result, reason };
 }
 
@@ -324,6 +438,11 @@ export async function getProxyDiagnostics(
     scopedDomains: config.enabled ? config.domains : [],
     credentialsConfigured: config.enabled && Boolean(config.username && config.password),
     rotateOnError: config.rotateOnError,
+    stickySessionScopes: Object.keys(sessionIdsByScope),
+    automaticRotationPolicy: {
+      cooldownMs: AUTO_ROTATION_COOLDOWN_MS,
+      maxPerHour: null,
+    },
     chrome: {
       mode: settings.value?.mode,
       levelOfControl: settings.levelOfControl,
@@ -416,15 +535,31 @@ async function saveProxyConfig(value: Partial<ProxyConfig>): Promise<ProxyConfig
   const next = normalizeProxyConfig(value);
   await applyProxyConfig(next);
   config = next;
-  await chrome.storage.local.set({ [STORAGE_KEYS.PROXY_CONFIG]: config });
+  // A user edit (including disabling the proxy) starts a fresh session set;
+  // otherwise an old site's sticky session could survive a credential or geo change.
+  sessionIdsByScope = {};
+  rotationTimes.clear();
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.PROXY_CONFIG]: config,
+    [STORAGE_KEYS.PROXY_SESSION_IDS]: sessionIdsByScope,
+  });
   return config;
 }
 
 export function initProxyManager(): void {
   chrome.storage.local
-    .get(STORAGE_KEYS.PROXY_CONFIG)
+    .get([STORAGE_KEYS.PROXY_CONFIG, STORAGE_KEYS.PROXY_SESSION_IDS])
     .then(async (stored) => {
       config = normalizeProxyConfig(stored[STORAGE_KEYS.PROXY_CONFIG] ?? DEFAULT_CONFIG);
+      const savedSessions = stored[STORAGE_KEYS.PROXY_SESSION_IDS];
+      sessionIdsByScope = {};
+      if (savedSessions && typeof savedSessions === 'object' && !Array.isArray(savedSessions)) {
+        for (const [scope, id] of Object.entries(savedSessions as Record<string, unknown>)) {
+          if (typeof id === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+            sessionIdsByScope[scope] = id;
+          }
+        }
+      }
       if (config.enabled) await applyProxyConfig(config);
     })
     .catch(() => {
@@ -449,7 +584,7 @@ export function initProxyManager(): void {
           authCredentials: {
             username: buildProxyUsername(
               config.username,
-              config.sessionId,
+              sessionIdForUrl(details.url ?? ''),
               config.endpointType === 'reverse' ? config.countryCode : '',
             ),
             password: config.password,
@@ -466,7 +601,7 @@ export function initProxyManager(): void {
   chrome.webRequest.onCompleted.addListener(
     (details) => {
       if (details.type === 'main_frame' && shouldRotatePage(details.statusCode)) {
-        void rotateAndReload(details.tabId).catch(console.warn);
+        void rotateAndReload(details.tabId, undefined, false, details.url).catch(console.warn);
       }
     },
     { urls: ['<all_urls>'], types: ['main_frame'] },
@@ -474,19 +609,37 @@ export function initProxyManager(): void {
   chrome.webRequest.onErrorOccurred.addListener(
     (details) => {
       if (details.type === 'main_frame' && shouldRotateNetworkError(details.error))
-        void rotateAndReload(details.tabId, details.error).catch(console.warn);
+        void rotateAndReload(details.tabId, details.error, false, details.url).catch(console.warn);
     },
     { urls: ['<all_urls>'], types: ['main_frame'] },
   );
   chrome.webNavigation.onCompleted.addListener((details) => {
     if (details.frameId === 0) void detectPageErrorAndRotate(details.tabId);
   });
-  chrome.tabs.onRemoved.addListener((tabId) => rotationTimes.delete(tabId));
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    for (const key of rotationTimes.keys()) {
+      if (key.endsWith(`:tab:${tabId}`)) rotationTimes.delete(key);
+    }
+  });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'proxy_configure') {
       saveProxyConfig(message.config)
         .then((saved) => sendResponse({ success: true, config: saved }))
+        .catch((error) => sendResponse({ success: false, error: String(error.message ?? error) }));
+      return true;
+    }
+    if (message?.type === 'proxy_rotate_current') {
+      const requestedTabId = Number(message.tabId);
+      const tabPromise = Number.isInteger(requestedTabId)
+        ? Promise.resolve({ id: requestedTabId } as chrome.tabs.Tab)
+        : chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(([tab]) => tab);
+      tabPromise
+        .then((tab) => {
+          if (!tab?.id) throw new Error('当前没有可切换代理的网页标签');
+          return rotateProxyForTab(tab.id, String(message.reason || '用户手动切换 IP'));
+        })
+        .then((result) => sendResponse({ success: true, result }))
         .catch((error) => sendResponse({ success: false, error: String(error.message ?? error) }));
       return true;
     }
