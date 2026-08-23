@@ -18,6 +18,7 @@ const installedSharedDir = path.join(
 
 function installBundledSharedRuntime(): void {
   if (!fs.existsSync(bundledSharedDir)) return;
+  fs.mkdirSync(path.dirname(installedSharedDir), { recursive: true });
   fs.cpSync(bundledSharedDir, installedSharedDir, { recursive: true, force: true });
 }
 
@@ -297,7 +298,21 @@ function printManualInstructions(): void {
 async function main(): Promise<void> {
   console.log(colorText(`Installing ${COMMAND_NAME}...`, 'green'));
 
+  // Must run before anything requires '@ethanwilkins/chrome-mcp-shared-2026'
   installBundledSharedRuntime();
+
+  // Surface a clear failure early if the package shipped without the vendor
+  // runtime, instead of an obscure MODULE_NOT_FOUND on first launch.
+  if (!fs.existsSync(installedSharedDir)) {
+    console.warn(
+      colorText(
+        '⚠ Shared runtime not found after install (vendor copy missing); ' +
+          'the native host may fail to start. Reinstall the package or run: ' +
+          `${COMMAND_NAME} doctor`,
+        'yellow',
+      ),
+    );
+  }
 
   // Debug information
   console.log(colorText('Installation environment debug info:', 'blue'));

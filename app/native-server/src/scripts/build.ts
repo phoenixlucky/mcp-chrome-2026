@@ -43,6 +43,17 @@ try {
 }
 
 console.log('内嵌共享运行时...');
+// The published package must ship the shared runtime: dist code requires
+// '@ethanwilkins/chrome-mcp-shared-2026' but it is a workspace-only dev
+// dependency, so npm never installs it. postinstall copies this vendor copy
+// into the package's own node_modules at install time.
+if (!fs.existsSync(path.join(sharedPackageDir, 'dist', 'index.js'))) {
+  console.error(
+    `错误: 共享包 dist 缺失 (${path.join(sharedPackageDir, 'dist')})，` +
+      '请先运行 pnpm --filter @ethanwilkins/chrome-mcp-shared-2026 build',
+  );
+  process.exit(1);
+}
 fs.cpSync(path.join(sharedPackageDir, 'dist'), path.join(sharedPackageDest, 'dist'), {
   recursive: true,
 });

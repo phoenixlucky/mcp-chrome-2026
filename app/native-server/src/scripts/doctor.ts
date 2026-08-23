@@ -528,6 +528,24 @@ async function attemptFixes(
     }
   });
 
+  // Restore the bundled shared runtime if the package shipped with it but the
+  // node_modules copy is missing (e.g. partial install or manual cleanup).
+  await attempt('shared-runtime', 'Restore bundled shared runtime', async () => {
+    const vendorDir = path.resolve(distDir, 'vendor', 'chrome-mcp-shared-2026');
+    const targetDir = path.resolve(
+      distDir,
+      '..',
+      'node_modules',
+      '@ethanwilkins',
+      'chrome-mcp-shared-2026',
+    );
+    if (!fs.existsSync(path.join(vendorDir, 'package.json'))) {
+      throw new Error(`Vendor copy missing: ${vendorDir}`);
+    }
+    fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+    fs.cpSync(vendorDir, targetDir, { recursive: true, force: true });
+  });
+
   return fixes;
 }
 
@@ -696,6 +714,42 @@ export async function collectDoctorReport(options: DoctorOptions): Promise<Docto
       status: 'ok',
       message: process.platform === 'win32' ? 'Not applicable on Windows' : 'N/A',
     });
+  }
+
+  // Check 3b: Bundled shared runtime (required by dist at require-time)
+  const sharedRuntimePath = path.resolve(
+    rootDir,
+    'node_modules',
+    '@ethanwilkins',
+    'chrome-mcp-shared-2026',
+    'package.json',
+  );
+  const vendorSharedPath = path.resolve(distDir, 'vendor', 'chrome-mcp-shared-2026');
+  const sharedInstalled = fs.existsSync(sharedRuntimePath);
+  const sharedVendorAvailable = fs.existsSync(vendorSharedPath);
+  if (sharedInstalled) {
+    checks.push({
+      id: 'host.shared-runtime',
+      title: 'Shared runtime',
+      status: 'ok',
+      message: '@ethanwilkins/chrome-mcp-shared-2026 present',
+    });
+  } else {
+    checks.push({
+      id: 'host.shared-runtime',
+      title: 'Shared runtime',
+      status: 'error',
+      message:
+        '@ethanwilkins/chrome-mcp-shared-2026 missing — the native host would fail with MODULE_NOT_FOUND',
+      details: {
+        expected: sharedRuntimePath,
+        vendorCopyPresent: sharedVendorAvailable,
+        fix: sharedVendorAvailable
+          ? [`Copy "${vendorSharedPath}" to "${path.dirname(sharedRuntimePath)}"`]
+          : undefined,
+      },
+    });
+    nextSteps.push(`Reinstall: npm install -g ${COMMAND_NAME}`);
   }
 
   // Check 4: Node resolution
