@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { LINKS, NATIVE_HOST } from '@/common/constants';
+
+import {
+  applyLocale,
+  detectDefaultLocale,
+  setLocale,
+  t as translate,
+  type CopyKey,
+  type Locale,
+} from './locale';
 
 import '../sidepanel/styles/agent-chat.css';
 
@@ -16,6 +25,23 @@ const COMMANDS = {
 
 type CommandKey = keyof typeof COMMANDS;
 
+// ==================== i18n ====================
+
+const locale = ref<Locale>(detectDefaultLocale());
+
+const isChinese = computed(() => locale.value === 'zh');
+
+function changeLocale(next: Locale): void {
+  locale.value = next;
+  setLocale(next);
+}
+
+function t(key: CopyKey): string {
+  return translate(key, locale.value);
+}
+
+applyLocale(locale.value);
+
 const copiedKey = ref<CommandKey | null>(null);
 
 const ALT_INSTALL = [
@@ -24,12 +50,12 @@ const ALT_INSTALL = [
 ] as const satisfies ReadonlyArray<{ label: string; key: CommandKey }>;
 
 const DIAGNOSTICS = [
-  { label: 'Doctor', key: 'doctor' },
-  { label: 'Auto-fix', key: 'fix' },
-] as const satisfies ReadonlyArray<{ label: string; key: CommandKey }>;
+  { label: { zh: '检查', en: 'Doctor' }, key: 'doctor' },
+  { label: { zh: '自动修复', en: 'Auto-fix' }, key: 'fix' },
+] as const satisfies ReadonlyArray<{ label: { zh: string; en: string }; key: CommandKey }>;
 
 function copyLabel(key: CommandKey): string {
-  return copiedKey.value === key ? 'Copied' : 'Copy';
+  return copiedKey.value === key ? t('copied') : t('copy');
 }
 
 function copyColor(key: CommandKey): string {
@@ -87,18 +113,39 @@ async function openDocs(): Promise<void> {
               <h1 class="welcome-title text-lg font-medium tracking-tight truncate">
                 猫娘 Chrome MCP Server
               </h1>
-              <p class="welcome-muted text-sm truncate">
-                After the extension is installed, this is the only required step.
-              </p>
+              <p class="welcome-muted text-sm truncate">{{ t('subtitle') }}</p>
             </div>
           </div>
 
-          <button
-            class="welcome-button px-3 py-2 text-xs font-medium ac-btn flex-shrink-0"
-            @click="openDocs"
-          >
-            Troubleshooting Docs
-          </button>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <div
+              class="welcome-lang-switch flex items-center"
+              role="group"
+              aria-label="Language / 语言"
+            >
+              <button
+                class="welcome-lang-btn px-2.5 py-1.5 text-xs font-medium ac-btn welcome-mono"
+                :class="{ 'welcome-lang-btn--active': isChinese }"
+                @click="changeLocale('zh')"
+              >
+                中文
+              </button>
+              <button
+                class="welcome-lang-btn px-2.5 py-1.5 text-xs font-medium ac-btn welcome-mono"
+                :class="{ 'welcome-lang-btn--active': !isChinese }"
+                @click="changeLocale('en')"
+              >
+                EN
+              </button>
+            </div>
+
+            <button
+              class="welcome-button px-3 py-2 text-xs font-medium ac-btn flex-shrink-0"
+              @click="openDocs"
+            >
+              {{ t('troubleshooting') }}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -106,10 +153,11 @@ async function openDocs(): Promise<void> {
         <div class="max-w-3xl mx-auto space-y-6">
           <section class="welcome-card welcome-card--primary p-6">
             <h2 class="welcome-title text-xl font-medium">
-              Install <code class="welcome-code">@ethanwilkins/mcp-chrome-bridge-2026</code>
+              {{ t('installTitle') }}
+              <code class="welcome-code">@ethanwilkins/mcp-chrome-bridge-2026</code>
             </h2>
             <p class="welcome-muted text-sm mt-2">
-              The Chrome extension uses this local bridge to expose MCP tools to your client.
+              {{ t('installDesc') }}
             </p>
 
             <div class="mt-4 space-y-3">
@@ -149,8 +197,9 @@ async function openDocs(): Promise<void> {
               </div>
 
               <div class="welcome-alt-row welcome-muted px-4 py-3 text-xs">
-                Requires Node.js 20+. Check your version with
-                <code class="welcome-code welcome-code-inline px-1 py-0.5">node -v</code>.
+                {{ t('nodeVersionTipPre')
+                }}<code class="welcome-code welcome-code-inline px-1 py-0.5">node -v</code
+                >{{ t('nodeVersionTipPost') }}
               </div>
             </div>
 
@@ -158,9 +207,9 @@ async function openDocs(): Promise<void> {
               class="mt-6 pt-5"
               :style="{ borderTop: 'var(--ac-border-width) solid var(--ac-border)' }"
             >
-              <h3 class="welcome-title text-sm font-medium">MCP client URL (streamable HTTP)</h3>
+              <h3 class="welcome-title text-sm font-medium">{{ t('mcpUrlTitle') }}</h3>
               <p class="welcome-muted text-sm mt-1">
-                Use this URL in your MCP client (e.g., Claude Desktop, CherryStudio).
+                {{ t('mcpUrlDesc') }}
               </p>
 
               <div
@@ -177,8 +226,7 @@ async function openDocs(): Promise<void> {
               </div>
 
               <p class="welcome-subtle text-xs mt-3">
-                Tip: You can also open the extension popup and click "Connect" to copy a full client
-                config snippet.
+                {{ t('mcpUrlTip') }}
               </p>
             </div>
           </section>
@@ -188,9 +236,9 @@ async function openDocs(): Promise<void> {
               class="px-6 py-4 cursor-pointer select-none flex items-center justify-between gap-4"
             >
               <div class="min-w-0">
-                <div class="welcome-title text-sm font-medium">Troubleshooting</div>
+                <div class="welcome-title text-sm font-medium">{{ t('troubleshootingTitle') }}</div>
                 <div class="welcome-muted text-xs truncate">
-                  Use these only if the bridge fails to register or connect.
+                  {{ t('troubleshootingDesc') }}
                 </div>
               </div>
               <span class="welcome-mono welcome-subtle text-xs flex-shrink-0">doctor · report</span>
@@ -198,10 +246,11 @@ async function openDocs(): Promise<void> {
 
             <div class="px-6 pb-6 space-y-4">
               <div class="welcome-alt-row p-4">
-                <div class="text-sm font-medium">Diagnostics</div>
+                <div class="text-sm font-medium">{{ t('diagnostics') }}</div>
                 <p class="welcome-muted text-sm mt-1">
-                  Run <code class="welcome-code">doctor</code> to check installation status. If it
-                  reports an error, run the auto-fix command.
+                  {{ t('diagnosticsDescPre') }}<code class="welcome-code">doctor</code
+                  >{{ t('diagnosticsDescMid') }}<code class="welcome-code">doctor --fix</code
+                  >{{ t('diagnosticsDescPost') }}
                 </p>
 
                 <div class="mt-3 space-y-2">
@@ -214,7 +263,7 @@ async function openDocs(): Promise<void> {
                       <div
                         class="welcome-mono welcome-subtle text-[10px] uppercase tracking-widest font-medium"
                       >
-                        {{ item.label }}
+                        {{ item.label[locale] }}
                       </div>
                       <code class="welcome-code text-xs break-all">{{ COMMANDS[item.key] }}</code>
                     </div>
@@ -231,10 +280,10 @@ async function openDocs(): Promise<void> {
 
               <div class="welcome-report-card p-4">
                 <div class="text-sm font-medium" :style="{ color: 'var(--ac-danger)' }">
-                  Report an issue
+                  {{ t('reportTitle') }}
                 </div>
                 <p class="welcome-muted text-sm mt-1">
-                  Generate a diagnostic report and paste it into a GitHub issue.
+                  {{ t('reportDesc') }}
                 </p>
 
                 <div
@@ -251,8 +300,7 @@ async function openDocs(): Promise<void> {
                 </div>
 
                 <p class="welcome-subtle text-xs mt-2">
-                  This copies the report to your clipboard (sensitive info is automatically
-                  redacted).
+                  {{ t('reportTip') }}
                 </p>
               </div>
 
@@ -261,7 +309,7 @@ async function openDocs(): Promise<void> {
                   class="welcome-button px-3 py-2 text-xs font-medium ac-btn"
                   @click="openDocs"
                 >
-                  Open troubleshooting docs
+                  {{ t('openDocs') }}
                 </button>
               </div>
             </div>
@@ -338,6 +386,30 @@ async function openDocs(): Promise<void> {
 }
 
 .welcome-button:hover {
+  background: var(--ac-hover-bg-subtle);
+}
+
+/* Language switch */
+.welcome-lang-switch {
+  background: var(--ac-surface);
+  border: var(--ac-border-width) solid var(--ac-border);
+  border-radius: var(--ac-radius-button);
+  overflow: hidden;
+}
+
+.welcome-lang-btn {
+  font-family: var(--ac-font-mono);
+  color: var(--ac-text-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.welcome-lang-btn:hover {
+  background: var(--ac-hover-bg-subtle);
+}
+
+.welcome-lang-btn--active {
+  color: var(--ac-accent);
   background: var(--ac-hover-bg-subtle);
 }
 
