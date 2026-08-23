@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 v2.2.0 更新内容
+## 📢 v2.2.1 更新内容
 
-> **代理会话管理系统** — 多国家代理 + 会话轮换控制。
+> **Welcome 页多语言 + Native Host 安装加固** — 更顺滑的首启体验与更稳的安装流程。
 >
-> - 🌐 **多国家代理选择** — 内置 `PROXY_COUNTRIES` 国家列表，Popup 界面可视化选择
-> - 🔄 **会话维度轮换** — 会话级 `sessionIdsByScope` 管理，默认会话时长 5 分钟；显式轮换 60s 窗口内最多 3 次，自动轮换冷却 5 分钟（1 小时窗口）
-> - 🛠️ **会话 ID 格式增强** — 支持 `sessid` / `sesstime` 组合解析与生成
-> - 📦 **`ensure-pnpm.bat` 抽取** — start-server / package-extension 统一复用 pnpm 检测脚本
-> - 🔧 版本统一为 v2.2.0
+> - 🌍 **Welcome 页中英文切换** — 根据浏览器语言自动检测，`localStorage` 记忆选择，同步 `<html lang>` 与页面标题
+> - 🛠️ **Native Host 共享运行时加固** — 构建时校验内嵌 shared 运行时；`doctor` 新增 `host.shared-runtime` 检查与自动修复；安装后缺失时给出清晰警告而非 `MODULE_NOT_FOUND`
+> - 🔧 版本统一为 v2.2.1
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 

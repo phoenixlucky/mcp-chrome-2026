@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 What's New in v2.2.0
+## 📢 What's New in v2.2.1
 
-> **Proxy session management system** — Multi-country proxies + session rotation control.
+> **Welcome page i18n + Native Host install hardening** — smoother first-run experience and a more robust install flow.
 >
-> - 🌐 **Multi-country proxy selection** — Built-in `PROXY_COUNTRIES` list with visual selection in the Popup UI
-> - 🔄 **Session-level rotation** — Per-session `sessionIdsByScope` management, 5-min default session lifetime; max 3 explicit rotations per 60s window, 5-min auto-rotation cooldown (1h window)
-> - 🛠️ **Session ID format enhancements** — Supports `sessid` / `sesstime` combined parsing and generation
-> - 📦 **`ensure-pnpm.bat` extracted** — start-server / package-extension share one pnpm detection script
-> - 🔧 All packages bumped to v2.2.0
+> - 🌍 **Welcome page zh/en locale switching** — Auto-detects browser language, persists the choice in `localStorage`, keeps `<html lang>` and page title in sync
+> - 🛠️ **Native Host shared runtime hardening** — Build verifies the bundled shared runtime; `doctor` gains a `host.shared-runtime` check with auto-fix; postinstall surfaces a clear warning instead of `MODULE_NOT_FOUND`
+> - 🔧 All packages bumped to v2.2.1
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.2.1] - 2026-08-23
+
+### Added
+
+- **Welcome 页面中英文切换** — 根据浏览器语言自动检测界面语言，选择持久化到 `localStorage`，并同步 `<html lang>` 与页面 `<title>`（新增 `locale.ts` 与对应测试）。
+
+### Fixed
+
+- **Native Host 共享运行时安装加固** — 构建脚本嵌入 shared 运行时前先校验 `dist` 是否就绪，缺失时明确报错并给出修复指引；`doctor` 新增 `host.shared-runtime` 检查，vendor 副本存在时一键自动恢复 `node_modules` 中的运行时；`postinstall` 在运行时缺失时输出清晰警告，替代首次启动时的 `MODULE_NOT_FOUND`。
+
+### Changed
+
+- 版本统一为 v2.2.1。
+
 ## [v2.2.0] - 2026-08-21
 
 ### Added
