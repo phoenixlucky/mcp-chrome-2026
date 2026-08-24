@@ -1,6 +1,6 @@
 {
   "name": "@chrome-mcp/wasm-simd",
-  "version": "2.3.1",
+  "version": "2.3.5",
   "description": "SIMD-optimized WebAssembly math functions for Chrome MCP",
   "main": "pkg/simd_math.js",
   "types": "pkg/simd_math.d.ts",
@@ -8,10 +8,11 @@
     "pkg/"
   ],
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir pkg --release",
-    "build:dev": "wasm-pack build --target web --out-dir pkg --dev",
+    "check:toolchain": "node ../../scripts/check-wasm-toolchain.mjs",
+    "build": "node ../../scripts/check-wasm-toolchain.mjs run build --target web --out-dir pkg --release",
+    "build:dev": "node ../../scripts/check-wasm-toolchain.mjs run build --target web --out-dir pkg --dev",
     "clean": "rimraf pkg/",
-    "test": "wasm-pack test --headless --firefox"
+    "test": "node ../../scripts/check-wasm-toolchain.mjs run test --headless --firefox"
   },
   "keywords": [
     "wasm",
@@ -28,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-repo/chrome-mcp-server.git",
+    "url": "git+https://github.com/phoenixlucky/mcp-chrome-2026.git",
     "directory": "packages/wasm-simd"
   }
 }

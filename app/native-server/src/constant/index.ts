@@ -20,13 +20,27 @@ export const TIMEOUTS = {
 // Server configuration
 export const SERVER_CONFIG = {
   HOST: '127.0.0.1',
-  /**
-   * CORS origin whitelist - only allow Chrome/Firefox extensions and local debugging.
-   * Use RegExp patterns for extension origins, string for exact match.
-   */
-  CORS_ORIGIN: [/^chrome-extension:\/\//, /^moz-extension:\/\//, 'http://127.0.0.1'] as const,
   LOGGER_ENABLED: false,
 } as const;
+
+/**
+ * Validate browser Origin values without prefix matching.
+ * Prefix matching would allow origins such as http://127.0.0.1.evil.example.
+ */
+export function isAllowedCorsOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') {
+      return Boolean(url.hostname);
+    }
+    return (
+      url.protocol === 'http:' &&
+      (url.hostname === '127.0.0.1' || url.hostname === 'localhost')
+    );
+  } catch {
+    return false;
+  }
+}
 
 // HTTP Status codes
 export const HTTP_STATUS = {

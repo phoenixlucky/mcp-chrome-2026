@@ -8,8 +8,9 @@
 # 安装 Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# 安装 wasm-pack
-curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+# 首次执行 WASM 构建时，项目会自动安装 Rust stable、WASM target 和 wasm-pack
+# 如果自动安装受网络/权限限制，也可以手动安装：
+cargo install wasm-pack --locked
 ```
 
 ### 构建选项
@@ -18,7 +19,7 @@ curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
    ```bash
    # 构建 WASM 并自动复制到 Chrome 扩展
-   npm run build:wasm
+   pnpm run build:wasm
    ```
 
 2. **只构建 WASM 包**：

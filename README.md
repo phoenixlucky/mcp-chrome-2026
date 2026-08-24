@@ -26,17 +26,15 @@
 
 ---
 
-## 📢 v2.3.1 更新内容
+## 📢 v2.3.5 更新内容
 
-> **7 个页面工具 + 欢迎页本地化** — 页面控制与扩展存储能力。
+> **web-editor v3 架构 + CI 自动化** — 架构统一与工程化。
 >
-> - 🆕 **`chrome_create_tab`** — 新建标签页，支持 URL / 窗口 / 前台后台 / 固定
-> - 🖱️ **`chrome_hover`** — 元素悬停，触发 hover 态交互
-> - 📄 **`chrome_print_to_pdf`** — A3-A5 / LETTER / LEGAL / TABLOID 多种纸张导出 PDF
-> - 🔍 **`chrome_get_element_info`** — 元素几何与属性检测
-> - 💾 **`chrome_storage_get` / `set` / `delete`** — 扩展本地存储读写删
-> - 🌐 **Welcome 页面中英文切换** — 语言自动检测 + 持久化
-> - 🔧 版本统一为 v2.3.1
+> - 🧩 **Web Editor v2 → v3 迁移** — 消息 action 更新为 v3 后缀，`window` API 更新为 `__MCP_WEB_EDITOR_V3__`
+> - 🚀 **CI 工作流** — 新增 `ci.yml`（push / PR 自动 typecheck + lint + test + build）
+> - 🧮 **wasm-simd 增强** — 补充 description / license，新增构建产物拷贝与 Rust 工具链检查脚本
+> - 🪟 **Windows 安装排错** — 文档补充 EBUSY 目录占用指南
+> - 🔧 版本统一为 v2.3.5
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -210,8 +208,8 @@ mcp-chrome-bridge upgrade 2.3.0
 
 ### ✅ 验证状态
 
-- Native Server：4 个测试套件、12 个测试通过
-- Chrome Extension：57 个测试文件、563 个测试通过
+- Native Server：Jest 测试套件由 CI 执行并收集覆盖率
+- Chrome Extension：Vitest 单元/集成测试由 CI 执行
 - Native / Extension / Shared TypeScript 检查通过
 
 ---

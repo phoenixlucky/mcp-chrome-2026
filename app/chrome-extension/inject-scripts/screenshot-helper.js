@@ -1,4 +1,4 @@
-/* eslint-disable */
+
 /**
  * Screenshot helper content script
  * Handles page preparation, scrolling, element positioning, etc.

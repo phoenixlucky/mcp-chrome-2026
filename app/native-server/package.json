@@ -1,6 +1,6 @@
 {
   "name": "@ethanwilkins/mcp-chrome-bridge-2026",
-  "version": "2.3.1",
+  "version": "2.3.5",
   "description": "Chrome Native-Messaging host (Node)",
   "main": "dist/index.js",
   "bin": {
@@ -15,9 +15,9 @@
     "prepack": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint 'src/**/*.{js,ts}'",
-    "lint:fix": "eslint 'src/**/*.{js,ts}' --fix",
-    "format": "prettier --write 'src/**/*.{js,ts,json}'",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write src",
     "register:dev": "node dist/scripts/register-dev.js",
     "postinstall": "node -e \"try{require('./dist/scripts/postinstall.js')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\""
   },

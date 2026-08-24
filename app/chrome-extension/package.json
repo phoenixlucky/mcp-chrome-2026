@@ -3,7 +3,7 @@
   "description": "a chrome extension to use your own chrome as a mcp server",
   "author": "hangye",
   "private": true,
-  "version": "2.3.1",
+  "version": "2.3.5",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -13,7 +13,8 @@
     "zip": "wxt zip",
     "postzip": "node scripts/postzip.mjs",
     "zip:firefox": "wxt zip -b firefox",
-    "compile": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit",
+    "compile": "pnpm run typecheck",
     "postinstall": "node -e \"try{require('child_process').execSync('wxt prepare',{cwd:__dirname,shell:true,stdio:'inherit'})}catch(e){}\"",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint . --fix",

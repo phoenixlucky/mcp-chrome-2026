@@ -25,16 +25,12 @@ pnpm() {
 }
 
 echo "========================================"
-echo "  Chrome MCP Server v2.3.1"
+echo "  Chrome MCP Server v2.3.5"
 echo "========================================"
 echo
 
 echo "[1/3] Checking dependencies..."
-if [ ! -d node_modules ]; then
-  pnpm install
-else
-  echo "Dependencies already installed."
-fi
+pnpm install --frozen-lockfile
 echo "Done."
 echo
 

@@ -1,4 +1,4 @@
-/* eslint-disable */
+
 // recorder.js - content script for recording user interactions into steps
 
 (function () {

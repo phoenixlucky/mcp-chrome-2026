@@ -17,10 +17,10 @@
 
 ### 环境要求
 
-- **Node.js 20+** 和 **pnpm**（最新版本）
+- **Node.js 24+** 和 **pnpm 11**
 - **Chrome/Chromium** 浏览器用于测试
 - **Git** 版本控制
-- **Rust**（用于 WASM 开发，可选）
+- **Rust 和 wasm-pack**（发布/WASM 构建必需）
 - **TypeScript** 知识
 
 ### 开发环境设置
@@ -41,7 +41,7 @@ pnpm install
 3. **启动项目**
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 4. **在 Chrome 中加载扩展**
@@ -179,9 +179,13 @@ git push origin feature/your-feature-name
 
 ```bash
 cd packages/wasm-simd
-# 如果尚未安装，请安装 Rust 和 wasm-pack
+# Linux/macOS
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-cargo install wasm-pack
+cargo install wasm-pack --locked
+
+# Windows PowerShell（替代上面的两条命令）
+# winget install --id Rustlang.Rustup -e
+# 重新打开终端后执行：cargo install wasm-pack --locked
 
 # 构建 WASM 包
 pnpm build

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.3.5] - 2026-08-24
+
+### Changed
+
+- **web-editor v2 → v3 架构迁移** — Web Editor 组件全面迁移到 v3 统一架构：消息 action 从 v2 后缀更新为 v3 后缀，`window` 暴露 API 更新为 `__MCP_WEB_EDITOR_V3__`，类型定义与注释同步。
+- **CI 工作流** — 新增 `.github/workflows/ci.yml`（master push / PR 触发，typecheck + lint + test + build），`build-release.yml` 同步梳理。
+- **wasm-simd 增强** — Rust 包补充 `description` / `license`，新增 `COPY` 辅助脚本（`copy-wasm.mjs`）、Rust 工具链检查脚本（`check-wasm-toolchain.mjs`）。
+- **Windows 安装排错** — Windows 安装文档补充 EBUSY 目录占用排错指南。
+- 版本统一为 v2.3.5。
+
 ## [v2.3.1] - 2026-08-24
 
 ### Added

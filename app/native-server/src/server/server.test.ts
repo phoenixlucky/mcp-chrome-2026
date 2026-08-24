@@ -1,6 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from '@jest/globals';
 import supertest from 'supertest';
 import Server from './index';
+import { isAllowedCorsOrigin } from '../constant';
 
 describe('服务器测试', () => {
   // 启动服务器测试实例
@@ -44,5 +45,12 @@ describe('服务器测试', () => {
       .expect(204);
 
     expect(response.headers['access-control-allow-methods']).toContain('PUT');
+  });
+
+  test('CORS 不接受伪造的本地 Origin', () => {
+    expect(isAllowedCorsOrigin('http://127.0.0.1:5173')).toBe(true);
+    expect(isAllowedCorsOrigin('chrome-extension://test-extension')).toBe(true);
+    expect(isAllowedCorsOrigin('http://127.0.0.1.evil.example')).toBe(false);
+    expect(isAllowedCorsOrigin('https://127.0.0.1')).toBe(false);
   });
 });

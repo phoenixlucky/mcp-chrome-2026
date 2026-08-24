@@ -1,4 +1,4 @@
-/* eslint-disable */
+
 
 (() => {
   // Prevent duplicate injection of the bridge itself.

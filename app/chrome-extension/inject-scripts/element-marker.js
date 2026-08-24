@@ -1,4 +1,4 @@
-/* eslint-disable */
+
 (function () {
   if (window.__ELEMENT_MARKER_INSTALLED__) return;
   window.__ELEMENT_MARKER_INSTALLED__ = true;

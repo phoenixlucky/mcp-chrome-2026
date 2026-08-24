@@ -4,7 +4,7 @@ title Chrome MCP Server - Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v2.3.1
+echo   Chrome MCP Server v2.3.5
 echo ========================================
 echo.
 
@@ -26,15 +26,11 @@ echo   Package manager: !PNPM_CMD!
 echo.
 
 echo [1/3] Checking dependencies...
-if not exist "node_modules" (
-    call !PNPM_CMD! install
-    if %ERRORLEVEL% NEQ 0 (
-        echo Install failed
-        pause
-        exit /b 1
-    )
-) else (
-    echo Dependencies already installed.
+call !PNPM_CMD! install --frozen-lockfile
+if %ERRORLEVEL% NEQ 0 (
+    echo Install failed
+    pause
+    exit /b 1
 )
 echo Done.
 echo.

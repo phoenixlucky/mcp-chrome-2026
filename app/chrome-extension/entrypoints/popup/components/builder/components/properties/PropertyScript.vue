@@ -35,7 +35,7 @@
 </template>
 
 <script lang="ts" setup>
-/* eslint-disable vue/no-mutating-props */
+
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import KeyValueEditor from '@/entrypoints/popup/components/builder/components/KeyValueEditor.vue';
 

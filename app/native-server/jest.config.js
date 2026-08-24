@@ -8,13 +8,8 @@ module.exports = {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  // tsconfig uses module/moduleResolution NodeNext, which ts-jest only supports
-  // in isolatedModules mode (otherwise it does full type-checking per file and
-  // emits TS151002 warnings; this also makes runs much slower).
-  globals: {
-    'ts-jest': {
-      isolatedModules: true,
-    },
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {}],
   },
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   collectCoverage: true,
@@ -22,13 +17,10 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageThreshold: {
     global: {
-      // Current suite covers only a subset of the server; thresholds are set
-      // just below the actual measured coverage so `pnpm test` stays green.
-      // Raise these as test coverage grows.
-      branches: 3,
-      functions: 10,
-      lines: 10,
-      statements: 10,
+      branches: 5,
+      functions: 13,
+      lines: 13,
+      statements: 13,
     },
   },
 };

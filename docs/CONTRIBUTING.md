@@ -17,10 +17,10 @@ We welcome contributions in many forms:
 
 ### Prerequisites
 
-- **Node.js 20+** and **pnpm or npm** (latest version)
+- **Node.js 24+** and **pnpm 11**
 - **Chrome/Chromium** browser for testing
 - **Git** for version control
-- **Rust** (for WASM development, optional)
+- **Rust and wasm-pack** (required for release/WASM builds)
 - **TypeScript** knowledge
 
 ### Development Setup
@@ -41,7 +41,7 @@ pnpm install
 3. **Start the project**
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 4. **Load the extension in Chrome**
@@ -179,9 +179,13 @@ If you're contributing to the WASM SIMD package:
 
 ```bash
 cd packages/wasm-simd
-# Install Rust and wasm-pack if not already installed
+# Linux/macOS
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-cargo install wasm-pack
+cargo install wasm-pack --locked
+
+# Windows PowerShell (use this instead of the two commands above)
+# winget install --id Rustlang.Rustup -e
+# Restart the terminal, then run: cargo install wasm-pack --locked
 
 # Build WASM package
 pnpm build

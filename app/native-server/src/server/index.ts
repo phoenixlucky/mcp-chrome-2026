@@ -16,6 +16,7 @@ import {
   SERVER_CONFIG,
   HTTP_STATUS,
   ERROR_MESSAGES,
+  isAllowedCorsOrigin,
 } from '../constant';
 import { NativeMessagingHost } from '../native-messaging-host';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
@@ -94,11 +95,7 @@ export class Server {
         if (!origin) {
           return cb(null, true);
         }
-        // Check if origin matches any pattern in whitelist
-        const allowed = SERVER_CONFIG.CORS_ORIGIN.some((pattern) =>
-          pattern instanceof RegExp ? pattern.test(origin) : origin.startsWith(pattern),
-        );
-        cb(null, allowed);
+        cb(null, isAllowedCorsOrigin(origin));
       },
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,

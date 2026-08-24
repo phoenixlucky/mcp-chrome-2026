@@ -11,7 +11,7 @@
 </template>
 
 <script lang="ts" setup>
-/* eslint-disable vue/no-mutating-props */
+
 import { computed } from 'vue';
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import type { VariableOption } from '@/entrypoints/popup/components/builder/model/variables';

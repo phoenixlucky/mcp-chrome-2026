@@ -110,8 +110,14 @@ describe('V3 Scheduler Integration', () => {
 
       scheduler.start();
 
-      // Wait for execution
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for both executions instead of relying on a fixed timing window.
+      await vi.waitFor(
+        async () => {
+          expect(executed).toHaveLength(2);
+          expect(await queue.list()).toHaveLength(0);
+        },
+        { timeout: 1000, interval: 10 },
+      );
 
       scheduler.stop();
 
@@ -119,9 +125,6 @@ describe('V3 Scheduler Integration', () => {
       expect(executed).toContain('run-1');
       expect(executed).toContain('run-2');
 
-      // Queue should be empty
-      const remaining = await queue.list();
-      expect(remaining).toHaveLength(0);
     });
 
     it('respects maxParallelRuns with real queue', async () => {

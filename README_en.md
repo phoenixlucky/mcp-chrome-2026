@@ -26,17 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.3.1
+## 📢 What's New in v2.3.5
 
-> **7 page tools + welcome page localization** — Page control and extension storage capabilities.
+> **web-editor v3 architecture + CI automation** — Architecture unification and engineering.
 >
-> - 🆕 **`chrome_create_tab`** — Create a tab with URL / window / foreground-background / pinned control
-> - 🖱️ **`chrome_hover`** — Hover an element to trigger hover-state interactions
-> - 📄 **`chrome_print_to_pdf`** — Export PDF in A3–A5 / LETTER / LEGAL / TABLOID paper sizes
-> - 🔍 **`chrome_get_element_info`** — Element geometry & attribute inspection
-> - 💾 **`chrome_storage_get` / `set` / `delete`** — Extension local storage read/write/delete
-> - 🌐 **Welcome page zh/en switching** — Auto-detected language, persisted choice
-> - 🔧 All packages bumped to v2.3.1
+> - 🧩 **Web Editor v2 → v3 migration** — Message actions updated to v3 suffixes; `window` API becomes `__MCP_WEB_EDITOR_V3__`
+> - 🚀 **CI workflow** — New `ci.yml` (auto typecheck + lint + test + build on push / PR)
+> - 🧮 **wasm-simd enhancements** — Added description / license, build-artifact copy and Rust toolchain check scripts
+> - 🪟 **Windows install troubleshooting** — EBUSY directory-locked guide added
+> - 🔧 All packages bumped to v2.3.5
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

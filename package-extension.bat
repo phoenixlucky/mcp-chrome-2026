@@ -39,10 +39,10 @@ if errorlevel 1 (
 )
 
 :build
-call %PNPM_CMD% --filter @ethanwilkins/chrome-mcp-shared-2026 build
+call %PNPM_CMD% run build:release
 if errorlevel 1 (
   echo.
-  echo Extension dependency build failed.
+  echo Release build failed. Ensure Rust and wasm-pack are installed.
   pause
   exit /b 1
 )
