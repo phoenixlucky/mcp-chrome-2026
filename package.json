@@ -26,7 +26,7 @@
     "clean:dist": "pnpm -r exec rm -rf dist .turbo",
     "clean:modules": "pnpm -r exec rm -rf node_modules && rm -rf node_modules",
     "clean": "npm run clean:dist && npm run clean:modules",
-    "typecheck": "pnpm run typecheck:shared && pnpm run typecheck:native && pnpm run typecheck:extension",
+    "typecheck": "pnpm run typecheck:shared && pnpm run build:shared && pnpm run typecheck:native && pnpm run typecheck:extension",
     "typecheck:shared": "pnpm exec tsc --noEmit -p packages/shared/tsconfig.json",
     "typecheck:native": "pnpm exec tsc --noEmit -p app/native-server/tsconfig.json",
     "typecheck:extension": "pnpm --filter @ethanwilkins/chrome-mcp-server-2026 run typecheck",
