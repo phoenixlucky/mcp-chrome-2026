@@ -12,8 +12,55 @@ Chrome MCP Server 在windows电脑的详细安装和配置步骤
 
 确保电脑上已经安装了node，如果没安装请自行先安装
 
+> ⚠️ **安装前提醒**：请先在 Chrome 扩展中断开浏览器 MCP 连接，再关闭正在使用桥接程序的 Codex、Reasonix、Claude、Cursor 等应用，避免 `dist` 目录被占用而触发 `EBUSY` 错误。
+
 ```bash
-npm install -g mcp-chrome-bridge
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
+```
+
+如果安装时出现 `npm error code EBUSY`，并且错误信息包含 `rename ... mcp-chrome-bridge-2026\\dist`，说明旧版本的 `dist` 目录正在被 Windows 占用。请确认已经断开浏览器 MCP 连接并关闭可能使用桥接程序的应用，然后在管理员 PowerShell 中执行：
+
+```powershell
+npm uninstall -g @ethanwilkins/mcp-chrome-bridge-2026
+npm cache verify
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
+```
+
+如果 `npm uninstall` 本身也出现 `EBUSY`，说明旧包仍被进程或安全软件占用，`npm cache verify` 无法解除这种文件锁。请按以下顺序处理：
+
+1. 重启 Windows，不要先打开 Codex、Reasonix、Claude、Cursor 等应用，直接在管理员 PowerShell 中再次执行安装命令。
+2. 如果仍然失败，查找正在使用桥接程序的进程：
+
+```powershell
+Get-CimInstance Win32_Process |
+  Where-Object { $_.CommandLine -and $_.CommandLine -match 'mcp-chrome-bridge|mcp-bridge|@ethanwilkins' } |
+  Select-Object ProcessId, Name, CommandLine
+```
+
+确认是桥接程序相关进程后，再结束对应的进程：
+
+```powershell
+Stop-Process -Id <进程号> -Force
+```
+
+3. 如果没有找到相关进程但目录仍被锁定，先确认 npm 当前使用的全局目录，再将旧包改名保留为备份：
+
+```powershell
+$globalRoot = npm root -g
+$packagePath = Join-Path $globalRoot '@ethanwilkins\mcp-chrome-bridge-2026'
+Test-Path -LiteralPath $packagePath
+Rename-Item -LiteralPath $packagePath -NewName 'mcp-chrome-bridge-2026.backup'
+```
+
+改名成功后重新执行安装命令。确认新版本运行正常后，再手动删除 `mcp-chrome-bridge-2026.backup`；如果改名仍失败，请使用 Windows“资源监视器”或 Process Explorer 搜索 `mcp-chrome-bridge-2026`，找到并关闭占用该目录的程序。
+
+若电脑上使用了 NVM、Volta 或 fnm，请确认安装和运行桥接程序使用的是同一个 Node.js 环境：
+
+```powershell
+npm prefix -g
+npm root -g
+where.exe node
+where.exe npm
 ```
 
 3. **加载 Chrome 扩展**
