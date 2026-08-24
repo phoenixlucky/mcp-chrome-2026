@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.3.1] - 2026-08-24
+
+### Added
+
+- **7 个页面工具** — 新增 `chrome_create_tab`（指定 URL/窗口/前台后台/固定）、`chrome_hover`（元素悬停）、`chrome_print_to_pdf`（A3-A5/LETTER/LEGAL/TABLOID 多种纸张导出 PDF）、`chrome_get_element_info`（元素几何与属性检测）、`chrome_storage_get` / `chrome_storage_set` / `chrome_storage_delete`（扩展存储读写删）。
+- **Welcome 页面中英文切换** — 自动检测语言，选择持久化到 `localStorage`，同步 `<html lang>` 与 `<title>`。
+
+### Changed
+
+- 版本统一为 v2.3.1。
+
 ## [v2.3.0] - 2026-08-24
 
 ### Added

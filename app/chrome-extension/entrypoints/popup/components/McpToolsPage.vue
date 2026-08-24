@@ -127,6 +127,13 @@ const copy = computed(() => messages[locale.value]);
 const launchDates: Record<string, string> = {
   search_tabs_content: '2025-06-09',
   get_windows_and_tabs: '2025-06-09',
+  chrome_create_tab: '2026-08-24',
+  chrome_hover: '2026-08-24',
+  chrome_print_to_pdf: '2026-08-24',
+  chrome_get_element_info: '2026-08-24',
+  chrome_storage_get: '2026-08-24',
+  chrome_storage_set: '2026-08-24',
+  chrome_storage_delete: '2026-08-24',
   chrome_cookie_get: '2026-07-30',
   chrome_cookie_set: '2026-07-30',
   chrome_cookie_delete: '2026-07-30',
@@ -199,6 +206,13 @@ const zhDescriptions: Record<string, string> = {
   resume_tab_task:
     '保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。',
   get_windows_and_tabs: '列出当前打开的所有浏览器窗口和标签页。',
+  chrome_create_tab: '新建浏览器标签页，可指定 URL、窗口、前台或后台状态以及是否固定。',
+  chrome_hover: '通过 CSS 或 XPath 选择器悬停元素，用于展开下拉菜单、提示框或子菜单。',
+  chrome_print_to_pdf: '使用 CDP 将页面打印为 PDF，支持页面 CSS 尺寸和自定义纸张尺寸。',
+  chrome_get_element_info: '查询元素的 attributes、computed styles 和 bounding rect。',
+  chrome_storage_get: '读取页面的 localStorage 或 sessionStorage。',
+  chrome_storage_set: '写入页面的 localStorage 或 sessionStorage。',
+  chrome_storage_delete: '删除页面 localStorage 或 sessionStorage 中的键。',
   chrome_cookie_get: '获取浏览器 Cookie；可按 URL、域名、名称或浏览器存储分区筛选。',
   chrome_cookie_set: '设置浏览器 Cookie，支持 HttpOnly、Secure、SameSite、路径和过期时间。',
   chrome_cookie_delete: '按 URL 和名称删除 Cookie。',
@@ -504,9 +518,13 @@ const categoryFor = (name: string) => {
   )
     return 'capture';
   if (
-    ['get_windows_and_tabs', 'chrome_navigate', 'chrome_close_tabs', 'chrome_switch_tab'].includes(
-      name,
-    )
+    [
+      'get_windows_and_tabs',
+      'chrome_create_tab',
+      'chrome_navigate',
+      'chrome_close_tabs',
+      'chrome_switch_tab',
+    ].includes(name)
   )
     return 'tabs';
   return 'interaction';

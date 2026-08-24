@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bridge AI agents with your Chrome browser</b><br />
-  A Model Context Protocol server that exposes 70 browser capabilities to AI assistants
+  A Model Context Protocol server that exposes 75 browser capabilities to AI assistants
 </p>
 
 <p align="center">
@@ -26,16 +26,17 @@
 
 ---
 
-## 📢 What's New in v2.3.0
+## 📢 What's New in v2.3.1
 
-> **Browser profile isolation and automation stability** — better support for persistent login, parallel sessions, and batch tasks.
+> **7 page tools + welcome page localization** — Page control and extension storage capabilities.
 >
-> - 🧩 **Multi-profile isolation** — Separate cookies, cache, history, and login state with parallel sessions
-> - 🛡️ **Unified ActionPolicy** — Stable pacing for click, input, scroll, and navigation actions
-> - 🔍 **Profile diagnostics** — Profile, CDP, MCP, proxy, and extension status in one report
-> - 📦 **Batch and scheduled tasks** — `chrome_batch`, persistent workflow queues, and cron/interval triggers
-> - 🚀 **Safe upgrades** — Exact versions, SHA-512 verification, post-install validation, and rollback
-> - 🔧 All packages bumped to v2.3.0
+> - 🆕 **`chrome_create_tab`** — Create a tab with URL / window / foreground-background / pinned control
+> - 🖱️ **`chrome_hover`** — Hover an element to trigger hover-state interactions
+> - 📄 **`chrome_print_to_pdf`** — Export PDF in A3–A5 / LETTER / LEGAL / TABLOID paper sizes
+> - 🔍 **`chrome_get_element_info`** — Element geometry & attribute inspection
+> - 💾 **`chrome_storage_get` / `set` / `delete`** — Extension local storage read/write/delete
+> - 🌐 **Welcome page zh/en switching** — Auto-detected language, persisted choice
+> - 🔧 All packages bumped to v2.3.1
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -89,7 +90,7 @@
 |                                                                                           |                                                                               |                                                                                 |                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
-| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 70 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 75 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
 ---
 
@@ -118,13 +119,19 @@ Open `chrome://extensions/` → enable **Developer mode** → drag & drop the `.
 
 ```bash
 # npm (recommended — auto-registers)
-npm install -g @ethanwilkins/mcp-chrome-bridge-2026
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
 
 # pnpm
 pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 ```
 
 > `postinstall` auto-registers Native Messaging Host. Manual: `mcp-chrome-bridge register`
+
+> The npm command above allows the bridge and `better-sqlite3` to run the scripts required for this install. To allow these two packages automatically for future installs, run:
+>
+> ```bash
+> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3" --location=user
+> ```
 
 ### 3️⃣ Start the Service
 
@@ -204,7 +211,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 ### ✅ Verification
 
 - Native Server: 4 suites, 12 tests passed
-- Chrome Extension: 56 test files, 559 tests passed
+- Chrome Extension: 57 test files, 563 tests passed
 - Native / Extension / Shared TypeScript checks passed
 
 ---
@@ -213,12 +220,12 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 
 | Category                  | Count | Coverage                                                                             |
 | ------------------------- | :---: | ------------------------------------------------------------------------------------ |
-| 🖥️ **Browser Management** |  11   | Window/tab listing, navigation, switch, close, current URL, scroll, script injection, Profile/batch tasks |
-| 📷 **Screenshots**        |   2   | Element-level, full-page, custom viewport, GIF recording                             |
+| 🖥️ **Browser Management** |  12   | Window/tab listing, new tabs, navigation, switch, close, current URL, scroll, Profile/batch tasks |
+| 📷 **Screenshots & PDF**  |   3   | Element-level, full-page, custom viewport, GIF recording, page-to-PDF printing       |
 | 🌐 **Network Monitoring** |   6   | Request capture & response wait, resource blocking, custom HTTP, download handling   |
 | 📝 **Content Analysis**   |   7   | Semantic search, HTML/text extraction, interactive elements, console capture, SPA    |
-| 🖱️ **Interaction**        |   9   | Click, fill forms, keyboard, computer ops, manual element pick, dialogs, file upload |
-| 📑 **Data Management**    |   7   | History search, bookmark CRUD, Cookie management (v1.6.4)                            |
+| 🖱️ **Interaction**        |  11   | Click, hover, fill forms, keyboard, element info, computer ops, dialogs, file upload |
+| 📑 **Data Management**    |  10   | History search, bookmark CRUD, Cookie management, page local/sessionStorage           |
 | 📡 **Scraping**           |  16   | Scoped/Shadow DOM/iframe, pagination, isolated task state, diagnostics, proxy rotate |
 | ⚡ **Performance**        |   3   | Trace start / stop / insight analysis                                                |
 
@@ -261,7 +268,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 
 ### ✅ Done
 
-- **70 MCP Tools** — Full browser API coverage
+- **75 MCP Tools** — Full browser API coverage
 - **Streamable HTTP + STDIO** — Dual transport
 - **Smart Assistant** — Claude / Codex / DeepSeek
 - **Semantic Search** — Vector DB + local embeddings
@@ -285,7 +292,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 - **Multi-version Chrome Matrix** — Run real-browser regression tests across Chrome versions / profiles / environments
 - **Expanded Product Scope** — Hosted browsers and remote CDP
 
-### 🔧 Planned Tools
+### 🆕 New Tools
 
 | Tool                                    | Description                                                                                    |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -294,6 +301,8 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 | `chrome_print_to_pdf`                   | Print to PDF — uses CDP Page.printToPDF, supports page/custom paper sizes                      |
 | `chrome_get_element_info`               | Element info query — get attributes, computed styles, bounding rect for a selector             |
 | `chrome_storage_get` / `set` / `delete` | Storage management — read/write localStorage / sessionStorage                                  |
+
+The PDF tool returns Base64 PDF data by default; pass `savePdf: true` to also save it to Chrome downloads. Storage tools operate on the target page's `localStorage` or `sessionStorage`, not extension storage.
 
 ---
 

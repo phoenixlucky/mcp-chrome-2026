@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>让 AI 直接操控你的 Chrome 浏览器</b><br />
-  基于 Model Context Protocol，向 AI 助手开放 70 个浏览器能力
+  基于 Model Context Protocol，向 AI 助手开放 75 个浏览器能力
 </p>
 
 <p align="center">
@@ -26,16 +26,17 @@
 
 ---
 
-## 📢 v2.3.0 更新内容
+## 📢 v2.3.1 更新内容
 
-> **浏览器 Profile 隔离与自动化稳定性升级** — 更适合持续登录、并行会话和批量任务。
+> **7 个页面工具 + 欢迎页本地化** — 页面控制与扩展存储能力。
 >
-> - 🧩 **多 Profile 任务隔离** — 独立 Cookie、缓存、历史与登录态，支持多会话并行
-> - 🛡️ **统一 ActionPolicy** — 为点击、输入、滚动和导航提供稳定节奏
-> - 🔍 **Profile 诊断** — 汇总 Profile、CDP、MCP、代理与扩展状态
-> - 📦 **批量与定时任务** — `chrome_batch`、持久化工作流队列和 cron/interval 触发
-> - 🚀 **安全升级** — 精确版本、SHA-512 校验、安装验证与失败回滚
-> - 🔧 版本统一为 v2.3.0
+> - 🆕 **`chrome_create_tab`** — 新建标签页，支持 URL / 窗口 / 前台后台 / 固定
+> - 🖱️ **`chrome_hover`** — 元素悬停，触发 hover 态交互
+> - 📄 **`chrome_print_to_pdf`** — A3-A5 / LETTER / LEGAL / TABLOID 多种纸张导出 PDF
+> - 🔍 **`chrome_get_element_info`** — 元素几何与属性检测
+> - 💾 **`chrome_storage_get` / `set` / `delete`** — 扩展本地存储读写删
+> - 🌐 **Welcome 页面中英文切换** — 语言自动检测 + 持久化
+> - 🔧 版本统一为 v2.3.1
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -89,7 +90,7 @@
 |                                                                     |                                                                    |                                                              |                                                               |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | **🤖 AI 原生控制**<br/>Claude / Cursor / VS Code<br/>直接操控浏览器 | **🔐 零配置即用**<br/>复用现有 Chrome<br/>登录态 / Cookie 即刻继承 | **🛡️ 纯本地运行**<br/>数据不出环境<br/>隐私安全有保障        | **🚄 Streamable HTTP**<br/>实时流式响应<br/>现代 MCP 传输协议 |
-| **🧠 语义搜索**<br/>向量数据库 + 本地嵌入<br/>跨标签页内容发现      | **⚡ SIMD 加速**<br/>WASM 优化引擎<br/>向量运算 4-8× 更快          | **📊 70 工具**<br/>导航 / 截图 / 表单<br/>书签 / 历史 / 网络 | **🔄 跨标签页操作**<br/>多标签 / 多窗口<br/>无缝协同管理      |
+| **🧠 语义搜索**<br/>向量数据库 + 本地嵌入<br/>跨标签页内容发现      | **⚡ SIMD 加速**<br/>WASM 优化引擎<br/>向量运算 4-8× 更快          | **📊 75 工具**<br/>导航 / 截图 / 表单<br/>书签 / 历史 / 网络 | **🔄 跨标签页操作**<br/>多标签 / 多窗口<br/>无缝协同管理      |
 
 ---
 
@@ -118,13 +119,19 @@
 
 ```bash
 # npm（推荐，自动注册）
-npm install -g @ethanwilkins/mcp-chrome-bridge-2026
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
 
 # pnpm
 pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 ```
 
 > `postinstall` 自动注册 Native Messaging Host。如需手动注册：`mcp-chrome-bridge register`
+
+> 上面的 npm 命令会允许桥接器和 `better-sqlite3` 执行本次安装所需的脚本。如果希望以后自动允许这两个包，可先执行：
+>
+> ```bash
+> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3" --location=user
+> ```
 
 ### 3️⃣ 启动服务
 
@@ -204,7 +211,7 @@ mcp-chrome-bridge upgrade 2.3.0
 ### ✅ 验证状态
 
 - Native Server：4 个测试套件、12 个测试通过
-- Chrome Extension：56 个测试文件、559 个测试通过
+- Chrome Extension：57 个测试文件、563 个测试通过
 - Native / Extension / Shared TypeScript 检查通过
 
 ---
@@ -213,12 +220,12 @@ mcp-chrome-bridge upgrade 2.3.0
 
 | 分类              | 数量 | 覆盖能力                                                             |
 | ----------------- | :--: | -------------------------------------------------------------------- |
-| 🖥️ **浏览器管理** |  11  | 窗口/标签页列表、导航、切换、关闭、当前 URL、滚动、脚本注入、Profile/批量任务 |
-| 📷 **截图**       |  2   | 元素级、全页面、自定义视口、GIF 录制                                 |
+| 🖥️ **浏览器管理** |  12  | 窗口/标签页列表、新建标签页、导航、切换、关闭、当前 URL、滚动、Profile/批量任务 |
+| 📷 **截图与 PDF** |  3   | 元素级、全页面、自定义视口、GIF 录制、页面打印为 PDF                 |
 | 🌐 **网络监控**   |  6   | 指定标签抓包与响应等待、精确资源拦截、自定义 HTTP、下载处理          |
 | 📝 **内容分析**   |  7   | 语义搜索、HTML / 文本提取、交互元素检测、控制台日志、SPA 内容        |
-| 🖱️ **交互操作**   |  9   | 点击、表单填充、键盘输入、计算机操作、人工选元素、对话框、上传       |
-| 📑 **数据管理**   |  7   | 历史搜索、书签增删查、Cookie 管理 (v1.6.4)                           |
+| 🖱️ **交互操作**   |  11  | 点击、悬停、表单填充、键盘输入、元素信息、计算机操作、对话框、上传   |
+| 📑 **数据管理**   |  10  | 历史搜索、书签增删查、Cookie 管理、页面 local/sessionStorage          |
 | 📡 **采集提取**   |  16  | 作用域/Shadow DOM/iframe、受控分页、隔离任务状态、诊断快照、代理轮换 |
 | ⚡ **性能诊断**   |  3   | Trace 录制 / 停止 / 洞察分析                                         |
 
@@ -261,7 +268,7 @@ mcp-chrome-bridge upgrade 2.3.0
 
 ### ✅ 已实现
 
-- **70 MCP 工具** — 浏览器全能力覆盖
+- **75 MCP 工具** — 浏览器全能力覆盖
 - **Streamable HTTP + STDIO 双传输**
 - **智能助手** — Claude / Codex / DeepSeek
 - **语义搜索** — 向量数据库 + 本地嵌入
@@ -285,7 +292,7 @@ mcp-chrome-bridge upgrade 2.3.0
 - **多版本 Chrome 实机矩阵** — 在不同 Chrome 版本 / Profile / 运行环境中做真实浏览器回归
 - **产品边界扩展** — 托管浏览器与远程 CDP
 
-### 🔧 待开发工具
+### 🆕 新增工具
 
 | 工具                                    | 说明                                                                          |
 | --------------------------------------- | ----------------------------------------------------------------------------- |
@@ -294,6 +301,8 @@ mcp-chrome-bridge upgrade 2.3.0
 | `chrome_print_to_pdf`                   | 打印为 PDF — 调用 CDP Page.printToPDF，支持页面/自定义纸张尺寸                |
 | `chrome_get_element_info`               | 元素信息查询 — 获取指定元素的 attributes、computed styles、bounding rect      |
 | `chrome_storage_get` / `set` / `delete` | 存储管理 — 读写 localStorage / sessionStorage                                 |
+
+PDF 工具默认返回 PDF 的 Base64 数据；传入 `savePdf: true` 可同时保存到 Chrome 下载目录。页面存储工具操作目标标签页的 `localStorage` 或 `sessionStorage`，非扩展自身存储。
 
 ---
 

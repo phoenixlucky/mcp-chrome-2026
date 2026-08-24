@@ -26,6 +26,10 @@ const COPY = {
     zh: 'Chrome 扩展通过这个本地桥接程序向你的 MCP 客户端暴露浏览器工具。',
     en: 'The Chrome extension uses this local bridge to expose MCP tools to your client.',
   },
+  npmInstallTip: {
+    zh: '上面的 npm 命令会自动允许桥接器和 better-sqlite3 执行本次安装脚本。',
+    en: 'The npm command above automatically allows the bridge and better-sqlite3 to run scripts for this install.',
+  },
   copied: { zh: '已复制', en: 'Copied' },
   copy: { zh: '复制', en: 'Copy' },
   nodeVersionTipPre: {

@@ -1,4 +1,13 @@
 export { navigateTool, closeTabsTool, switchTabTool } from './common';
+export {
+  createTabTool,
+  hoverTool,
+  printToPdfTool,
+  elementInfoTool,
+  storageGetTool,
+  storageSetTool,
+  storageDeleteTool,
+} from './page-tools';
 export { windowTool } from './window';
 export { cookieGetTool, cookieSetTool, cookieDeleteTool } from './cookie';
 export { vectorSearchTabsContentTool as searchTabsContentTool } from './vector-search';

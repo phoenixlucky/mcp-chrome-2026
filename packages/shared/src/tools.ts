@@ -3,6 +3,7 @@ import { type Tool } from '@modelcontextprotocol/sdk/types.js';
 export const TOOL_NAMES = {
   BROWSER: {
     GET_WINDOWS_AND_TABS: 'get_windows_and_tabs',
+    CREATE_TAB: 'chrome_create_tab',
     NAVIGATE: 'chrome_navigate',
     SCREENSHOT: 'chrome_screenshot',
     CLOSE_TABS: 'chrome_close_tabs',
@@ -43,6 +44,12 @@ export const TOOL_NAMES = {
     COOKIE_GET: 'chrome_cookie_get',
     COOKIE_SET: 'chrome_cookie_set',
     COOKIE_DELETE: 'chrome_cookie_delete',
+    HOVER: 'chrome_hover',
+    PRINT_TO_PDF: 'chrome_print_to_pdf',
+    GET_ELEMENT_INFO: 'chrome_get_element_info',
+    STORAGE_GET: 'chrome_storage_get',
+    STORAGE_SET: 'chrome_storage_set',
+    STORAGE_DELETE: 'chrome_storage_delete',
     PERFORMANCE_START_TRACE: 'performance_start_trace',
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
@@ -472,6 +479,159 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.CREATE_TAB,
+    description: '新建浏览器标签页，可指定 URL、窗口、前台/后台状态和固定状态。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: '新标签页打开的 URL；省略时打开新标签页。' },
+        windowId: { type: 'number', description: '将标签页创建到指定窗口。' },
+        active: {
+          type: 'boolean',
+          description: '是否激活新标签页；与 background 同时提供时 active 优先。',
+        },
+        background: { type: 'boolean', description: '是否后台打开；true 等价于 active=false。' },
+        pinned: { type: 'boolean', description: '是否将新标签页固定。' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.HOVER,
+    description: '通过 CSS 或 XPath 选择器将鼠标悬停在页面元素上。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: { type: 'string', description: '目标元素的 CSS 或 XPath 选择器。' },
+        selectorType: {
+          type: 'string',
+          enum: ['css', 'xpath'],
+          description: '选择器类型，默认为 css。',
+        },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '未提供 tabId 时用于选取激活标签页的窗口 ID。' },
+        durationMs: { type: 'number', description: '保持悬停的时间（毫秒，默认 250）。' },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PRINT_TO_PDF,
+    description: '使用 CDP Page.printToPDF 将页面打印为 PDF，支持页面 CSS 尺寸和自定义纸张尺寸。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '未提供 tabId 时用于选取激活标签页的窗口 ID。' },
+        pageSize: {
+          type: 'string',
+          enum: ['page', 'A3', 'A4', 'A5', 'Letter', 'Legal', 'Tabloid', 'custom'],
+          description: '纸张尺寸；page 使用页面 CSS 尺寸，custom 使用 paperWidth/paperHeight。',
+        },
+        paperSize: { type: 'string', description: 'pageSize 的兼容别名。' },
+        paperWidth: {
+          type: 'number',
+          description: '自定义纸张宽度，单位为英寸，需与 paperHeight 一起提供。',
+        },
+        paperHeight: {
+          type: 'number',
+          description: '自定义纸张高度，单位为英寸，需与 paperWidth 一起提供。',
+        },
+        landscape: { type: 'boolean', description: '是否横向打印。' },
+        printBackground: { type: 'boolean', description: '是否打印背景图形，默认为 true。' },
+        preferCSSPageSize: { type: 'boolean', description: '是否优先使用页面 CSS @page 尺寸。' },
+        scale: { type: 'number', description: '打印缩放比例。' },
+        marginTop: { type: 'number', description: '上边距，单位为英寸。' },
+        marginBottom: { type: 'number', description: '下边距，单位为英寸。' },
+        marginLeft: { type: 'number', description: '左边距，单位为英寸。' },
+        marginRight: { type: 'number', description: '右边距，单位为英寸。' },
+        pageRanges: { type: 'string', description: '要打印的页码范围，例如 1-3。' },
+        displayHeaderFooter: { type: 'boolean', description: '是否显示页眉和页脚。' },
+        headerTemplate: { type: 'string', description: '页眉 HTML 模板。' },
+        footerTemplate: { type: 'string', description: '页脚 HTML 模板。' },
+        savePdf: { type: 'boolean', description: '是否同时保存 PDF 到 Chrome 下载目录。' },
+        filename: { type: 'string', description: '保存 PDF 时使用的文件名。' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_ELEMENT_INFO,
+    description: '查询页面元素的 attributes、computed styles 和 bounding rect。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: { type: 'string', description: '目标元素的 CSS 或 XPath 选择器。' },
+        selectorType: {
+          type: 'string',
+          enum: ['css', 'xpath'],
+          description: '选择器类型，默认为 css。',
+        },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '未提供 tabId 时用于选取激活标签页的窗口 ID。' },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.STORAGE_GET,
+    description: '读取页面的 localStorage 或 sessionStorage。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        storageArea: {
+          type: 'string',
+          enum: ['local', 'session'],
+          description: '存储区域，默认为 local。',
+        },
+        key: { type: 'string', description: '要读取的键；省略时读取全部键。' },
+        keys: { type: 'array', items: { type: 'string' }, description: '要读取的多个键。' },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '未提供 tabId 时用于选取激活标签页的窗口 ID。' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.STORAGE_SET,
+    description: '写入页面的 localStorage 或 sessionStorage；值会按 JSON 序列化。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        storageArea: {
+          type: 'string',
+          enum: ['local', 'session'],
+          description: '存储区域，默认为 local。',
+        },
+        key: { type: 'string', description: '要写入的键。' },
+        value: { description: '要写入的值；字符串原样保存，其他值 JSON 序列化。' },
+        items: { type: 'object', description: '批量写入的键值对象；与 key/value 二选一。' },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '未提供 tabId 时用于选取激活标签页的窗口 ID。' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.STORAGE_DELETE,
+    description: '删除页面的 localStorage 或 sessionStorage 键。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        storageArea: {
+          type: 'string',
+          enum: ['local', 'session'],
+          description: '存储区域，默认为 local。',
+        },
+        key: { type: 'string', description: '要删除的键。' },
+        keys: { type: 'array', items: { type: 'string' }, description: '要删除的多个键。' },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '未提供 tabId 时用于选取激活标签页的窗口 ID。' },
+      },
       required: [],
     },
   },

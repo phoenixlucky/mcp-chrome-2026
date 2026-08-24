@@ -41,6 +41,20 @@ function operationDetail(param: ToolCallParam): string {
   switch (param.name) {
     case 'get_windows_and_tabs':
       return '读取所有窗口和标签页';
+    case 'chrome_create_tab':
+      return `新建标签页${compact(args.url) ? `：${compact(args.url)}` : ''}`;
+    case 'chrome_hover':
+      return `悬停：${target(args)}`;
+    case 'chrome_get_element_info':
+      return `查询元素：${target(args)}`;
+    case 'chrome_print_to_pdf':
+      return '打印为 PDF';
+    case 'chrome_storage_get':
+      return '读取页面存储';
+    case 'chrome_storage_set':
+      return '写入页面存储';
+    case 'chrome_storage_delete':
+      return '删除页面存储';
     case 'search_tabs_content':
       return `搜索：${compact(args.query || args.text) || '标签页内容'}`;
     case 'chrome_screenshot':
@@ -235,6 +249,13 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_extract: '提取数据',
           chrome_navigate: '打开页面',
           get_windows_and_tabs: '读取标签页',
+          chrome_create_tab: '新建标签页',
+          chrome_hover: '悬停元素',
+          chrome_get_element_info: '查询元素',
+          chrome_print_to_pdf: '打印 PDF',
+          chrome_storage_get: '读取页面存储',
+          chrome_storage_set: '写入页面存储',
+          chrome_storage_delete: '删除页面存储',
           search_tabs_content: '搜索内容',
           chrome_screenshot: '截图',
           chrome_close_tabs: '关闭标签页',

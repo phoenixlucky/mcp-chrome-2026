@@ -17,6 +17,13 @@ describe('MCP tool catalog', () => {
         'collect_virtual_list',
         'collect_virtual_lists',
         'chrome_select_all_items',
+        'chrome_create_tab',
+        'chrome_hover',
+        'chrome_print_to_pdf',
+        'chrome_get_element_info',
+        'chrome_storage_get',
+        'chrome_storage_set',
+        'chrome_storage_delete',
       ]),
     );
     expect(search?.inputSchema.required).toEqual(expect.arrayContaining(['query', 'tabIds']));

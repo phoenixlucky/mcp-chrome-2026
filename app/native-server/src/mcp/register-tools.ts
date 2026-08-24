@@ -25,7 +25,7 @@ interface ToolActivity {
 const recentToolCalls: ToolActivity[] = [];
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
 const WRITE_TOOL =
-  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|paste|proxy_rotate|locate_element|select_all_items)/;
+  /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|paste|proxy_rotate|locate_element|select_all_items|hover|storage_set|storage_delete)/;
 // A native browser dialog can block the helper call used to resolve the active tab.
 // Let the dialog tool resolve its own tab instead of adding a second request that
 // is guaranteed to time out while beforeunload is visible.
@@ -56,6 +56,12 @@ const RECENT_TAB_DEFAULT_TOOLS = new Set([
   'chrome_click_element',
   'chrome_fill_or_select',
   'chrome_upload_file',
+  'chrome_hover',
+  'chrome_get_element_info',
+  'chrome_print_to_pdf',
+  'chrome_storage_get',
+  'chrome_storage_set',
+  'chrome_storage_delete',
 ]);
 const LONG_TOOL =
   /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|select_all_items)/;
@@ -251,7 +257,8 @@ async function resolveRecentOrActiveTab(
   // can point it at a tab that has already been closed.
   if (typeof args.url === 'string' && args.url.trim().length > 0) return args;
 
-  const recentTabId = getRecentTargetTabId(excludeRequestId);
+  const recentTabId =
+    typeof args.windowId === 'number' ? undefined : getRecentTargetTabId(excludeRequestId);
   if (typeof recentTabId === 'number') {
     try {
       const recentTab = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(

@@ -14,7 +14,8 @@ import {
 import '../sidepanel/styles/agent-chat.css';
 
 const COMMANDS = {
-  npmInstall: 'npm install -g @ethanwilkins/mcp-chrome-bridge-2026',
+  npmInstall:
+    'npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026',
   pnpmInstall: 'pnpm add -g @ethanwilkins/mcp-chrome-bridge-2026',
   yarnInstall: 'yarn global add @ethanwilkins/mcp-chrome-bridge-2026',
   mcpUrl: 'http://127.0.0.1:' + NATIVE_HOST.DEFAULT_PORT + '/mcp',
@@ -171,6 +172,8 @@ async function openDocs(): Promise<void> {
                   {{ copyLabel('npmInstall') }}
                 </button>
               </div>
+
+              <p class="welcome-subtle text-xs">{{ t('npmInstallTip') }}</p>
 
               <div class="grid sm:grid-cols-2 gap-3">
                 <div

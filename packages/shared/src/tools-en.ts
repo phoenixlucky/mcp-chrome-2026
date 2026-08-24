@@ -3,6 +3,7 @@ import { type Tool } from '@modelcontextprotocol/sdk/types.js';
 const TOOL_NAMES = {
   BROWSER: {
     GET_WINDOWS_AND_TABS: 'get_windows_and_tabs',
+    CREATE_TAB: 'chrome_create_tab',
     NAVIGATE: 'chrome_navigate',
     SCREENSHOT: 'chrome_screenshot',
     CLOSE_TABS: 'chrome_close_tabs',
@@ -43,6 +44,12 @@ const TOOL_NAMES = {
     COOKIE_GET: 'chrome_cookie_get',
     COOKIE_SET: 'chrome_cookie_set',
     COOKIE_DELETE: 'chrome_cookie_delete',
+    HOVER: 'chrome_hover',
+    PRINT_TO_PDF: 'chrome_print_to_pdf',
+    GET_ELEMENT_INFO: 'chrome_get_element_info',
+    STORAGE_GET: 'chrome_storage_get',
+    STORAGE_SET: 'chrome_storage_set',
+    STORAGE_DELETE: 'chrome_storage_delete',
     PERFORMANCE_START_TRACE: 'performance_start_trace',
     PERFORMANCE_STOP_TRACE: 'performance_stop_trace',
     PERFORMANCE_ANALYZE_INSIGHT: 'performance_analyze_insight',
@@ -472,6 +479,179 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.CREATE_TAB,
+    description:
+      'Create a browser tab with an optional URL, window, foreground/background state, and pin state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'URL to open in the new tab; omit to open a new-tab page.',
+        },
+        windowId: { type: 'number', description: 'Create the tab in this window.' },
+        active: {
+          type: 'boolean',
+          description: 'Whether to activate the new tab; takes precedence over background.',
+        },
+        background: {
+          type: 'boolean',
+          description: 'Open in the background; true is equivalent to active=false.',
+        },
+        pinned: { type: 'boolean', description: 'Pin the new tab.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.HOVER,
+    description: 'Move the mouse over an element selected by CSS or XPath.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: { type: 'string', description: 'CSS or XPath selector for the target element.' },
+        selectorType: {
+          type: 'string',
+          enum: ['css', 'xpath'],
+          description: 'Selector type; defaults to css.',
+        },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: { type: 'number', description: 'Window to use when tabId is omitted.' },
+        durationMs: {
+          type: 'number',
+          description: 'How long to keep the hover active in milliseconds (default 250).',
+        },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.PRINT_TO_PDF,
+    description:
+      'Print a page to PDF with CDP Page.printToPDF, supporting CSS page size and custom paper sizes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: { type: 'number', description: 'Window to use when tabId is omitted.' },
+        pageSize: {
+          type: 'string',
+          enum: ['page', 'A3', 'A4', 'A5', 'Letter', 'Legal', 'Tabloid', 'custom'],
+          description: 'Paper size; page uses CSS size and custom uses paperWidth/paperHeight.',
+        },
+        paperSize: { type: 'string', description: 'Compatibility alias for pageSize.' },
+        paperWidth: {
+          type: 'number',
+          description: 'Custom paper width in inches; provide with paperHeight.',
+        },
+        paperHeight: {
+          type: 'number',
+          description: 'Custom paper height in inches; provide with paperWidth.',
+        },
+        landscape: { type: 'boolean', description: 'Print in landscape orientation.' },
+        printBackground: {
+          type: 'boolean',
+          description: 'Print background graphics; defaults to true.',
+        },
+        preferCSSPageSize: { type: 'boolean', description: 'Prefer the page CSS @page size.' },
+        scale: { type: 'number', description: 'Print scale.' },
+        marginTop: { type: 'number', description: 'Top margin in inches.' },
+        marginBottom: { type: 'number', description: 'Bottom margin in inches.' },
+        marginLeft: { type: 'number', description: 'Left margin in inches.' },
+        marginRight: { type: 'number', description: 'Right margin in inches.' },
+        pageRanges: { type: 'string', description: 'Page ranges to print, for example 1-3.' },
+        displayHeaderFooter: { type: 'boolean', description: 'Display the header and footer.' },
+        headerTemplate: { type: 'string', description: 'Header HTML template.' },
+        footerTemplate: { type: 'string', description: 'Footer HTML template.' },
+        savePdf: { type: 'boolean', description: 'Also save the PDF to Chrome downloads.' },
+        filename: { type: 'string', description: 'Filename used when saving the PDF.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.GET_ELEMENT_INFO,
+    description: 'Get an element attributes, computed styles, and bounding rectangle.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: { type: 'string', description: 'CSS or XPath selector for the target element.' },
+        selectorType: {
+          type: 'string',
+          enum: ['css', 'xpath'],
+          description: 'Selector type; defaults to css.',
+        },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: { type: 'number', description: 'Window to use when tabId is omitted.' },
+      },
+      required: ['selector'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.STORAGE_GET,
+    description: 'Read a page localStorage or sessionStorage area.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        storageArea: {
+          type: 'string',
+          enum: ['local', 'session'],
+          description: 'Storage area; defaults to local.',
+        },
+        key: { type: 'string', description: 'Key to read; omit to read all keys.' },
+        keys: { type: 'array', items: { type: 'string' }, description: 'Multiple keys to read.' },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: { type: 'number', description: 'Window to use when tabId is omitted.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.STORAGE_SET,
+    description: 'Write page localStorage or sessionStorage; values are serialized as JSON.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        storageArea: {
+          type: 'string',
+          enum: ['local', 'session'],
+          description: 'Storage area; defaults to local.',
+        },
+        key: { type: 'string', description: 'Key to write.' },
+        value: {
+          description:
+            'Value to write; strings are stored as-is and other values are JSON-serialized.',
+        },
+        items: {
+          type: 'object',
+          description: 'Object of key/value pairs for batch writes; use instead of key/value.',
+        },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: { type: 'number', description: 'Window to use when tabId is omitted.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.STORAGE_DELETE,
+    description: 'Delete keys from page localStorage or sessionStorage.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        storageArea: {
+          type: 'string',
+          enum: ['local', 'session'],
+          description: 'Storage area; defaults to local.',
+        },
+        key: { type: 'string', description: 'Key to delete.' },
+        keys: { type: 'array', items: { type: 'string' }, description: 'Multiple keys to delete.' },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: { type: 'number', description: 'Window to use when tabId is omitted.' },
+      },
       required: [],
     },
   },
