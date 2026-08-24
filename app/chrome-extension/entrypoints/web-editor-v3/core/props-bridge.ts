@@ -1,7 +1,7 @@
 /**
  * Props Bridge - ISOLATED World Communication Layer
  *
- * Bridges the Web Editor V2 UI (ISOLATED world) and the Props Agent (MAIN world)
+ * Bridges the Web Editor V3 UI (ISOLATED world) and the Props Agent (MAIN world)
  * using CustomEvent-based messaging.
  *
  * Design notes:

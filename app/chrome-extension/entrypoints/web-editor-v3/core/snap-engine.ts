@@ -14,8 +14,8 @@
  */
 
 import {
-  WEB_EDITOR_V2_SNAP_MAX_ANCHOR_ELEMENTS,
-  WEB_EDITOR_V2_SNAP_MAX_SIBLINGS_SCAN,
+  WEB_EDITOR_V3_SNAP_MAX_ANCHOR_ELEMENTS,
+  WEB_EDITOR_V3_SNAP_MAX_SIBLINGS_SCAN,
 } from '../constants';
 import type { DistanceLabel, ViewportLine, ViewportRect } from '../overlay/canvas-overlay';
 
@@ -279,7 +279,7 @@ export function collectSiblingAnchors(target: Element): SnapAnchors {
   let leftOffset = 1;
   let rightOffset = 1;
 
-  while (scanned < WEB_EDITOR_V2_SNAP_MAX_SIBLINGS_SCAN) {
+  while (scanned < WEB_EDITOR_V3_SNAP_MAX_SIBLINGS_SCAN) {
     const leftIndex = targetIndex - leftOffset;
     const rightIndex = targetIndex + rightOffset;
     const canGoLeft = leftIndex >= 0;
@@ -301,7 +301,7 @@ export function collectSiblingAnchors(target: Element): SnapAnchors {
     }
 
     // Scan right
-    if (canGoRight && scanned < WEB_EDITOR_V2_SNAP_MAX_SIBLINGS_SCAN) {
+    if (canGoRight && scanned < WEB_EDITOR_V3_SNAP_MAX_SIBLINGS_SCAN) {
       const child = children[rightIndex];
       const rect = readElementRect(child);
       if (rect) {
@@ -316,7 +316,7 @@ export function collectSiblingAnchors(target: Element): SnapAnchors {
 
   // Sort by distance and take nearest
   candidates.sort((a, b) => a.distanceSquared - b.distanceSquared);
-  const selected = candidates.slice(0, WEB_EDITOR_V2_SNAP_MAX_ANCHOR_ELEMENTS);
+  const selected = candidates.slice(0, WEB_EDITOR_V3_SNAP_MAX_ANCHOR_ELEMENTS);
 
   // Build anchor arrays
   const xAnchors: SnapAnchorX[] = [];

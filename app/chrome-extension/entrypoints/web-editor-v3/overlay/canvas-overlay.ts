@@ -17,17 +17,17 @@
  */
 
 import {
-  WEB_EDITOR_V2_COLORS,
-  WEB_EDITOR_V2_DISTANCE_LABEL_FONT,
-  WEB_EDITOR_V2_DISTANCE_LABEL_OFFSET,
-  WEB_EDITOR_V2_DISTANCE_LABEL_PADDING_X,
-  WEB_EDITOR_V2_DISTANCE_LABEL_PADDING_Y,
-  WEB_EDITOR_V2_DISTANCE_LABEL_RADIUS,
-  WEB_EDITOR_V2_DISTANCE_LINE_WIDTH,
-  WEB_EDITOR_V2_DISTANCE_TICK_SIZE,
-  WEB_EDITOR_V2_GUIDE_LINE_WIDTH,
-  WEB_EDITOR_V2_INSERTION_LINE_WIDTH,
-  WEB_EDITOR_V2_LOG_PREFIX,
+  WEB_EDITOR_V3_COLORS,
+  WEB_EDITOR_V3_DISTANCE_LABEL_FONT,
+  WEB_EDITOR_V3_DISTANCE_LABEL_OFFSET,
+  WEB_EDITOR_V3_DISTANCE_LABEL_PADDING_X,
+  WEB_EDITOR_V3_DISTANCE_LABEL_PADDING_Y,
+  WEB_EDITOR_V3_DISTANCE_LABEL_RADIUS,
+  WEB_EDITOR_V3_DISTANCE_LINE_WIDTH,
+  WEB_EDITOR_V3_DISTANCE_TICK_SIZE,
+  WEB_EDITOR_V3_GUIDE_LINE_WIDTH,
+  WEB_EDITOR_V3_INSERTION_LINE_WIDTH,
+  WEB_EDITOR_V3_LOG_PREFIX,
 } from '../constants';
 import { Disposer } from '../utils/disposables';
 
@@ -123,20 +123,20 @@ const HOVER_ANIMATION_DURATION_MS = 100;
 /** Default styles for different box types */
 const BOX_STYLES = {
   hover: {
-    strokeColor: WEB_EDITOR_V2_COLORS.hover,
-    fillColor: `${WEB_EDITOR_V2_COLORS.hover}15`, // 15 = ~8% opacity
+    strokeColor: WEB_EDITOR_V3_COLORS.hover,
+    fillColor: `${WEB_EDITOR_V3_COLORS.hover}15`, // 15 = ~8% opacity
     lineWidth: 2,
     dashPattern: [6, 4],
   },
   selection: {
-    strokeColor: WEB_EDITOR_V2_COLORS.selected,
-    fillColor: `${WEB_EDITOR_V2_COLORS.selected}20`, // 20 = ~12% opacity
+    strokeColor: WEB_EDITOR_V3_COLORS.selected,
+    fillColor: `${WEB_EDITOR_V3_COLORS.selected}20`, // 20 = ~12% opacity
     lineWidth: 2,
     dashPattern: [],
   },
   dragGhost: {
-    strokeColor: WEB_EDITOR_V2_COLORS.selectionBorder,
-    fillColor: WEB_EDITOR_V2_COLORS.dragGhost,
+    strokeColor: WEB_EDITOR_V3_COLORS.selectionBorder,
+    fillColor: WEB_EDITOR_V3_COLORS.dragGhost,
     lineWidth: 2,
     dashPattern: [8, 6],
   },
@@ -264,7 +264,7 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
 
   if (!ctxOrNull) {
     disposer.dispose();
-    throw new Error(`${WEB_EDITOR_V2_LOG_PREFIX} Failed to get canvas 2D context`);
+    throw new Error(`${WEB_EDITOR_V3_LOG_PREFIX} Failed to get canvas 2D context`);
   }
 
   // Capture as non-null after guard (TypeScript needs explicit assignment)
@@ -398,8 +398,8 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
 
     ctx.save();
 
-    ctx.lineWidth = WEB_EDITOR_V2_INSERTION_LINE_WIDTH;
-    ctx.strokeStyle = WEB_EDITOR_V2_COLORS.insertionLine;
+    ctx.lineWidth = WEB_EDITOR_V3_INSERTION_LINE_WIDTH;
+    ctx.strokeStyle = WEB_EDITOR_V3_COLORS.insertionLine;
     ctx.setLineDash([]);
     ctx.lineCap = 'round';
 
@@ -428,8 +428,8 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
 
     ctx.save();
 
-    ctx.lineWidth = WEB_EDITOR_V2_GUIDE_LINE_WIDTH;
-    ctx.strokeStyle = WEB_EDITOR_V2_COLORS.guideLine;
+    ctx.lineWidth = WEB_EDITOR_V3_GUIDE_LINE_WIDTH;
+    ctx.strokeStyle = WEB_EDITOR_V3_COLORS.guideLine;
     ctx.setLineDash([]);
     ctx.lineCap = 'round';
 
@@ -466,12 +466,12 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     ctx.save();
 
     // Draw measurement lines and ticks first (batched for performance)
-    ctx.lineWidth = WEB_EDITOR_V2_DISTANCE_LINE_WIDTH;
-    ctx.strokeStyle = WEB_EDITOR_V2_COLORS.guideLine;
+    ctx.lineWidth = WEB_EDITOR_V3_DISTANCE_LINE_WIDTH;
+    ctx.strokeStyle = WEB_EDITOR_V3_COLORS.guideLine;
     ctx.setLineDash([]);
     ctx.lineCap = 'round';
 
-    const tick = WEB_EDITOR_V2_DISTANCE_TICK_SIZE;
+    const tick = WEB_EDITOR_V3_DISTANCE_TICK_SIZE;
 
     ctx.beginPath();
     for (const label of labels) {
@@ -506,7 +506,7 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     ctx.stroke();
 
     // Draw text pills (each label gets its own pill)
-    ctx.font = WEB_EDITOR_V2_DISTANCE_LABEL_FONT;
+    ctx.font = WEB_EDITOR_V3_DISTANCE_LABEL_FONT;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -527,13 +527,13 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
       const textHeight = ascent + descent;
 
       // Calculate pill dimensions
-      const pillWidth = Math.ceil(textWidth + WEB_EDITOR_V2_DISTANCE_LABEL_PADDING_X * 2);
-      const pillHeight = Math.ceil(textHeight + WEB_EDITOR_V2_DISTANCE_LABEL_PADDING_Y * 2);
+      const pillWidth = Math.ceil(textWidth + WEB_EDITOR_V3_DISTANCE_LABEL_PADDING_X * 2);
+      const pillHeight = Math.ceil(textHeight + WEB_EDITOR_V3_DISTANCE_LABEL_PADDING_Y * 2);
 
       // Position pill at midpoint of measurement line with offset
       const midX = (line.x1 + line.x2) / 2;
       const midY = (line.y1 + line.y2) / 2;
-      const offset = WEB_EDITOR_V2_DISTANCE_LABEL_OFFSET;
+      const offset = WEB_EDITOR_V3_DISTANCE_LABEL_OFFSET;
 
       let pillX = midX - pillWidth / 2;
       let pillY = midY - pillHeight / 2;
@@ -561,8 +561,8 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
 
       // Draw pill background
       ctx.save();
-      ctx.fillStyle = WEB_EDITOR_V2_COLORS.distanceLabelBg;
-      ctx.strokeStyle = WEB_EDITOR_V2_COLORS.distanceLabelBorder;
+      ctx.fillStyle = WEB_EDITOR_V3_COLORS.distanceLabelBg;
+      ctx.strokeStyle = WEB_EDITOR_V3_COLORS.distanceLabelBorder;
       ctx.lineWidth = 1;
 
       ctx.beginPath();
@@ -572,13 +572,13 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
         pillY,
         pillWidth,
         pillHeight,
-        WEB_EDITOR_V2_DISTANCE_LABEL_RADIUS,
+        WEB_EDITOR_V3_DISTANCE_LABEL_RADIUS,
       );
       ctx.fill();
       ctx.stroke();
 
       // Draw text
-      ctx.fillStyle = WEB_EDITOR_V2_COLORS.distanceLabelText;
+      ctx.fillStyle = WEB_EDITOR_V3_COLORS.distanceLabelText;
       ctx.fillText(label.text, pillX + pillWidth / 2, pillY + pillHeight / 2);
       ctx.restore();
     }
@@ -728,7 +728,7 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     viewportWidth = Math.max(1, rect.width);
     viewportHeight = Math.max(1, rect.height);
   } catch (error) {
-    console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Initial size measurement failed:`, error);
+    console.warn(`${WEB_EDITOR_V3_LOG_PREFIX} Initial size measurement failed:`, error);
   }
 
   // Setup ResizeObserver for automatic sizing

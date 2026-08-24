@@ -1,7 +1,7 @@
 /**
  * Event Controller
  *
- * Capture-phase event interceptor for Web Editor V2.
+ * Capture-phase event interceptor for Web Editor V3.
  *
  * Responsibilities:
  * - Intercept document-level pointer/mouse/keyboard events in capture phase
@@ -16,7 +16,7 @@
  * - Events are blocked via stopImmediatePropagation for complete isolation
  */
 
-import { WEB_EDITOR_V2_DRAG_THRESHOLD_PX } from '../constants';
+import { WEB_EDITOR_V3_DRAG_THRESHOLD_PX } from '../constants';
 import { Disposer } from '../utils/disposables';
 
 // =============================================================================
@@ -36,12 +36,7 @@ export interface EventModifiers {
 
 /** Drag cancel reasons */
 export type DragCancelReason =
-  | 'escape'
-  | 'pointercancel'
-  | 'mode_change'
-  | 'dispose'
-  | 'blur'
-  | 'visibilitychange';
+  'escape' | 'pointercancel' | 'mode_change' | 'dispose' | 'blur' | 'visibilitychange';
 
 /** Drag start event data */
 export interface DragStartEvent {
@@ -595,7 +590,7 @@ export function createEventController(options: EventControllerOptions): EventCon
 
       const dx = event.clientX - dragCandidate.startClientX;
       const dy = event.clientY - dragCandidate.startClientY;
-      if (Math.hypot(dx, dy) < WEB_EDITOR_V2_DRAG_THRESHOLD_PX) return;
+      if (Math.hypot(dx, dy) < WEB_EDITOR_V3_DRAG_THRESHOLD_PX) return;
 
       const startEvent: DragStartEvent = {
         pointerId,

@@ -1,9 +1,9 @@
 /**
- * Web Editor V2 - Shared Type Definitions
+ * Web Editor V3 - Shared Type Definitions
  *
  * This module defines types shared between:
  * - Background script (injection control)
- * - Inject script (web-editor-v2.ts)
+ * - Inject script (web-editor-v3.ts)
  * - Future: UI panels
  */
 
@@ -16,7 +16,7 @@ export interface WebEditorState {
   /** Whether the editor is currently active */
   active: boolean;
   /** Editor version for compatibility checks */
-  version: 2;
+  version: 3;
 }
 
 // =============================================================================
@@ -24,37 +24,37 @@ export interface WebEditorState {
 // =============================================================================
 
 /**
- * Action types for web editor V2 messages
+ * Action types for web editor V3 messages
  *
- * IMPORTANT: V2 uses versioned action names (suffix _v2) to avoid
+ * IMPORTANT: V3 uses versioned action names (suffix _v3) to avoid
  * conflicts with V1 when both scripts might be injected in the same tab.
  * This prevents double-response race conditions.
  *
  * V1 uses: web_editor_ping, web_editor_toggle, etc.
- * V2 uses: web_editor_ping_v2, web_editor_toggle_v2, etc.
+ * V3 uses: web_editor_ping_v3, web_editor_toggle_v3, etc.
  */
-export const WEB_EDITOR_V2_ACTIONS = {
-  /** Check if V2 editor is injected and get status */
-  PING: 'web_editor_ping_v2',
-  /** Toggle V2 editor on/off */
-  TOGGLE: 'web_editor_toggle_v2',
-  /** Start V2 editor */
-  START: 'web_editor_start_v2',
-  /** Stop V2 editor */
-  STOP: 'web_editor_stop_v2',
+export const WEB_EDITOR_V3_ACTIONS = {
+  /** Check if V3 editor is injected and get status */
+  PING: 'web_editor_ping_v3',
+  /** Toggle V3 editor on/off */
+  TOGGLE: 'web_editor_toggle_v3',
+  /** Start V3 editor */
+  START: 'web_editor_start_v3',
+  /** Stop V3 editor */
+  STOP: 'web_editor_stop_v3',
   /** Highlight an element (from sidepanel hover) */
-  HIGHLIGHT_ELEMENT: 'web_editor_highlight_element_v2',
+  HIGHLIGHT_ELEMENT: 'web_editor_highlight_element_v3',
   /** Revert an element to its original state (Phase 2 - Selective Undo) */
-  REVERT_ELEMENT: 'web_editor_revert_element_v2',
+  REVERT_ELEMENT: 'web_editor_revert_element_v3',
   /** Clear selection (from sidepanel after send) */
-  CLEAR_SELECTION: 'web_editor_clear_selection_v2',
+  CLEAR_SELECTION: 'web_editor_clear_selection_v3',
   /** Show or hide page scroll coordinates in the editor HUD */
-  SET_SCROLL_COORDINATES: 'web_editor_set_scroll_coordinates_v2',
+  SET_SCROLL_COORDINATES: 'web_editor_set_scroll_coordinates_v3',
 } as const;
 
 /**
  * Legacy V1 action types (for reference and background compatibility)
- * These are used when USE_WEB_EDITOR_V2 is false
+ * These are used when USE_WEB_EDITOR_V3 is false
  */
 export const WEB_EDITOR_V1_ACTIONS = {
   PING: 'web_editor_ping',
@@ -64,79 +64,79 @@ export const WEB_EDITOR_V1_ACTIONS = {
   APPLY: 'web_editor_apply',
 } as const;
 
-export type WebEditorV2Action = (typeof WEB_EDITOR_V2_ACTIONS)[keyof typeof WEB_EDITOR_V2_ACTIONS];
+export type WebEditorV3Action = (typeof WEB_EDITOR_V3_ACTIONS)[keyof typeof WEB_EDITOR_V3_ACTIONS];
 export type WebEditorV1Action = (typeof WEB_EDITOR_V1_ACTIONS)[keyof typeof WEB_EDITOR_V1_ACTIONS];
 
 /** Editor version literal type */
-export type WebEditorVersion = 1 | 2;
+export type WebEditorVersion = 1 | 3;
 
-/** Ping request (V2) */
-export interface WebEditorV2PingRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.PING;
+/** Ping request (V3) */
+export interface WebEditorV3PingRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.PING;
 }
 
-/** Ping response (V2) */
-export interface WebEditorV2PingResponse {
+/** Ping response (V3) */
+export interface WebEditorV3PingResponse {
   status: 'pong';
   active: boolean;
-  version: 2;
+  version: 3;
 }
 
-/** Toggle request (V2) */
-export interface WebEditorV2ToggleRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.TOGGLE;
+/** Toggle request (V3) */
+export interface WebEditorV3ToggleRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.TOGGLE;
 }
 
-/** Toggle response (V2) */
-export interface WebEditorV2ToggleResponse {
+/** Toggle response (V3) */
+export interface WebEditorV3ToggleResponse {
   active: boolean;
 }
 
-/** Start request (V2) */
-export interface WebEditorV2StartRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.START;
+/** Start request (V3) */
+export interface WebEditorV3StartRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.START;
 }
 
-/** Start response (V2) */
-export interface WebEditorV2StartResponse {
+/** Start response (V3) */
+export interface WebEditorV3StartResponse {
   active: boolean;
 }
 
-/** Stop request (V2) */
-export interface WebEditorV2StopRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.STOP;
+/** Stop request (V3) */
+export interface WebEditorV3StopRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.STOP;
 }
 
-/** Stop response (V2) */
-export interface WebEditorV2StopResponse {
+/** Stop response (V3) */
+export interface WebEditorV3StopResponse {
   active: boolean;
 }
 
 /** Update the page scroll-coordinate HUD setting. */
-export interface WebEditorV2SetScrollCoordinatesRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES;
+export interface WebEditorV3SetScrollCoordinatesRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.SET_SCROLL_COORDINATES;
   enabled: boolean;
 }
 
 /** Response to a scroll-coordinate HUD setting update. */
-export interface WebEditorV2SetScrollCoordinatesResponse {
+export interface WebEditorV3SetScrollCoordinatesResponse {
   success: boolean;
 }
 
-/** Union types for V2 type-safe message handling */
-export type WebEditorV2Request =
-  | WebEditorV2PingRequest
-  | WebEditorV2ToggleRequest
-  | WebEditorV2StartRequest
-  | WebEditorV2StopRequest
-  | WebEditorV2SetScrollCoordinatesRequest;
+/** Union types for V3 type-safe message handling */
+export type WebEditorV3Request =
+  | WebEditorV3PingRequest
+  | WebEditorV3ToggleRequest
+  | WebEditorV3StartRequest
+  | WebEditorV3StopRequest
+  | WebEditorV3SetScrollCoordinatesRequest;
 
-export type WebEditorV2Response =
-  | WebEditorV2PingResponse
-  | WebEditorV2ToggleResponse
-  | WebEditorV2StartResponse
-  | WebEditorV2StopResponse
-  | WebEditorV2SetScrollCoordinatesResponse;
+export type WebEditorV3Response =
+  | WebEditorV3PingResponse
+  | WebEditorV3ToggleResponse
+  | WebEditorV3StartResponse
+  | WebEditorV3StopResponse
+  | WebEditorV3SetScrollCoordinatesResponse;
 
 // =============================================================================
 // Element Locator (Phase 1 - Basic Structure)
@@ -519,10 +519,10 @@ export interface WebEditorCancelExecutionResponse {
 // =============================================================================
 
 /**
- * Web Editor V2 Public API
- * Exposed on window.__MCP_WEB_EDITOR_V2__
+ * Web Editor V3 Public API
+ * Exposed on window.__MCP_WEB_EDITOR_V3__
  */
-export interface WebEditorV2Api {
+export interface WebEditorV3Api {
   /** Start the editor */
   start: () => void;
   /** Stop the editor */
@@ -551,6 +551,6 @@ export interface WebEditorV2Api {
 
 declare global {
   interface Window {
-    __MCP_WEB_EDITOR_V2__?: WebEditorV2Api;
+    __MCP_WEB_EDITOR_V3__?: WebEditorV3Api;
   }
 }

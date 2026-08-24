@@ -77,7 +77,7 @@ export function topoOrder<T extends RRNode>(nodes: T[], edges: RREdge[]): T[] {
   return out.length === nodes.length ? out : nodes.slice();
 }
 
-// Map a Node (Flow V2) to a linear Step (Flow V1)
+// Map a Node (Flow V3) to a linear Step (Flow V1)
 export function mapNodeToStep(node: RRNode): any {
   const c: any = node.config || {};
   const base = { id: node.id } as any;

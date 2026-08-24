@@ -18,9 +18,9 @@
  */
 
 import {
-  WEB_EDITOR_V2_DRAG_HYSTERESIS_PX,
-  WEB_EDITOR_V2_DRAG_MAX_HIT_ELEMENTS,
-  WEB_EDITOR_V2_LOG_PREFIX,
+  WEB_EDITOR_V3_DRAG_HYSTERESIS_PX,
+  WEB_EDITOR_V3_DRAG_MAX_HIT_ELEMENTS,
+  WEB_EDITOR_V3_LOG_PREFIX,
 } from '../constants';
 import type {
   DragCancelEvent,
@@ -244,10 +244,10 @@ function chooseSideWithHysteresis(
 
   // Apply hysteresis band around midline
   if (prevSide === 'before') {
-    return effectivePos > effectiveMid + WEB_EDITOR_V2_DRAG_HYSTERESIS_PX ? 'after' : 'before';
+    return effectivePos > effectiveMid + WEB_EDITOR_V3_DRAG_HYSTERESIS_PX ? 'after' : 'before';
   }
 
-  return effectivePos < effectiveMid - WEB_EDITOR_V2_DRAG_HYSTERESIS_PX ? 'before' : 'after';
+  return effectivePos < effectiveMid - WEB_EDITOR_V3_DRAG_HYSTERESIS_PX ? 'before' : 'after';
 }
 
 /**
@@ -347,7 +347,7 @@ export function createDragReorderController(
     // Use the dragged element's root for Shadow DOM aware hit-testing
     const hits = getHitElementsFromRoot(s.draggedRoot, s.lastClientX, s.lastClientY).slice(
       0,
-      WEB_EDITOR_V2_DRAG_MAX_HIT_ELEMENTS,
+      WEB_EDITOR_V3_DRAG_MAX_HIT_ELEMENTS,
     );
     const target = hits.find((el) =>
       isValidDropTarget(el, s.draggedElement, s.draggedRoot, isOverlayElement),
@@ -487,7 +487,7 @@ export function createDragReorderController(
       parent.insertBefore(draggedElement, ref);
       return true;
     } catch (error) {
-      console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} DOM move failed:`, error);
+      console.warn(`${WEB_EDITOR_V3_LOG_PREFIX} DOM move failed:`, error);
       return false;
     }
   }
@@ -545,7 +545,7 @@ export function createDragReorderController(
     setUiPointerEventsEnabled(false, state);
     scheduleUpdate();
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Drag started`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Drag started`);
     return true;
   }
 
@@ -573,7 +573,7 @@ export function createDragReorderController(
     if (!insert || insert.isNoop) {
       s.moveHandle.cancel();
       cleanup();
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Drag cancelled (no-op or no target)`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Drag cancelled (no-op or no target)`);
       return;
     }
 
@@ -581,7 +581,7 @@ export function createDragReorderController(
     if (!ok) {
       s.moveHandle.cancel();
       cleanup();
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Drag failed (DOM move error)`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Drag failed (DOM move error)`);
       return;
     }
 
@@ -589,7 +589,7 @@ export function createDragReorderController(
     positionTracker.forceUpdate();
     cleanup();
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Drag completed`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Drag completed`);
   }
 
   function onDragCancel(_ev: DragCancelEvent): void {
@@ -598,7 +598,7 @@ export function createDragReorderController(
     s.moveHandle.cancel();
     cleanup();
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Drag cancelled`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Drag cancelled`);
   }
 
   // Cleanup on dispose

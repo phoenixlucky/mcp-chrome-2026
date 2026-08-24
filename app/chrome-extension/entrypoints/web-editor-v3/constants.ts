@@ -1,44 +1,44 @@
 /**
- * Web Editor V2 Constants
+ * Web Editor V3 Constants
  *
  * Centralized configuration values for the visual editor.
  * All magic strings/numbers should be defined here.
  */
 
 /** Editor version number */
-export const WEB_EDITOR_V2_VERSION = 2 as const;
+export const WEB_EDITOR_V3_VERSION = 3 as const;
 
 /** Log prefix for console messages */
-export const WEB_EDITOR_V2_LOG_PREFIX = '[WebEditorV2]' as const;
+export const WEB_EDITOR_V3_LOG_PREFIX = '[WebEditorV3]' as const;
 
 // =============================================================================
 // DOM Element IDs
 // =============================================================================
 
 /** Shadow host element ID */
-export const WEB_EDITOR_V2_HOST_ID = '__mcp_web_editor_v2_host__';
+export const WEB_EDITOR_V3_HOST_ID = '__mcp_web_editor_v3_host__';
 
 /** Overlay container ID (for Canvas and visual feedback) */
-export const WEB_EDITOR_V2_OVERLAY_ID = '__mcp_web_editor_v2_overlay__';
+export const WEB_EDITOR_V3_OVERLAY_ID = '__mcp_web_editor_v3_overlay__';
 
 /** UI container ID (for panels and controls) */
-export const WEB_EDITOR_V2_UI_ID = '__mcp_web_editor_v2_ui__';
+export const WEB_EDITOR_V3_UI_ID = '__mcp_web_editor_v3_ui__';
 
 // =============================================================================
 // Styling
 // =============================================================================
 
 /** Maximum z-index to ensure editor is always on top */
-export const WEB_EDITOR_V2_Z_INDEX = 2147483647;
+export const WEB_EDITOR_V3_Z_INDEX = 2147483647;
 
 /** Default panel width */
-export const WEB_EDITOR_V2_PANEL_WIDTH = 320;
+export const WEB_EDITOR_V3_PANEL_WIDTH = 320;
 
 // =============================================================================
 // Colors (Design System)
 // =============================================================================
 
-export const WEB_EDITOR_V2_COLORS = {
+export const WEB_EDITOR_V3_COLORS = {
   /** Hover highlight color */
   hover: '#3b82f6', // blue-500
   /** Selected element color */
@@ -64,61 +64,61 @@ export const WEB_EDITOR_V2_COLORS = {
 // =============================================================================
 
 /** Minimum pointer movement (px) to start dragging */
-export const WEB_EDITOR_V2_DRAG_THRESHOLD_PX = 5;
+export const WEB_EDITOR_V3_DRAG_THRESHOLD_PX = 5;
 
 /** Hysteresis (px) for stable before/after decision to avoid flip-flop */
-export const WEB_EDITOR_V2_DRAG_HYSTERESIS_PX = 6;
+export const WEB_EDITOR_V3_DRAG_HYSTERESIS_PX = 6;
 
 /** Max elements to inspect per hit-test (elementsFromPoint) */
-export const WEB_EDITOR_V2_DRAG_MAX_HIT_ELEMENTS = 8;
+export const WEB_EDITOR_V3_DRAG_MAX_HIT_ELEMENTS = 8;
 
 /** Insertion indicator line width in CSS pixels */
-export const WEB_EDITOR_V2_INSERTION_LINE_WIDTH = 3;
+export const WEB_EDITOR_V3_INSERTION_LINE_WIDTH = 3;
 
 // =============================================================================
 // Snapping & Alignment Guides (Phase 4.2)
 // =============================================================================
 
 /** Snap threshold in CSS pixels - distance at which snapping activates */
-export const WEB_EDITOR_V2_SNAP_THRESHOLD_PX = 6;
+export const WEB_EDITOR_V3_SNAP_THRESHOLD_PX = 6;
 
 /** Hysteresis in CSS pixels - keeps snap stable near boundary to prevent flicker */
-export const WEB_EDITOR_V2_SNAP_HYSTERESIS_PX = 2;
+export const WEB_EDITOR_V3_SNAP_HYSTERESIS_PX = 2;
 
 /** Maximum sibling elements to consider for snapping (nearest first) */
-export const WEB_EDITOR_V2_SNAP_MAX_ANCHOR_ELEMENTS = 30;
+export const WEB_EDITOR_V3_SNAP_MAX_ANCHOR_ELEMENTS = 30;
 
 /** Maximum siblings to scan before applying distance filter */
-export const WEB_EDITOR_V2_SNAP_MAX_SIBLINGS_SCAN = 300;
+export const WEB_EDITOR_V3_SNAP_MAX_SIBLINGS_SCAN = 300;
 
 /** Alignment guide line width in CSS pixels */
-export const WEB_EDITOR_V2_GUIDE_LINE_WIDTH = 1;
+export const WEB_EDITOR_V3_GUIDE_LINE_WIDTH = 1;
 
 // =============================================================================
 // Distance Labels (Phase 4.3)
 // =============================================================================
 
 /** Minimum distance (px) to display a label - hides 0 and sub-pixel gaps */
-export const WEB_EDITOR_V2_DISTANCE_LABEL_MIN_PX = 1;
+export const WEB_EDITOR_V3_DISTANCE_LABEL_MIN_PX = 1;
 
 /** Measurement line width in CSS pixels */
-export const WEB_EDITOR_V2_DISTANCE_LINE_WIDTH = 1;
+export const WEB_EDITOR_V3_DISTANCE_LINE_WIDTH = 1;
 
 /** Tick size at the ends of measurement lines (CSS pixels) */
-export const WEB_EDITOR_V2_DISTANCE_TICK_SIZE = 4;
+export const WEB_EDITOR_V3_DISTANCE_TICK_SIZE = 4;
 
 /** Font used for distance label pills */
-export const WEB_EDITOR_V2_DISTANCE_LABEL_FONT =
+export const WEB_EDITOR_V3_DISTANCE_LABEL_FONT =
   '600 11px system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 /** Horizontal padding inside distance label pill (CSS pixels) */
-export const WEB_EDITOR_V2_DISTANCE_LABEL_PADDING_X = 6;
+export const WEB_EDITOR_V3_DISTANCE_LABEL_PADDING_X = 6;
 
 /** Vertical padding inside distance label pill (CSS pixels) */
-export const WEB_EDITOR_V2_DISTANCE_LABEL_PADDING_Y = 3;
+export const WEB_EDITOR_V3_DISTANCE_LABEL_PADDING_Y = 3;
 
 /** Border radius for distance label pill (CSS pixels) */
-export const WEB_EDITOR_V2_DISTANCE_LABEL_RADIUS = 4;
+export const WEB_EDITOR_V3_DISTANCE_LABEL_RADIUS = 4;
 
 /** Offset from the measurement line to place the pill (CSS pixels) */
-export const WEB_EDITOR_V2_DISTANCE_LABEL_OFFSET = 8;
+export const WEB_EDITOR_V3_DISTANCE_LABEL_OFFSET = 8;

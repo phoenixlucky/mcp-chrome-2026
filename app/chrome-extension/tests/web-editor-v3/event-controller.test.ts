@@ -1,5 +1,5 @@
 /**
- * Unit tests for Web Editor V2 Event Controller.
+ * Unit tests for Web Editor V3 Event Controller.
  *
  * These tests focus on the selecting mode behavior:
  * - Clicking within selection subtree prepares drag candidate
@@ -13,7 +13,7 @@ import {
   type EventController,
   type EventControllerOptions,
   type EventModifiers,
-} from '@/entrypoints/web-editor-v2/core/event-controller';
+} from '@/entrypoints/web-editor-v3/core/event-controller';
 
 import type { RestoreFn } from './test-utils/dom';
 import { mockBoundingClientRect } from './test-utils/dom';

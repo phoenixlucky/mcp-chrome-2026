@@ -1,5 +1,5 @@
 /**
- * DOM Mocking Utilities for Web Editor V2 Unit Tests
+ * DOM Mocking Utilities for Web Editor V3 Unit Tests
  *
  * These helpers patch DOM APIs that are missing or non-deterministic in jsdom
  * (e.g. elementsFromPoint, layout-dependent getBoundingClientRect).

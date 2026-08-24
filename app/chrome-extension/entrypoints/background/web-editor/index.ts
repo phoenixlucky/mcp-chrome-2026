@@ -1,6 +1,6 @@
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import {
-  WEB_EDITOR_V2_ACTIONS,
+  WEB_EDITOR_V3_ACTIONS,
   WEB_EDITOR_V1_ACTIONS,
   type ElementChangeSummary,
   type WebEditorApplyBatchPayload,
@@ -17,11 +17,11 @@ const COMMAND_KEY = 'toggle_web_editor';
 const DEFAULT_NATIVE_SERVER_PORT = 12306;
 
 /** Storage key prefix for TX change session data (per-tab isolation) */
-const WEB_EDITOR_TX_CHANGED_SESSION_KEY_PREFIX = 'web-editor-v2-tx-changed-';
-const WEB_EDITOR_SELECTION_SESSION_KEY_PREFIX = 'web-editor-v2-selection-';
+const WEB_EDITOR_TX_CHANGED_SESSION_KEY_PREFIX = 'web-editor-v3-tx-changed-';
+const WEB_EDITOR_SELECTION_SESSION_KEY_PREFIX = 'web-editor-v3-selection-';
 
 /** Storage key prefix for excluded element keys (per-tab isolation, managed by sidepanel) */
-const WEB_EDITOR_EXCLUDED_KEYS_SESSION_KEY_PREFIX = 'web-editor-v2-excluded-keys-';
+const WEB_EDITOR_EXCLUDED_KEYS_SESSION_KEY_PREFIX = 'web-editor-v3-excluded-keys-';
 
 /** Storage key for AgentChat selected session ID */
 const STORAGE_KEY_SELECTED_SESSION = 'agent-selected-session-id';
@@ -201,18 +201,18 @@ function handleSseEvent(requestId: string, event: unknown): void {
 /**
  * Web Editor version configuration
  * - v1: Legacy inject-scripts/web-editor.js (IIFE, ~850 lines)
- * - v2: New TypeScript-based web-editor-v2.js (WXT unlisted script)
+ * - v3: New TypeScript-based web-editor-v3.js (WXT unlisted script)
  *
- * Set USE_WEB_EDITOR_V2 to true to enable v2.
+ * Set USE_WEB_EDITOR_V3 to true to enable v3.
  * This flag allows gradual rollout and easy rollback.
  */
-const USE_WEB_EDITOR_V2 = true;
+const USE_WEB_EDITOR_V3 = true;
 
 /** Script path for v1 (legacy) */
 const V1_SCRIPT_PATH = 'inject-scripts/web-editor.js';
 
-/** Script path for v2 (WXT unlisted script output) */
-const V2_SCRIPT_PATH = 'web-editor-v2.js';
+/** Script path for v3 (WXT unlisted script output) */
+const V3_SCRIPT_PATH = 'web-editor-v3.js';
 
 /** Script path for Phase 7 props agent (MAIN world) */
 const PROPS_AGENT_SCRIPT_PATH = 'inject-scripts/props-agent.js';
@@ -254,7 +254,7 @@ interface WebEditorApplyPayload {
     style?: Record<string, string>;
   };
 
-  // V2 extended fields (best-effort, optional)
+  // V3 extended fields (best-effort, optional)
   selectorCandidates?: string[];
   debugSource?: DebugSource;
   operation?: StyleOperation;
@@ -367,7 +367,7 @@ function normalizeApplyPayload(raw: unknown): WebEditorApplyPayload {
     throw new Error('instruction.description is required');
   }
 
-  // V2 extended fields (optional)
+  // V3 extended fields (optional)
   const selectorCandidates = normalizeStringArray(obj.selectorCandidates);
   const debugSource = normalizeDebugSource(obj.debugSource);
   const operation = normalizeOperation(obj.operation);
@@ -689,20 +689,20 @@ async function ensureContextMenu(): Promise<void> {
  * Get the appropriate action constants based on version
  */
 function getActions() {
-  return USE_WEB_EDITOR_V2 ? WEB_EDITOR_V2_ACTIONS : WEB_EDITOR_V1_ACTIONS;
+  return USE_WEB_EDITOR_V3 ? WEB_EDITOR_V3_ACTIONS : WEB_EDITOR_V1_ACTIONS;
 }
 
 /**
  * Ensure the web editor script is injected into the tab
- * Supports both v1 (legacy) and v2 (new) versions
+ * Supports both v1 (legacy) and v3 (new) versions
  *
- * V1 and V2 use different action names to avoid conflicts:
+ * V1 and V3 use different action names to avoid conflicts:
  * - V1: web_editor_ping, web_editor_toggle, etc.
- * - V2: web_editor_ping_v2, web_editor_toggle_v2, etc.
+ * - V3: web_editor_ping_v3, web_editor_toggle_v3, etc.
  */
 async function ensureEditorInjected(tabId: number): Promise<void> {
-  const scriptPath = USE_WEB_EDITOR_V2 ? V2_SCRIPT_PATH : V1_SCRIPT_PATH;
-  const logPrefix = USE_WEB_EDITOR_V2 ? '[WebEditorV2]' : '[WebEditor]';
+  const scriptPath = USE_WEB_EDITOR_V3 ? V3_SCRIPT_PATH : V1_SCRIPT_PATH;
+  const logPrefix = USE_WEB_EDITOR_V3 ? '[WebEditorV3]' : '[WebEditor]';
   const actions = getActions();
 
   // Try to ping existing instance using version-specific action
@@ -736,10 +736,10 @@ async function ensureEditorInjected(tabId: number): Promise<void> {
 
 /**
  * Inject props agent into MAIN world for Phase 7 Props editing
- * Only inject for v2 editor
+ * Only inject for v3 editor
  */
 async function ensurePropsAgentInjected(tabId: number): Promise<void> {
-  if (!USE_WEB_EDITOR_V2) return;
+  if (!USE_WEB_EDITOR_V3) return;
 
   try {
     await chrome.scripting.executeScript({
@@ -749,7 +749,7 @@ async function ensurePropsAgentInjected(tabId: number): Promise<void> {
     });
   } catch (error) {
     // Best-effort: some pages (chrome://, extensions, PDF) block injection
-    console.warn('[WebEditorV2] Failed to inject props agent:', error);
+    console.warn('[WebEditorV3] Failed to inject props agent:', error);
   }
 }
 
@@ -757,7 +757,7 @@ async function ensurePropsAgentInjected(tabId: number): Promise<void> {
  * Send cleanup event to props agent
  */
 async function sendPropsAgentCleanup(tabId: number): Promise<void> {
-  if (!USE_WEB_EDITOR_V2) return;
+  if (!USE_WEB_EDITOR_V3) return;
 
   try {
     // Dispatch cleanup event in ISOLATED world
@@ -775,7 +775,7 @@ async function sendPropsAgentCleanup(tabId: number): Promise<void> {
     });
   } catch (error) {
     // Best-effort cleanup; ignore failures if tab is gone or injection blocked
-    console.warn('[WebEditorV2] Failed to send props agent cleanup:', error);
+    console.warn('[WebEditorV3] Failed to send props agent cleanup:', error);
   }
 }
 
@@ -868,7 +868,7 @@ async function registerPropsAgentEarlyInjection(tabUrl: string): Promise<EarlyIn
         persistAcrossSessions: true,
       },
     ]);
-    console.log(`[WebEditorV2] Registered early injection for ${host}`);
+    console.log(`[WebEditorV3] Registered early injection for ${host}`);
   }
 
   return { id, host, matches, alreadyRegistered };
@@ -876,7 +876,7 @@ async function registerPropsAgentEarlyInjection(tabUrl: string): Promise<EarlyIn
 
 async function toggleEditorInTab(tabId: number): Promise<{ active?: boolean }> {
   await ensureEditorInjected(tabId);
-  const logPrefix = USE_WEB_EDITOR_V2 ? '[WebEditorV2]' : '[WebEditor]';
+  const logPrefix = USE_WEB_EDITOR_V3 ? '[WebEditorV3]' : '[WebEditor]';
   const actions = getActions();
 
   try {
@@ -1141,8 +1141,7 @@ export function initWebEditorListeners(): void {
           }
 
           const rawPayload = message.payload as
-            | import('@/common/web-editor-types').WebEditorSelectionChangedPayload
-            | undefined;
+            import('@/common/web-editor-types').WebEditorSelectionChangedPayload | undefined;
           if (!rawPayload || typeof rawPayload !== 'object') {
             sendResponse({ success: false, error: 'Invalid payload' });
             return;
@@ -1193,10 +1192,10 @@ export function initWebEditorListeners(): void {
             return;
           }
 
-          // Forward to content script (web-editor-v2)
+          // Forward to content script (web-editor-v3)
           try {
             await chrome.tabs.sendMessage(targetTabId, {
-              action: WEB_EDITOR_V2_ACTIONS.CLEAR_SELECTION,
+              action: WEB_EDITOR_V3_ACTIONS.CLEAR_SELECTION,
             });
             sendResponse({ success: true });
           } catch (error) {
@@ -1372,7 +1371,7 @@ export function initWebEditorListeners(): void {
           if (mode === 'clear') {
             try {
               const response = await chrome.tabs.sendMessage(tabId, {
-                action: WEB_EDITOR_V2_ACTIONS.HIGHLIGHT_ELEMENT,
+                action: WEB_EDITOR_V3_ACTIONS.HIGHLIGHT_ELEMENT,
                 mode: 'clear',
               });
               sendResponse({ success: true, response });
@@ -1406,7 +1405,7 @@ export function initWebEditorListeners(): void {
           // Forward to web-editor content script
           try {
             const response = await chrome.tabs.sendMessage(tabId, {
-              action: WEB_EDITOR_V2_ACTIONS.HIGHLIGHT_ELEMENT,
+              action: WEB_EDITOR_V3_ACTIONS.HIGHLIGHT_ELEMENT,
               locator, // Full locator for Shadow DOM/iframe support
               selector: primarySelector, // Backward compatibility fallback
               mode,
@@ -1454,7 +1453,7 @@ export function initWebEditorListeners(): void {
             const response = await chrome.tabs.sendMessage(
               tabId,
               {
-                action: WEB_EDITOR_V2_ACTIONS.REVERT_ELEMENT,
+                action: WEB_EDITOR_V3_ACTIONS.REVERT_ELEMENT,
                 elementKey,
               },
               { frameId: 0 },

@@ -218,16 +218,16 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 
 ## 🛠️ Tools at a Glance
 
-| Category                  | Count | Coverage                                                                             |
-| ------------------------- | :---: | ------------------------------------------------------------------------------------ |
+| Category                  | Count | Coverage                                                                                          |
+| ------------------------- | :---: | ------------------------------------------------------------------------------------------------- |
 | 🖥️ **Browser Management** |  12   | Window/tab listing, new tabs, navigation, switch, close, current URL, scroll, Profile/batch tasks |
-| 📷 **Screenshots & PDF**  |   3   | Element-level, full-page, custom viewport, GIF recording, page-to-PDF printing       |
-| 🌐 **Network Monitoring** |   6   | Request capture & response wait, resource blocking, custom HTTP, download handling   |
-| 📝 **Content Analysis**   |   7   | Semantic search, HTML/text extraction, interactive elements, console capture, SPA    |
-| 🖱️ **Interaction**        |  11   | Click, hover, fill forms, keyboard, element info, computer ops, dialogs, file upload |
-| 📑 **Data Management**    |  10   | History search, bookmark CRUD, Cookie management, page local/sessionStorage           |
-| 📡 **Scraping**           |  16   | Scoped/Shadow DOM/iframe, pagination, isolated task state, diagnostics, proxy rotate |
-| ⚡ **Performance**        |   3   | Trace start / stop / insight analysis                                                |
+| 📷 **Screenshots & PDF**  |   3   | Element-level, full-page, custom viewport, GIF recording, page-to-PDF printing                    |
+| 🌐 **Network Monitoring** |   6   | Request capture & response wait, resource blocking, custom HTTP, download handling                |
+| 📝 **Content Analysis**   |   7   | Semantic search, HTML/text extraction, interactive elements, console capture, SPA                 |
+| 🖱️ **Interaction**        |  11   | Click, hover, fill forms, keyboard, element info, computer ops, dialogs, file upload              |
+| 📑 **Data Management**    |  10   | History search, bookmark CRUD, Cookie management, page local/sessionStorage                       |
+| 📡 **Scraping**           |  16   | Scoped/Shadow DOM/iframe, pagination, isolated task state, diagnostics, proxy rotate              |
+| ⚡ **Performance**        |   3   | Trace start / stop / insight analysis                                                             |
 
 📖 Full API reference: [中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
@@ -273,7 +273,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 - **Smart Assistant** — Claude / Codex / DeepSeek
 - **Semantic Search** — Vector DB + local embeddings
 - **SIMD Acceleration** — WASM engine 4-8× faster
-- **Workflow Recording & Replay** — v3 unified architecture (v2 fully migrated)
+- **Workflow Recording & Replay** — v3 unified architecture (legacy architecture fully migrated)
 - **Visual Editor** — Drag-and-drop workflow builder
 - **Native Messaging Auto-registration**
 - **Cross-platform Setup** — macOS / Linux one-click scripts

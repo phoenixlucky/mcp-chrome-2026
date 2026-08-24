@@ -1,5 +1,5 @@
 /**
- * Web Editor V2 Core
+ * Web Editor V3 Core
  *
  * Main orchestrator for the visual editor.
  * Manages lifecycle of all subsystems (Shadow Host, Canvas, Interaction Engine, etc.)
@@ -14,11 +14,11 @@ import type {
   WebEditorState,
   WebEditorTxChangedPayload,
   WebEditorTxChangeAction,
-  WebEditorV2Api,
+  WebEditorV3Api,
 } from '@/common/web-editor-types';
 import { STORAGE_KEYS } from '@/common/constants';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
-import { WEB_EDITOR_V2_VERSION, WEB_EDITOR_V2_LOG_PREFIX } from '../constants';
+import { WEB_EDITOR_V3_VERSION, WEB_EDITOR_V3_LOG_PREFIX } from '../constants';
 import { mountShadowHost, type ShadowHostManager } from '../ui/shadow-host';
 import { createToolbar, type Toolbar } from '../ui/toolbar';
 import { createBreadcrumbs, type Breadcrumbs } from '../ui/breadcrumbs';
@@ -114,12 +114,12 @@ interface EditorInternalState {
 // =============================================================================
 
 /**
- * Create the Web Editor V2 instance.
+ * Create the Web Editor V3 instance.
  *
  * This is the main factory function that creates the editor API.
- * The returned object implements WebEditorV2Api and is exposed on window.__MCP_WEB_EDITOR_V2__
+ * The returned object implements WebEditorV3Api and is exposed on window.__MCP_WEB_EDITOR_V3__
  */
-export function createWebEditorV2(): WebEditorV2Api {
+export function createWebEditorV3(): WebEditorV3Api {
   const state: EditorInternalState = {
     active: false,
     shadowHost: null,
@@ -219,7 +219,7 @@ export function createWebEditorV2(): WebEditorV2Api {
       state.transactionManager?.recordText(element, session.beforeText, afterText);
     }
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Text edit committed`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Text edit committed`);
   }
 
   /** Cancel the current edit session */
@@ -233,7 +233,7 @@ export function createWebEditorV2(): WebEditorV2Api {
     session.element.textContent = session.beforeText;
 
     restoreEditTarget(session);
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Text edit cancelled`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Text edit cancelled`);
   }
 
   /** Start editing an element */
@@ -299,7 +299,7 @@ export function createWebEditorV2(): WebEditorV2Api {
       blurHandler,
     };
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Text edit started`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Text edit started`);
     return true;
   }
 
@@ -364,7 +364,7 @@ export function createWebEditorV2(): WebEditorV2Api {
 
     // Log selection with modifier info for debugging
     const modInfo = modifiers.alt ? ' (Alt: drill-up)' : '';
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Selected${modInfo}:`, element.tagName, element);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Selected${modInfo}:`, element.tagName, element);
   }
 
   /**
@@ -395,7 +395,7 @@ export function createWebEditorV2(): WebEditorV2Api {
     // Broadcast deselection to sidepanel
     broadcastSelectionChanged(null);
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Deselected`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Deselected`);
   }
 
   /**
@@ -428,7 +428,7 @@ export function createWebEditorV2(): WebEditorV2Api {
   // AgentChat Integration (Phase 1.4)
   // ===========================================================================
 
-  const WEB_EDITOR_TX_CHANGED_SESSION_KEY_PREFIX = 'web-editor-v2-tx-changed-' as const;
+  const WEB_EDITOR_TX_CHANGED_SESSION_KEY_PREFIX = 'web-editor-v3-tx-changed-' as const;
   const TX_CHANGED_BROADCAST_DEBOUNCE_MS = 100;
 
   let txChangedBroadcastTimer: number | null = null;
@@ -598,7 +598,7 @@ export function createWebEditorV2(): WebEditorV2Api {
     // Log transaction events for debugging
     const { action, undoCount, redoCount } = event;
     console.log(
-      `${WEB_EDITOR_V2_LOG_PREFIX} Transaction: ${action} (undo: ${undoCount}, redo: ${redoCount})`,
+      `${WEB_EDITOR_V3_LOG_PREFIX} Transaction: ${action} (undo: ${undoCount}, redo: ${redoCount})`,
     );
 
     // Update toolbar UI with undo/redo counts
@@ -662,20 +662,20 @@ export function createWebEditorV2(): WebEditorV2Api {
 
     // Cannot rollback: TM not available or no snapshot
     if (status === 'no_snapshot' || status === 'tm_unavailable') {
-      console.error(`${WEB_EDITOR_V2_LOG_PREFIX} Apply failed, unable to revert (${status})`);
+      console.error(`${WEB_EDITOR_V3_LOG_PREFIX} Apply failed, unable to revert (${status})`);
       return `${originalError} (unable to revert)`;
     }
 
     // Stack is empty - tx was already undone (race condition or user action)
     if (status === 'stack_empty') {
-      console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Apply failed, stack empty (already reverted?)`);
+      console.warn(`${WEB_EDITOR_V3_LOG_PREFIX} Apply failed, stack empty (already reverted?)`);
       return `${originalError} (already reverted)`;
     }
 
     // User made new edits during apply - don't rollback their work
     if (status === 'tx_changed') {
       console.warn(
-        `${WEB_EDITOR_V2_LOG_PREFIX} Apply failed but new edits detected, skipping auto-rollback`,
+        `${WEB_EDITOR_V3_LOG_PREFIX} Apply failed but new edits detected, skipping auto-rollback`,
       );
       return `${originalError} (new edits detected, not reverted)`;
     }
@@ -684,12 +684,12 @@ export function createWebEditorV2(): WebEditorV2Api {
     const tm = state.transactionManager!;
     const undone = tm.undo();
     if (undone) {
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Apply failed, changes auto-reverted`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Apply failed, changes auto-reverted`);
       return `${originalError} (changes reverted)`;
     }
 
     // undo() returned null - likely locateElement() failed
-    console.error(`${WEB_EDITOR_V2_LOG_PREFIX} Apply failed and auto-revert also failed`);
+    console.error(`${WEB_EDITOR_V3_LOG_PREFIX} Apply failed and auto-revert also failed`);
     return `${originalError} (revert failed)`;
   }
 
@@ -998,7 +998,7 @@ export function createWebEditorV2(): WebEditorV2Api {
 
       return { success: true, reverted };
     } catch (error) {
-      console.error(`${WEB_EDITOR_V2_LOG_PREFIX} Revert element failed:`, error);
+      console.error(`${WEB_EDITOR_V3_LOG_PREFIX} Revert element failed:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -1031,14 +1031,14 @@ export function createWebEditorV2(): WebEditorV2Api {
       handleDeselect();
     }
 
-    console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Selection cleared (from sidepanel)`);
+    console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Selection cleared (from sidepanel)`);
   }
 
   /**
    * Handle transaction apply errors
    */
   function handleTransactionError(error: unknown): void {
-    console.error(`${WEB_EDITOR_V2_LOG_PREFIX} Transaction apply error:`, error);
+    console.error(`${WEB_EDITOR_V3_LOG_PREFIX} Transaction apply error:`, error);
   }
 
   /**
@@ -1046,7 +1046,7 @@ export function createWebEditorV2(): WebEditorV2Api {
    */
   function start(): void {
     if (state.active) {
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Already active`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Already active`);
       return;
     }
 
@@ -1373,7 +1373,7 @@ export function createWebEditorV2(): WebEditorV2Api {
       clampFloatingUi();
 
       state.active = true;
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Started`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Started`);
     } catch (error) {
       // Cleanup on failure (reverse order)
       state.uiResizeCleanup?.();
@@ -1413,7 +1413,7 @@ export function createWebEditorV2(): WebEditorV2Api {
       state.applyingSnapshot = null;
       state.active = false;
 
-      console.error(`${WEB_EDITOR_V2_LOG_PREFIX} Failed to start:`, error);
+      console.error(`${WEB_EDITOR_V3_LOG_PREFIX} Failed to start:`, error);
     }
   }
 
@@ -1516,9 +1516,9 @@ export function createWebEditorV2(): WebEditorV2Api {
       state.selectedElement = null;
       state.applyingSnapshot = null;
 
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Stopped`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Stopped`);
     } catch (error) {
-      console.error(`${WEB_EDITOR_V2_LOG_PREFIX} Error during cleanup:`, error);
+      console.error(`${WEB_EDITOR_V3_LOG_PREFIX} Error during cleanup:`, error);
 
       // Force cleanup
       state.propertyPanel = null;
@@ -1562,7 +1562,7 @@ export function createWebEditorV2(): WebEditorV2Api {
   function getState(): WebEditorState {
     return {
       active: state.active,
-      version: WEB_EDITOR_V2_VERSION,
+      version: WEB_EDITOR_V3_VERSION,
     };
   }
 

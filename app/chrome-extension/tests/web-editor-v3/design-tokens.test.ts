@@ -16,7 +16,7 @@ import {
   createTokenDetector,
   createDesignTokensService,
   type CssVarName,
-} from '@/entrypoints/web-editor-v2/core/design-tokens';
+} from '@/entrypoints/web-editor-v3/core/design-tokens';
 
 // =============================================================================
 // Test Setup

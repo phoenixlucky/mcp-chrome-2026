@@ -10,11 +10,11 @@
  */
 
 import {
-  WEB_EDITOR_V2_COLORS,
-  WEB_EDITOR_V2_HOST_ID,
-  WEB_EDITOR_V2_OVERLAY_ID,
-  WEB_EDITOR_V2_UI_ID,
-  WEB_EDITOR_V2_Z_INDEX,
+  WEB_EDITOR_V3_COLORS,
+  WEB_EDITOR_V3_HOST_ID,
+  WEB_EDITOR_V3_OVERLAY_ID,
+  WEB_EDITOR_V3_UI_ID,
+  WEB_EDITOR_V3_Z_INDEX,
 } from '../constants';
 import { Disposer } from '../utils/disposables';
 
@@ -115,7 +115,7 @@ const SHADOW_HOST_STYLES = /* css */ `
   }
 
   /* Overlay container - for Canvas and visual feedback */
-  #${WEB_EDITOR_V2_OVERLAY_ID} {
+  #${WEB_EDITOR_V3_OVERLAY_ID} {
     position: fixed;
     inset: 0;
     pointer-events: none;
@@ -153,7 +153,7 @@ const SHADOW_HOST_STYLES = /* css */ `
     height: 8px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.98);
-    border: 1px solid ${WEB_EDITOR_V2_COLORS.selectionBorder};
+    border: 1px solid ${WEB_EDITOR_V3_COLORS.selectionBorder};
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     pointer-events: auto;
     touch-action: none;
@@ -162,8 +162,8 @@ const SHADOW_HOST_STYLES = /* css */ `
   }
 
   .we-resize-handle:hover {
-    background: ${WEB_EDITOR_V2_COLORS.selectionBorder};
-    border-color: ${WEB_EDITOR_V2_COLORS.selectionBorder};
+    background: ${WEB_EDITOR_V3_COLORS.selectionBorder};
+    border-color: ${WEB_EDITOR_V3_COLORS.selectionBorder};
     transform: translate(-50%, -50%) scale(1.15);
   }
 
@@ -236,7 +236,7 @@ const SHADOW_HOST_STYLES = /* css */ `
 
   /* UI container - for panels and controls */
   /* Position below toolbar: 16px (toolbar top) + 40px (toolbar height) + 8px (gap) = 64px */
-  #${WEB_EDITOR_V2_UI_ID} {
+  #${WEB_EDITOR_V3_UI_ID} {
     position: fixed;
     top: 64px;
     right: 16px;
@@ -3500,7 +3500,7 @@ export function mountShadowHost(options: ShadowHostOptions = {}): ShadowHostMana
   let elements: ShadowHostElements | null = null;
 
   // Clean up any existing host (from crash/reload)
-  const existing = document.getElementById(WEB_EDITOR_V2_HOST_ID);
+  const existing = document.getElementById(WEB_EDITOR_V3_HOST_ID);
   if (existing) {
     try {
       existing.remove();
@@ -3511,13 +3511,13 @@ export function mountShadowHost(options: ShadowHostOptions = {}): ShadowHostMana
 
   // Create host element
   const host = document.createElement('div');
-  host.id = WEB_EDITOR_V2_HOST_ID;
-  host.setAttribute('data-mcp-web-editor', 'v2');
+  host.id = WEB_EDITOR_V3_HOST_ID;
+  host.setAttribute('data-mcp-web-editor', 'v3');
 
   // Apply host styles with !important to resist page CSS
   setImportantStyle(host, 'position', 'fixed');
   setImportantStyle(host, 'inset', '0');
-  setImportantStyle(host, 'z-index', String(WEB_EDITOR_V2_Z_INDEX));
+  setImportantStyle(host, 'z-index', String(WEB_EDITOR_V3_Z_INDEX));
   setImportantStyle(host, 'pointer-events', 'none');
   setImportantStyle(host, 'contain', 'layout style paint');
   setImportantStyle(host, 'isolation', 'isolate');
@@ -3532,12 +3532,12 @@ export function mountShadowHost(options: ShadowHostOptions = {}): ShadowHostMana
 
   // Create overlay container (for Canvas)
   const overlayRoot = document.createElement('div');
-  overlayRoot.id = WEB_EDITOR_V2_OVERLAY_ID;
+  overlayRoot.id = WEB_EDITOR_V3_OVERLAY_ID;
 
   // Create UI container (for panels)
   // Note: Property Panel is now created separately by editor.ts (Phase 3)
   const uiRoot = document.createElement('div');
-  uiRoot.id = WEB_EDITOR_V2_UI_ID;
+  uiRoot.id = WEB_EDITOR_V3_UI_ID;
 
   shadowRoot.append(overlayRoot, uiRoot);
 

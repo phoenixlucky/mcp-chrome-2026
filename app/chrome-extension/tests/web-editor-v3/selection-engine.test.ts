@@ -1,5 +1,5 @@
 /**
- * Unit tests for Web Editor V2 Selection Engine.
+ * Unit tests for Web Editor V3 Selection Engine.
  *
  * These tests focus on deterministic scoring and selection behavior.
  * jsdom has no real layout engine, so we mock:
@@ -15,7 +15,7 @@ import {
   type Modifiers,
   type SelectionCandidate,
   type SelectionEngine,
-} from '@/entrypoints/web-editor-v2/selection/selection-engine';
+} from '@/entrypoints/web-editor-v3/selection/selection-engine';
 
 import type { RestoreFn, StyleOverrides } from './test-utils/dom';
 import {

@@ -1,5 +1,5 @@
 /**
- * Unit tests for Web Editor V2 Snap Engine
+ * Unit tests for Web Editor V3 Snap Engine
  *
  * Tests cover:
  * - mergeAnchors: Anchor collection merging
@@ -21,8 +21,8 @@ import {
   type SnapAnchors,
   type SnapLockX,
   type SnapLockY,
-} from '@/entrypoints/web-editor-v2/core/snap-engine';
-import type { ViewportRect } from '@/entrypoints/web-editor-v2/overlay/canvas-overlay';
+} from '@/entrypoints/web-editor-v3/core/snap-engine';
+import type { ViewportRect } from '@/entrypoints/web-editor-v3/overlay/canvas-overlay';
 
 // =============================================================================
 // Test Utilities

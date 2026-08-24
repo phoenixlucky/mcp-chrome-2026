@@ -46,7 +46,7 @@ export interface ApplyPayload {
   techStackHint?: string[];
   instruction: ApplyInstruction;
 
-  // V2 extended fields (best-effort, optional)
+  // V3 extended fields (best-effort, optional)
   locator?: ElementLocator;
   selectorCandidates?: string[];
   debugSource?: DebugSource;
@@ -385,7 +385,7 @@ export function buildApplyPayload(
         style: Object.keys(diff.set).length > 0 ? diff.set : undefined,
       },
 
-      // V2 extended fields
+      // V3 extended fields
       locator: hints.debugSource ? { ...locator, debugSource: hints.debugSource } : locator,
       selectorCandidates: locator.selectors?.slice(0, 8),
       debugSource: hints.debugSource,
@@ -419,7 +419,7 @@ export function buildApplyPayload(
         text: afterText,
       },
 
-      // V2 extended fields
+      // V3 extended fields
       locator: hints.debugSource ? { ...locator, debugSource: hints.debugSource } : locator,
       selectorCandidates: locator.selectors?.slice(0, 8),
       debugSource: hints.debugSource,

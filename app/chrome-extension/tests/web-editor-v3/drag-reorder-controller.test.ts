@@ -1,5 +1,5 @@
 /**
- * Unit tests for Web Editor V2 Drag Reorder Controller.
+ * Unit tests for Web Editor V3 Drag Reorder Controller.
  *
  * These tests focus on the container axis detection and side calculation:
  * - Flex row support (Bug 2 fix)

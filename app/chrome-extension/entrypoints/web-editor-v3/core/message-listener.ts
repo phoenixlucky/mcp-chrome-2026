@@ -1,20 +1,20 @@
 /**
- * Web Editor V2 Message Listener
+ * Web Editor V3 Message Listener
  *
  * Handles chrome.runtime.onMessage communication with the background script.
- * Uses versioned action names (suffix _v2) to avoid conflicts with V1.
+ * Uses versioned action names (suffix _v3) to avoid conflicts with V1.
  */
 
 import type {
   ElementLocator,
-  WebEditorV2Api,
-  WebEditorV2Request,
-  WebEditorV2PingResponse,
-  WebEditorV2ToggleResponse,
-  WebEditorV2StartResponse,
-  WebEditorV2StopResponse,
+  WebEditorV3Api,
+  WebEditorV3Request,
+  WebEditorV3PingResponse,
+  WebEditorV3ToggleResponse,
+  WebEditorV3StartResponse,
+  WebEditorV3StopResponse,
 } from '@/common/web-editor-types';
-import { WEB_EDITOR_V2_ACTIONS } from '@/common/web-editor-types';
+import { WEB_EDITOR_V3_ACTIONS } from '@/common/web-editor-types';
 import { locateElement } from './locator';
 
 // =============================================================================
@@ -25,8 +25,8 @@ import { locateElement } from './locator';
 export type RemoveMessageListener = () => void;
 
 /** Highlight element request from sidepanel */
-interface WebEditorV2HighlightRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.HIGHLIGHT_ELEMENT;
+interface WebEditorV3HighlightRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.HIGHLIGHT_ELEMENT;
   mode: 'hover' | 'clear';
   /** Full locator for Shadow DOM/iframe support */
   locator?: ElementLocator;
@@ -36,19 +36,19 @@ interface WebEditorV2HighlightRequest {
 }
 
 /** Highlight element response */
-interface WebEditorV2HighlightResponse {
+interface WebEditorV3HighlightResponse {
   success: boolean;
   error?: string;
 }
 
 /** Revert element request from sidepanel (Phase 2) */
-interface WebEditorV2RevertRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.REVERT_ELEMENT;
+interface WebEditorV3RevertRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.REVERT_ELEMENT;
   elementKey: string;
 }
 
 /** Revert element response */
-interface WebEditorV2RevertResponse {
+interface WebEditorV3RevertResponse {
   success: boolean;
   reverted?: {
     style?: boolean;
@@ -59,29 +59,29 @@ interface WebEditorV2RevertResponse {
 }
 
 /** Clear selection request from sidepanel (after send) */
-interface WebEditorV2ClearSelectionRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.CLEAR_SELECTION;
+interface WebEditorV3ClearSelectionRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.CLEAR_SELECTION;
 }
 
 /** Clear selection response */
-interface WebEditorV2ClearSelectionResponse {
+interface WebEditorV3ClearSelectionResponse {
   success: boolean;
 }
 
-interface WebEditorV2SetScrollCoordinatesRequest {
-  action: typeof WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES;
+interface WebEditorV3SetScrollCoordinatesRequest {
+  action: typeof WEB_EDITOR_V3_ACTIONS.SET_SCROLL_COORDINATES;
   enabled: boolean;
 }
 
-/** All possible V2 response types */
-type WebEditorV2Response =
-  | WebEditorV2PingResponse
-  | WebEditorV2ToggleResponse
-  | WebEditorV2StartResponse
-  | WebEditorV2StopResponse
-  | WebEditorV2HighlightResponse
-  | WebEditorV2RevertResponse
-  | WebEditorV2ClearSelectionResponse
+/** All possible V3 response types */
+type WebEditorV3Response =
+  | WebEditorV3PingResponse
+  | WebEditorV3ToggleResponse
+  | WebEditorV3StartResponse
+  | WebEditorV3StopResponse
+  | WebEditorV3HighlightResponse
+  | WebEditorV3RevertResponse
+  | WebEditorV3ClearSelectionResponse
   | { success: boolean };
 
 // =============================================================================
@@ -89,29 +89,29 @@ type WebEditorV2Response =
 // =============================================================================
 
 /**
- * Type guard to check if a request is a V2 editor request
+ * Type guard to check if a request is a V3 editor request
  */
-function isV2Request(request: unknown): request is WebEditorV2Request {
+function isV3Request(request: unknown): request is WebEditorV3Request {
   if (!request || typeof request !== 'object') return false;
 
   const action = (request as { action?: unknown }).action;
   return (
-    action === WEB_EDITOR_V2_ACTIONS.PING ||
-    action === WEB_EDITOR_V2_ACTIONS.TOGGLE ||
-    action === WEB_EDITOR_V2_ACTIONS.START ||
-    action === WEB_EDITOR_V2_ACTIONS.STOP ||
-    action === WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES
+    action === WEB_EDITOR_V3_ACTIONS.PING ||
+    action === WEB_EDITOR_V3_ACTIONS.TOGGLE ||
+    action === WEB_EDITOR_V3_ACTIONS.START ||
+    action === WEB_EDITOR_V3_ACTIONS.STOP ||
+    action === WEB_EDITOR_V3_ACTIONS.SET_SCROLL_COORDINATES
   );
 }
 
 /**
  * Type guard for highlight request
  */
-function isHighlightRequest(request: unknown): request is WebEditorV2HighlightRequest {
+function isHighlightRequest(request: unknown): request is WebEditorV3HighlightRequest {
   if (!request || typeof request !== 'object') return false;
   const r = request as Record<string, unknown>;
 
-  if (r.action !== WEB_EDITOR_V2_ACTIONS.HIGHLIGHT_ELEMENT) return false;
+  if (r.action !== WEB_EDITOR_V3_ACTIONS.HIGHLIGHT_ELEMENT) return false;
   if (r.mode !== 'hover' && r.mode !== 'clear') return false;
 
   // Clear mode doesn't require locator/selector
@@ -126,12 +126,12 @@ function isHighlightRequest(request: unknown): request is WebEditorV2HighlightRe
 /**
  * Type guard for revert element request (Phase 2)
  */
-function isRevertRequest(request: unknown): request is WebEditorV2RevertRequest {
+function isRevertRequest(request: unknown): request is WebEditorV3RevertRequest {
   if (!request || typeof request !== 'object') return false;
   const r = request as Record<string, unknown>;
 
   return (
-    r.action === WEB_EDITOR_V2_ACTIONS.REVERT_ELEMENT &&
+    r.action === WEB_EDITOR_V3_ACTIONS.REVERT_ELEMENT &&
     typeof r.elementKey === 'string' &&
     r.elementKey.trim().length > 0
   );
@@ -140,19 +140,19 @@ function isRevertRequest(request: unknown): request is WebEditorV2RevertRequest 
 /**
  * Type guard for clear selection request
  */
-function isClearSelectionRequest(request: unknown): request is WebEditorV2ClearSelectionRequest {
+function isClearSelectionRequest(request: unknown): request is WebEditorV3ClearSelectionRequest {
   if (!request || typeof request !== 'object') return false;
   const r = request as Record<string, unknown>;
-  return r.action === WEB_EDITOR_V2_ACTIONS.CLEAR_SELECTION;
+  return r.action === WEB_EDITOR_V3_ACTIONS.CLEAR_SELECTION;
 }
 
 function isScrollCoordinatesRequest(
   request: unknown,
-): request is WebEditorV2SetScrollCoordinatesRequest {
+): request is WebEditorV3SetScrollCoordinatesRequest {
   if (!request || typeof request !== 'object') return false;
   const r = request as Record<string, unknown>;
   return (
-    r.action === WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES && typeof r.enabled === 'boolean'
+    r.action === WEB_EDITOR_V3_ACTIONS.SET_SCROLL_COORDINATES && typeof r.enabled === 'boolean'
   );
 }
 
@@ -238,14 +238,14 @@ function findElementBySelector(selector: string): Element | null {
  * - REVERT_ELEMENT: Revert element to original state
  * - CLEAR_SELECTION: Clear current selection (from sidepanel after send)
  *
- * @param api The WebEditorV2Api instance to delegate commands to
+ * @param api The WebEditorV3Api instance to delegate commands to
  * @returns Function to remove the listener
  */
-export function installMessageListener(api: WebEditorV2Api): RemoveMessageListener {
+export function installMessageListener(api: WebEditorV3Api): RemoveMessageListener {
   const listener = (
     request: unknown,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: WebEditorV2Response) => void,
+    sendResponse: (response: WebEditorV3Response) => void,
   ): boolean => {
     // Handle highlight requests (can work even when editor is not active)
     if (isHighlightRequest(request)) {
@@ -310,42 +310,42 @@ export function installMessageListener(api: WebEditorV2Api): RemoveMessageListen
       return false;
     }
 
-    // Only handle V2 requests for other actions
-    if (!isV2Request(request)) {
+    // Only handle V3 requests for other actions
+    if (!isV3Request(request)) {
       return false;
     }
 
     switch (request.action) {
-      case WEB_EDITOR_V2_ACTIONS.PING: {
-        const response: WebEditorV2PingResponse = {
+      case WEB_EDITOR_V3_ACTIONS.PING: {
+        const response: WebEditorV3PingResponse = {
           status: 'pong',
           active: api.getState().active,
-          version: 2,
+          version: 3,
         };
         sendResponse(response);
         return false; // Synchronous response
       }
 
-      case WEB_EDITOR_V2_ACTIONS.TOGGLE: {
-        const response: WebEditorV2ToggleResponse = {
+      case WEB_EDITOR_V3_ACTIONS.TOGGLE: {
+        const response: WebEditorV3ToggleResponse = {
           active: api.toggle(),
         };
         sendResponse(response);
         return false;
       }
 
-      case WEB_EDITOR_V2_ACTIONS.START: {
+      case WEB_EDITOR_V3_ACTIONS.START: {
         api.start();
-        const response: WebEditorV2StartResponse = {
+        const response: WebEditorV3StartResponse = {
           active: true,
         };
         sendResponse(response);
         return false;
       }
 
-      case WEB_EDITOR_V2_ACTIONS.STOP: {
+      case WEB_EDITOR_V3_ACTIONS.STOP: {
         api.stop();
-        const response: WebEditorV2StopResponse = {
+        const response: WebEditorV3StopResponse = {
           active: false,
         };
         sendResponse(response);

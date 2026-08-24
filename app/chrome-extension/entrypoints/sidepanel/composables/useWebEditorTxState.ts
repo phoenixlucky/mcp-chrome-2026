@@ -27,9 +27,9 @@ import type {
 // Constants
 // =============================================================================
 
-const WEB_EDITOR_TX_CHANGED_SESSION_KEY_PREFIX = 'web-editor-v2-tx-changed-';
-const WEB_EDITOR_EXCLUDED_KEYS_SESSION_KEY_PREFIX = 'web-editor-v2-excluded-keys-';
-const WEB_EDITOR_SELECTION_SESSION_KEY_PREFIX = 'web-editor-v2-selection-';
+const WEB_EDITOR_TX_CHANGED_SESSION_KEY_PREFIX = 'web-editor-v3-tx-changed-';
+const WEB_EDITOR_EXCLUDED_KEYS_SESSION_KEY_PREFIX = 'web-editor-v3-excluded-keys-';
+const WEB_EDITOR_SELECTION_SESSION_KEY_PREFIX = 'web-editor-v3-selection-';
 
 const VALID_TX_ACTIONS = new Set<WebEditorTxChangeAction>([
   'push',

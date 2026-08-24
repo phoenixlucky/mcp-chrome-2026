@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { createPerfMonitor } from '@/entrypoints/web-editor-v2/core/perf-monitor';
+import { createPerfMonitor } from '@/entrypoints/web-editor-v3/core/perf-monitor';
 
 afterEach(() => {
   document.body.innerHTML = '';

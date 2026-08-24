@@ -1,5 +1,5 @@
 /**
- * Unit tests for Web Editor V2 locator utilities.
+ * Unit tests for Web Editor V3 locator utilities.
  *
  * These tests run in jsdom and validate:
  * - Fingerprint generation (tag, id, class, text normalization)
@@ -22,7 +22,7 @@ import {
   getShadowHostChain,
   locateElement,
   locatorKey,
-} from '@/entrypoints/web-editor-v2/core/locator';
+} from '@/entrypoints/web-editor-v3/core/locator';
 
 // =============================================================================
 // Test Utilities

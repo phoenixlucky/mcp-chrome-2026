@@ -1,5 +1,5 @@
 /**
- * Unit tests for Web Editor V2 Property Panel Live Style Sync.
+ * Unit tests for Web Editor V3 Property Panel Live Style Sync.
  *
  * These tests focus on:
  * - MutationObserver setup for style attribute changes (Bug 3 fix)

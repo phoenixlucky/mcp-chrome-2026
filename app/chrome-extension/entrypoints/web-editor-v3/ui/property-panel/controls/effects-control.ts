@@ -1005,7 +1005,7 @@ export function createLegacyEffectsControl(options: EffectsControlOptions): Desi
 }
 
 // =============================================================================
-// Box Shadow List (Effects v2)
+// Box Shadow List
 // =============================================================================
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

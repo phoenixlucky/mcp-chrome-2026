@@ -12,10 +12,10 @@
  */
 
 import {
-  WEB_EDITOR_V2_DISTANCE_LABEL_MIN_PX,
-  WEB_EDITOR_V2_LOG_PREFIX,
-  WEB_EDITOR_V2_SNAP_HYSTERESIS_PX,
-  WEB_EDITOR_V2_SNAP_THRESHOLD_PX,
+  WEB_EDITOR_V3_DISTANCE_LABEL_MIN_PX,
+  WEB_EDITOR_V3_LOG_PREFIX,
+  WEB_EDITOR_V3_SNAP_HYSTERESIS_PX,
+  WEB_EDITOR_V3_SNAP_THRESHOLD_PX,
 } from '../constants';
 import {
   collectSiblingAnchors,
@@ -486,7 +486,7 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
       try {
         s.tx.rollback();
       } catch (error) {
-        console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Resize rollback failed:`, error);
+        console.warn(`${WEB_EDITOR_V3_LOG_PREFIX} Resize rollback failed:`, error);
       }
     }
 
@@ -517,7 +517,7 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
     }
 
     if (reason) {
-      console.log(`${WEB_EDITOR_V2_LOG_PREFIX} Resize cancelled (${reason})`);
+      console.log(`${WEB_EDITOR_V3_LOG_PREFIX} Resize cancelled (${reason})`);
     }
   }
 
@@ -536,7 +536,7 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
       try {
         s.tx.commit({ merge: false });
       } catch (error) {
-        console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Resize commit failed:`, error);
+        console.warn(`${WEB_EDITOR_V3_LOG_PREFIX} Resize commit failed:`, error);
         // Attempt rollback on commit failure
         try {
           s.tx.rollback();
@@ -680,8 +680,8 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
           hasSouth,
         },
         anchors: s.anchors,
-        thresholdPx: WEB_EDITOR_V2_SNAP_THRESHOLD_PX,
-        hysteresisPx: WEB_EDITOR_V2_SNAP_HYSTERESIS_PX,
+        thresholdPx: WEB_EDITOR_V3_SNAP_THRESHOLD_PX,
+        hysteresisPx: WEB_EDITOR_V3_SNAP_HYSTERESIS_PX,
         minSizePx: MIN_BORDER_BOX_SIZE_PX,
         lockX: s.lockX,
         lockY: s.lockY,
@@ -701,7 +701,7 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
         rect: finalRect,
         lockX: s.lockX,
         lockY: s.lockY,
-        minGapPx: WEB_EDITOR_V2_DISTANCE_LABEL_MIN_PX,
+        minGapPx: WEB_EDITOR_V3_DISTANCE_LABEL_MIN_PX,
         viewport: {
           width: window.innerWidth || 1,
           height: window.innerHeight || 1,
@@ -793,7 +793,7 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
     try {
       tx.set(styles);
     } catch (error) {
-      console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Resize preview apply failed:`, error);
+      console.warn(`${WEB_EDITOR_V3_LOG_PREFIX} Resize preview apply failed:`, error);
       cancelSession('apply_failed');
     }
   }
@@ -820,7 +820,7 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
     const transform = computed.getPropertyValue('transform').trim();
     if (transform && transform !== 'none') {
       console.warn(
-        `${WEB_EDITOR_V2_LOG_PREFIX} Resize handles do not support transformed elements yet`,
+        `${WEB_EDITOR_V3_LOG_PREFIX} Resize handles do not support transformed elements yet`,
       );
       return;
     }
@@ -845,13 +845,13 @@ export function createHandlesController(options: HandlesControllerOptions): Hand
     if (mode === 'static') {
       if (hasWest && marginLeftRaw === 'auto') {
         console.warn(
-          `${WEB_EDITOR_V2_LOG_PREFIX} Resize from west is disabled when margin-left is auto`,
+          `${WEB_EDITOR_V3_LOG_PREFIX} Resize from west is disabled when margin-left is auto`,
         );
         return;
       }
       if (hasNorth && marginTopRaw === 'auto') {
         console.warn(
-          `${WEB_EDITOR_V2_LOG_PREFIX} Resize from north is disabled when margin-top is auto`,
+          `${WEB_EDITOR_V3_LOG_PREFIX} Resize from north is disabled when margin-top is auto`,
         );
         return;
       }

@@ -88,7 +88,7 @@ interface CaptureInfo {
 }
 
 /**
- * Network Capture Start Tool V2 - Uses Chrome webRequest API to start capturing network requests
+ * Network Capture Start Tool V3 - Uses Chrome webRequest API to start capturing network requests
  */
 class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NETWORK_CAPTURE_START;
@@ -153,7 +153,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
    */
   private handleTabRemoved(tabId: number) {
     if (this.captureData.has(tabId)) {
-      console.log(`NetworkCaptureV2: Tab ${tabId} was closed, cleaning up resources.`);
+      console.log(`NetworkCaptureV3: Tab ${tabId} was closed, cleaning up resources.`);
       this.cleanupCapture(tabId);
     }
   }
@@ -179,7 +179,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       if (!newTabId) return;
 
       console.log(
-        `NetworkCaptureV2: New tab ${newTabId} created from capturing tab ${openerTabId}, will extend capture to it.`,
+        `NetworkCaptureV3: New tab ${newTabId} created from capturing tab ${openerTabId}, will extend capture to it.`,
       );
 
       // Get the opener tab's capture settings
@@ -196,9 +196,9 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         includeStatic: openerCaptureInfo.includeStatic,
       });
 
-      console.log(`NetworkCaptureV2: Successfully extended capture to new tab ${newTabId}`);
+      console.log(`NetworkCaptureV3: Successfully extended capture to new tab ${newTabId}`);
     } catch (error) {
-      console.error(`NetworkCaptureV2: Error extending capture to new tab:`, error);
+      console.error(`NetworkCaptureV3: Error extending capture to new tab:`, error);
     }
   }
 
@@ -250,13 +250,13 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
           mimeType.startsWith(type),
         )
       ) {
-        console.log(`NetworkCaptureV2: Filtering static resource by MIME type: ${mimeType}`);
+        console.log(`NetworkCaptureV3: Filtering static resource by MIME type: ${mimeType}`);
         return true;
       }
 
       // Filter all MIME types starting with text/ (except those already in API_MIME_TYPES)
       if (mimeType.startsWith('text/')) {
-        console.log(`NetworkCaptureV2: Filtering text response: ${mimeType}`);
+        console.log(`NetworkCaptureV3: Filtering text response: ${mimeType}`);
         return true;
       }
     }
@@ -299,7 +299,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
 
     if (inactiveTime >= captureInfo.inactivityTimeout) {
       console.log(
-        `NetworkCaptureV2: No activity for ${inactiveTime}ms, stopping capture for tab ${tabId}`,
+        `NetworkCaptureV3: No activity for ${inactiveTime}ms, stopping capture for tab ${tabId}`,
       );
       this.stopCaptureByInactivity(tabId);
     } else {
@@ -319,7 +319,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     const captureInfo = this.captureData.get(tabId);
     if (!captureInfo) return;
 
-    console.log(`NetworkCaptureV2: Stopping capture due to inactivity for tab ${tabId}`);
+    console.log(`NetworkCaptureV3: Stopping capture due to inactivity for tab ${tabId}`);
     await this.stopCapture(tabId);
   }
 
@@ -343,7 +343,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     this.captureData.delete(tabId);
     this.requestCounters.delete(tabId);
 
-    console.log(`NetworkCaptureV2: Cleaned up all resources for tab ${tabId}`);
+    console.log(`NetworkCaptureV3: Cleaned up all resources for tab ${tabId}`);
   }
 
   /**
@@ -367,7 +367,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       const currentCount = this.requestCounters.get(details.tabId) || 0;
       if (currentCount >= NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE) {
         console.log(
-          `NetworkCaptureV2: Request limit (${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}) reached for tab ${details.tabId}, ignoring new request: ${details.url}`,
+          `NetworkCaptureV3: Request limit (${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}) reached for tab ${details.tabId}, ignoring new request: ${details.url}`,
         );
         captureInfo.limitReached = true;
         return;
@@ -393,7 +393,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         }
 
         console.log(
-          `NetworkCaptureV2: Captured request ${currentCount + 1}/${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE} for tab ${details.tabId}: ${details.method} ${details.url}`,
+          `NetworkCaptureV3: Captured request ${currentCount + 1}/${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE} for tab ${details.tabId}: ${details.method} ${details.url}`,
         );
       }
     };
@@ -439,7 +439,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         }
 
         console.log(
-          `NetworkCaptureV2: Filtered request by MIME type (${requestInfo.mimeType}): ${requestInfo.url}`,
+          `NetworkCaptureV3: Filtered request by MIME type (${requestInfo.mimeType}): ${requestInfo.url}`,
         );
         return;
       }
@@ -514,12 +514,12 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     // Don't remove listeners if there are still tabs being captured
     if (this.captureData.size > 0) {
       console.log(
-        `NetworkCaptureV2: Still capturing on ${this.captureData.size} tabs, not removing listeners.`,
+        `NetworkCaptureV3: Still capturing on ${this.captureData.size} tabs, not removing listeners.`,
       );
       return;
     }
 
-    console.log(`NetworkCaptureV2: No more active captures, removing all listeners.`);
+    console.log(`NetworkCaptureV3: No more active captures, removing all listeners.`);
 
     if (this.listeners.onBeforeRequest) {
       chrome.webRequest.onBeforeRequest.removeListener(this.listeners.onBeforeRequest);
@@ -576,7 +576,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
     // If already capturing, stop first
     if (this.captureData.has(tabId)) {
       console.log(
-        `NetworkCaptureV2: Already capturing on tab ${tabId}. Stopping previous session.`,
+        `NetworkCaptureV3: Already capturing on tab ${tabId}. Stopping previous session.`,
       );
       await this.stopCapture(tabId);
     }
@@ -608,7 +608,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
       this.updateLastActivityTime(tabId);
 
       console.log(
-        `NetworkCaptureV2: Started capture for tab ${tabId} (${tab.url}). Max requests: ${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}, Max time: ${maxCaptureTime}ms, Inactivity: ${inactivityTimeout}ms.`,
+        `NetworkCaptureV3: Started capture for tab ${tabId} (${tab.url}). Max requests: ${NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE}, Max time: ${maxCaptureTime}ms, Inactivity: ${inactivityTimeout}ms.`,
       );
 
       // Set maximum capture time
@@ -617,14 +617,14 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
           tabId,
           setTimeout(async () => {
             console.log(
-              `NetworkCaptureV2: Max capture time (${maxCaptureTime}ms) reached for tab ${tabId}.`,
+              `NetworkCaptureV3: Max capture time (${maxCaptureTime}ms) reached for tab ${tabId}.`,
             );
             await this.stopCapture(tabId);
           }, maxCaptureTime),
         );
       }
     } catch (error: any) {
-      console.error(`NetworkCaptureV2: Error starting capture for tab ${tabId}:`, error);
+      console.error(`NetworkCaptureV3: Error starting capture for tab ${tabId}:`, error);
 
       // Clean up resources
       if (this.captureData.has(tabId)) {
@@ -644,7 +644,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
   ): Promise<{ success: boolean; message?: string; data?: any }> {
     const captureInfo = this.captureData.get(tabId);
     if (!captureInfo) {
-      console.log(`NetworkCaptureV2: No capture in progress for tab ${tabId}`);
+      console.log(`NetworkCaptureV3: No capture in progress for tab ${tabId}`);
       return { success: false, message: `No capture in progress for tab ${tabId}` };
     }
 
@@ -719,7 +719,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         data: resultData,
       };
     } catch (error: any) {
-      console.error(`NetworkCaptureV2: Error stopping capture for tab ${tabId}:`, error);
+      console.error(`NetworkCaptureV3: Error stopping capture for tab ${tabId}:`, error);
 
       // Ensure resources are cleaned up
       this.cleanupCapture(tabId);
@@ -813,10 +813,10 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         if (matchingTabs.length > 0) {
           // Use existing tab
           tabToOperateOn = matchingTabs[0];
-          console.log(`NetworkCaptureV2: Found existing tab with URL: ${targetUrl}`);
+          console.log(`NetworkCaptureV3: Found existing tab with URL: ${targetUrl}`);
         } else {
           // Create new tab
-          console.log(`NetworkCaptureV2: Creating new tab with URL: ${targetUrl}`);
+          console.log(`NetworkCaptureV3: Creating new tab with URL: ${targetUrl}`);
           tabToOperateOn = await chrome.tabs.create({ url: targetUrl, active: true });
 
           // Wait for page to load
@@ -854,7 +854,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: 'Network capture V2 started successfully, waiting for stop command.',
+              message: 'Network capture V3 started successfully, waiting for stop command.',
               tabId: tabToOperateOn.id,
               url: tabToOperateOn.url,
               maxCaptureTime,
@@ -876,7 +876,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
 }
 
 /**
- * Network capture stop tool V2 - Stop webRequest API capture and return results
+ * Network capture stop tool V3 - Stop webRequest API capture and return results
  */
 class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NETWORK_CAPTURE_STOP;
@@ -897,7 +897,7 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
       const startTool = NetworkCaptureStartTool.instance;
 
       if (!startTool) {
-        return createErrorResponse('Network capture V2 start tool instance not found');
+        return createErrorResponse('Network capture V3 start tool instance not found');
       }
 
       // Get all tabs currently capturing

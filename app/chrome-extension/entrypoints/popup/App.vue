@@ -894,7 +894,7 @@ import {
   cleanupModelCache,
 } from '@/utils/semantic-similarity-engine';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
-import { WEB_EDITOR_V2_ACTIONS } from '@/common/web-editor-types';
+import { WEB_EDITOR_V3_ACTIONS } from '@/common/web-editor-types';
 import { LINKS, PROXY_COUNTRIES, STORAGE_KEYS } from '@/common/constants';
 import { getMessage } from '@/utils/i18n';
 import { useRRV3Rpc } from '@/entrypoints/shared/composables';
@@ -2294,7 +2294,7 @@ const saveScrollCoordinatesSetting = async () => {
 
   try {
     await chrome.tabs.sendMessage(tab.id, {
-      action: WEB_EDITOR_V2_ACTIONS.SET_SCROLL_COORDINATES,
+      action: WEB_EDITOR_V3_ACTIONS.SET_SCROLL_COORDINATES,
       enabled: sendScrollCoordinates.value,
     });
   } catch {

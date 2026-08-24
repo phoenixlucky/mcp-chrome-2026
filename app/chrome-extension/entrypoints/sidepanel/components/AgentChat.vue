@@ -1482,7 +1482,7 @@ function clearLocalSelectionState(expectedTabId: number, expectedElementKey: str
 
   // Clear session storage to prevent "revival" on refresh/tab switch
   if (expectedTabId) {
-    const storageKey = `web-editor-v2-selection-${expectedTabId}`;
+    const storageKey = `web-editor-v3-selection-${expectedTabId}`;
     chrome.storage.session.remove(storageKey).catch(() => {
       // Ignore storage errors
     });
