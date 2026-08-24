@@ -8,10 +8,12 @@ import nativeMessagingHostInstance from '../native-messaging-host';
 import { NativeMessageType, TOOL_NAMES, TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
+import { browserProfileManager } from '../browser-profile-manager.js';
 
 interface ToolActivity {
   requestId: string;
   name: string;
+  profileId?: string;
   tabId?: number;
   startedAt: string;
   queueMs?: number;
@@ -104,6 +106,16 @@ async function listDynamicFlowTools(): Promise<Tool[]> {
         properties['captureNetwork'] = { type: 'boolean', default: false };
         properties['returnLogs'] = { type: 'boolean', default: false };
         properties['timeoutMs'] = { type: 'number', minimum: 0 };
+        properties['profileId'] = {
+          type: 'string',
+          description: 'Optional isolated browser Profile ID; omit it to control current Chrome.',
+        };
+        properties['actionPolicy'] = {
+          type: 'string',
+          enum: ['fast', 'balanced', 'human'],
+          default: 'balanced',
+          description: 'Unified action pacing: fast, balanced (default), or human.',
+        };
         const tool: Tool = {
           name,
           description,
@@ -268,6 +280,90 @@ async function resolveRecentOrActiveTab(
   return { ...args, tabId };
 }
 
+async function handleProfileTool(args: Record<string, unknown>): Promise<CallToolResult> {
+  const action = typeof args.action === 'string' ? args.action : '';
+  const profileId = typeof args.profileId === 'string' ? args.profileId.trim() : '';
+  let value: unknown;
+
+  switch (action) {
+    case 'list':
+      value = await browserProfileManager.list();
+      break;
+    case 'status': {
+      const profiles = await browserProfileManager.list();
+      value = profileId ? profiles.filter((profile) => profile.id === profileId) : profiles;
+      break;
+    }
+    case 'diagnostics':
+      if (!profileId) throw new Error('profileId is required for diagnostics');
+      value = await browserProfileManager.diagnostics(profileId);
+      break;
+    case 'create':
+      value = await browserProfileManager.create({
+        id: profileId || undefined,
+        name: String(args.name || ''),
+        userDataDir: typeof args.userDataDir === 'string' ? args.userDataDir : undefined,
+        chromePath: typeof args.chromePath === 'string' ? args.chromePath : undefined,
+        extensionPath: typeof args.extensionPath === 'string' ? args.extensionPath : undefined,
+        launchArgs: Array.isArray(args.launchArgs) ? args.launchArgs : undefined,
+      });
+      break;
+    case 'launch':
+      if (!profileId) throw new Error('profileId is required for launch');
+      value = await browserProfileManager.launch(profileId);
+      break;
+    case 'stop':
+      if (!profileId) throw new Error('profileId is required for stop');
+      value = await browserProfileManager.stop(profileId);
+      break;
+    case 'delete':
+      if (!profileId) throw new Error('profileId is required for delete');
+      value = await browserProfileManager.delete(profileId);
+      break;
+    default:
+      throw new Error(
+        'action must be one of: list, create, launch, stop, delete, status, diagnostics',
+      );
+  }
+
+  return {
+    content: [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+    isError: false,
+  };
+}
+
+async function handleBatchTool(
+  args: Record<string, unknown>,
+  signal?: AbortSignal,
+  reportProgress?: ToolProgressReporter,
+): Promise<CallToolResult> {
+  if (!Array.isArray(args.calls) || args.calls.length > 50)
+    throw new Error('calls must be an array with at most 50 items');
+  const inheritedProfileId = typeof args.profileId === 'string' ? args.profileId.trim() : '';
+  const stopOnError = args.stopOnError !== false;
+  const results: Array<{ name: string; result: CallToolResult }> = [];
+  for (const item of args.calls) {
+    if (!item || typeof item !== 'object' || typeof (item as any).name !== 'string') {
+      throw new Error('Each batch call requires a tool name');
+    }
+    const call = item as { name: string; arguments?: unknown };
+    if (call.name === TOOL_NAMES.BROWSER.BATCH)
+      throw new Error('Nested chrome_batch calls are not supported');
+    const callArgs =
+      call.arguments && typeof call.arguments === 'object'
+        ? { ...(call.arguments as Record<string, unknown>) }
+        : {};
+    if (inheritedProfileId && !callArgs.profileId) callArgs.profileId = inheritedProfileId;
+    const result = await handleToolCall(call.name, callArgs, signal, reportProgress);
+    results.push({ name: call.name, result });
+    if (result.isError && stopOnError) break;
+  }
+  return {
+    content: [{ type: 'text', text: JSON.stringify(results) }],
+    isError: results.some((item) => item.result.isError),
+  };
+}
+
 const handleToolCall = async (
   name: string,
   args: any,
@@ -283,6 +379,27 @@ const handleToolCall = async (
   recentToolCalls.push(activity);
   if (recentToolCalls.length > 100) recentToolCalls.shift();
   try {
+    if (name === TOOL_NAMES.BROWSER.BATCH) {
+      const response = await handleBatchTool(args, signal, reportProgress);
+      activity.outcome = response.isError ? 'error' : 'success';
+      return response;
+    }
+
+    if (name === TOOL_NAMES.BROWSER.PROFILE) {
+      const response = await handleProfileTool(args);
+      activity.outcome = 'success';
+      return response;
+    }
+
+    const profileId = typeof args.profileId === 'string' ? args.profileId.trim() : '';
+    if (profileId) {
+      const { profileId: _profileId, ...profileArgs } = args;
+      activity.profileId = profileId;
+      const response = await browserProfileManager.callTool(profileId, name, profileArgs, signal);
+      activity.outcome = response.isError ? 'error' : 'success';
+      return response;
+    }
+
     if (RECENT_TAB_DEFAULT_TOOLS.has(name))
       args = await resolveRecentOrActiveTab(args, signal, activity.requestId);
     if (WRITE_TOOL.test(name) && !name.startsWith('flow.') && !SELF_RESOLVING_WRITE_TOOLS.has(name))

@@ -15,6 +15,32 @@ Complete reference for all available tools and their parameters.
 
 ## 📊 Browser Management
 
+### `chrome_batch`
+
+Run up to 50 browser tool calls sequentially as one task. Optionally pass `profileId` to pin the whole batch to one isolated Profile.
+
+**Parameters**:
+
+- `calls` (object[], required): each item contains `name` and optional `arguments`
+- `stopOnError` (boolean, optional): stop after the first error; defaults to `true`
+- `profileId` (string, optional): Profile used by the whole batch
+
+### `chrome_profile`
+
+Manage isolated Chrome profiles. When `profileId` is omitted from normal browser tools, they continue to control the current Chrome.
+
+**Parameters**:
+
+- `action` (string, required): `list`, `create`, `launch`, `stop`, `delete`, `status`, or `diagnostics`
+- `profileId` (string, optional): Profile ID; if omitted during `create`, it is generated from the name
+- `name` (string, optional): Display name used when creating a profile
+- `userDataDir` (string, optional): Data directory for the isolated Chrome
+- `chromePath` (string, optional): Chrome executable path
+- `extensionPath` (string, optional): Extension directory to load
+- `launchArgs` (string[], optional): Additional Chrome launch arguments
+
+Normal browser tools also accept an optional `profileId`. The isolated Chrome starts on the first tool call; `diagnostics` reports Profile, CDP, MCP, proxy, and extension state; `delete` removes only the profile configuration and keeps `userDataDir`.
+
 ### `get_windows_and_tabs` (Launched: 2025-06-09)
 
 List all currently open browser windows and tabs.

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.3.0] - 2026-08-24
+
+### Added
+
+- **多 Profile 任务隔离** — 独立 Cookie、缓存、历史与登录态，支持多会话并行。
+- **Profile 诊断** — 汇总 Profile、CDP、MCP、代理与扩展状态。
+- **批量与定时任务** — 新增 `chrome_batch`，并支持持久化工作流队列和 cron/interval 触发。
+- **安全升级命令** — 精确版本、npm SHA-512 完整性校验、安装验证与失败回滚。
+
+### Changed
+
+- **统一 ActionPolicy** — 点击、输入、滚动和导航等动作统一支持 `fast`、`balanced`、`human` 节奏。
+- 版本统一为 v2.3.0。
+
 ## [v2.2.1] - 2026-08-23
 
 ### Added

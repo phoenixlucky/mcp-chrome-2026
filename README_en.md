@@ -26,13 +26,16 @@
 
 ---
 
-## 📢 What's New in v2.2.1
+## 📢 What's New in v2.3.0
 
-> **Welcome page i18n + Native Host install hardening** — smoother first-run experience and a more robust install flow.
+> **Browser profile isolation and automation stability** — better support for persistent login, parallel sessions, and batch tasks.
 >
-> - 🌍 **Welcome page zh/en locale switching** — Auto-detects browser language, persists the choice in `localStorage`, keeps `<html lang>` and page title in sync
-> - 🛠️ **Native Host shared runtime hardening** — Build verifies the bundled shared runtime; `doctor` gains a `host.shared-runtime` check with auto-fix; postinstall surfaces a clear warning instead of `MODULE_NOT_FOUND`
-> - 🔧 All packages bumped to v2.2.1
+> - 🧩 **Multi-profile isolation** — Separate cookies, cache, history, and login state with parallel sessions
+> - 🛡️ **Unified ActionPolicy** — Stable pacing for click, input, scroll, and navigation actions
+> - 🔍 **Profile diagnostics** — Profile, CDP, MCP, proxy, and extension status in one report
+> - 📦 **Batch and scheduled tasks** — `chrome_batch`, persistent workflow queues, and cron/interval triggers
+> - 🚀 **Safe upgrades** — Exact versions, SHA-512 verification, post-install validation, and rollback
+> - 🔧 All packages bumped to v2.3.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -169,11 +172,48 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 ---
 
+## 🧩 Isolated Browser Profiles
+
+By default, browser tools continue to control the Chrome you are currently using. For account, cookie, or cache isolation, call `chrome_profile` first:
+
+```json
+{ "action": "create", "name": "Work account", "profileId": "work" }
+```
+
+Then add `profileId` to a normal browser tool; an isolated Chrome instance starts automatically when needed:
+
+```json
+{ "profileId": "work", "url": "https://example.com" }
+```
+
+Use `chrome_profile` with `list`, `status`, `diagnostics`, `launch`, `stop`, or `delete` to manage profiles. `delete` removes only the profile configuration and keeps `userDataDir`, preventing accidental loss of login state. Set `CHROME_MCP_EXTENSION_PATH` when the isolated Chrome must load a locally built extension.
+
+Click, input, scroll, and navigation actions use a unified `balanced` pace by default; pass `actionPolicy: "fast"` or `actionPolicy: "human"` when needed.
+
+Use `chrome_batch` to run up to 50 browser calls sequentially as one task; pass `profileId` to pin the batch to one isolated Profile. Workflow v3 already provides persistent queues plus cron/interval triggers.
+
+### Safe upgrades
+
+```bash
+mcp-chrome-bridge upgrade 2.3.0 --dry-run
+mcp-chrome-bridge upgrade 2.3.0
+```
+
+Upgrades require an exact version and verify npm SHA-512 integrity. If post-install validation fails, the command attempts to roll back to the previous version.
+
+### ✅ Verification
+
+- Native Server: 4 suites, 12 tests passed
+- Chrome Extension: 56 test files, 559 tests passed
+- Native / Extension / Shared TypeScript checks passed
+
+---
+
 ## 🛠️ Tools at a Glance
 
 | Category                  | Count | Coverage                                                                             |
 | ------------------------- | :---: | ------------------------------------------------------------------------------------ |
-| 🖥️ **Browser Management** |   9   | Window/tab listing, navigation, switch, close, current URL, scroll, script injection |
+| 🖥️ **Browser Management** |  11   | Window/tab listing, navigation, switch, close, current URL, scroll, script injection, Profile/batch tasks |
 | 📷 **Screenshots**        |   2   | Element-level, full-page, custom viewport, GIF recording                             |
 | 🌐 **Network Monitoring** |   6   | Request capture & response wait, resource blocking, custom HTTP, download handling   |
 | 📝 **Content Analysis**   |   7   | Semantic search, HTML/text extraction, interactive elements, console capture, SPA    |
@@ -219,17 +259,31 @@ The service listens on `http://127.0.0.1:12306/mcp`.
 
 ## 🗺️ Roadmap
 
-| ✅ Done                                                                       | 🎯 Planned                                                   |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| **70 MCP Tools** — Full browser API coverage                                  | **Auth & Permission** — API Key / OAuth                      |
-| **Streamable HTTP + STDIO** — Dual transport                                  |                                                              |
-| **Smart Assistant** — Claude / Codex / DeepSeek                               | **Monitoring Dashboard** — Web panel for calls, perf, errors |
-| **Semantic Search** — Vector DB + local embeddings                            |                                                              |
-| **SIMD Acceleration** — WASM engine 4-8× faster                               |                                                              |
-| **Workflow Recording & Replay** — v3 unified architecture (v2 fully migrated) |                                                              |
-| **Visual Editor** — Drag-and-drop workflow builder                            |                                                              |
-| **Native Messaging Auto-registration**                                        |                                                              |
-| **Cross-platform Setup** — macOS / Linux one-click scripts                    |                                                              |
+### ✅ Done
+
+- **70 MCP Tools** — Full browser API coverage
+- **Streamable HTTP + STDIO** — Dual transport
+- **Smart Assistant** — Claude / Codex / DeepSeek
+- **Semantic Search** — Vector DB + local embeddings
+- **SIMD Acceleration** — WASM engine 4-8× faster
+- **Workflow Recording & Replay** — v3 unified architecture (v2 fully migrated)
+- **Visual Editor** — Drag-and-drop workflow builder
+- **Native Messaging Auto-registration**
+- **Cross-platform Setup** — macOS / Linux one-click scripts
+- **Multi-Profile Isolation** — Separate cookies, cache, history and login state
+- **Persistent Sessions** — Restore isolated profiles after browser close
+- **Unified ActionPolicy** — Stable click / input / scroll pacing
+- **Parallel Sessions** — Separate MCP/CDP channels per profile
+- **Profile Diagnostics** — Profile, CDP, MCP, proxy and extension state
+- **Safe Upgrades** — Exact versions, SHA-512 verification and rollback
+- **Batch and Scheduled Tasks** — `chrome_batch`, workflow queues and cron/interval triggers
+
+### 🎯 Planned
+
+- **Auth & Permission** — API Key / OAuth
+- **Monitoring Dashboard** — Web panel for calls, perf, errors
+- **Multi-version Chrome Matrix** — Run real-browser regression tests across Chrome versions / profiles / environments
+- **Expanded Product Scope** — Hosted browsers and remote CDP
 
 ### 🔧 Planned Tools
 

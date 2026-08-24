@@ -26,13 +26,16 @@
 
 ---
 
-## 📢 v2.2.1 更新内容
+## 📢 v2.3.0 更新内容
 
-> **Welcome 页多语言 + Native Host 安装加固** — 更顺滑的首启体验与更稳的安装流程。
+> **浏览器 Profile 隔离与自动化稳定性升级** — 更适合持续登录、并行会话和批量任务。
 >
-> - 🌍 **Welcome 页中英文切换** — 根据浏览器语言自动检测，`localStorage` 记忆选择，同步 `<html lang>` 与页面标题
-> - 🛠️ **Native Host 共享运行时加固** — 构建时校验内嵌 shared 运行时；`doctor` 新增 `host.shared-runtime` 检查与自动修复；安装后缺失时给出清晰警告而非 `MODULE_NOT_FOUND`
-> - 🔧 版本统一为 v2.2.1
+> - 🧩 **多 Profile 任务隔离** — 独立 Cookie、缓存、历史与登录态，支持多会话并行
+> - 🛡️ **统一 ActionPolicy** — 为点击、输入、滚动和导航提供稳定节奏
+> - 🔍 **Profile 诊断** — 汇总 Profile、CDP、MCP、代理与扩展状态
+> - 📦 **批量与定时任务** — `chrome_batch`、持久化工作流队列和 cron/interval 触发
+> - 🚀 **安全升级** — 精确版本、SHA-512 校验、安装验证与失败回滚
+> - 🔧 版本统一为 v2.3.0
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -169,11 +172,48 @@ bash start-server.sh
 
 ---
 
+## 🧩 隔离浏览器 Profile
+
+默认情况下，所有浏览器工具继续直接操作你当前正在使用的 Chrome。需要账号、Cookie 或缓存隔离时，先调用 `chrome_profile`：
+
+```json
+{ "action": "create", "name": "工作账号", "profileId": "work" }
+```
+
+然后给普通浏览器工具增加 `profileId`；Profile 未启动时会自动拉起独立 Chrome：
+
+```json
+{ "profileId": "work", "url": "https://example.com" }
+```
+
+也可以用 `chrome_profile` 的 `list`、`status`、`diagnostics`、`launch`、`stop`、`delete` 管理 Profile。`delete` 只删除配置，不会自动删除 `userDataDir`，避免误删登录态；如需让独立 Chrome加载本地扩展，可设置 `CHROME_MCP_EXTENSION_PATH`。
+
+点击、输入、滚动、导航等动作默认使用统一的 `balanced` 节奏；需要时可传 `actionPolicy: "fast"` 或 `actionPolicy: "human"`。
+
+需要把多个浏览器动作组成一次任务时，可调用 `chrome_batch`，最多顺序执行 50 个工具调用；通过 `profileId` 可将整组任务固定到同一个隔离 Profile。现有工作流 v3 已支持持久化运行队列和 cron/interval 定时触发。
+
+### 安全升级
+
+```bash
+mcp-chrome-bridge upgrade 2.3.0 --dry-run
+mcp-chrome-bridge upgrade 2.3.0
+```
+
+升级只接受精确版本，会校验 npm SHA-512 完整性；安装后的关键文件校验失败会自动尝试回滚到原版本。
+
+### ✅ 验证状态
+
+- Native Server：4 个测试套件、12 个测试通过
+- Chrome Extension：56 个测试文件、559 个测试通过
+- Native / Extension / Shared TypeScript 检查通过
+
+---
+
 ## 🛠️ 工具一览
 
 | 分类              | 数量 | 覆盖能力                                                             |
 | ----------------- | :--: | -------------------------------------------------------------------- |
-| 🖥️ **浏览器管理** |  9   | 窗口/标签页列表、导航、切换、关闭、当前 URL、滚动、脚本注入          |
+| 🖥️ **浏览器管理** |  11  | 窗口/标签页列表、导航、切换、关闭、当前 URL、滚动、脚本注入、Profile/批量任务 |
 | 📷 **截图**       |  2   | 元素级、全页面、自定义视口、GIF 录制                                 |
 | 🌐 **网络监控**   |  6   | 指定标签抓包与响应等待、精确资源拦截、自定义 HTTP、下载处理          |
 | 📝 **内容分析**   |  7   | 语义搜索、HTML / 文本提取、交互元素检测、控制台日志、SPA 内容        |
@@ -219,17 +259,31 @@ bash start-server.sh
 
 ## 🗺️ 路线图
 
-| ✅ 已实现                                           | 🎯 规划中                                         |
-| --------------------------------------------------- | ------------------------------------------------- |
-| **70 MCP 工具** — 浏览器全能力覆盖                  | **认证与权限管理** — API Key / OAuth 接入         |
-| **Streamable HTTP + STDIO 双传输**                  |                                                   |
-| **智能助手** — Claude / Codex / DeepSeek            | **实时监控仪表盘** — Web 面板查看调用、性能、错误 |
-| **语义搜索** — 向量数据库 + 本地嵌入                |                                                   |
-| **SIMD 加速** — WASM 引擎 4-8× 更快                 |                                                   |
-| **工作流录制与回放** — v3 统一架构（v2 已完全迁移） |                                                   |
-| **可视化编辑器** — 拖拽搭建工作流                   |                                                   |
-| **Native Messaging 自动注册**                       |                                                   |
-| **跨平台安装体验** — macOS / Linux 一键脚本         |                                                   |
+### ✅ 已实现
+
+- **70 MCP 工具** — 浏览器全能力覆盖
+- **Streamable HTTP + STDIO 双传输**
+- **智能助手** — Claude / Codex / DeepSeek
+- **语义搜索** — 向量数据库 + 本地嵌入
+- **SIMD 加速** — WASM 引擎 4-8× 更快
+- **工作流录制与回放** — v3 统一架构（v2 已完全迁移）
+- **可视化编辑器** — 拖拽搭建工作流
+- **Native Messaging 自动注册**
+- **跨平台安装体验** — macOS / Linux 一键脚本
+- **多 Profile 任务隔离** — 独立 Cookie、缓存、历史与登录态
+- **登录态持久化** — 关闭后可恢复独立 Profile
+- **统一 ActionPolicy** — 稳定点击 / 输入 / 滚动节奏
+- **多会话并行** — 多 Profile 使用独立 MCP/CDP 通道
+- **Profile 诊断** — 汇总 Profile、CDP、MCP、代理与扩展状态
+- **安全升级** — 精确版本、SHA-512 校验、失败回滚
+- **批量与定时任务** — `chrome_batch`、工作流队列和 cron/interval 触发
+
+### 🎯 规划中
+
+- **认证与权限管理** — API Key / OAuth 接入
+- **实时监控仪表盘** — Web 面板查看调用、性能、错误
+- **多版本 Chrome 实机矩阵** — 在不同 Chrome 版本 / Profile / 运行环境中做真实浏览器回归
+- **产品边界扩展** — 托管浏览器与远程 CDP
 
 ### 🔧 待开发工具
 

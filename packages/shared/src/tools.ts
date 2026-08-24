@@ -74,10 +74,56 @@ export const TOOL_NAMES = {
     WAIT_EXTRACT_RESPONSE: 'wait_extract_response',
     CAPTURE_DEBUG_BUNDLE: 'capture_debug_bundle',
     RESUME_TAB_TASK: 'resume_tab_task',
+    PROFILE: 'chrome_profile',
+    BATCH: 'chrome_batch',
   },
 };
 
 export const TOOL_SCHEMAS: Tool[] = [
+  {
+    name: TOOL_NAMES.BROWSER.PROFILE,
+    description:
+      '管理隔离浏览器 Profile。默认工具调用仍操作当前 Chrome；为普通浏览器工具传入 profileId 后，会在该 Profile 中执行。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'create', 'launch', 'stop', 'delete', 'status', 'diagnostics'],
+        },
+        profileId: { type: 'string' },
+        name: { type: 'string' },
+        userDataDir: { type: 'string' },
+        chromePath: { type: 'string' },
+        extensionPath: { type: 'string' },
+        launchArgs: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.BATCH,
+    description: '按顺序执行一组浏览器工具调用；可用 profileId 将整组任务固定到独立 Profile。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        calls: {
+          type: 'array',
+          maxItems: 50,
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              arguments: { type: 'object' },
+            },
+            required: ['name'],
+          },
+        },
+        stopOnError: { type: 'boolean', default: true },
+      },
+      required: ['calls'],
+    },
+  },
   {
     name: TOOL_NAMES.BROWSER.COLLECT_VIRTUAL_LIST,
     description: '从动态或虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。',
@@ -619,7 +665,8 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         url: {
           type: 'string',
-          description: '可选 URL；提供后先导航到该 URL，再读取目标标签页。省略时读取当前目标标签页。',
+          description:
+            '可选 URL；提供后先导航到该 URL，再读取目标标签页。省略时读取当前目标标签页。',
         },
         maxOutputBytes: {
           type: 'number',
@@ -2575,6 +2622,18 @@ for (const tool of TOOL_SCHEMAS) {
     type: 'string',
     description: '仅当目标标签页 URL 以该值开头时才执行，否则拒绝调用。',
   };
+  if (tool.name !== TOOL_NAMES.BROWSER.PROFILE) {
+    (tool.inputSchema as any).properties.profileId = {
+      type: 'string',
+      description: '可选的隔离浏览器 Profile ID；省略时直接操作当前 Chrome。',
+    };
+    (tool.inputSchema as any).properties.actionPolicy = {
+      type: 'string',
+      enum: ['fast', 'balanced', 'human'],
+      default: 'balanced',
+      description: '统一动作节奏：fast、balanced（默认）或 human。',
+    };
+  }
 }
 
 const ZH_PARAMETER_DESCRIPTIONS: Record<string, string> = {
@@ -2639,6 +2698,8 @@ const ZH_PARAMETER_DESCRIPTIONS: Record<string, string> = {
   tabId: '目标标签页 ID；默认为当前激活标签页。',
   windowId: '用于选择激活标签页的目标窗口 ID。',
   frameSelector: '可选的同源 iframe 选择器。',
+  profileId: '可选的隔离浏览器 Profile ID；省略时操作当前 Chrome。',
+  actionPolicy: '统一动作节奏：fast、balanced（默认）或 human。',
 };
 
 function fillChineseDescriptions(schema: Record<string, any>, name: string) {

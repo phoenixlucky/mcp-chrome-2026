@@ -1,5 +1,7 @@
 import { createErrorResponse, type ToolProgressReporter } from '@/common/tool-handler';
 import { ERROR_MESSAGES } from '@/common/constants';
+import type { ToolResult } from '@/common/tool-handler';
+import { resolveActionPolicy, runWithActionPolicy } from './action-policy';
 import * as browserTools from './browser';
 
 const tools = browserTools as any;
@@ -396,9 +398,10 @@ export const handleCallTool = async (
       args.background = backgroundOperations;
     }
     await showOperation(param, '执行中');
-    const result = reportProgress
-      ? await tool.execute(args, signal, reportProgress)
-      : await tool.execute(args, signal);
+    const actionPolicy = resolveActionPolicy(param.name, args);
+    const result = await runWithActionPolicy<ToolResult>(actionPolicy, signal, () =>
+      reportProgress ? tool.execute(args, signal, reportProgress) : tool.execute(args, signal),
+    );
     void showOperation(param, result.isError ? '失败' : '完成');
     return result;
   } catch (error) {

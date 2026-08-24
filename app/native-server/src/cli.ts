@@ -13,6 +13,7 @@ import {
 import { BrowserType, parseBrowserType, detectInstalledBrowsers } from './scripts/browser-config';
 import { runDoctor } from './scripts/doctor';
 import { runReport } from './scripts/report';
+import { safeUpgrade } from './scripts/safe-upgrade';
 import server from './server';
 import nativeHost from './native-messaging-host';
 
@@ -225,6 +226,30 @@ program
       process.exit(exitCode);
     } catch (error: any) {
       console.error(colorText(`Report failed: ${error.message}`, 'red'));
+      process.exit(1);
+    }
+  });
+
+// Verify and install an exact, integrity-checked package version.
+program
+  .command('upgrade <version>')
+  .description(
+    'Safely upgrade to an exact package version with integrity verification and rollback',
+  )
+  .option('--dry-run', 'Download and verify the package without installing it')
+  .action(async (version: string, options) => {
+    try {
+      await safeUpgrade(version, Boolean(options.dryRun));
+      console.log(
+        colorText(
+          options.dryRun
+            ? `Upgrade ${version} passed version and integrity checks.`
+            : `Upgrade to ${version} completed and passed validation.`,
+          'green',
+        ),
+      );
+    } catch (error: any) {
+      console.error(colorText(`Upgrade failed: ${error.message}`, 'red'));
       process.exit(1);
     }
   });

@@ -19,6 +19,16 @@ export interface NativeHostStatus {
   lastSuccessAt: string | null;
 }
 
+function resolveServerPort(requested?: unknown): number {
+  const configured = process.env.CHROME_MCP_PORT || process.env.MCP_HTTP_PORT;
+  if (configured) {
+    const port = Number.parseInt(configured, 10);
+    if (Number.isInteger(port) && port > 0 && port <= 65535) return port;
+  }
+  const port = typeof requested === 'number' ? requested : Number(requested);
+  return Number.isInteger(port) && port > 0 && port <= 65535 ? port : NATIVE_SERVER_PORT;
+}
+
 export class NativeMessagingHost {
   private associatedServer: Server | null = null;
   private pendingRequests: Map<string, PendingRequest> = new Map();
@@ -47,7 +57,7 @@ export class NativeMessagingHost {
       this.connected = true;
       this.lastActivityAt = new Date();
       this.setupMessageHandling();
-      void this.startServer(NATIVE_SERVER_PORT);
+      void this.startServer(resolveServerPort(NATIVE_SERVER_PORT));
     } catch (error: any) {
       process.exit(1);
     }
@@ -155,7 +165,7 @@ export class NativeMessagingHost {
     try {
       switch (message.type) {
         case NativeMessageType.START:
-          await this.startServer(message.payload?.port || 12306);
+          await this.startServer(resolveServerPort(message.payload?.port));
           break;
         case NativeMessageType.STOP:
           await this.stopServer();

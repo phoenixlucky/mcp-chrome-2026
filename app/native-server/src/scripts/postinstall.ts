@@ -22,9 +22,6 @@ function installBundledSharedRuntime(): void {
   fs.cpSync(bundledSharedDir, installedSharedDir, { recursive: true, force: true });
 }
 
-// Check if this script is run directly
-const isDirectRun = require.main === module;
-
 // Detect global installation for both npm and pnpm
 function detectGlobalInstall(): boolean {
   // npm uses npm_config_global
@@ -73,6 +70,14 @@ function detectGlobalInstall(): boolean {
 }
 
 const isGlobalInstall = detectGlobalInstall();
+
+// npm invokes this file through `node -e "require(...)"`, so require.main is
+// the eval module during postinstall rather than this script. Only run that
+// lifecycle path for global installs; local pnpm workspaces may expose the
+// shared package as a symlink that must not be overwritten.
+const isDirectRun =
+  require.main === module ||
+  (process.env.npm_lifecycle_event === 'postinstall' && isGlobalInstall);
 
 /**
  * Detect if running with elevated privileges (sudo/admin)

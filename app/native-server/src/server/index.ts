@@ -34,6 +34,7 @@ import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import packageJson from '../../package.json';
 import { getRecentToolCalls } from '../mcp/register-tools';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { browserProfileManager } from '../browser-profile-manager.js';
 
 // ============================================================
 // Types
@@ -164,6 +165,7 @@ export class Server {
           extension: this.nativeHost?.getStatus() ?? null,
           nativeHost: this.nativeHost?.getStatus() ?? null,
           tools: { count: TOOL_SCHEMAS.length },
+          browserProfiles: await browserProfileManager.summary(),
           recentToolCalls: getRecentToolCalls(),
           ...(probe ? { probe } : {}),
         });
@@ -438,6 +440,7 @@ export class Server {
     }
 
     try {
+      await browserProfileManager.stopAll();
       if (this.cleanupTimer) clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
       await this.fastify.close();

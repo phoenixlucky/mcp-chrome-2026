@@ -15,6 +15,32 @@
 
 ## 📊 浏览器管理
 
+### `chrome_batch`
+
+按顺序执行最多 50 个浏览器工具调用，可选 `profileId` 将整组任务固定到同一个隔离 Profile。
+
+**参数**：
+
+- `calls` (对象数组，必需)：每项包含 `name` 和可选的 `arguments`
+- `stopOnError` (布尔值，可选)：遇到失败是否停止，默认 `true`
+- `profileId` (字符串，可选)：整组调用使用的 Profile
+
+### `chrome_profile`
+
+管理隔离 Chrome Profile。省略普通浏览器工具的 `profileId` 时，仍然操作当前 Chrome。
+
+**参数**：
+
+- `action` (字符串，必需)：`list`、`create`、`launch`、`stop`、`delete`、`status` 或 `diagnostics`
+- `profileId` (字符串，可选)：Profile ID；`create` 时省略会根据名称生成
+- `name` (字符串，可选)：创建 Profile 时使用的显示名称
+- `userDataDir` (字符串，可选)：独立 Chrome 的数据目录
+- `chromePath` (字符串，可选)：Chrome 可执行文件路径
+- `extensionPath` (字符串，可选)：要加载的扩展目录
+- `launchArgs` (字符串数组，可选)：额外 Chrome 启动参数
+
+普通浏览器工具也支持可选的 `profileId`。首次调用时会自动启动对应的独立 Chrome；`diagnostics` 会汇总 Profile、CDP、MCP、代理和扩展状态；`delete` 只删除 Profile 配置，不会删除 `userDataDir`。
+
 ### `get_windows_and_tabs`（上线时间：2025-06-09）
 
 列出当前打开的所有浏览器窗口和标签页。
