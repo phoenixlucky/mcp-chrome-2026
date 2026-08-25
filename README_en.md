@@ -117,7 +117,7 @@ Open `chrome://extensions/` → enable **Developer mode** → drag & drop the `.
 
 ```bash
 # npm (recommended — auto-registers)
-npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026 @ethanwilkins/mcp-chrome-bridge-2026
 
 # pnpm
 pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
@@ -125,10 +125,10 @@ pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 
 > `postinstall` auto-registers Native Messaging Host. Manual: `mcp-chrome-bridge register`
 
-> The npm command above allows the bridge and `better-sqlite3` to run the scripts required for this install. To allow these two packages automatically for future installs, run:
+> The npm command above allows the bridge to run the scripts required for this install (`better-sqlite3` ships N-API prebuilt binaries since v13 and no longer needs install scripts). To allow the bridge automatically for future installs, run:
 >
 > ```bash
-> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3" --location=user
+> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026" --location=user
 > ```
 
 ### 3️⃣ Start the Service

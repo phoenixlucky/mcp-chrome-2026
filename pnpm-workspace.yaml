@@ -2,7 +2,9 @@ packages:
   - 'app/*'
   - 'packages/*'
 allowBuilds:
-  better-sqlite3: true
+  # better-sqlite3 v13+ ships N-API prebuilt binaries and has no install scripts;
+  # source builds (binding.gyp) are unnecessary.
+  better-sqlite3: false
   esbuild: true
   protobufjs: true
   sharp: true

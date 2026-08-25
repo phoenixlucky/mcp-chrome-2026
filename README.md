@@ -119,7 +119,7 @@
 
 ```bash
 # npm（推荐，自动注册）
-npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026 @ethanwilkins/mcp-chrome-bridge-2026
 
 # pnpm
 pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
@@ -127,10 +127,10 @@ pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
 
 > `postinstall` 自动注册 Native Messaging Host。如需手动注册：`mcp-chrome-bridge register`
 
-> 上面的 npm 命令会允许桥接器和 `better-sqlite3` 执行本次安装所需的脚本。如果希望以后自动允许这两个包，可先执行：
+> 上面的 npm 命令会允许桥接器执行本次安装所需的脚本（`better-sqlite3` 自 v13 起自带 N-API 预编译二进制，不再需要执行安装脚本）。如果希望以后自动允许桥接器，可先执行：
 >
 > ```bash
-> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3" --location=user
+> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026" --location=user
 > ```
 
 ### 3️⃣ 启动服务
@@ -266,7 +266,7 @@ pnpm test:chrome-smoke
 | 🌐 **网络监控**   |  6   | 指定标签抓包与响应等待、精确资源拦截、自定义 HTTP、下载处理                     |
 | 📝 **内容分析**   |  7   | 语义搜索、HTML / 文本提取、交互元素检测、控制台日志、SPA 内容                   |
 | 🖱️ **交互操作**   |  11  | 点击、悬停、表单填充、键盘输入、元素信息、计算机操作、对话框、上传              |
-| 📑 **数据管理**   |  11  | 历史搜索、书签增删查、Cookie 管理、页面 local/sessionStorage、Userscript       |
+| 📑 **数据管理**   |  11  | 历史搜索、书签增删查、Cookie 管理、页面 local/sessionStorage、Userscript        |
 | 📡 **采集提取**   |  16  | 作用域/Shadow DOM/iframe、受控分页、隔离任务状态、诊断快照、代理轮换            |
 | ⚡ **性能诊断**   |  3   | Trace 录制 / 停止 / 洞察分析                                                    |
 

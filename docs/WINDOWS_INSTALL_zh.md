@@ -15,7 +15,7 @@ Chrome MCP Server 在windows电脑的详细安装和配置步骤
 > ⚠️ **安装前提醒**：请先在 Chrome 扩展中断开浏览器 MCP 连接，再关闭正在使用桥接程序的 Codex、Reasonix、Claude、Cursor 等应用，避免 `dist` 目录被占用而触发 `EBUSY` 错误。
 
 ```bash
-npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026 @ethanwilkins/mcp-chrome-bridge-2026
 ```
 
 如果安装时出现 `npm error code EBUSY`，并且错误信息包含 `rename ... mcp-chrome-bridge-2026\\dist`，说明旧版本的 `dist` 目录正在被 Windows 占用。请确认已经断开浏览器 MCP 连接并关闭可能使用桥接程序的应用，然后在管理员 PowerShell 中执行：
@@ -23,7 +23,7 @@ npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlit
 ```powershell
 npm uninstall -g @ethanwilkins/mcp-chrome-bridge-2026
 npm cache verify
-npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026,better-sqlite3 @ethanwilkins/mcp-chrome-bridge-2026
+npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026 @ethanwilkins/mcp-chrome-bridge-2026
 ```
 
 如果 `npm uninstall` 本身也出现 `EBUSY`，说明旧包仍被进程或安全软件占用，`npm cache verify` 无法解除这种文件锁。请按以下顺序处理：
