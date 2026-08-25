@@ -625,7 +625,9 @@ const isRequired = (tool: Tool, name: string) => (tool.inputSchema.required || [
 .mcp-tools-page {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100%;
+  min-height: 0;
   background: var(--ac-bg, #fafaf9);
 }
 .page-header {
@@ -662,6 +664,8 @@ const isRequired = (tool: Tool, name: string) => (tool.inputSchema.required || [
   border-color: var(--ac-accent, #d97757);
 }
 .page-content {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
 }

@@ -24,6 +24,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm check:versions
+      - run: pnpm check:tool-docs
       - run: pnpm lint
       - run: pnpm --filter @ethanwilkins/chrome-mcp-server-2026 test --reporter=dot
       - run: pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 test --runInBand

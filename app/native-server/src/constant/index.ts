@@ -48,6 +48,8 @@ export const HTTP_STATUS = {
   CREATED: 201,
   NO_CONTENT: 204,
   BAD_REQUEST: 400,
+  FORBIDDEN: 403,
+  UNAUTHORIZED: 401,
   NOT_FOUND: 404,
   INTERNAL_SERVER_ERROR: 500,
   GATEWAY_TIMEOUT: 504,
@@ -59,6 +61,8 @@ export const ERROR_MESSAGES = {
   SERVER_NOT_RUNNING: 'Server is not actively running.',
   REQUEST_TIMEOUT: 'Request to extension timed out.',
   INVALID_MCP_REQUEST: 'Invalid MCP request or session.',
+  UNAUTHORIZED: 'Missing or invalid MCP API key.',
+  ORIGIN_NOT_ALLOWED: 'MCP requests must include an allowed Origin or a valid API key.',
   INVALID_SESSION_ID: 'Invalid or missing MCP session ID.',
   INTERNAL_SERVER_ERROR: 'Internal Server Error',
   MCP_SESSION_DELETION_ERROR: 'Internal server error during MCP session deletion.',
@@ -76,6 +80,10 @@ export const ERROR_MESSAGES = {
  */
 export const CHROME_MCP_PORT_ENV = 'CHROME_MCP_PORT';
 export const MCP_HTTP_PORT_ENV = 'MCP_HTTP_PORT';
+export const MCP_API_KEY_ENV = 'CHROME_MCP_API_KEY';
+export const MCP_ALLOWED_TOOLS_ENV = 'CHROME_MCP_ALLOWED_TOOLS';
+export const MCP_APPROVED_TOOLS_ENV = 'CHROME_MCP_APPROVED_TOOLS';
+export const MCP_REQUIRE_APPROVAL_ENV = 'CHROME_MCP_REQUIRE_APPROVAL';
 
 /**
  * Get the actual port the Chrome MCP server is listening on.

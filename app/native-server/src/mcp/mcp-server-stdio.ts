@@ -6,8 +6,6 @@ import {
   CallToolRequestSchema,
   CallToolResult,
   ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ListPromptsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
@@ -16,6 +14,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import * as fs from 'fs';
 import * as path from 'path';
 import packageJson from '../../package.json';
+import { checkToolAccess, filterToolsByPermission } from './permission-policy.js';
 
 let stdioMcpServer: Server | null = null;
 let mcpClient: Client | null = null;
@@ -44,8 +43,6 @@ export const getStdioMcpServer = () => {
     {
       capabilities: {
         tools: {},
-        resources: {},
-        prompts: {},
       },
     },
   );
@@ -65,7 +62,17 @@ export const ensureMcpClient = async () => {
 
     const config = loadConfig();
     mcpClient = new Client({ name: 'Mcp Chrome Proxy', version: '1.0.0' }, { capabilities: {} });
-    const transport = new StreamableHTTPClientTransport(new URL(config.url), {});
+    const apiKey = process.env.CHROME_MCP_API_KEY?.trim();
+    const requestHeaders: Record<string, string> = {
+      // Keep the backwards-compatible no-key STDIO transport distinguishable
+      // from an unauthenticated request with no Origin header.
+      Origin: 'chrome-extension://mcp-stdio',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    };
+    const transport = new StreamableHTTPClientTransport(
+      new URL(config.url),
+      { requestInit: { headers: requestHeaders } },
+    );
     await mcpClient.connect(transport);
     return mcpClient;
   } catch (error) {
@@ -76,19 +83,23 @@ export const ensureMcpClient = async () => {
 };
 
 export const setupTools = (server: Server) => {
-  // List tools handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOL_SCHEMAS }));
+  // Mirror the upstream HTTP catalog so dynamic flow tools are discoverable over STDIO.
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const client = await ensureMcpClient();
+    if (!client) return { tools: filterToolsByPermission(TOOL_SCHEMAS) };
+    try {
+      const result = await client.listTools();
+      return { ...result, tools: filterToolsByPermission(result.tools) };
+    } catch {
+      return { tools: filterToolsByPermission(TOOL_SCHEMAS) };
+    }
+  });
 
   // Call tool handler
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
     handleToolCall(request.params.name, request.params.arguments || {}, extra),
   );
 
-  // List resources handler - REQUIRED BY MCP PROTOCOL
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [] }));
-
-  // List prompts handler - REQUIRED BY MCP PROTOCOL
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [] }));
 };
 
 const handleToolCall = async (
@@ -97,6 +108,13 @@ const handleToolCall = async (
   extra?: RequestHandlerExtra<any, any>,
 ): Promise<CallToolResult> => {
   try {
+    const access = checkToolAccess(name);
+    if (!access.allowed) {
+      return {
+        content: [{ type: 'text', text: access.message || 'Tool call not allowed.' }],
+        isError: true,
+      };
+    }
     const client = await ensureMcpClient();
     if (!client) {
       throw new Error('Failed to connect to MCP server');

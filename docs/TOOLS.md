@@ -129,7 +129,9 @@ Switch to a specific browser tab.
 }
 ```
 
-### `chrome_go_back_or_forward` (Launched: 2025-06-09)
+### `chrome_go_back_or_forward` (Deprecated — use `chrome_navigate` with `url: "back"` or `"forward"`)
+
+> Compatibility alias retained for older clients. New clients should call `chrome_navigate`.
 
 Navigate browser history.
 
@@ -191,7 +193,9 @@ Take advanced screenshots with various options.
 
 ## 🌐 Network Monitoring
 
-### `chrome_network_capture_start` (Launched: 2025-06-09)
+### `chrome_network_capture_start` (Deprecated — use `chrome_network_capture` with `action: "start"`)
+
+> Compatibility alias retained for older clients. The webRequest backend remains an active implementation of `chrome_network_capture`.
 
 Start capturing network requests using webRequest API.
 
@@ -212,7 +216,9 @@ Start capturing network requests using webRequest API.
 }
 ```
 
-### `chrome_network_capture_stop` (Launched: 2025-06-09)
+### `chrome_network_capture_stop` (Deprecated — use `chrome_network_capture` with `action: "stop"`)
+
+> Compatibility alias retained for older clients. The webRequest backend remains an active implementation of `chrome_network_capture`.
 
 Stop network capture and return collected data.
 
@@ -240,7 +246,9 @@ Stop network capture and return collected data.
 }
 ```
 
-### `chrome_network_debugger_start` (Launched: 2025-06-09)
+### `chrome_network_debugger_start` (Deprecated — use `chrome_network_capture` with `action: "start", needResponseBody: true`)
+
+> Compatibility alias retained for older clients. The Debugger backend remains an active implementation of `chrome_network_capture`.
 
 Start capturing with Chrome Debugger API (includes response bodies).
 
@@ -248,7 +256,9 @@ Start capturing with Chrome Debugger API (includes response bodies).
 
 - `url` (string, optional): URL to navigate to and capture
 
-### `chrome_network_debugger_stop` (Launched: 2025-06-09)
+### `chrome_network_debugger_stop` (Deprecated — use `chrome_network_capture` with `action: "stop"`)
+
+> Compatibility alias retained for older clients. The Debugger backend remains an active implementation of `chrome_network_capture`.
 
 Stop debugger capture and return data with response bodies.
 
@@ -412,7 +422,9 @@ Extract HTML or text content from web pages.
 }
 ```
 
-### `chrome_get_interactive_elements` (since v1.6.4; Launched: 2025-06-09)
+### `chrome_get_interactive_elements` (Deprecated — use `chrome_read_page`)
+
+> Compatibility alias retained for older clients. New clients should use `chrome_read_page` and its interactive-only options.
 
 Replaced by `chrome_read_page` as the primary discovery tool. The `read_page` implementation will automatically fallback to the interactive-elements logic when the accessibility tree is unavailable or too sparse. This tool is kept for backward compatibility.
 
@@ -1091,6 +1103,269 @@ When the MCP request includes `_meta.progressToken` and the client supports `not
 }
 ```
 
+
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `capture_debug_bundle`
+
+将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `resume_tab_task`
+
+保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_find_and_click`
+
+在可选作用域内依次尝试 CSS、XPath 或文本候选项，点击第一个可见且可用的匹配元素。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_expand_section`
+
+展开通用的折叠区域，并等待指定的内容选择器出现。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_scan_for_section`
+
+滚动查找指定区域，可选择向上复扫；仅返回遍历状态，不包含平台业务规则。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_paginate_extract`
+
+先抽取当前页，再点击指定的下一页候选项；仅在卡片 HTML 发生变化后继续。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_records`
+
+从卡片中抽取调用方指定的原始字段，并按不区分大小写的文本规则排除记录。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `detect_empty_state`
+
+根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `merge_records`
+
+按调用方提供的身份字段和数据源优先级纯数据合并；不读取浏览器状态，也不持久化。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_list_frames`
+
+列出标签页中的框架，以便作用域操作通过 frameId 定位同源或跨域 iframe。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_diagnostic_snapshot`
+
+返回标签页的一组诊断信息：视口截图、DOM 快照、控制台缓冲和当前网络捕获摘要。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_proxy_diagnostics`
+
+读取代理配置及 Chrome 接管状态；action 为 test 时还会验证代理出口。不会返回用户名或密码。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_proxy_rotate`
+
+当调用方确认当前标签页异常时，轮换代理会话并重新加载该页面。需要已启用代理；不会返回用户名或密码。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_scoped_action`
+
+在一个语义作用域内点击、抽取或分页；支持开放的 Shadow DOM，并可用 frameId 指定同源或跨域 iframe。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_task_context`
+
+创建隔离的无痕任务窗口，并在 MCP 重启后保存其标签页和调用方定义的抓取状态。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_create_tab`
+
+Create a browser tab with an optional URL, window, foreground/background state, and pin state.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_hover`
+
+Move the mouse over an element selected by CSS or XPath.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_print_to_pdf`
+
+Print a page to PDF with CDP Page.printToPDF, supporting CSS page size and custom paper sizes.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_get_element_info`
+
+Get an element attributes, computed styles, and bounding rectangle.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_storage_get`
+
+Read a page localStorage or sessionStorage area.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_storage_set`
+
+Write page localStorage or sessionStorage; values are serialized as JSON.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_storage_delete`
+
+Delete keys from page localStorage or sessionStorage.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `performance_start_trace`
+
+Starts a performance trace recording on the selected page. Optionally reloads the page and/or auto-stops after a short duration.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `performance_stop_trace`
+
+Stops the active performance trace recording on the selected page.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `performance_analyze_insight`
+
+Provides a lightweight summary of the last recorded trace. For deep insights (CWV, breakdowns), integrate native-side DevTools trace engine.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_post_to_x`
+
+Publish one text post on an already signed-in X/Twitter page. The tool waits for the editor, fills and read-back verifies the text, waits for an enabled submit button, clicks once, and waits for a new confirmation marker. It returns published, failed, or unknown; unknown never retries automatically to avoid duplicate posts. Custom selectors support compatible X page variants.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_network_capture`
+
+统一网络捕获工具。action="start" 开始，action="stop" 停止并返回结果；needResponseBody=true 时通过 Debugger API 获取响应体（可能与 DevTools 冲突），默认 webRequest 模式较轻量但不含响应体。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_block_resources`
+
+在一个标签页中拦截指定资源类型或 URL 模式。请在导航或刷新前启动；停止后恢复加载。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_handle_download`
+
+Wait for a browser download and return details (id, filename, url, state, size)
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_javascript`
+
+Execute JavaScript code in a browser tab and return the result. Uses CDP Runtime.evaluate with awaitPromise and returnByValue; automatically falls back to chrome.scripting.executeScript if the debugger is busy. Output is sanitized (sensitive data redacted) and truncated by default.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_request_element_selection`
+
+Request the user to manually select one or more elements on the current page. Use this as a human-in-the-loop fallback when you cannot reliably locate the target element after approximately 3 attempts using chrome_read_page combined with chrome_click_element/chrome_fill_or_select/chrome_computer. The user will see a panel with instructions and can click on the requested elements. Returns element refs compatible with chrome_click_element/chrome_fill_or_select (including iframe frameId for cross-frame support).
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_console`
+
+Capture console output from a browser tab. Supports snapshot mode (default; one-time capture with ~2s wait) and buffer mode (persistent per-tab buffer you can read/clear instantly without waiting).
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_upload_file`
+
+Upload files to web forms with file input elements using Chrome DevTools Protocol
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_paste_image`
+
+Paste a local image or image data into a textarea, input, or contenteditable element using a synthesized paste event. It does not read the system clipboard; it uses a temporary file input, DataTransfer, and ClipboardEvent.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_get_form_value`
+
+Read the actual DOM value of a form control, including React/Vue controlled inputs and textareas; this reads the value property rather than an HTML attribute or text node.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_handle_dialog`
+
+Handle JavaScript and beforeunload dialogs (alert/confirm/prompt) via CDP
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_gif_recorder`
+
+Record browser tab activity as an animated GIF.\n\nModes:\n- Fixed FPS mode (action="start"): Captures frames at regular intervals. Good for animations/videos.\n- Auto-capture mode (action="auto_start"): Captures frames automatically when chrome_computer or chrome_navigate actions succeed. Better for interaction recordings with natural pacing.\n\nUse "stop" to end recording and save the GIF.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_get_page_text`
+
+Extract the readable main article from a page using Readability. Returns clean text, article HTML, and metadata such as title, excerpt, author, site name, language, and length.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_click_and_wait`
+
+Click a CSS-selected element, then wait for another selector to reach the requested state.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_paste_text`
+
+Paste multi-paragraph text into a rich-text editor via a synthesized ClipboardEvent("paste") carrying a DataTransfer (built for Draft.js editors such as Zhihu and Medium). The editor receives the text through its native paste path, so every paragraph is kept, and no window focus or system clipboard is required. Use this instead of chrome_computer type (breaks with newlines), execCommand("insertText") (keeps only the last paragraph), or the Clipboard API (rejected without focus). After pasting, reload the page to verify the draft, then click the publish button.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `chrome_userscript`
+
+Manage browser userscripts: create, inspect, enable, disable, update, remove, export, or send commands to installed scripts. This is high-risk and requires explicit approval when the approval policy is enabled.
+
+**Parameters**:
+
+- `action` (string, required): `create`, `list`, `get`, `enable`, `disable`, `update`, `remove`, `send_command`, or `export`
+- `args` (object, optional): Action-specific values such as `script`, `id`, `matches`, `world`, `mode`, `payload`, and `tabId`
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
 ## 📋 Response Format
 
 All tools return responses in the following format:
@@ -1138,7 +1413,8 @@ const screenshot = await callTool('chrome_screenshot', {
 });
 
 // 3. Start network monitoring
-await callTool('chrome_network_capture_start', {
+await callTool('chrome_network_capture', {
+  action: 'start',
   maxCaptureTime: 30000,
 });
 
@@ -1153,7 +1429,7 @@ const searchResults = await callTool('search_tabs_content', {
 });
 
 // 6. Stop network capture
-const networkData = await callTool('chrome_network_capture_stop');
+const networkData = await callTool('chrome_network_capture', { action: 'stop' });
 
 // 7. Save bookmark
 await callTool('chrome_bookmark_add', {

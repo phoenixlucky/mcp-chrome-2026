@@ -26,12 +26,8 @@ export interface WebEditorState {
 /**
  * Action types for web editor V3 messages
  *
- * IMPORTANT: V3 uses versioned action names (suffix _v3) to avoid
- * conflicts with V1 when both scripts might be injected in the same tab.
- * This prevents double-response race conditions.
- *
- * V1 uses: web_editor_ping, web_editor_toggle, etc.
- * V3 uses: web_editor_ping_v3, web_editor_toggle_v3, etc.
+ * V3 uses versioned action names (suffix _v3) so stale injected scripts
+ * cannot accidentally handle a current editor message.
  */
 export const WEB_EDITOR_V3_ACTIONS = {
   /** Check if V3 editor is injected and get status */
@@ -52,23 +48,7 @@ export const WEB_EDITOR_V3_ACTIONS = {
   SET_SCROLL_COORDINATES: 'web_editor_set_scroll_coordinates_v3',
 } as const;
 
-/**
- * Legacy V1 action types (for reference and background compatibility)
- * These are used when USE_WEB_EDITOR_V3 is false
- */
-export const WEB_EDITOR_V1_ACTIONS = {
-  PING: 'web_editor_ping',
-  TOGGLE: 'web_editor_toggle',
-  START: 'web_editor_start',
-  STOP: 'web_editor_stop',
-  APPLY: 'web_editor_apply',
-} as const;
-
 export type WebEditorV3Action = (typeof WEB_EDITOR_V3_ACTIONS)[keyof typeof WEB_EDITOR_V3_ACTIONS];
-export type WebEditorV1Action = (typeof WEB_EDITOR_V1_ACTIONS)[keyof typeof WEB_EDITOR_V1_ACTIONS];
-
-/** Editor version literal type */
-export type WebEditorVersion = 1 | 3;
 
 /** Ping request (V3) */
 export interface WebEditorV3PingRequest {

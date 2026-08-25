@@ -99,8 +99,12 @@ describe('MCP tool catalog', () => {
         'record_replay_list_published',
         'chrome_inject_script',
         'chrome_send_command_to_inject_script',
-        'chrome_userscript',
       ]),
+    );
+    const userscript = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_userscript');
+    expect(userscript?.inputSchema.required).toEqual(['action']);
+    expect(userscript?.inputSchema.properties).toEqual(
+      expect.objectContaining({ action: expect.any(Object), args: expect.any(Object) }),
     );
   });
 

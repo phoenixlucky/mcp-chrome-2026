@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>让 AI 直接操控你的 Chrome 浏览器</b><br />
-  基于 Model Context Protocol，向 AI 助手开放 75 个浏览器能力
+  基于 Model Context Protocol，向 AI 助手开放 76 个浏览器能力
 </p>
 
 <p align="center">
@@ -26,15 +26,20 @@
 
 ---
 
-## 📢 v2.3.5 更新内容
+## 📢 v2.4.0 更新内容
 
-> **web-editor v3 架构 + CI 自动化** — 架构统一与工程化。
+> **MCP 权限策略 + API Key 保护** — 安全与治理能力升级。
 >
-> - 🧩 **Web Editor v2 → v3 迁移** — 消息 action 更新为 v3 后缀，`window` API 更新为 `__MCP_WEB_EDITOR_V3__`
-> - 🚀 **CI 工作流** — 新增 `ci.yml`（push / PR 自动 typecheck + lint + test + build）
-> - 🧮 **wasm-simd 增强** — 补充 description / license，新增构建产物拷贝与 Rust 工具链检查脚本
-> - 🪟 **Windows 安装排错** — 文档补充 EBUSY 目录占用指南
-> - 🔧 版本统一为 v2.3.5
+> - 🔐 **可选 API Key** — 设置 `CHROME_MCP_API_KEY` 后保护 `/mcp`、`/sse` 和 `/messages`
+> - 🛡️ **工具权限策略** — 支持工具范围限制（`CHROME_MCP_ALLOWED_TOOLS`）与高风险工具批准清单（`CHROME_MCP_REQUIRE_APPROVAL` / `CHROME_MCP_APPROVED_TOOLS`）
+> - 🧩 **Userscript 工具公开** — `chrome_userscript` 已纳入 schema、文档与工具目录
+> - 🧪 **真实 Chrome Smoke Test** — `pnpm test:chrome-smoke` 验证 Native Host → MCP → Chrome 完整链路
+> - 🧹 **架构收敛** — 删除 Web Editor v1 回滚路径，清理未公开的旧 userscript/schema 草稿
+> - 🔁 **STDIO 工具发现同步** — STDIO 代理直接镜像 HTTP 端的动态工具目录
+> - 🐛 **图片拦截误伤修复** — 图片拦截规则不再误伤正常请求，填充/查找更稳健
+> - 🔧 版本统一为 v2.4.0
+> - 📚 **文档校验** — 新增 `pnpm check:tool-docs`，防止工具 schema 与 API 文档再次漂移
+> - 🔧 版本统一为 v2.3.7
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -88,7 +93,7 @@
 |                                                                     |                                                                    |                                                              |                                                               |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------- |
 | **🤖 AI 原生控制**<br/>Claude / Cursor / VS Code<br/>直接操控浏览器 | **🔐 零配置即用**<br/>复用现有 Chrome<br/>登录态 / Cookie 即刻继承 | **🛡️ 纯本地运行**<br/>数据不出环境<br/>隐私安全有保障        | **🚄 Streamable HTTP**<br/>实时流式响应<br/>现代 MCP 传输协议 |
-| **🧠 语义搜索**<br/>向量数据库 + 本地嵌入<br/>跨标签页内容发现      | **⚡ SIMD 加速**<br/>WASM 优化引擎<br/>向量运算 4-8× 更快          | **📊 75 工具**<br/>导航 / 截图 / 表单<br/>书签 / 历史 / 网络 | **🔄 跨标签页操作**<br/>多标签 / 多窗口<br/>无缝协同管理      |
+| **🧠 语义搜索**<br/>向量数据库 + 本地嵌入<br/>跨标签页内容发现      | **⚡ SIMD 加速**<br/>WASM 优化引擎<br/>向量运算 4-8× 更快          | **📊 76 工具**<br/>导航 / 截图 / 表单<br/>书签 / 历史 / 网络 | **🔄 跨标签页操作**<br/>多标签 / 多窗口<br/>无缝协同管理      |
 
 ---
 
@@ -146,6 +151,31 @@ bash start-server.sh
 ```
 
 服务将在 `http://127.0.0.1:12306/mcp` 监听。
+
+### 可选：保护 HTTP MCP 端点
+
+默认保持本机免认证，便于直接使用。需要保护 HTTP / SSE 端点时，在启动服务前设置：
+
+```powershell
+$env:CHROME_MCP_API_KEY = "replace-with-a-long-random-key"
+mcp-chrome-bridge start
+```
+
+客户端发送 `Authorization: Bearer <key>`（或 `x-api-key`）即可；STDIO 代理会读取同一个环境变量并自动转发 Bearer token。
+
+### 工具权限范围与高风险审批
+
+可用逗号分隔的工具名或简单前缀通配符（例如 `flow.*`）限制 MCP 客户端能发现和调用的工具：
+
+```powershell
+$env:CHROME_MCP_ALLOWED_TOOLS = "chrome_read_page,chrome_get_tab_url,flow.*"
+$env:CHROME_MCP_REQUIRE_APPROVAL = "true"
+$env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
+```
+
+`CHROME_MCP_REQUIRE_APPROVAL=true` 时，`chrome_javascript`、`chrome_userscript`、写入/发布/文件上传、Profile 管理和 `flow.*` 等高风险工具必须同时出现在 `CHROME_MCP_APPROVED_TOOLS` 中；未通过范围或审批的工具不会出现在 `tools/list`，调用也会被拒绝。未配置这些变量时保持现有兼容行为。
+
+没有 `Origin` 的 HTTP MCP 请求必须携带有效 API Key；带 Origin 的请求只接受本机或扩展 Origin。
 
 ### 4️⃣ 配置客户端
 
@@ -208,9 +238,21 @@ mcp-chrome-bridge upgrade 2.3.0
 
 ### ✅ 验证状态
 
-- Native Server：Jest 测试套件由 CI 执行并收集覆盖率
-- Chrome Extension：Vitest 单元/集成测试由 CI 执行
+- Native Server：5 个 Jest suite、18 个测试（含权限策略与 HTTP 鉴权）由 CI 执行并收集覆盖率
+- Chrome Extension：58 个 Vitest 文件、567 个测试由 CI 执行
 - Native / Extension / Shared TypeScript 检查通过
+- 版本一致性：`pnpm check:versions`
+- 工具文档：`pnpm check:tool-docs`
+
+### 真实 Chrome Smoke Test
+
+该测试不使用 jsdom、fake IndexedDB 或 mock Chrome API。请先安装并加载扩展、让 Native Host 连接成功并启动 HTTP 服务，再运行：
+
+```powershell
+pnpm test:chrome-smoke
+```
+
+测试会检查 Native Host 的扩展连接和浏览器探针，建立真实 MCP session，发现工具，并通过 `chrome_get_tab_url` 访问当前 Chrome 标签页。可用 `CHROME_MCP_SMOKE_URL`、`CHROME_MCP_SMOKE_TIMEOUT_MS` 和 `CHROME_MCP_API_KEY` 覆盖连接配置。
 
 ---
 
@@ -223,7 +265,7 @@ mcp-chrome-bridge upgrade 2.3.0
 | 🌐 **网络监控**   |  6   | 指定标签抓包与响应等待、精确资源拦截、自定义 HTTP、下载处理                     |
 | 📝 **内容分析**   |  7   | 语义搜索、HTML / 文本提取、交互元素检测、控制台日志、SPA 内容                   |
 | 🖱️ **交互操作**   |  11  | 点击、悬停、表单填充、键盘输入、元素信息、计算机操作、对话框、上传              |
-| 📑 **数据管理**   |  10  | 历史搜索、书签增删查、Cookie 管理、页面 local/sessionStorage                    |
+| 📑 **数据管理**   |  11  | 历史搜索、书签增删查、Cookie 管理、页面 local/sessionStorage、Userscript       |
 | 📡 **采集提取**   |  16  | 作用域/Shadow DOM/iframe、受控分页、隔离任务状态、诊断快照、代理轮换            |
 | ⚡ **性能诊断**   |  3   | Trace 录制 / 停止 / 洞察分析                                                    |
 
@@ -266,7 +308,7 @@ mcp-chrome-bridge upgrade 2.3.0
 
 ### ✅ 已实现
 
-- **75 MCP 工具** — 浏览器全能力覆盖
+- **76 MCP 工具** — 浏览器全能力覆盖，包含公开的 `chrome_userscript`
 - **Streamable HTTP + STDIO 双传输**
 - **智能助手** — Claude / Codex / DeepSeek
 - **语义搜索** — 向量数据库 + 本地嵌入
@@ -285,7 +327,7 @@ mcp-chrome-bridge upgrade 2.3.0
 
 ### 🎯 规划中
 
-- **认证与权限管理** — API Key / OAuth 接入
+- **认证与权限管理** — HTTP API Key、工具范围和高风险批准清单已支持；OAuth 仍在规划
 - **实时监控仪表盘** — Web 面板查看调用、性能、错误
 - **多版本 Chrome 实机矩阵** — 在不同 Chrome 版本 / Profile / 运行环境中做真实浏览器回归
 - **产品边界扩展** — 托管浏览器与远程 CDP

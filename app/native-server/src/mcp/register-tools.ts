@@ -9,6 +9,11 @@ import { NativeMessageType, TOOL_NAMES, TOOL_SCHEMAS } from '@ethanwilkins/chrom
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
 import { browserProfileManager } from '../browser-profile-manager.js';
+import {
+  checkToolAccess,
+  filterToolsByPermission,
+  getToolPermissionPolicy,
+} from './permission-policy.js';
 
 interface ToolActivity {
   requestId: string;
@@ -141,7 +146,10 @@ export const setupTools = (server: Server) => {
   // List tools handler
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const dynamicTools = await listDynamicFlowTools();
-    return { tools: [...TOOL_SCHEMAS, ...dynamicTools] };
+    const policy = getToolPermissionPolicy();
+    return {
+      tools: filterToolsByPermission([...TOOL_SCHEMAS, ...dynamicTools], policy),
+    };
   });
 
   // Call tool handler
@@ -386,6 +394,16 @@ const handleToolCall = async (
   recentToolCalls.push(activity);
   if (recentToolCalls.length > 100) recentToolCalls.shift();
   try {
+    const access = checkToolAccess(name);
+    if (!access.allowed) {
+      activity.outcome = 'error';
+      activity.error = access.message;
+      return {
+        content: [{ type: 'text', text: access.message || 'Tool call not allowed.' }],
+        isError: true,
+      };
+    }
+
     if (name === TOOL_NAMES.BROWSER.BATCH) {
       const response = await handleBatchTool(args, signal, reportProgress);
       activity.outcome = response.isError ? 'error' : 'success';

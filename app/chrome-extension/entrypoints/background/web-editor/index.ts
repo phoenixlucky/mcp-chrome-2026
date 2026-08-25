@@ -1,7 +1,6 @@
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import {
   WEB_EDITOR_V3_ACTIONS,
-  WEB_EDITOR_V1_ACTIONS,
   type ElementChangeSummary,
   type WebEditorApplyBatchPayload,
   type WebEditorTxChangedPayload,
@@ -197,19 +196,6 @@ function handleSseEvent(requestId: string, event: unknown): void {
     });
   }
 }
-
-/**
- * Web Editor version configuration
- * - v1: Legacy inject-scripts/web-editor.js (IIFE, ~850 lines)
- * - v3: New TypeScript-based web-editor-v3.js (WXT unlisted script)
- *
- * Set USE_WEB_EDITOR_V3 to true to enable v3.
- * This flag allows gradual rollout and easy rollback.
- */
-const USE_WEB_EDITOR_V3 = true;
-
-/** Script path for v1 (legacy) */
-const V1_SCRIPT_PATH = 'inject-scripts/web-editor.js';
 
 /** Script path for v3 (WXT unlisted script output) */
 const V3_SCRIPT_PATH = 'web-editor-v3.js';
@@ -686,30 +672,14 @@ async function ensureContextMenu(): Promise<void> {
 }
 
 /**
- * Get the appropriate action constants based on version
- */
-function getActions() {
-  return USE_WEB_EDITOR_V3 ? WEB_EDITOR_V3_ACTIONS : WEB_EDITOR_V1_ACTIONS;
-}
-
-/**
  * Ensure the web editor script is injected into the tab
- * Supports both v1 (legacy) and v3 (new) versions
- *
- * V1 and V3 use different action names to avoid conflicts:
- * - V1: web_editor_ping, web_editor_toggle, etc.
- * - V3: web_editor_ping_v3, web_editor_toggle_v3, etc.
  */
 async function ensureEditorInjected(tabId: number): Promise<void> {
-  const scriptPath = USE_WEB_EDITOR_V3 ? V3_SCRIPT_PATH : V1_SCRIPT_PATH;
-  const logPrefix = USE_WEB_EDITOR_V3 ? '[WebEditorV3]' : '[WebEditor]';
-  const actions = getActions();
-
   // Try to ping existing instance using version-specific action
   try {
     const pong: { status?: string; version?: number } = await chrome.tabs.sendMessage(
       tabId,
-      { action: actions.PING },
+      { action: WEB_EDITOR_V3_ACTIONS.PING },
       { frameId: 0 },
     );
 
@@ -725,12 +695,12 @@ async function ensureEditorInjected(tabId: number): Promise<void> {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: [scriptPath],
+      files: [V3_SCRIPT_PATH],
       world: 'ISOLATED',
     });
-    console.log(`${logPrefix} Script injected successfully`);
+    console.log('[WebEditorV3] Script injected successfully');
   } catch (error) {
-    console.warn(`${logPrefix} Failed to inject editor script:`, error);
+    console.warn('[WebEditorV3] Failed to inject editor script:', error);
   }
 }
 
@@ -739,8 +709,6 @@ async function ensureEditorInjected(tabId: number): Promise<void> {
  * Only inject for v3 editor
  */
 async function ensurePropsAgentInjected(tabId: number): Promise<void> {
-  if (!USE_WEB_EDITOR_V3) return;
-
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
@@ -757,8 +725,6 @@ async function ensurePropsAgentInjected(tabId: number): Promise<void> {
  * Send cleanup event to props agent
  */
 async function sendPropsAgentCleanup(tabId: number): Promise<void> {
-  if (!USE_WEB_EDITOR_V3) return;
-
   try {
     // Dispatch cleanup event in ISOLATED world
     // CustomEvent crosses worlds and is observed by MAIN agent
@@ -876,13 +842,11 @@ async function registerPropsAgentEarlyInjection(tabUrl: string): Promise<EarlyIn
 
 async function toggleEditorInTab(tabId: number): Promise<{ active?: boolean }> {
   await ensureEditorInjected(tabId);
-  const logPrefix = USE_WEB_EDITOR_V3 ? '[WebEditorV3]' : '[WebEditor]';
-  const actions = getActions();
 
   try {
     const resp: { active?: boolean } = await chrome.tabs.sendMessage(
       tabId,
-      { action: actions.TOGGLE },
+      { action: WEB_EDITOR_V3_ACTIONS.TOGGLE },
       { frameId: 0 },
     );
     const active = typeof resp?.active === 'boolean' ? resp.active : undefined;
@@ -896,7 +860,7 @@ async function toggleEditorInTab(tabId: number): Promise<{ active?: boolean }> {
 
     return { active };
   } catch (error) {
-    console.warn(`${logPrefix} Failed to toggle editor in tab:`, error);
+    console.warn('[WebEditorV3] Failed to toggle editor in tab:', error);
     return {};
   }
 }

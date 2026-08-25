@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bridge AI agents with your Chrome browser</b><br />
-  A Model Context Protocol server that exposes 75 browser capabilities to AI assistants
+  A Model Context Protocol server that exposes 76 browser capabilities to AI assistants
 </p>
 
 <p align="center">
@@ -26,15 +26,18 @@
 
 ---
 
-## 📢 What's New in v2.3.5
+## 📢 What's New in v2.4.0
 
-> **web-editor v3 architecture + CI automation** — Architecture unification and engineering.
+> **MCP permission policy + API key protection** — Security and governance upgrade.
 >
-> - 🧩 **Web Editor v2 → v3 migration** — Message actions updated to v3 suffixes; `window` API becomes `__MCP_WEB_EDITOR_V3__`
-> - 🚀 **CI workflow** — New `ci.yml` (auto typecheck + lint + test + build on push / PR)
-> - 🧮 **wasm-simd enhancements** — Added description / license, build-artifact copy and Rust toolchain check scripts
-> - 🪟 **Windows install troubleshooting** — EBUSY directory-locked guide added
-> - 🔧 All packages bumped to v2.3.5
+> - 🔐 **Optional API key** — Set `CHROME_MCP_API_KEY` to protect `/mcp`, `/sse`, and `/messages`
+> - 🛡️ **Tool permission policy** — Restrict tool scopes (`CHROME_MCP_ALLOWED_TOOLS`) and require approval for high-risk tools (`CHROME_MCP_REQUIRE_APPROVAL` / `CHROME_MCP_APPROVED_TOOLS`)
+> - 🧩 **Userscript tool is public** — `chrome_userscript` is now included in the schema, docs, and catalog
+> - 🧪 **Real Chrome smoke test** — `pnpm test:chrome-smoke` verifies the Native Host → MCP → Chrome path
+> - 🧹 **Architecture cleanup** — Removed the Web Editor v1 rollback path and cleaned up unpublished userscript/legacy schema drafts
+> - 🔁 **STDIO catalog parity** — STDIO now mirrors the HTTP server's dynamic tool catalog
+> - 🐛 **Image blocking fix** — Image interception no longer hits legitimate requests; fill/find more robust
+> - 🔧 All packages bumped to v2.4.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -88,7 +91,7 @@
 |                                                                                           |                                                                               |                                                                                 |                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
-| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 75 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 76 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
 ---
 
@@ -146,6 +149,31 @@ bash start-server.sh
 ```
 
 The service listens on `http://127.0.0.1:12306/mcp`.
+
+### Optional: protect HTTP MCP endpoints
+
+Local no-auth access remains the default. To protect HTTP and SSE transports, set the key before starting:
+
+```powershell
+$env:CHROME_MCP_API_KEY = "replace-with-a-long-random-key"
+mcp-chrome-bridge start
+```
+
+Clients may send `Authorization: Bearer <key>` (or `x-api-key`). The STDIO proxy reads the same environment variable and forwards the Bearer token automatically.
+
+### Tool scopes and high-risk approval
+
+Restrict which tools an MCP client can discover and call with comma-separated names or simple trailing-prefix patterns such as `flow.*`:
+
+```powershell
+$env:CHROME_MCP_ALLOWED_TOOLS = "chrome_read_page,chrome_get_tab_url,flow.*"
+$env:CHROME_MCP_REQUIRE_APPROVAL = "true"
+$env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
+```
+
+With `CHROME_MCP_REQUIRE_APPROVAL=true`, high-risk tools such as `chrome_javascript`, `chrome_userscript`, write/publish/file-upload tools, Profile management, and `flow.*` must also appear in `CHROME_MCP_APPROVED_TOOLS`. Tools outside the scope or approval list are hidden from `tools/list` and rejected at call time. Leaving these variables unset preserves the existing compatibility behavior.
+
+HTTP MCP requests without an `Origin` must carry a valid API key; requests with an Origin are limited to localhost or browser-extension origins.
 
 ### 4️⃣ Configure Your MCP Client
 
@@ -208,9 +236,21 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 
 ### ✅ Verification
 
-- Native Server: 4 suites, 12 tests passed
-- Chrome Extension: 57 test files, 563 tests passed
+- Native Server: 5 suites, 18 tests (including permission policy and HTTP auth)
+- Chrome Extension: 58 test files, 567 tests
 - Native / Extension / Shared TypeScript checks passed
+- Version consistency: `pnpm check:versions`
+- Tool docs: `pnpm check:tool-docs`
+
+### Real Chrome smoke test
+
+This test does not use jsdom, fake IndexedDB, or mocked Chrome APIs. Install/load the extension, wait for the Native Host connection, and start the HTTP server first:
+
+```powershell
+pnpm test:chrome-smoke
+```
+
+It checks the Native Host extension connection and browser probe, creates a real MCP session, discovers the catalog, and calls `chrome_get_tab_url` against the current Chrome tab. Use `CHROME_MCP_SMOKE_URL`, `CHROME_MCP_SMOKE_TIMEOUT_MS`, and `CHROME_MCP_API_KEY` to override the connection settings.
 
 ---
 
@@ -223,7 +263,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 | 🌐 **Network Monitoring** |   6   | Request capture & response wait, resource blocking, custom HTTP, download handling                |
 | 📝 **Content Analysis**   |   7   | Semantic search, HTML/text extraction, interactive elements, console capture, SPA                 |
 | 🖱️ **Interaction**        |  11   | Click, hover, fill forms, keyboard, element info, computer ops, dialogs, file upload              |
-| 📑 **Data Management**    |  10   | History search, bookmark CRUD, Cookie management, page local/sessionStorage                       |
+| 📑 **Data Management**    |  11   | History search, bookmark CRUD, Cookie management, page local/sessionStorage, userscripts          |
 | 📡 **Scraping**           |  16   | Scoped/Shadow DOM/iframe, pagination, isolated task state, diagnostics, proxy rotate              |
 | ⚡ **Performance**        |   3   | Trace start / stop / insight analysis                                                             |
 
@@ -266,7 +306,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 
 ### ✅ Done
 
-- **75 MCP Tools** — Full browser API coverage
+- **76 MCP Tools** — Full browser API coverage, including public `chrome_userscript`
 - **Streamable HTTP + STDIO** — Dual transport
 - **Smart Assistant** — Claude / Codex / DeepSeek
 - **Semantic Search** — Vector DB + local embeddings
@@ -285,7 +325,7 @@ Upgrades require an exact version and verify npm SHA-512 integrity. If post-inst
 
 ### 🎯 Planned
 
-- **Auth & Permission** — API Key / OAuth
+- **Auth & Permission** — HTTP API key, tool scopes, and high-risk approval lists are supported; OAuth remains planned
 - **Monitoring Dashboard** — Web panel for calls, perf, errors
 - **Multi-version Chrome Matrix** — Run real-browser regression tests across Chrome versions / profiles / environments
 - **Expanded Product Scope** — Hosted browsers and remote CDP

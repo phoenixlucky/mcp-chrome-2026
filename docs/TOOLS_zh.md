@@ -127,7 +127,9 @@
 }
 ```
 
-### `chrome_go_back_or_forward`（上线时间：2025-06-09）
+### `chrome_go_back_or_forward`（已弃用——请使用 `chrome_navigate`，并将 `url` 设为 `"back"` 或 `"forward"`）
+
+> 为旧客户端保留的兼容别名。新客户端应调用 `chrome_navigate`。
 
 浏览器历史导航。
 
@@ -187,7 +189,9 @@
 
 ## 🌐 网络监控
 
-### `chrome_network_capture_start`（上线时间：2025-06-09）
+### `chrome_network_capture_start`（已弃用——请使用 `chrome_network_capture` 的 `action: "start"`）
+
+> 为旧客户端保留的兼容别名。webRequest 后端仍是 `chrome_network_capture` 的有效实现。
 
 使用 webRequest API 开始捕获网络请求。
 
@@ -208,7 +212,9 @@
 }
 ```
 
-### `chrome_network_capture_stop`（上线时间：2025-06-09）
+### `chrome_network_capture_stop`（已弃用——请使用 `chrome_network_capture` 的 `action: "stop"`）
+
+> 为旧客户端保留的兼容别名。webRequest 后端仍是 `chrome_network_capture` 的有效实现。
 
 停止网络捕获并返回收集的数据。
 
@@ -236,7 +242,9 @@
 }
 ```
 
-### `chrome_network_debugger_start`（上线时间：2025-06-09）
+### `chrome_network_debugger_start`（已弃用——请使用 `chrome_network_capture` 的 `action: "start", needResponseBody: true`）
+
+> 为旧客户端保留的兼容别名。Debugger 后端仍是 `chrome_network_capture` 的有效实现。
 
 使用 Chrome Debugger API 开始捕获（包含响应体）。
 
@@ -244,7 +252,9 @@
 
 - `url` (字符串，可选)：要导航并捕获的 URL
 
-### `chrome_network_debugger_stop`（上线时间：2025-06-09）
+### `chrome_network_debugger_stop`（已弃用——请使用 `chrome_network_capture` 的 `action: "stop"`）
+
+> 为旧客户端保留的兼容别名。Debugger 后端仍是 `chrome_network_capture` 的有效实现。
 
 停止调试器捕获并返回包含响应体的数据。
 
@@ -388,7 +398,9 @@
 }
 ```
 
-### `chrome_get_interactive_elements`（上线时间：2025-06-09；since v1.6.4）
+### `chrome_get_interactive_elements`（已弃用——请使用 `chrome_read_page`）
+
+> 为旧客户端保留的兼容别名。新客户端应使用 `chrome_read_page` 的仅交互元素选项。
 
 查找页面上可点击和交互的元素。
 
@@ -1127,7 +1139,8 @@ const screenshot = await callTool('chrome_screenshot', {
 });
 
 // 3. 开始网络监控
-await callTool('chrome_network_capture_start', {
+await callTool('chrome_network_capture', {
+  action: 'start',
   maxCaptureTime: 30000,
 });
 
@@ -1142,7 +1155,7 @@ const searchResults = await callTool('search_tabs_content', {
 });
 
 // 6. 停止网络捕获
-const networkData = await callTool('chrome_network_capture_stop');
+const networkData = await callTool('chrome_network_capture', { action: 'stop' });
 
 // 7. 保存书签
 await callTool('chrome_bookmark_add', {
@@ -1152,3 +1165,262 @@ await callTool('chrome_bookmark_add', {
 ```
 
 此 API 提供全面的浏览器自动化功能，具有 AI 增强的内容分析和语义搜索特性。
+
+## 🔄 Schema Catalog 补充
+
+> 该部分由共享工具 schema 自动生成。
+
+### `capture_debug_bundle`
+
+将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `resume_tab_task`
+
+保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_find_and_click`
+
+在可选作用域内依次尝试 CSS、XPath 或文本候选项，点击第一个可见且可用的匹配元素。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_expand_section`
+
+展开通用的折叠区域，并等待指定的内容选择器出现。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_scan_for_section`
+
+滚动查找指定区域，可选择向上复扫；仅返回遍历状态，不包含平台业务规则。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_paginate_extract`
+
+先抽取当前页，再点击指定的下一页候选项；仅在卡片 HTML 发生变化后继续。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_extract_records`
+
+从卡片中抽取调用方指定的原始字段，并按不区分大小写的文本规则排除记录。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `detect_empty_state`
+
+根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `merge_records`
+
+按调用方提供的身份字段和数据源优先级纯数据合并；不读取浏览器状态，也不持久化。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_list_frames`
+
+列出标签页中的框架，以便作用域操作通过 frameId 定位同源或跨域 iframe。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_diagnostic_snapshot`
+
+返回标签页的一组诊断信息：视口截图、DOM 快照、控制台缓冲和当前网络捕获摘要。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_proxy_diagnostics`
+
+读取代理配置及 Chrome 接管状态；action 为 test 时还会验证代理出口。不会返回用户名或密码。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_proxy_rotate`
+
+当调用方确认当前标签页异常时，轮换代理会话并重新加载该页面。需要已启用代理；不会返回用户名或密码。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_scoped_action`
+
+在一个语义作用域内点击、抽取或分页；支持开放的 Shadow DOM，并可用 frameId 指定同源或跨域 iframe。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_task_context`
+
+创建隔离的无痕任务窗口，并在 MCP 重启后保存其标签页和调用方定义的抓取状态。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_create_tab`
+
+新建浏览器标签页，可指定 URL、窗口、前台/后台状态和固定状态。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_hover`
+
+通过 CSS 或 XPath 选择器将鼠标悬停在页面元素上。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_print_to_pdf`
+
+使用 CDP Page.printToPDF 将页面打印为 PDF，支持页面 CSS 尺寸和自定义纸张尺寸。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_get_element_info`
+
+查询页面元素的 attributes、computed styles 和 bounding rect。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_storage_get`
+
+读取页面的 localStorage 或 sessionStorage。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_storage_set`
+
+写入页面的 localStorage 或 sessionStorage；值会按 JSON 序列化。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_storage_delete`
+
+删除页面的 localStorage 或 sessionStorage 键。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `performance_start_trace`
+
+在所选页面上开始性能追踪记录；可选自动刷新页面和/或在短暂时间后自动停止。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `performance_stop_trace`
+
+停止所选页面正在进行的性能追踪记录。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `performance_analyze_insight`
+
+提供最近一次追踪记录的轻量摘要；如需深入洞察（CWV、明细），请集成原生侧 DevTools 追踪引擎。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_read_page`
+
+获取页面上可见元素的无障碍树表示；仅返回视口中可见的元素，可选只筛选交互元素。\n提示：如果返回的元素不包含所需的具体元素，请使用 computer 工具的截图（action="screenshot"）获取该元素的屏幕坐标，再按坐标操作。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_computer`
+
+使用鼠标和键盘与浏览器交互，并可截图。\n* 每当要点击图标等元素时，应先通过 read_page 确定该元素的 ref，再移动光标。\n* 如果点击程序或链接后等待很久仍未加载成功，先截图，再调整点击位置，使光标尖端视觉上落在要点击的元素上。\n* 点击按钮、链接、图标等时，务必让光标尖端位于元素中心，除非被要求，否则不要点击边缘。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_post_to_x`
+
+在已登录的 X/Twitter 页面发布一条文本帖子。工具会等待编辑框、填充并回读验证文本、等待发布按钮可用、点击一次，然后等待新的成功标记。发布结果明确返回 published、failed 或 unknown；unknown 时不会自动重试，以避免重复发帖。支持自定义选择器以兼容 X 的页面变体。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_network_capture`
+
+统一网络捕获工具。action="start" 开始，action="stop" 停止并返回结果；needResponseBody=true 时通过 Debugger API 获取响应体（可能与 DevTools 冲突），默认 webRequest 模式较轻量但不含响应体。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_block_resources`
+
+在一个标签页中拦截指定资源类型或 URL 模式。请在导航或刷新前启动；停止后恢复加载。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_handle_download`
+
+等待浏览器下载完成并返回详情（id、filename、url、state、size）
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_javascript`
+
+在浏览器标签页中执行 JavaScript 代码并返回结果。使用 CDP Runtime.evaluate（awaitPromise + returnByValue）；调试器忙碌时自动回退到 chrome.scripting.executeScript。输出默认经过脱敏处理并截断。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_request_element_selection`
+
+请求用户手动选择当前页面上的一个或多个元素。当使用 chrome_read_page 配合 chrome_click_element/chrome_fill_or_select/chrome_computer 尝试约 3 次仍无法可靠定位目标元素时，作为人工介入的回退方案。用户会看到带说明的面板并点击所需元素。返回与 chrome_click_element/chrome_fill_or_select 兼容的元素引用（含跨框架的 iframe frameId）。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_console`
+
+采集浏览器标签页的控制台输出。支持快照模式（默认；一次性采集，约等待 2 秒）和缓冲模式（每个标签页的持久缓冲，可即时读取/清空，无需等待）。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_upload_file`
+
+使用 Chrome DevTools Protocol 向带文件输入控件的网页表单上传文件
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_paste_image`
+
+将本地图片或图片数据作为合成 paste 事件粘贴到 textarea、input 或 contenteditable 元素。它不读取系统剪贴板；内部使用临时 file input、DataTransfer 和 ClipboardEvent。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_get_form_value`
+
+读取表单控件的实际 DOM value，适用于 React/Vue 受控 input 和 textarea；返回值不是 HTML 属性或文本节点。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_handle_dialog`
+
+通过 CDP 处理 JavaScript 和 beforeunload 对话框（alert/confirm/prompt）
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_gif_recorder`
+
+将浏览器标签页活动录制为 GIF 动画。\n\n模式：\n- 固定帧率模式（action="start"）：按固定间隔采集帧，适合动画/视频。\n- 自动采集模式（action="auto_start"）：chrome_computer 或 chrome_navigate 操作成功时自动采集帧，适合节奏自然的交互录制。\n\n使用 "stop" 结束录制并保存 GIF。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_paste_text`
+
+向富文本编辑器合成粘贴多段文本（专治 Draft.js 系编辑器：知乎、Medium 等）。原理是给编辑器元素派发一个带 DataTransfer 的合成 ClipboardEvent("paste")，让编辑器走原生 paste 路径完整接收全部段落，且不依赖页面焦点（不读系统剪贴板）。替代 chrome_computer type（带换行会错乱）、execCommand insertText（多段只留最后一段）与剪贴板 API（无焦点被拒）。建议粘贴后刷新页面验证草稿完整，再点击发布按钮。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+## 🔄 Schema Catalog 补充
+
+> 该部分由共享工具 schema 自动生成。
+
+### `chrome_userscript`
+
+管理浏览器用户脚本：创建、查询、启用、停用、更新、删除、导出脚本，或向已安装脚本发送命令。高风险工具，启用审批策略后需要显式批准。
+
+**参数**：
+
+- `action`（字符串，必需）：`create`、`list`、`get`、`enable`、`disable`、`update`、`remove`、`send_command` 或 `export`
+- `args`（对象，可选）：操作参数，例如 `script`、`id`、`matches`、`world`、`mode`、`payload` 和 `tabId`
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。

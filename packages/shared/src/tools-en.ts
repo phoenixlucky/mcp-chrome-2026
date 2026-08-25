@@ -740,44 +740,6 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       required: ['query', 'tabIds'],
     },
   },
-  // {
-  //   name: TOOL_NAMES.RECORD_REPLAY.FLOW_RUN,
-  //   description:
-  //     'Run a recorded flow by ID with optional variables and run options. Returns a standardized run result.',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       flowId: { type: 'string', description: 'ID of the flow to run' },
-  //       args: {
-  //         type: 'object',
-  //         description: 'Variable values for the flow (flat object of key/value)',
-  //       },
-  //       tabTarget: {
-  //         type: 'string',
-  //         description: "Target tab: 'current' or 'new' (default: current)",
-  //         enum: ['current', 'new'],
-  //       },
-  //       refresh: { type: 'boolean', description: 'Refresh before running (default false)' },
-  //       captureNetwork: {
-  //         type: 'boolean',
-  //         description: 'Capture network snippets for debugging (default false)',
-  //       },
-  //       returnLogs: { type: 'boolean', description: 'Return run logs (default false)' },
-  //       timeoutMs: { type: 'number', description: 'Global timeout in ms (optional)' },
-  //       startUrl: { type: 'string', description: 'Optional start URL to open before running' },
-  //     },
-  //     required: ['flowId'],
-  //   },
-  // },
-  // {
-  //   name: TOOL_NAMES.RECORD_REPLAY.LIST_PUBLISHED,
-  //   description: 'List published flows available as dynamic tools (for discovery).',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {},
-  //     required: [],
-  //   },
-  // },
   {
     name: TOOL_NAMES.BROWSER.PERFORMANCE_START_TRACE,
     description:
@@ -1057,83 +1019,76 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       required: ['text'],
     },
   },
-  // {
-  //   name: TOOL_NAMES.BROWSER.USERSCRIPT,
-  //   description:
-  //     'Unified userscript tool (create/list/get/enable/disable/update/remove/send_command/export). Paste JS/CSS/Tampermonkey script and the system will auto-select the best strategy (insertCSS / persistent script in ISOLATED or MAIN world / once by CDP) with CSP-aware fallbacks.',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       action: {
-  //         type: 'string',
-  //         description:
-  //           'Operation to perform',
-  //         enum: [
-  //           'create',
-  //           'list',
-  //           'get',
-  //           'enable',
-  //           'disable',
-  //           'update',
-  //           'remove',
-  //           'send_command',
-  //           'export',
-  //         ],
-  //       },
-  //       args: {
-  //         type: 'object',
-  //         description:
-  //           'Arguments for the specified action.\n- create: { script (required), name?, description?, matches?: string[], excludes?: string[], persist?: boolean (default true), runAt?: "document_start"|"document_end"|"document_idle"|"auto", world?: "auto"|"ISOLATED"|"MAIN", allFrames?: boolean (default true), mode?: "auto"|"css"|"persistent"|"once", dnrFallback?: boolean (default true), tags?: string[] }\n- list: { query?: string, status?: "enabled"|"disabled", domain?: string }\n- get: { id (required) }\n- enable/disable: { id (required) }\n- update: { id (required), script?, name?, description?, matches?, excludes?, runAt?, world?, allFrames?, persist?, dnrFallback?, tags? }\n- remove: { id (required) }\n- send_command: { id (required), payload?: string, tabId?: number }\n- export: {}\nTip: For a one-off execution that returns a value, use create with args.mode="once". The returned value is included as onceResult in the tool response.',
-  //         properties: {
-  //           // Common identifiers
-  //           id: { type: 'string', description: 'Userscript id (for get/enable/disable/update/remove/send_command)' },
-  //           // Create / Update fields
-  //           script: { type: 'string', description: 'JS/CSS/Tampermonkey script source (required for create)' },
-  //           name: { type: 'string', description: 'Userscript name (optional)' },
-  //           description: { type: 'string', description: 'Userscript description (optional)' },
-  //           matches: {
-  //             type: 'array',
-  //             items: { type: 'string' },
-  //             description: 'Match patterns for pages to apply to (e.g., https://*.example.com/*)'
-  //           },
-  //           excludes: {
-  //             type: 'array',
-  //             items: { type: 'string' },
-  //             description: 'Exclude patterns'
-  //           },
-  //           persist: { type: 'boolean', description: 'Persist userscript for matched pages (default true)' },
-  //           runAt: {
-  //             type: 'string',
-  //             description: 'Injection timing',
-  //             enum: ['document_start', 'document_end', 'document_idle', 'auto'],
-  //           },
-  //           world: {
-  //             type: 'string',
-  //             description: 'Execution world',
-  //             enum: ['auto', 'ISOLATED', 'MAIN'],
-  //           },
-  //           allFrames: { type: 'boolean', description: 'Inject into all frames (default true)' },
-  //           mode: {
-  //             type: 'string',
-  //             description:
-  //               'Injection strategy: auto | css | persistent | once. Use once to evaluate immediately (no persistence) and include the return value in onceResult.',
-  //             enum: ['auto', 'css', 'persistent', 'once'],
-  //           },
-  //           dnrFallback: { type: 'boolean', description: 'Use DNR fallback when needed (default true)' },
-  //           tags: { type: 'array', items: { type: 'string' }, description: 'Custom tags' },
-  //           // List filters
-  //           query: { type: 'string', description: 'Search by name/description (list action)' },
-  //           status: { type: 'string', enum: ['enabled', 'disabled'], description: 'Filter by status (list action)' },
-  //           domain: { type: 'string', description: 'Filter by domain (list action)' },
-  //           // Send command
-  //           payload: { type: 'string', description: 'Arbitrary payload (stringified) for send_command' },
-  //           tabId: { type: 'number', description: 'Target tab for send_command (default active tab)' },
-  //         },
-  //       },
-  //     },
-  //     required: ['action'],
-  //   },
-  // },
+  {
+    name: TOOL_NAMES.BROWSER.USERSCRIPT,
+    description:
+      'Manage browser userscripts: create, inspect, enable, disable, update, remove, export, or send commands to installed scripts. This is high-risk and requires explicit approval when the approval policy is enabled.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['create', 'list', 'get', 'enable', 'disable', 'update', 'remove', 'send_command', 'export'],
+          description: 'Userscript operation to perform.',
+        },
+        args: {
+          type: 'object',
+          description:
+            'Operation arguments. create/update use script, name, matches, world, and related fields; get/enable/disable/remove/send_command use id.',
+          properties: {
+            id: { type: 'string', description: 'Userscript ID.' },
+            script: { type: 'string', description: 'JS, CSS, or Tampermonkey script source.' },
+            name: { type: 'string', description: 'Userscript name.' },
+            description: { type: 'string', description: 'Userscript description.' },
+            matches: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Page match patterns where the script should apply.',
+            },
+            excludes: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Page match patterns where the script should not apply.',
+            },
+            persist: { type: 'boolean', description: 'Persist the script; defaults to true.' },
+            runAt: {
+              type: 'string',
+              enum: ['document_start', 'document_end', 'document_idle', 'auto'],
+              description: 'Script injection timing.',
+            },
+            world: {
+              type: 'string',
+              enum: ['auto', 'ISOLATED', 'MAIN'],
+              description: 'Script execution world.',
+            },
+            allFrames: { type: 'boolean', description: 'Inject into all frames; defaults to true.' },
+            mode: {
+              type: 'string',
+              enum: ['auto', 'css', 'persistent', 'once'],
+              description: 'Injection strategy; once evaluates once without persistence.',
+            },
+            dnrFallback: { type: 'boolean', description: 'Use DNR fallback when needed; defaults to true.' },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Userscript tags.',
+            },
+            query: { type: 'string', description: 'Name/description filter for list.' },
+            status: {
+              type: 'string',
+              enum: ['enabled', 'disabled'],
+              description: 'Enabled-state filter for list.',
+            },
+            domain: { type: 'string', description: 'Domain filter for list.' },
+            payload: { description: 'Arbitrary JSON payload for send_command.' },
+            tabId: { type: 'number', description: 'Target tab ID for send_command.' },
+          },
+          additionalProperties: true,
+        },
+      },
+      required: ['action'],
+    },
+  },
   {
     name: TOOL_NAMES.BROWSER.NAVIGATE,
     description:
@@ -1551,85 +1506,6 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       required: [],
     },
   },
-  // {
-  //   name: TOOL_NAMES.BROWSER.SEARCH_TABS_CONTENT,
-  //   description:
-  //     'search for related content from the currently open tab and return the corresponding web pages.',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       query: {
-  //         type: 'string',
-  //         description: 'the query to search for related content.',
-  //       },
-  //     },
-  //     required: ['query'],
-  //   },
-  // },
-  // {
-  //   name: TOOL_NAMES.BROWSER.INJECT_SCRIPT,
-  //   description:
-  //     'inject the user-specified content script into the webpage. By default, inject into the currently active tab',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       url: {
-  //         type: 'string',
-  //         description:
-  //           'If a URL is specified, inject the script into the webpage corresponding to the URL.',
-  //       },
-  //       tabId: {
-  //         type: 'number',
-  //         description:
-  //           'Target an existing tab by ID to inject into. Overrides url/active tab selection when provided.',
-  //       },
-  //       windowId: {
-  //         type: 'number',
-  //         description:
-  //           'Target window ID for selecting active tab or creating new tab when url is provided and tabId is omitted.',
-  //       },
-  //       background: {
-  //         type: 'boolean',
-  //         description:
-  //           'Do not activate tab/focus window during injection when true (default: false).',
-  //       },
-  //       type: {
-  //         type: 'string',
-  //         description:
-  //           'the javaScript world for a script to execute within. must be ISOLATED or MAIN',
-  //       },
-  //       jsScript: {
-  //         type: 'string',
-  //         description: 'the content script to inject',
-  //       },
-  //     },
-  //     required: ['type', 'jsScript'],
-  //   },
-  // },
-  // {
-  //   name: TOOL_NAMES.BROWSER.SEND_COMMAND_TO_INJECT_SCRIPT,
-  //   description:
-  //     'if the script injected using chrome_inject_script listens for user-defined events, this tool can be used to trigger those events',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       tabId: {
-  //         type: 'number',
-  //         description:
-  //           'the tab where you previously injected the script(if not provided,  use the currently active tab)',
-  //       },
-  //       eventName: {
-  //         type: 'string',
-  //         description: 'the eventName your injected content script listen for',
-  //       },
-  //       payload: {
-  //         type: 'string',
-  //         description: 'the payload passed to event, must be a json string',
-  //       },
-  //     },
-  //     required: ['eventName'],
-  //   },
-  // },
   {
     name: TOOL_NAMES.BROWSER.JAVASCRIPT,
     description:

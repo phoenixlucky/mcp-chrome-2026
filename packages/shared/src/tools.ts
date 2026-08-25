@@ -718,44 +718,6 @@ export const TOOL_SCHEMAS: Tool[] = [
       required: ['query', 'tabIds'],
     },
   },
-  // {
-  //   name: TOOL_NAMES.RECORD_REPLAY.FLOW_RUN,
-  //   description:
-  //     'Run a recorded flow by ID with optional variables and run options. Returns a standardized run result.',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       flowId: { type: 'string', description: '要运行的流程 ID' },
-  //       args: {
-  //         type: 'object',
-  //         description: '流程的变量值（扁平的键值对对象）',
-  //       },
-  //       tabTarget: {
-  //         type: 'string',
-  //         description: "目标标签页：'current' 或 'new'（默认 current）",
-  //         enum: ['current', 'new'],
-  //       },
-  //       refresh: { type: 'boolean', description: '运行前是否刷新（默认 false）' },
-  //       captureNetwork: {
-  //         type: 'boolean',
-  //         description: '是否采集网络片段用于调试（默认 false）',
-  //       },
-  //       returnLogs: { type: 'boolean', description: '是否返回运行日志（默认 false）' },
-  //       timeoutMs: { type: 'number', description: '全局超时时间（毫秒，可选）' },
-  //       startUrl: { type: 'string', description: '运行前打开的可选起始 URL' },
-  //     },
-  //     required: ['flowId'],
-  //   },
-  // },
-  // {
-  //   name: TOOL_NAMES.RECORD_REPLAY.LIST_PUBLISHED,
-  //   description: '列出可作为动态工具使用的已发布流程（用于发现）。',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {},
-  //     required: [],
-  //   },
-  // },
   {
     name: TOOL_NAMES.BROWSER.PERFORMANCE_START_TRACE,
     description: '在所选页面上开始性能追踪记录；可选自动刷新页面和/或在短暂时间后自动停止。',
@@ -1028,83 +990,76 @@ export const TOOL_SCHEMAS: Tool[] = [
       required: ['text'],
     },
   },
-  // {
-  //   name: TOOL_NAMES.BROWSER.USERSCRIPT,
-  //   description:
-  //     'Unified userscript tool (create/list/get/enable/disable/update/remove/send_command/export). Paste JS/CSS/Tampermonkey script and the system will auto-select the best strategy (insertCSS / persistent script in ISOLATED or MAIN world / once by CDP) with CSP-aware fallbacks.',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       action: {
-  //         type: 'string',
-  //         description:
-  //           'Operation to perform',
-  //         enum: [
-  //           'create',
-  //           'list',
-  //           'get',
-  //           'enable',
-  //           'disable',
-  //           'update',
-  //           'remove',
-  //           'send_command',
-  //           'export',
-  //         ],
-  //       },
-  //       args: {
-  //         type: 'object',
-  //         description:
-  //           'Arguments for the specified action.\n- create: { script (required), name?, description?, matches?: string[], excludes?: string[], persist?: boolean (default true), runAt?: "document_start"|"document_end"|"document_idle"|"auto", world?: "auto"|"ISOLATED"|"MAIN", allFrames?: boolean (default true), mode?: "auto"|"css"|"persistent"|"once", dnrFallback?: boolean (default true), tags?: string[] }\n- list: { query?: string, status?: "enabled"|"disabled", domain?: string }\n- get: { id (required) }\n- enable/disable: { id (required) }\n- update: { id (required), script?, name?, description?, matches?, excludes?, runAt?, world?, allFrames?, persist?, dnrFallback?, tags? }\n- remove: { id (required) }\n- send_command: { id (required), payload?: string, tabId?: number }\n- export: {}\nTip: For a one-off execution that returns a value, use create with args.mode="once". The returned value is included as onceResult in the tool response.',
-  //         properties: {
-  //           // Common identifiers
-  //           id: { type: 'string', description: '用户脚本 ID（用于 get/enable/disable/update/remove/send_command）' },
-  //           // Create / Update fields
-  //           script: { type: 'string', description: 'JS/CSS/Tampermonkey 脚本源码（create 时必填）' },
-  //           name: { type: 'string', description: '用户脚本名称（可选）' },
-  //           description: { type: 'string', description: '用户脚本描述（可选）' },
-  //           matches: {
-  //             type: 'array',
-  //             items: { type: 'string' },
-  //             description: '要应用到的页面匹配模式（例如 https://*.example.com/*）'
-  //           },
-  //           excludes: {
-  //             type: 'array',
-  //             items: { type: 'string' },
-  //             description: '排除模式'
-  //           },
-  //           persist: { type: 'boolean', description: '为匹配页面持久保存用户脚本（默认 true）' },
-  //           runAt: {
-  //             type: 'string',
-  //             description: '注入时机',
-  //             enum: ['document_start', 'document_end', 'document_idle', 'auto'],
-  //           },
-  //           world: {
-  //             type: 'string',
-  //             description: '执行环境',
-  //             enum: ['auto', 'ISOLATED', 'MAIN'],
-  //           },
-  //           allFrames: { type: 'boolean', description: '注入所有框架（默认 true）' },
-  //           mode: {
-  //             type: 'string',
-  //             description:
-  //               'Injection strategy: auto | css | persistent | once. Use once to evaluate immediately (no persistence) and include the return value in onceResult.',
-  //             enum: ['auto', 'css', 'persistent', 'once'],
-  //           },
-  //           dnrFallback: { type: 'boolean', description: '需要时使用 DNR 回退（默认 true）' },
-  //           tags: { type: 'array', items: { type: 'string' }, description: '自定义标签' },
-  //           // List filters
-  //           query: { type: 'string', description: '按名称/描述搜索（list 操作）' },
-  //           status: { type: 'string', enum: ['enabled', 'disabled'], description: '按状态筛选（list 操作）' },
-  //           domain: { type: 'string', description: '按域名筛选（list 操作）' },
-  //           // Send command
-  //           payload: { type: 'string', description: 'send_command 的任意负载（字符串化）' },
-  //           tabId: { type: 'number', description: 'send_command 的目标标签页（默认当前激活标签页）' },
-  //         },
-  //       },
-  //     },
-  //     required: ['action'],
-  //   },
-  // },
+  {
+    name: TOOL_NAMES.BROWSER.USERSCRIPT,
+    description:
+      '管理浏览器用户脚本：创建、查询、启用、停用、更新、删除、导出脚本，或向已安装脚本发送命令。高风险工具，启用审批策略后需要显式批准。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['create', 'list', 'get', 'enable', 'disable', 'update', 'remove', 'send_command', 'export'],
+          description: '要执行的用户脚本操作。',
+        },
+        args: {
+          type: 'object',
+          description:
+            '操作参数。create/update 使用 script、name、matches、world 等字段；get/enable/disable/remove/send_command 使用 id。',
+          properties: {
+            id: { type: 'string', description: '用户脚本 ID。' },
+            script: { type: 'string', description: 'JS、CSS 或 Tampermonkey 脚本源码。' },
+            name: { type: 'string', description: '用户脚本名称。' },
+            description: { type: 'string', description: '用户脚本描述。' },
+            matches: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '要应用脚本的页面匹配模式。',
+            },
+            excludes: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '不应用脚本的页面匹配模式。',
+            },
+            persist: { type: 'boolean', description: '是否持久保存脚本，默认 true。' },
+            runAt: {
+              type: 'string',
+              enum: ['document_start', 'document_end', 'document_idle', 'auto'],
+              description: '脚本注入时机。',
+            },
+            world: {
+              type: 'string',
+              enum: ['auto', 'ISOLATED', 'MAIN'],
+              description: '脚本执行环境。',
+            },
+            allFrames: { type: 'boolean', description: '是否注入所有框架，默认 true。' },
+            mode: {
+              type: 'string',
+              enum: ['auto', 'css', 'persistent', 'once'],
+              description: '注入策略；once 只执行一次且不持久保存。',
+            },
+            dnrFallback: { type: 'boolean', description: '必要时是否使用 DNR 回退，默认 true。' },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '用户脚本标签。',
+            },
+            query: { type: 'string', description: 'list 操作的名称/描述搜索词。' },
+            status: {
+              type: 'string',
+              enum: ['enabled', 'disabled'],
+              description: 'list 操作的启用状态筛选。',
+            },
+            domain: { type: 'string', description: 'list 操作的域名筛选。' },
+            payload: { description: 'send_command 操作发送给脚本的任意 JSON 负载。' },
+            tabId: { type: 'number', description: 'send_command 操作的目标标签页 ID。' },
+          },
+          additionalProperties: true,
+        },
+      },
+      required: ['action'],
+    },
+  },
   {
     name: TOOL_NAMES.BROWSER.NAVIGATE,
     description: '打开 URL、刷新当前标签页，或在浏览历史中前进/后退',
@@ -1507,85 +1462,6 @@ export const TOOL_SCHEMAS: Tool[] = [
       required: [],
     },
   },
-  // {
-  //   name: TOOL_NAMES.BROWSER.SEARCH_TABS_CONTENT,
-  //   description:
-  //     'search for related content from the currently open tab and return the corresponding web pages.',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       query: {
-  //         type: 'string',
-  //         description: '搜索相关内容的关键词。',
-  //       },
-  //     },
-  //     required: ['query'],
-  //   },
-  // },
-  // {
-  //   name: TOOL_NAMES.BROWSER.INJECT_SCRIPT,
-  //   description:
-  //     'inject the user-specified content script into the webpage. By default, inject into the currently active tab',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       url: {
-  //         type: 'string',
-  //         description:
-  //           'If a URL is specified, inject the script into the webpage corresponding to the URL.',
-  //       },
-  //       tabId: {
-  //         type: 'number',
-  //         description:
-  //           'Target an existing tab by ID to inject into. Overrides url/active tab selection when provided.',
-  //       },
-  //       windowId: {
-  //         type: 'number',
-  //         description:
-  //           'Target window ID for selecting active tab or creating new tab when url is provided and tabId is omitted.',
-  //       },
-  //       background: {
-  //         type: 'boolean',
-  //         description:
-  //           'Do not activate tab/focus window during injection when true (default: false).',
-  //       },
-  //       type: {
-  //         type: 'string',
-  //         description:
-  //           'the javaScript world for a script to execute within. must be ISOLATED or MAIN',
-  //       },
-  //       jsScript: {
-  //         type: 'string',
-  //         description: '要注入的内容脚本',
-  //       },
-  //     },
-  //     required: ['type', 'jsScript'],
-  //   },
-  // },
-  // {
-  //   name: TOOL_NAMES.BROWSER.SEND_COMMAND_TO_INJECT_SCRIPT,
-  //   description:
-  //     'if the script injected using chrome_inject_script listens for user-defined events, this tool can be used to trigger those events',
-  //   inputSchema: {
-  //     type: 'object',
-  //     properties: {
-  //       tabId: {
-  //         type: 'number',
-  //         description:
-  //           'the tab where you previously injected the script(if not provided,  use the currently active tab)',
-  //       },
-  //       eventName: {
-  //         type: 'string',
-  //         description: '注入的内容脚本所监听的事件名',
-  //       },
-  //       payload: {
-  //         type: 'string',
-  //         description: '传递给事件的负载，必须是 JSON 字符串',
-  //       },
-  //     },
-  //     required: ['eventName'],
-  //   },
-  // },
   {
     name: TOOL_NAMES.BROWSER.JAVASCRIPT,
     description:

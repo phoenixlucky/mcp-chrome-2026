@@ -5,7 +5,15 @@
       <div class="header">
         <div class="header-content">
           <h1 class="header-title">猫娘 Chrome MCP Server</h1>
-          <img class="header-logo" :src="extensionLogoUrl" alt="" />
+          <button
+            type="button"
+            class="header-logo-button"
+            title="打开欢迎页"
+            aria-label="打开欢迎页"
+            @click="openWelcomePage"
+          >
+            <img class="header-logo" :src="extensionLogoUrl" alt="" />
+          </button>
         </div>
       </div>
       <div ref="homeContentRef" class="content">
@@ -2675,7 +2683,8 @@ onUnmounted(() => {
 <style scoped>
 .popup-container {
   position: relative;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   background:
     linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(248, 246, 251, 0.14)),
     url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
@@ -2711,9 +2720,23 @@ onUnmounted(() => {
 .header-logo {
   width: 40px;
   height: 40px;
-  margin-right: 16px;
   border-radius: 50%;
   box-shadow: 0 4px 14px rgba(72, 57, 78, 0.16);
+}
+
+.header-logo-button {
+  margin-right: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.header-logo-button:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 3px;
 }
 
 .settings-button {
@@ -2732,7 +2755,8 @@ onUnmounted(() => {
 }
 
 .content {
-  flex-grow: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 8px 24px;
   overflow-y: auto;
   scrollbar-width: none;

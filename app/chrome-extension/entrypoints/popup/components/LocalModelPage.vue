@@ -354,7 +354,9 @@ const formatIndexSize = () => {
 .local-model-page {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100%;
+  min-height: 0;
 }
 
 .page-header {

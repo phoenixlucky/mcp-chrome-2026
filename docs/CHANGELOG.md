@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.4.0] - 2026-08-25
+
+### Added
+
+- Optional `CHROME_MCP_API_KEY` protection for HTTP and SSE MCP endpoints.
+- Tool scopes via `CHROME_MCP_ALLOWED_TOOLS` and high-risk approval via `CHROME_MCP_REQUIRE_APPROVAL` / `CHROME_MCP_APPROVED_TOOLS`.
+- Public `chrome_userscript` schema, documentation, and catalog entry.
+- Opt-in real Chrome smoke test via `pnpm test:chrome-smoke`.
+- Tool documentation coverage check via `pnpm check:tool-docs`.
+- Version consistency check via `pnpm check:versions`.
+
+### Fixed
+
+- **图片拦截误伤修复** — 修复图片拦截规则误伤正常图片请求的问题；填充与元素查找逻辑更稳健（v2.3.6）。
+
+### Changed
+
+- STDIO tool discovery now mirrors the upstream HTTP catalog, including dynamic flow tools.
+- MCP HTTP requests without an Origin now require a valid API key; invalid Origins are rejected.
+- Web Editor is V3-only; the unused V1 fallback path and legacy script were removed.
+- Obsolete commented legacy schema drafts were removed; userscript is now a documented public tool.
+- CI：typecheck 前先构建 shared 包；pnpm 测试命令的 `--` 分隔符传参修复；upload-artifact 修复 `.output` 隐藏目录中的 zip。
+- Package versions are aligned at v2.4.0.
+
 ## [v2.3.5] - 2026-08-24
 
 ### Changed

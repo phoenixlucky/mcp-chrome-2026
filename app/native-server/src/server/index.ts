@@ -17,6 +17,7 @@ import {
   HTTP_STATUS,
   ERROR_MESSAGES,
   isAllowedCorsOrigin,
+  MCP_API_KEY_ENV,
 } from '../constant';
 import { NativeMessagingHost } from '../native-messaging-host';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
@@ -78,6 +79,7 @@ export class Server {
       streamManager: this.agentStreamManager,
     });
     this.setupPlugins();
+    this.setupMcpAuth();
     this.setupRoutes();
   }
 
@@ -117,6 +119,39 @@ export class Server {
 
     // MCP routes
     this.setupMcpRoutes();
+  }
+
+  /**
+   * Protect MCP transports when an API key is configured. Local installs with
+   * no key remain backwards compatible.
+   */
+  private setupMcpAuth(): void {
+    this.fastify.addHook('onRequest', async (request, reply) => {
+      const pathname = (request.raw.url ?? '').split('?')[0];
+      if (!['/mcp', '/sse', '/messages'].includes(pathname)) return;
+
+      const expectedKey = process.env[MCP_API_KEY_ENV]?.trim();
+      const origin = request.headers.origin;
+      if (origin && !isAllowedCorsOrigin(origin)) {
+        reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
+        return;
+      }
+      if (!origin && !expectedKey) {
+        reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
+        return;
+      }
+      // Browsers do not send Authorization on CORS preflight requests; the
+      // actual MCP request is authenticated below.
+      if (request.method === 'OPTIONS') return;
+      if (!expectedKey) return;
+
+      const authorization = request.headers.authorization;
+      const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+      const providedKey = bearer ?? request.headers['x-api-key'];
+      if (typeof providedKey !== 'string' || providedKey !== expectedKey) {
+        reply.status(HTTP_STATUS.UNAUTHORIZED).send({ error: ERROR_MESSAGES.UNAUTHORIZED });
+      }
+    });
   }
 
   // ============================================================
