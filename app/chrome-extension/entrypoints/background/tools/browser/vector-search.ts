@@ -30,7 +30,7 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
   constructor() {
     super();
     this.contentIndexer = new ContentIndexer({
-      autoIndex: true,
+      autoIndex: false,
       maxChunksPerPage: LIMITS.MAX_SEARCH_RESULTS,
       skipDuplicates: true,
     });

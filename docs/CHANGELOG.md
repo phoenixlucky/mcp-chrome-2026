@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.4.2] - 2026-08-25
+
+### Fixed
+
+- **FS.syncfs 串行化** — 所有 `syncFS` 请求统一进入同步队列串行执行；超时（5s）仅 `console.warn` 报警，不再提前释放队列，避免并发 syncfs 竞争导致向量库文件损坏（`vector-database.ts`）。
+- **清理流程复用同步队列** — 向量库清理/初始化流程改为复用同一同步队列，避免与写入操作交错。
+- **防止重复注册标签页监听器** — 内容索引器增加 `tabEventListenersSetUp` 标志，避免多次初始化时重复注册监听器（`content-indexer.ts`）。
+- **向量搜索关闭重复自动索引** — 向量搜索工具 `autoIndex` 改为 `false`，避免与内容索引器重复索引（`vector-search.ts`）。
+
+### Changed
+
+- 版本统一为 v2.4.2。
+
 ## [v2.4.1] - 2026-08-25
 
 ### Changed

@@ -27,6 +27,7 @@ export class ContentIndexer {
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;
   private indexedPages = new Set<string>();
+  private tabEventListenersSetUp = false;
   private readonly options: Required<IndexingOptions>;
 
   constructor(options?: IndexingOptions) {
@@ -498,6 +499,9 @@ export class ContentIndexer {
     }
   }
   private setupTabEventListeners(): void {
+    if (this.tabEventListenersSetUp) return;
+    this.tabEventListenersSetUp = true;
+
     chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       if (this.options.autoIndex && changeInfo.status === 'complete' && tab.url) {
         setTimeout(() => {

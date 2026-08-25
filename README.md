@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 v2.4.1 更新内容
+## 📢 v2.4.2 更新内容
 
-> **原生 stdio 直连 + 配置增强** — 简化接入，去掉额外桥接器。
+> **向量库稳定性修复** — 串行同步 + 防重复索引。
 >
-> - 🔌 **原生 `mcp-chrome-stdio` 直连** — 内部使用 MCP SDK Streamable HTTP 客户端，自动管理 POST / SSE / `sessionId` 生命周期；不再依赖 `mcp-bridge.js`
-> - ⚙️ **`MCP_SERVER_URL` / `MCP_SERVER_ORIGIN` 配置** — 自定义 stdio 连接端点与 Origin（默认 `http://127.0.0.1:12306/mcp` / `chrome-extension://mcp-stdio`）
-> - 🔑 **API Key 转发** — 服务启用 `CHROME_MCP_API_KEY` 时自动以 Bearer 转发
-> - 🌐 **本机桥接器自动发送 Origin** — 握手兼容性提升
-> - 🔧 版本统一为 v2.4.1
+> - 💾 **FS.syncfs 统一串行化** — 所有同步请求进入同一队列，超时仅报警不释放队列，避免并发竞争损坏向量库文件
+> - 🧹 **清理流程复用同步队列** — 初始化/清理不再与写入交错
+> - 📡 **防止重复注册监听器** — 内容索引器加保护标志，避免多次注册标签页监听
+> - 🔍 **向量搜索关闭重复自动索引** — `autoIndex: false`，与内容索引器职责分离
+> - 🔧 版本统一为 v2.4.2
 > - 📚 **文档校验** — 新增 `pnpm check:tool-docs`，防止工具 schema 与 API 文档再次漂移
 > - 🔧 版本统一为 v2.3.7
 

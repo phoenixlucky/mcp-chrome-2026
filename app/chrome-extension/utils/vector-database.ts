@@ -38,8 +38,35 @@ let globalHnswlib: any = null;
 let globalHnswlibInitPromise: Promise<any> | null = null;
 let globalHnswlibInitialized = false;
 
-let syncInProgress = false;
-let pendingSyncPromise: Promise<void> | null = null;
+let fileSystemSyncQueue: Promise<void> = Promise.resolve();
+
+function queueFileSystemSync(direction: 'read' | 'write'): Promise<void> {
+  const operation: Promise<void> = fileSystemSyncQueue.then(() => {
+    if (!globalHnswlib) return;
+
+    return new Promise<void>((resolve, reject) => {
+      // A timeout may report a slow sync, but must not release the queue early.
+      const timeout = setTimeout(() => {
+        console.warn(`VectorDatabase: Filesystem sync (${direction}) is still pending`);
+      }, 5000);
+
+      try {
+        globalHnswlib.EmscriptenFileSystemManager.syncFS(direction === 'read', () => {
+          clearTimeout(timeout);
+          console.log(`VectorDatabase: Filesystem sync (${direction}) completed`);
+          resolve();
+        });
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
+      }
+    });
+  });
+
+  // Continue the queue after a failure, but never overlap the failed operation.
+  fileSystemSyncQueue = operation.catch(() => undefined);
+  return operation;
+}
 
 const DB_NAME = 'VectorDatabaseStorage';
 const DB_VERSION = 1;
@@ -1079,51 +1106,9 @@ export class VectorDatabase {
 
   private async syncFileSystem(direction: 'read' | 'write'): Promise<void> {
     try {
-      if (!globalHnswlib) {
-        return;
-      }
-
-      // If sync operation is already in progress, wait for it to complete
-      if (syncInProgress && pendingSyncPromise) {
-        console.log(`VectorDatabase: Sync already in progress, waiting...`);
-        await pendingSyncPromise;
-        return;
-      }
-
-      // Mark sync start
-      syncInProgress = true;
-
-      // Create sync Promise with timeout mechanism
-      pendingSyncPromise = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.warn(`VectorDatabase: Filesystem sync (${direction}) timeout`);
-          syncInProgress = false;
-          pendingSyncPromise = null;
-          reject(new Error('Sync timeout'));
-        }, 5000); // 5 second timeout
-
-        try {
-          globalHnswlib.EmscriptenFileSystemManager.syncFS(direction === 'read', () => {
-            clearTimeout(timeout);
-            console.log(`VectorDatabase: Filesystem sync (${direction}) completed`);
-            syncInProgress = false;
-            pendingSyncPromise = null;
-            resolve();
-          });
-        } catch (error) {
-          clearTimeout(timeout);
-          console.warn(`VectorDatabase: Failed to sync filesystem (${direction}):`, error);
-          syncInProgress = false;
-          pendingSyncPromise = null;
-          reject(error);
-        }
-      });
-
-      await pendingSyncPromise;
+      await queueFileSystemSync(direction);
     } catch (error) {
       console.warn(`VectorDatabase: Failed to sync filesystem (${direction}):`, error);
-      syncInProgress = false;
-      pendingSyncPromise = null;
     }
   }
 
@@ -1390,18 +1375,7 @@ export async function resetGlobalVectorDatabase(): Promise<void> {
 
         // 3. Force sync filesystem to ensure deletion takes effect
         try {
-          await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
-              console.warn('VectorDatabase: Filesystem sync timeout during cleanup');
-              resolve(); // Don't block the process
-            }, 3000);
-
-            globalHnswlib.EmscriptenFileSystemManager.syncFS(false, () => {
-              clearTimeout(timeout);
-              console.log('VectorDatabase: Filesystem sync completed during cleanup');
-              resolve();
-            });
-          });
+          await queueFileSystemSync('write');
         } catch (syncError) {
           console.warn('VectorDatabase: Failed to sync filesystem during cleanup:', syncError);
         }
@@ -1492,18 +1466,7 @@ export async function clearAllVectorData(): Promise<void> {
 
         // Force sync filesystem
         try {
-          await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
-              console.warn('VectorDatabase: Filesystem sync timeout during model switch cleanup');
-              resolve();
-            }, 3000);
-
-            globalHnswlib.EmscriptenFileSystemManager.syncFS(false, () => {
-              clearTimeout(timeout);
-              console.log('VectorDatabase: Filesystem sync completed during model switch cleanup');
-              resolve();
-            });
-          });
+          await queueFileSystemSync('write');
         } catch (syncError) {
           console.warn(
             'VectorDatabase: Failed to sync filesystem during model switch cleanup:',
