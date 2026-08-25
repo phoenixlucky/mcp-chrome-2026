@@ -5,12 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v2.4.3] - 2026-08-26
+
+### Added
+
+- **猫娘主题素材更新** — 更换扩展全套图标（16–128px）与聊天背景、高级立绘，新增 Welcome 页专属背景图，Welcome 页切换为全幅封面布局。
 
 ### Changed
 
-- **移除 `prebuild-install` 弃用警告** — `better-sqlite3` 从 `^12.1.0` 升级到 `^13.0.3`。v13 迁移到 N-API 并自带全平台预编译二进制（官方已移除已停止维护的 `prebuild-install` 依赖），安装时不再需要源码编译，也不再需要 Node headers 下载；pnpm `allowBuilds` 中对 `better-sqlite3` 的构建放行同步关闭。安装命令中的 `--allow-scripts` 白名单相应去掉了 `better-sqlite3`。
+- **`better-sqlite3` 升级到 `^13.0.3`** — v13 迁移到 N-API 并自带全平台预编译二进制（官方已移除已停止维护的 `prebuild-install` 依赖），安装时不再需要源码编译，也不再需要 Node headers 下载；pnpm `allowBuilds` 中对 `better-sqlite3` 的构建放行同步关闭。安装命令中的 `--allow-scripts` 白名单相应去掉了 `better-sqlite3`。
 - 安装文档（README / README_en / WINDOWS_INSTALL_zh）同步更新。
+- 版本统一为 v2.4.3。
 
 ## [v2.4.2] - 2026-08-25
 

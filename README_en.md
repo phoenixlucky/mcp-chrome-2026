@@ -26,15 +26,13 @@
 
 ---
 
-## 📢 What's New in v2.4.2
+## 📢 What's New in v2.4.3
 
-> **Vector database stability fixes** — Serialized sync + no duplicate indexing.
+> **Catgirl theme refresh + smoother installs** — New icons & backgrounds, dependency upgrade with no source builds.
 >
-> - 💾 **FS.syncfs fully serialized** — All sync requests share one queue; timeouts only warn and never release the queue early, preventing concurrent-sync corruption of vector DB files
-> - 🧹 **Cleanup reuses the sync queue** — Init/cleanup no longer interleaves with writes
-> - 📡 **No duplicate listener registration** — Content indexer guarded against re-registering tab listeners
-> - 🔍 **Vector search disables duplicate auto-index** — `autoIndex: false`, separated from the content indexer
-> - 🔧 All packages bumped to v2.4.2
+> - 🎨 **Full theme asset update** — All extension icons (16–128px), chat background and premium portrait replaced with new artwork; dedicated Welcome background added with a full-bleed cover layout
+> - 📦 **`better-sqlite3` upgraded to v13** — N-API prebuilt binaries, no source compilation or Node headers download at install time; `--allow-scripts` whitelist trimmed accordingly
+> - 🔧 All packages bumped to v2.4.3
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
