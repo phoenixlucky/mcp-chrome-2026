@@ -65,15 +65,59 @@ class FindAndClickTool extends ReviewTool {
       const result = await this.eval(
         tabId,
         `(() => {
-        const candidates = ${JSON.stringify(args.candidates)}; const base = ${args.frameSelector ? `document.querySelector(${JSON.stringify(args.frameSelector)})?.contentDocument` : 'document'}; const scope = ${args.scopeSelector ? `base?.querySelector(${JSON.stringify(args.scopeSelector)})` : 'base'};
+        const candidates = ${JSON.stringify(args.candidates)};
+        const base = ${args.frameSelector ? `document.querySelector(${JSON.stringify(args.frameSelector)})?.contentDocument` : 'document'};
+        const scope = ${args.scopeSelector ? `base?.querySelector(${JSON.stringify(args.scopeSelector)})` : 'base'};
         if (!scope) return { success:false, reason:'scope_not_found', matchedCount:0 };
-        const visible = el => { const s=getComputedStyle(el), r=el.getBoundingClientRect(); return !el.matches('[disabled],[aria-disabled="true"]') && s.display!=='none' && s.visibility!=='hidden' && r.width>0 && r.height>0; };
-        for(let i=0;i<candidates.length;i++) { const c=candidates[i]; let el=null;
-          if(c.type==='xpath' && c.selector) { const x=base.evaluate(c.selector, scope, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; el=x instanceof Element && scope.contains(x) ? x : null; }
-          else if(c.selector) el=scope.querySelector(c.selector);
-          else if(c.text) el=Array.from(scope.querySelectorAll(c.role ? '[role="'+c.role+'"]' : '*')).find(x => (x.textContent||'').trim().includes(c.text)) || null;
-          if(el && visible(el)) { el.click(); return {success:true, clicked:true, matchedCandidate:i, selector:c.selector || 'text='+c.text, matchedCount:1}; }
-        } return {success:false, reason:'not_found', matchedCount:0};
+        const timeout = Math.min(Math.max(Number(${JSON.stringify(args.waitTimeout ?? TIMEOUT)}) || 0, 0), 30000);
+        const deadline = Date.now() + timeout;
+        const visible = el => {
+          if (!el || !el.isConnected) return false;
+          const s = getComputedStyle(el), r = el.getBoundingClientRect();
+          const disabled = el.closest('[disabled],[aria-disabled="true"]');
+          return !disabled && s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0' && r.width > 0 && r.height > 0;
+        };
+        const matchesFor = c => {
+          if (c.type === 'xpath' && c.selector) {
+            try {
+              const x = base.evaluate(c.selector, scope, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+              return x instanceof Element && scope.contains(x) ? [x] : [];
+            } catch (_) { return []; }
+          }
+          if (c.selector) {
+            try { return Array.from(scope.querySelectorAll(c.selector)); } catch (_) { return []; }
+          }
+          if (!c.text) return [];
+          const text = String(c.text).trim().toLowerCase();
+          const pool = Array.from(scope.querySelectorAll(c.role ? '[role]' : '*')).filter(
+            (x) =>
+              (!c.role || x.getAttribute('role') === c.role) &&
+              (x.textContent || '').trim().toLowerCase().includes(text),
+          );
+          const actionable = pool.filter(
+            (x) =>
+              /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(x.tagName) ||
+              x.getAttribute('role') === 'button' ||
+              x.hasAttribute('tabindex'),
+          );
+          return actionable.length ? actionable : pool;
+        };
+        let matchedCount = 0;
+        do {
+          for (let i = 0; i < candidates.length; i++) {
+            const matches = matchesFor(candidates[i]);
+            matchedCount += matches.length;
+            const el = matches.find(visible);
+            if (el) {
+              el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+              el.click();
+              return { success:true, clicked:true, matchedCandidate:i, selector:candidates[i].selector || 'text=' + candidates[i].text, matchedCount };
+            }
+          }
+          if (Date.now() >= deadline) break;
+          await new Promise(resolve => setTimeout(resolve, 150));
+        } while (true);
+        return { success:false, reason:'not_found', matchedCount };
       })()`,
       );
       if (!(result as any)?.success || !args.waitSelector)
@@ -282,32 +326,52 @@ class ScanForSectionTool extends ReviewTool {
       const root = args.frameSelector
         ? `document.querySelector(${JSON.stringify(args.frameSelector)})?.contentDocument`
         : 'document';
+      const direction = args.direction || 'down';
+      const waitMs = Math.min(Math.max(args.waitAfterScrollMs || 800, 100), 5_000);
       const check = () =>
         this.eval(
           tabId,
-          `(() => { const root=${root}; const win=root?.defaultView || window; return { found: root?.querySelector(${JSON.stringify(args.targetSelector)}) !== null, stopped: ${args.stopSelector ? `root?.querySelector(${JSON.stringify(args.stopSelector)}) !== null` : 'false'}, atBottom: win.innerHeight + win.scrollY >= root.documentElement.scrollHeight - 1 }; })()`,
+          `(() => { const root=${root}; const win=root?.defaultView || window; const scrollHeight=root?.documentElement?.scrollHeight || 0; const top=win.scrollY; return { found: root?.querySelector(${JSON.stringify(args.targetSelector)}) !== null, stopped: ${args.stopSelector ? `root?.querySelector(${JSON.stringify(args.stopSelector)}) !== null` : 'false'}, atTop: top <= 1, atBottom: win.innerHeight + top >= scrollHeight - 1, scrollHeight, top }; })()`,
         ) as Promise<any>;
+      let lastHeight = 0;
+      let edgeWaits = 0;
       for (let i = 0; i < max; i += 1) {
         const state = await check();
         if (state.found)
           return json({
             success: true,
             found: true,
-            phase: args.direction || 'down',
+            phase: direction,
             steps: i,
             atBottom: state.atBottom,
             changed: i > 0,
           });
-        if (state.stopped || state.atBottom) break;
+        const atEdge = direction === 'up' ? state.atTop : state.atBottom;
+        if (state.stopped) break;
+        if (atEdge) {
+          if (state.scrollHeight !== lastHeight) {
+            lastHeight = state.scrollHeight;
+            edgeWaits = 0;
+          } else if (edgeWaits < 6) {
+            edgeWaits += 1;
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+            continue;
+          } else {
+            break;
+          }
+        } else {
+          edgeWaits = 0;
+          lastHeight = state.scrollHeight;
+        }
         await this.eval(
           tabId,
-          `(${root}.defaultView || window).scrollBy(0, ${(args.direction || 'down') === 'up' ? -step : step})`,
+          `(${root}.defaultView || window).scrollBy(0, ${direction === 'up' ? -step : step})`,
         );
-        await new Promise((resolve) => setTimeout(resolve, args.waitAfterScrollMs || 800));
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
       }
       for (let i = 0; i < (args.rescanUpSteps || 0); i += 1) {
         await this.eval(tabId, `(${root}.defaultView || window).scrollBy(0, ${-step})`);
-        await new Promise((resolve) => setTimeout(resolve, args.waitAfterScrollMs || 800));
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
         const state = await check();
         if (state.found)
           return json({
@@ -323,8 +387,14 @@ class ScanForSectionTool extends ReviewTool {
       return json({
         success: false,
         found: false,
-        reason: state.stopped ? 'stop_selector' : state.atBottom ? 'bottom' : 'max_steps',
-        phase: 'down',
+        reason: state.stopped
+          ? 'stop_selector'
+          : direction === 'up' && state.atTop
+            ? 'top'
+            : state.atBottom
+              ? 'bottom'
+              : 'max_steps',
+        phase: direction,
         steps: max,
         atBottom: state.atBottom,
         changed: false,

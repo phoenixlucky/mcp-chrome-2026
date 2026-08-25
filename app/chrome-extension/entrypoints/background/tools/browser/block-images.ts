@@ -9,6 +9,18 @@ interface BlockImagesParams {
 }
 
 const OWNER = 'block-images';
+const IMAGE_BLOCKING_EXEMPT_HOSTS = ['target.com', 'bedbathandbeyond.com'] as const;
+
+function isImageBlockingExempt(url?: string): boolean {
+  try {
+    const hostname = new URL(url || '').hostname.toLowerCase();
+    return IMAGE_BLOCKING_EXEMPT_HOSTS.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`),
+    );
+  } catch {
+    return false;
+  }
+}
 
 class BlockImagesTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.BLOCK_IMAGES;
@@ -51,6 +63,11 @@ class BlockImagesTool extends BaseBrowserToolExecutor {
       );
     }
     const tabId = tab.id;
+
+    if (isImageBlockingExempt(tab.url)) {
+      if (this.blockedTabs.has(tabId)) return this.stop(tabId);
+      return this.result(tabId, false);
+    }
 
     if (args.action === 'start') return this.start(tabId);
     return this.stop(tabId);

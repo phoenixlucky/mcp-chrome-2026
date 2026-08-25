@@ -47,6 +47,26 @@ describe('chrome_block_images', () => {
     );
   });
 
+  it.each(['https://www.target.com/', 'https://www.bedbathandbeyond.com/'])(
+    'does not enable image blocking on %s',
+    async (url) => {
+      (chrome.tabs.get as any).mockResolvedValue({ id: 42, url });
+
+      const result = await blockImagesTool.execute({ action: 'start', tabId: 42 });
+
+      expect(result.isError).toBe(false);
+      expect(result.content[0]).toMatchObject({
+        type: 'text',
+        text: JSON.stringify({ tabId: 42, blockImages: false }),
+      });
+      expect(chrome.debugger.sendCommand).not.toHaveBeenCalledWith(
+        { tabId: 42 },
+        'Fetch.enable',
+        expect.anything(),
+      );
+    },
+  );
+
   it('falls back to the active tab when the requested tab was closed', async () => {
     (chrome.tabs.get as any).mockRejectedValue(new Error('No tab with id: 42.'));
     (chrome.tabs.query as any).mockResolvedValue([{ id: 43, url: 'https://example.com' }]);

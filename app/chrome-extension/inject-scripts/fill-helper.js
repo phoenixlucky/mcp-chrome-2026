@@ -122,24 +122,30 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     });
   }
 
-  function findVisibleElement(selector, selectorType = 'css') {
+  function findVisibleElement(selector, selectorType = 'css', allowCovered = false) {
     try {
       const matches =
         selectorType === 'xpath' ? queryXPathAll(selector) : querySelectorAllRobust(selector);
-      if (matches.length === 0 && typeof selector === 'string' && /\bplaceholder\b/i.test(selector)) {
+      if (
+        matches.length === 0 &&
+        typeof selector === 'string' &&
+        /\bplaceholder\b/i.test(selector)
+      ) {
         const comboboxes = Array.from(
-          document.querySelectorAll('input[role="combobox"], textarea[role="combobox"], [role="combobox"]'),
+          document.querySelectorAll(
+            'input[role="combobox"], textarea[role="combobox"], [role="combobox"]',
+          ),
         ).filter((candidate) => isElementRenderable(candidate));
         if (comboboxes.length === 1) return comboboxes[0];
       }
       // Prefer a currently visible match, but keep an off-viewport renderable
       // match so fillElement can scroll it into view before the final check.
-      return (
-        matches.find((candidate) => isElementVisible(candidate)) ||
-        matches.find((candidate) => isElementRenderable(candidate)) ||
-        matches[0] ||
-        null
-      );
+      const visible = matches.find((candidate) => isElementVisible(candidate));
+      if (visible) return visible;
+      const inViewport = matches.some((candidate) => isElementInViewport(candidate));
+      return inViewport && !allowCovered
+        ? null
+        : matches.find((candidate) => isElementRenderable(candidate)) || matches[0] || null;
     } catch (_) {
       return null;
     }
@@ -156,7 +162,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     } while (true);
 
-    return null;
+    return findVisibleElement(selector, selectorType, true);
   }
 
   async function fillElement(selector, value, ref = null, selectorType = 'css', timeout = 5000) {
@@ -219,6 +225,21 @@ if (window.__FILL_HELPER_INITIALIZED__) {
           left: rect.left,
         },
       };
+
+      // Navigating to a search URL can populate the search input before the
+      // page's transient loading layer becomes interactive. Treat an already
+      // matching value as success instead of failing a redundant fill.
+      const requestedValue = String(value ?? '');
+      const alreadyFilled =
+        ['INPUT', 'TEXTAREA'].includes(element.tagName) &&
+        readElementValue(element) === requestedValue;
+      if (!elementInfo.isVisible && alreadyFilled) {
+        return {
+          success: true,
+          message: 'Element already contains the requested value',
+          elementInfo: { ...elementInfo, value: requestedValue, verified: true },
+        };
+      }
 
       // Check if element is visible
       if (!elementInfo.isVisible) {
@@ -544,6 +565,19 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     if (!elementAtPoint) return false;
 
     return element === elementAtPoint || element.contains(elementAtPoint);
+  }
+
+  function isElementInViewport(element) {
+    if (!element) return false;
+    const rect = element.getBoundingClientRect();
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.bottom >= 0 &&
+      rect.top <= window.innerHeight &&
+      rect.right >= 0 &&
+      rect.left <= window.innerWidth
+    );
   }
 
   /**
