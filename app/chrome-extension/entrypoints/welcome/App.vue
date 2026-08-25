@@ -327,8 +327,10 @@ async function openDocs(): Promise<void> {
 .welcome-root {
   min-height: 100%;
   background: var(--ac-bg);
-  background-image: var(--ac-bg-pattern);
-  background-size: var(--ac-bg-pattern-size);
+  background-image: url('/backgrounds/welcome-background.webp');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   color: var(--ac-text);
   font-family: var(--ac-font-body);
 }
