@@ -19,8 +19,13 @@ import { checkToolAccess, filterToolsByPermission } from './permission-policy.js
 let stdioMcpServer: Server | null = null;
 let mcpClient: Client | null = null;
 
+const DEFAULT_MCP_SERVER_ORIGIN = 'chrome-extension://mcp-stdio';
+
 // Read configuration from stdio-config.json
 const loadConfig = () => {
+  const envUrl = process.env.MCP_SERVER_URL?.trim();
+  if (envUrl) return { url: envUrl };
+
   try {
     const configPath = path.join(__dirname, 'stdio-config.json');
     const configData = fs.readFileSync(configPath, 'utf8');
@@ -66,7 +71,7 @@ export const ensureMcpClient = async () => {
     const requestHeaders: Record<string, string> = {
       // Keep the backwards-compatible no-key STDIO transport distinguishable
       // from an unauthenticated request with no Origin header.
-      Origin: 'chrome-extension://mcp-stdio',
+      Origin: process.env.MCP_SERVER_ORIGIN?.trim() || DEFAULT_MCP_SERVER_ORIGIN,
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     };
     const transport = new StreamableHTTPClientTransport(

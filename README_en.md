@@ -26,18 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.4.0
+## 📢 What's New in v2.4.1
 
-> **MCP permission policy + API key protection** — Security and governance upgrade.
+> **Native stdio direct connect + config enhancements** — Simpler integration, no extra bridge.
 >
-> - 🔐 **Optional API key** — Set `CHROME_MCP_API_KEY` to protect `/mcp`, `/sse`, and `/messages`
-> - 🛡️ **Tool permission policy** — Restrict tool scopes (`CHROME_MCP_ALLOWED_TOOLS`) and require approval for high-risk tools (`CHROME_MCP_REQUIRE_APPROVAL` / `CHROME_MCP_APPROVED_TOOLS`)
-> - 🧩 **Userscript tool is public** — `chrome_userscript` is now included in the schema, docs, and catalog
-> - 🧪 **Real Chrome smoke test** — `pnpm test:chrome-smoke` verifies the Native Host → MCP → Chrome path
-> - 🧹 **Architecture cleanup** — Removed the Web Editor v1 rollback path and cleaned up unpublished userscript/legacy schema drafts
-> - 🔁 **STDIO catalog parity** — STDIO now mirrors the HTTP server's dynamic tool catalog
-> - 🐛 **Image blocking fix** — Image interception no longer hits legitimate requests; fill/find more robust
-> - 🔧 All packages bumped to v2.4.0
+> - 🔌 **Native `mcp-chrome-stdio` direct connect** — Uses the MCP SDK Streamable HTTP client internally, managing POST / SSE / `sessionId` lifecycle; no `mcp-bridge.js` needed
+> - ⚙️ **`MCP_SERVER_URL` / `MCP_SERVER_ORIGIN` config** — Customize the stdio endpoint and Origin (defaults `http://127.0.0.1:12306/mcp` / `chrome-extension://mcp-stdio`)
+> - 🔑 **API key forwarding** — When the server enables `CHROME_MCP_API_KEY`, the stdio client forwards it as a Bearer token
+> - 🌐 **Local bridge auto-sends Origin** — Improved handshake compatibility
+> - 🔧 All packages bumped to v2.4.1
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -190,14 +187,16 @@ HTTP MCP requests without an `Origin` must carry a valid API key; requests with 
 }
 ```
 
-**STDIO (Alternative)**
+**STDIO (No extra bridge)**
 
 ```json
 {
   "mcpServers": {
     "chrome-mcp-stdio": {
-      "command": "node",
-      "args": ["/path/to/mcp-chrome-bridge/dist/mcp/mcp-server-stdio.js"]
+      "command": "mcp-chrome-stdio",
+      "env": {
+        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp"
+      }
     }
   }
 }

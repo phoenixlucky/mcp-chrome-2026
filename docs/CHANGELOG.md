@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.4.1] - 2026-08-25
+
+### Changed
+
+- **原生 stdio 直连（无需额外桥接器）** — `mcp-chrome-stdio` 内部使用 MCP SDK 的 Streamable HTTP 客户端，自动管理 POST、SSE 与 `sessionId` 生命周期；推荐直接使用原生 stdio，不再依赖 `mcp-bridge.js`。
+- **`MCP_SERVER_URL` / `MCP_SERVER_ORIGIN` 配置** — 新增环境变量：`MCP_SERVER_URL` 指定 stdio 客户端连接的 Streamable HTTP 端点（默认 `http://127.0.0.1:12306/mcp`）；`MCP_SERVER_ORIGIN` 自定义 Origin（默认 `chrome-extension://mcp-stdio`）。
+- **API Key 转发** — 服务启用 `CHROME_MCP_API_KEY` 时，stdio 客户端自动将该 key 作为 Bearer 转发到 HTTP 服务器。
+- 本机桥接器自动发送 Origin，握手兼容性提升。
+- 版本统一为 v2.4.1。
+
 ## [v2.4.0] - 2026-08-25
 
 ### Added

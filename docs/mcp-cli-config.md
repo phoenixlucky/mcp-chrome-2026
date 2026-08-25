@@ -47,7 +47,7 @@ Add the following to your `~/.claude/claude_desktop_config.json`:
 }
 ```
 
-### Option 2: Stdio Server (Alternative)
+### Option 2: Native Stdio Server (No extra bridge)
 
 If you prefer stdio-based MCP communication:
 
@@ -55,12 +55,16 @@ If you prefer stdio-based MCP communication:
 {
   "mcpServers": {
     "chrome-mcp": {
-      "command": "node",
-      "args": ["/path/to/mcp-chrome/dist/mcp/mcp-server-stdio.js"]
+      "command": "mcp-chrome-stdio",
+      "env": {
+        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp"
+      }
     }
   }
 }
 ```
+
+The native stdio entry point uses the MCP SDK Streamable HTTP client, so it manages POST, SSE, and `sessionId` lifecycle on behalf of the stdio client. No separate `mcp-bridge.js` is required. Add `CHROME_MCP_API_KEY` to `env` when the HTTP server is protected.
 
 ## Verifying Connection
 
@@ -104,5 +108,8 @@ If port 12306 is already in use:
 | Variable                     | Description                            | Default |
 | ---------------------------- | -------------------------------------- | ------- |
 | `MCP_HTTP_PORT`              | HTTP port for MCP server               | 12306   |
+| `MCP_SERVER_URL`             | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp` |
+| `MCP_SERVER_ORIGIN`          | Origin sent by the native stdio client | `chrome-extension://mcp-stdio` |
+| `CHROME_MCP_API_KEY`         | Bearer key forwarded to the HTTP MCP server | (none) |
 | `MCP_ALLOWED_WORKSPACE_BASE` | Additional allowed workspace directory | (none)  |
 | `CHROME_MCP_NODE_PATH`       | Override Node.js executable path       | (auto)  |

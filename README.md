@@ -26,18 +26,15 @@
 
 ---
 
-## 📢 v2.4.0 更新内容
+## 📢 v2.4.1 更新内容
 
-> **MCP 权限策略 + API Key 保护** — 安全与治理能力升级。
+> **原生 stdio 直连 + 配置增强** — 简化接入，去掉额外桥接器。
 >
-> - 🔐 **可选 API Key** — 设置 `CHROME_MCP_API_KEY` 后保护 `/mcp`、`/sse` 和 `/messages`
-> - 🛡️ **工具权限策略** — 支持工具范围限制（`CHROME_MCP_ALLOWED_TOOLS`）与高风险工具批准清单（`CHROME_MCP_REQUIRE_APPROVAL` / `CHROME_MCP_APPROVED_TOOLS`）
-> - 🧩 **Userscript 工具公开** — `chrome_userscript` 已纳入 schema、文档与工具目录
-> - 🧪 **真实 Chrome Smoke Test** — `pnpm test:chrome-smoke` 验证 Native Host → MCP → Chrome 完整链路
-> - 🧹 **架构收敛** — 删除 Web Editor v1 回滚路径，清理未公开的旧 userscript/schema 草稿
-> - 🔁 **STDIO 工具发现同步** — STDIO 代理直接镜像 HTTP 端的动态工具目录
-> - 🐛 **图片拦截误伤修复** — 图片拦截规则不再误伤正常请求，填充/查找更稳健
-> - 🔧 版本统一为 v2.4.0
+> - 🔌 **原生 `mcp-chrome-stdio` 直连** — 内部使用 MCP SDK Streamable HTTP 客户端，自动管理 POST / SSE / `sessionId` 生命周期；不再依赖 `mcp-bridge.js`
+> - ⚙️ **`MCP_SERVER_URL` / `MCP_SERVER_ORIGIN` 配置** — 自定义 stdio 连接端点与 Origin（默认 `http://127.0.0.1:12306/mcp` / `chrome-extension://mcp-stdio`）
+> - 🔑 **API Key 转发** — 服务启用 `CHROME_MCP_API_KEY` 时自动以 Bearer 转发
+> - 🌐 **本机桥接器自动发送 Origin** — 握手兼容性提升
+> - 🔧 版本统一为 v2.4.1
 > - 📚 **文档校验** — 新增 `pnpm check:tool-docs`，防止工具 schema 与 API 文档再次漂移
 > - 🔧 版本统一为 v2.3.7
 
@@ -192,18 +189,22 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 }
 ```
 
-**STDIO（备选）**
+**STDIO（无需额外桥接器）**
 
 ```json
 {
   "mcpServers": {
     "chrome-mcp-stdio": {
-      "command": "node",
-      "args": ["/path/to/mcp-chrome-bridge/dist/mcp/mcp-server-stdio.js"]
+      "command": "mcp-chrome-stdio",
+      "env": {
+        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp"
+      }
     }
   }
 }
 ```
+
+`mcp-chrome-stdio` 内部使用 MCP SDK 的 Streamable HTTP 客户端，自动管理 HTTP POST、SSE 和 `sessionId` 生命周期；因此只支持 STDIO 的客户端也不需要另装 `mcp-bridge.js`。如果服务启用了 API Key，在同一段 `env` 中加入 `CHROME_MCP_API_KEY` 即可。
 
 ---
 
