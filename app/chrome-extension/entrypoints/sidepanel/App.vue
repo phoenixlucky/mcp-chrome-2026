@@ -765,6 +765,7 @@ onUnmounted(() => {
 <style scoped>
 .sidepanel-root {
   background:
+    linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
     linear-gradient(120deg, rgba(255, 255, 255, 0.3), rgba(248, 246, 251, 0.14)),
     url('/backgrounds/catgirl-premium-portrait.webp') center top / cover no-repeat !important;
 }

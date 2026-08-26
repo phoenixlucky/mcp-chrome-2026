@@ -2677,6 +2677,7 @@ onUnmounted(() => {
   height: 100%;
   min-height: 0;
   background:
+    linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
     linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(248, 246, 251, 0.14)),
     url('../../assets/catgirl-chat-background.webp') center / cover;
   border-radius: 24px;
@@ -2689,6 +2690,7 @@ onUnmounted(() => {
 
 .popup-container--premium {
   background:
+    linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
     linear-gradient(120deg, rgba(255, 255, 255, 0.28), rgba(248, 246, 251, 0.12)),
     url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
 }
@@ -2774,7 +2776,7 @@ onUnmounted(() => {
   display: none;
 }
 .status-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.43);
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -2870,7 +2872,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 .stats-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.43);
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   padding: 16px;
@@ -3017,7 +3019,7 @@ onUnmounted(() => {
 }
 
 .model-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.43);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
@@ -3108,7 +3110,7 @@ onUnmounted(() => {
 }
 
 .config-card {
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.43);
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
@@ -3119,7 +3121,7 @@ onUnmounted(() => {
   gap: 14px;
 }
 .semantic-engine-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.43);
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -3338,6 +3340,9 @@ onUnmounted(() => {
   height: auto;
   max-height: calc(100% - 32px);
   overflow: auto;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.78)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
 }
 
 .proxy-description,
@@ -3365,6 +3370,9 @@ onUnmounted(() => {
   height: auto;
   max-height: calc(100% - 32px);
   overflow: hidden;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.78)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
 }
 
 .cookie-toolbar {
@@ -3396,7 +3404,7 @@ onUnmounted(() => {
   padding: 9px;
   border: 1px solid rgba(203, 213, 225, 0.9);
   border-radius: 8px;
-  background: rgba(248, 250, 252, 0.72);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .cookie-tab-header {
@@ -3455,7 +3463,7 @@ onUnmounted(() => {
   gap: 7px;
   padding: 5px 6px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.84);
   cursor: pointer;
 }
 
@@ -3928,7 +3936,7 @@ onUnmounted(() => {
   gap: 12px;
   justify-content: flex-start;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.43);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
   backdrop-filter: blur(12px);
@@ -4090,7 +4098,7 @@ onUnmounted(() => {
 
 /* 管理入口卡片样式 */
 .entry-card {
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.43);
   border-radius: var(--ac-radius-card, 12px);
   box-shadow: var(--ac-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.08));
   overflow: hidden;

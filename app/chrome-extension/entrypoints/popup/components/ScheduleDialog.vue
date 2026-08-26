@@ -129,7 +129,7 @@ function describe(s: any) {
   justify-content: center;
 }
 .rr-dialog {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.43);
   border-radius: 8px;
   max-width: 720px;
   width: 96vw;

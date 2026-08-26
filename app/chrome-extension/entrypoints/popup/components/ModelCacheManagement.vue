@@ -35,7 +35,9 @@
             <div class="entry-details">
               <span class="entry-size">{{ entry.sizeMB }} MB</span>
               <span class="entry-age">{{ entry.age }}</span>
-              <span v-if="entry.expired" class="entry-expired">{{ getMessage('expiredLabel') }}</span>
+              <span v-if="entry.expired" class="entry-expired">{{
+                getMessage('expiredLabel')
+              }}</span>
             </div>
           </div>
         </div>
@@ -71,7 +73,9 @@
 
       <div class="danger-button" :disabled="isManagingCache" @click="$emit('clear-all-cache')">
         <span class="stats-icon"><TrashIcon /></span>
-        <span>{{ isManagingCache ? getMessage('clearingStatus') : getMessage('clearAllCacheButton') }}</span>
+        <span>{{
+          isManagingCache ? getMessage('clearingStatus') : getMessage('clearAllCacheButton')
+        }}</span>
       </div>
     </div>
   </div>
@@ -141,7 +145,7 @@ const getModelNameFromUrl = (url: string) => {
 }
 
 .stats-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.43);
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   padding: 16px;
@@ -202,7 +206,7 @@ const getModelNameFromUrl = (url: string) => {
 }
 
 .cache-entry {
-  background: white;
+  background: rgba(255, 255, 255, 0.43);
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 12px;

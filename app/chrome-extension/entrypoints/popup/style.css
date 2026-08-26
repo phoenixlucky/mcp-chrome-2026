@@ -75,8 +75,8 @@ body {
   padding: 0;
   width: 400px;
   height: 100vh;
-  min-height: 500px;
-  max-height: 600px;
+  min-height: 540px;
+  max-height: 640px;
   overflow: hidden;
   font-family: inherit;
   background: #f3eef2;

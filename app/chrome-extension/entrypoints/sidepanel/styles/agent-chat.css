@@ -183,7 +183,7 @@
     --ac-bg-pattern-size: cover;
     --ac-header-bg: rgba(255, 247, 251, 0.92);
     --ac-header-border: #f7d9e8;
-    --ac-surface: #ffffff;
+    --ac-surface: rgba(255, 255, 255, 0.43);
     --ac-surface-muted: #fff0f7;
     --ac-surface-inset: #fce7f3;
     --ac-text: #4a2439;

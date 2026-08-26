@@ -327,8 +327,12 @@ async function openDocs(): Promise<void> {
 .welcome-root {
   min-height: 100%;
   background: var(--ac-bg);
-  background-image: url('/backgrounds/welcome-background.webp');
-  background-position: center;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
+    url('/backgrounds/welcome-background.webp');
+  background-position:
+    center,
+    30% 30%;
   background-size: cover;
   background-repeat: no-repeat;
   color: var(--ac-text);
@@ -336,13 +340,13 @@ async function openDocs(): Promise<void> {
 }
 
 .welcome-header {
-  background: var(--ac-header-bg);
+  background: color-mix(in srgb, var(--ac-header-bg) 82%, transparent);
   border-bottom: var(--ac-border-width) solid var(--ac-header-border);
   backdrop-filter: blur(8px);
 }
 
 .welcome-card {
-  background: color-mix(in srgb, var(--ac-surface) 40%, transparent);
+  background: rgba(255, 255, 255, 0.43);
   border: var(--ac-border-width) solid var(--ac-border);
   border-radius: var(--ac-radius-card);
   box-shadow: var(--ac-shadow-card);
