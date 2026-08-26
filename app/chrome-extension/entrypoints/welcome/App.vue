@@ -342,7 +342,7 @@ async function openDocs(): Promise<void> {
 }
 
 .welcome-card {
-  background: var(--ac-surface);
+  background: color-mix(in srgb, var(--ac-surface) 40%, transparent);
   border: var(--ac-border-width) solid var(--ac-border);
   border-radius: var(--ac-radius-card);
   box-shadow: var(--ac-shadow-card);
@@ -419,25 +419,25 @@ async function openDocs(): Promise<void> {
 }
 
 .welcome-command-row {
-  background: var(--ac-code-bg);
+  background: color-mix(in srgb, var(--ac-code-bg) 68%, transparent);
   border: var(--ac-border-width) solid var(--ac-code-border);
   border-radius: var(--ac-radius-inner);
 }
 
 .welcome-alt-row {
-  background: var(--ac-surface-muted);
+  background: color-mix(in srgb, var(--ac-surface-muted) 68%, transparent);
   border: var(--ac-border-width) solid var(--ac-border);
   border-radius: var(--ac-radius-inner);
 }
 
 .welcome-report-card {
-  background: var(--ac-diff-del-bg);
+  background: color-mix(in srgb, var(--ac-diff-del-bg) 72%, transparent);
   border: var(--ac-border-width) solid var(--ac-diff-del-border);
   border-radius: var(--ac-radius-inner);
 }
 
 .welcome-code-inline {
-  background: var(--ac-hover-bg-subtle);
+  background: color-mix(in srgb, var(--ac-hover-bg-subtle) 68%, transparent);
   border: var(--ac-border-width) solid var(--ac-border);
   border-radius: 6px;
 }

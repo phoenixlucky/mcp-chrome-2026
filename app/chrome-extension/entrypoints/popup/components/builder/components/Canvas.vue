@@ -260,7 +260,7 @@ defineExpose({ zoomIn, zoomOut, fitAll });
   overflow: hidden;
   background:
     linear-gradient(120deg, rgba(255, 255, 255, 0.72), rgba(244, 238, 248, 0.58)),
-    url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
   /* Ensure VueFlow gets a non-zero layout size */
   width: 100%;
   height: 100%;

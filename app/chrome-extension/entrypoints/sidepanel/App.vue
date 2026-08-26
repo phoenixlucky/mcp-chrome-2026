@@ -1,5 +1,8 @@
 <template>
-  <div class="h-full w-full bg-slate-50 relative agent-theme" :data-agent-theme="currentTheme">
+  <div
+    class="sidepanel-root h-full w-full bg-slate-50 relative agent-theme"
+    :data-agent-theme="currentTheme"
+  >
     <!-- Sidepanel Navigator - only show on workflows/element-markers pages -->
     <SidepanelNavigator
       v-if="activeTab !== 'agent-chat'"
@@ -760,6 +763,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.sidepanel-root {
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.3), rgba(248, 246, 251, 0.14)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover no-repeat !important;
+}
+
+.sidepanel-root :deep(.agent-theme) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 /* reuse popup styles; only tune list item spacing for sidepanel width */
 .rr-item {
   margin-bottom: 8px;

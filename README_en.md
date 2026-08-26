@@ -26,13 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.4.3
+## 📢 What's New in v2.4.4
 
-> **Catgirl theme refresh + smoother installs** — New icons & backgrounds, dependency upgrade with no source builds.
+> **Theme backgrounds everywhere** — The new portrait art now spans Popup / Sidepanel / Welcome / Builder.
 >
-> - 🎨 **Full theme asset update** — All extension icons (16–128px), chat background and premium portrait replaced with new artwork; dedicated Welcome background added with a full-bleed cover layout
-> - 📦 **`better-sqlite3` upgraded to v13** — N-API prebuilt binaries, no source compilation or Node headers download at install time; `--allow-scripts` whitelist trimmed accordingly
-> - 🔧 All packages bumped to v2.4.3
+> - 🎨 **Premium background on Popup sub-pages** — MCP tools & local model pages layer the catgirl portrait with translucent glassmorphism cards
+> - 🖼️ **Sidepanel full-bleed background** — The side panel now shows the premium portrait cover with theme backgrounds stepped aside
+> - 💎 **Welcome translucent cards** — Cards & command rows switch to `color-mix` translucent materials blended into the cover background
+> - 📐 **Composition fixes** — Builder canvas & popup home backgrounds repositioned to `center top` so heads are no longer cropped
+> - 🔧 All packages bumped to v2.4.4
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

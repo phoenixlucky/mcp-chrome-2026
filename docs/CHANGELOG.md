@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.4.4] - 2026-08-26
+
+### Changed
+
+- **新主题背景多页面适配** — Popup 非首页视图（MCP 工具页 / 本地模型页）应用猫娘高级立绘背景并叠加半透明毛玻璃卡片；Sidepanel 侧边栏启用全幅猫娘背景；Welcome 页卡片与命令行区块改为半透明 `color-mix` 材质，与封面背景融合；Builder Canvas 与 Popup 首页背景构图修正为 `center top`，头部视觉不被裁切；Popup 首页主卡背景改用聊天背景图，与侧边栏区分。
+- 版本统一为 v2.4.4。
+
 ## [v2.4.3] - 2026-08-26
 
 ### Added

@@ -1,5 +1,12 @@
 <template>
-  <div class="popup-container agent-theme" :data-agent-theme="agentTheme">
+  <div
+    :class="[
+      'popup-container',
+      'agent-theme',
+      { 'popup-container--premium': currentView !== 'home' },
+    ]"
+    :data-agent-theme="agentTheme"
+  >
     <!-- 首页 -->
     <div v-show="currentView === 'home'" class="home-view">
       <div class="header">
@@ -1922,7 +1929,6 @@ const initializeSemanticEngine = async () => {
   await saveSemanticEngineState();
 
   try {
-
     chrome.runtime
       .sendMessage({
         type: BACKGROUND_MESSAGE_TYPES.INITIALIZE_SEMANTIC_ENGINE,
@@ -1955,7 +1961,6 @@ const initializeSemanticEngine = async () => {
 
 const checkSemanticEngineStatus = async () => {
   try {
-
     const response = await chrome.runtime.sendMessage({
       type: BACKGROUND_MESSAGE_TYPES.GET_MODEL_STATUS,
     });
@@ -2033,7 +2038,6 @@ const updatePort = async (event: Event) => {
 
 const checkNativeConnection = async () => {
   try {
-
     const response = await chrome.runtime.sendMessage({ type: 'ping_native' });
     nativeConnectionStatus.value = response?.connected ? 'connected' : 'disconnected';
   } catch (error) {
@@ -2044,7 +2048,6 @@ const checkNativeConnection = async () => {
 
 const checkServerStatus = async () => {
   try {
-
     const response = await chrome.runtime.sendMessage({
       type: BACKGROUND_MESSAGE_TYPES.GET_SERVER_STATUS,
     });
@@ -2063,7 +2066,6 @@ const checkServerStatus = async () => {
 
 const refreshServerStatus = async () => {
   try {
-
     const response = await chrome.runtime.sendMessage({
       type: BACKGROUND_MESSAGE_TYPES.REFRESH_SERVER_STATUS,
     });
@@ -2135,7 +2137,6 @@ const testNativeConnection = async () => {
   isConnecting.value = true;
   try {
     if (nativeConnectionStatus.value === 'connected') {
-
       await chrome.runtime.sendMessage({ type: 'disconnect_native' });
       nativeConnectionStatus.value = 'disconnected';
     } else {
@@ -2164,7 +2165,6 @@ const testNativeConnection = async () => {
 
 const loadModelPreference = async () => {
   try {
-
     const result = await chrome.storage.local.get([
       'selectedModel',
       'selectedVersion',
@@ -2238,7 +2238,6 @@ const loadModelPreference = async () => {
 
 const saveModelPreference = async (model: ModelPreset) => {
   try {
-
     await chrome.storage.local.set({ selectedModel: model });
   } catch (error) {
     console.error('保存模型偏好失败:', error);
@@ -2247,7 +2246,6 @@ const saveModelPreference = async (model: ModelPreset) => {
 
 const saveVersionPreference = async (version: 'full' | 'quantized' | 'compressed') => {
   try {
-
     await chrome.storage.local.set({ selectedVersion: version });
   } catch (error) {
     console.error('保存版本偏好失败:', error);
@@ -2256,7 +2254,6 @@ const saveVersionPreference = async (version: 'full' | 'quantized' | 'compressed
 
 const savePortPreference = async (port: number) => {
   try {
-
     await chrome.storage.local.set({ nativeServerPort: port });
     console.log(`端口偏好已保存: ${port}`);
   } catch (error) {
@@ -2266,7 +2263,6 @@ const savePortPreference = async (port: number) => {
 
 const loadPortPreference = async () => {
   try {
-
     const result = await chrome.storage.local.get(['nativeServerPort']);
     if (result.nativeServerPort) {
       nativeServerPort.value = result.nativeServerPort;
@@ -2335,7 +2331,6 @@ const startModelStatusMonitoring = () => {
 
   statusMonitoringInterval = setInterval(async () => {
     try {
-
       const response = await chrome.runtime.sendMessage({
         type: 'get_model_status',
       });
@@ -2401,7 +2396,6 @@ const refreshStorageStats = async () => {
   try {
     console.log('🔄 Refreshing storage statistics...');
 
-
     const response = await chrome.runtime.sendMessage({
       type: 'get_storage_stats',
     });
@@ -2451,7 +2445,6 @@ const confirmClearAllData = async () => {
 
   try {
     console.log('🗑️ Starting to clear all data...');
-
 
     const response = await chrome.runtime.sendMessage({
       type: 'clear_all_data',
@@ -2534,7 +2527,6 @@ const switchModel = async (newModel: ModelPreset) => {
 
     startModelStatusMonitoring();
 
-
     const response = await chrome.runtime.sendMessage({
       type: 'switch_semantic_model',
       modelPreset: newModel,
@@ -2602,7 +2594,6 @@ const switchModel = async (newModel: ModelPreset) => {
 };
 
 const setupServerStatusListener = () => {
-
   const onMessage = (message: { type?: string; payload?: unknown }) => {
     // Server status changes
     if (message.type === BACKGROUND_MESSAGE_TYPES.SERVER_STATUS_CHANGED && message.payload) {
@@ -2687,13 +2678,29 @@ onUnmounted(() => {
   min-height: 0;
   background:
     linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(248, 246, 251, 0.14)),
-    url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
+    url('../../assets/catgirl-chat-background.webp') center / cover;
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.popup-container--premium {
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.28), rgba(248, 246, 251, 0.12)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
+}
+
+.popup-container--premium :deep(.mcp-tools-page) {
+  background: rgba(253, 252, 248, 0.62) !important;
+}
+
+.popup-container--premium :deep(.local-model-page .page-header),
+.popup-container--premium :deep(.mcp-tools-page .page-header) {
+  background: rgba(255, 255, 255, 0.76) !important;
+  backdrop-filter: blur(10px);
 }
 
 .header {
@@ -3290,7 +3297,7 @@ onUnmounted(() => {
   border-radius: 12px;
   background:
     linear-gradient(120deg, rgba(255, 255, 255, 0.42), rgba(246, 243, 250, 0.2)),
-    url('/backgrounds/catgirl-premium-portrait.webp') center / cover;
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
   backdrop-filter: blur(16px);
 }
