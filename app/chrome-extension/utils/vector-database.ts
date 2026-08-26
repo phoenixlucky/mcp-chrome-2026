@@ -4,7 +4,7 @@
  * Implements singleton pattern to avoid duplicate WASM module initialization
  */
 
-import { loadHnswlib } from 'hnswlib-wasm-static';
+import { loadHnswlib, waitForFileSystemSynced } from 'hnswlib-wasm-static';
 import type { TextChunk } from './text-chunker';
 
 export interface VectorDocument {
@@ -51,10 +51,22 @@ function queueFileSystemSync(direction: 'read' | 'write'): Promise<void> {
       }, 5000);
 
       try {
-        globalHnswlib.EmscriptenFileSystemManager.syncFS(direction === 'read', () => {
+        // The callback is the IDBFS completion signal. The returned Promise may
+        // resolve when the request is dispatched, before FS.syncfs has finished.
+        const syncPromise = globalHnswlib.EmscriptenFileSystemManager.syncFS(
+          direction === 'read',
+          () => {
+            clearTimeout(timeout);
+            console.log(`VectorDatabase: Filesystem sync (${direction}) completed`);
+            resolve();
+          },
+        );
+
+        // Still observe rejected promises so a synchronous/API-level failure
+        // cannot leave the queue waiting forever.
+        Promise.resolve(syncPromise).catch((error) => {
           clearTimeout(timeout);
-          console.log(`VectorDatabase: Filesystem sync (${direction}) completed`);
-          resolve();
+          reject(error);
         });
       } catch (error) {
         clearTimeout(timeout);
@@ -206,6 +218,9 @@ async function initializeGlobalHnswlib(): Promise<any> {
     try {
       console.log('VectorDatabase: Initializing global hnswlib-wasm instance...');
       globalHnswlib = await loadHnswlib();
+      // loadHnswlib mounts IDBFS before its initial sync has necessarily finished.
+      // Wait for that operation instead of starting a second sync during database init.
+      await waitForFileSystemSynced();
       globalHnswlibInitialized = true;
       console.log('VectorDatabase: Global hnswlib-wasm instance initialized successfully');
       return globalHnswlib;
@@ -282,8 +297,6 @@ export class VectorDatabase {
         this.config.dimension,
         this.config.indexFileName,
       );
-
-      await this.syncFileSystem('read');
 
       const indexExists = hnswlib.EmscriptenFileSystemManager.checkFileExists(
         this.config.indexFileName,
