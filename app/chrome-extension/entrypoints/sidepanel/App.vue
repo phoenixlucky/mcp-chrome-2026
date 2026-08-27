@@ -1,6 +1,9 @@
 <template>
   <div
-    class="sidepanel-root h-full w-full bg-slate-50 relative agent-theme"
+    :class="[
+      'sidepanel-root h-full w-full bg-slate-50 relative agent-theme',
+      { 'sidepanel-root--unlocked': hiddenInterfaceUnlocked },
+    ]"
     :data-agent-theme="currentTheme"
   >
     <!-- Sidepanel Navigator - only show on workflows/element-markers pages -->
@@ -292,6 +295,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, onUnmounted, watch } from 'vue';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
+import { STORAGE_KEYS } from '@/common/constants';
 import type { ElementMarker, UpsertMarkerRequest } from '@/common/element-marker-types';
 import AgentChat from './components/AgentChat.vue';
 import SidepanelNavigator from './components/SidepanelNavigator.vue';
@@ -301,6 +305,14 @@ import { useWorkflowsV3, type FlowLite } from './composables/useWorkflowsV3';
 
 // Agent theme for consistent styling
 const { theme: currentTheme, initTheme } = useAgentTheme();
+const hiddenInterfaceUnlocked = ref(false);
+
+async function loadHiddenInterfaceState() {
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED);
+    hiddenInterfaceUnlocked.value = stored[STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED] === true;
+  } catch {}
+}
 
 // Tab state - default to AgentChat
 const activeTab = ref<'workflows' | 'element-markers' | 'agent-chat'>('agent-chat');
@@ -725,6 +737,7 @@ watch(markerSearch, (query) => {
 });
 
 onMounted(async () => {
+  await loadHiddenInterfaceState();
   // Initialize theme
   await initTheme();
 
@@ -764,6 +777,11 @@ onUnmounted(() => {
 
 <style scoped>
 .sidepanel-root {
+  background: var(--ac-bg, #f8fafc) !important;
+  background-image: none !important;
+}
+
+.sidepanel-root--unlocked {
   background:
     linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
     linear-gradient(120deg, rgba(255, 255, 255, 0.3), rgba(248, 246, 251, 0.14)),

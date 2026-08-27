@@ -255,6 +255,7 @@ export const STORAGE_KEYS = {
   PROXY_SESSION_IDS: 'proxySessionIds',
   PROXY_TEST_RESULT: 'proxyTestResult',
   WEB_EDITOR_SEND_SCROLL_COORDINATES: 'webEditorSendScrollCoordinates',
+  HIDDEN_INTERFACE_UNLOCKED: 'hiddenInterfaceUnlocked',
   // Record & Replay storage keys
   RR_FLOWS: 'rr_flows',
   RR_RUNS: 'rr_runs',

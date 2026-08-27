@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { LINKS, NATIVE_HOST } from '@/common/constants';
+import { computed, onMounted, ref } from 'vue';
+import { LINKS, NATIVE_HOST, STORAGE_KEYS } from '@/common/constants';
 
 import {
   applyLocale,
@@ -29,6 +29,14 @@ type CommandKey = keyof typeof COMMANDS;
 // ==================== i18n ====================
 
 const locale = ref<Locale>(detectDefaultLocale());
+const hiddenInterfaceUnlocked = ref(false);
+
+onMounted(async () => {
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED);
+    hiddenInterfaceUnlocked.value = stored[STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED] === true;
+  } catch {}
+});
 
 const isChinese = computed(() => locale.value === 'zh');
 
@@ -86,7 +94,9 @@ async function openDocs(): Promise<void> {
 </script>
 
 <template>
-  <div class="agent-theme welcome-root">
+  <div
+    :class="['agent-theme', 'welcome-root', { 'welcome-root--unlocked': hiddenInterfaceUnlocked }]"
+  >
     <div class="min-h-screen flex flex-col">
       <header class="welcome-header flex-none px-6 py-5">
         <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
@@ -327,6 +337,16 @@ async function openDocs(): Promise<void> {
 .welcome-root {
   min-height: 100%;
   background: var(--ac-bg);
+  color: var(--ac-text);
+  font-family: var(--ac-font-body);
+}
+
+.welcome-root:not(.welcome-root--unlocked) {
+  background-image: none !important;
+  --ac-bg-pattern: none !important;
+}
+
+.welcome-root--unlocked {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
     url('/backgrounds/welcome-background.webp');
@@ -335,8 +355,6 @@ async function openDocs(): Promise<void> {
     30% 30%;
   background-size: cover;
   background-repeat: no-repeat;
-  color: var(--ac-text);
-  font-family: var(--ac-font-body);
 }
 
 .welcome-header {

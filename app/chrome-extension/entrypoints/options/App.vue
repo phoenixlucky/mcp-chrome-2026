@@ -10,7 +10,7 @@
       </div>
     </header>
 
-    <section class="proxy">
+    <section v-if="hiddenInterfaceUnlocked" class="proxy">
       <h2>住宅代理</h2>
       <p class="description"
         >反向入口 <code>pr.oxylabs.io:7777</code> 在用户名中使用
@@ -267,6 +267,7 @@ type ListItem = {
 };
 
 const emergencyDisabled = ref(false);
+const hiddenInterfaceUnlocked = ref(false);
 const items = ref<ListItem[]>([]);
 const filters = ref({ query: '', status: '', domain: '' });
 const proxy = reactive({
@@ -356,6 +357,13 @@ async function saveProxy() {
 async function loadEmergency() {
   const v = await globalThis.chrome?.storage?.local.get([STORAGE_KEYS.USERSCRIPTS_DISABLED] as any);
   emergencyDisabled.value = !!v[STORAGE_KEYS.USERSCRIPTS_DISABLED];
+}
+
+async function loadHiddenInterfaceState() {
+  const stored = await globalThis.chrome?.storage?.local.get(
+    STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED,
+  );
+  hiddenInterfaceUnlocked.value = stored?.[STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED] === true;
 }
 
 async function callTool(name: string, args: any) {
@@ -453,6 +461,7 @@ async function exportAll() {
 
 onMounted(async () => {
   await loadEmergency();
+  await loadHiddenInterfaceState();
   await loadProxy();
   await reload();
 });

@@ -1,5 +1,7 @@
 <template>
-  <section class="canvas rr-dot-grid">
+  <section
+    :class="['canvas', { 'canvas--unlocked': showBackground, 'rr-dot-grid': showBackground }]"
+  >
     <VueFlow
       v-model:nodes="vfNodes"
       v-model:edges="vfEdges"
@@ -16,7 +18,12 @@
       @pane-click="onPaneClick"
       @edge-click="onEdgeClick"
     >
-      <Background patternColor="#cdcdcd" :gap="32" pattern-class="canvas-pattern" />
+      <Background
+        v-if="showBackground"
+        patternColor="#cdcdcd"
+        :gap="32"
+        pattern-class="canvas-pattern"
+      />
     </VueFlow>
   </section>
 </template>
@@ -51,6 +58,7 @@ const props = defineProps<{
   nodeErrors?: Record<string, string[]>;
   focusNodeId?: string | null;
   fitSeq?: number;
+  showBackground?: boolean;
 }>();
 const emit = defineEmits<{
   (e: 'selectNode', id: string | null): void;
@@ -258,12 +266,16 @@ defineExpose({ zoomIn, zoomOut, fitAll });
 .canvas {
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.72), rgba(244, 238, 248, 0.58)),
-    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
+  background: var(--rr-bg, #ffffff);
   /* Ensure VueFlow gets a non-zero layout size */
   width: 100%;
   height: 100%;
+}
+
+.canvas--unlocked {
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.72), rgba(244, 238, 248, 0.58)),
+    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
 }
 
 :deep(.workflow-node) {

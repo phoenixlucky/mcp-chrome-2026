@@ -26,15 +26,15 @@
 
 ---
 
-## 📢 What's New in v2.4.4
+## 📢 What's New in v2.4.10
 
-> **Theme backgrounds everywhere** — The new portrait art now spans Popup / Sidepanel / Welcome / Builder.
+> **Theme visual upgrade + vector DB / indexer stability** — Looks and reliability, together.
 >
-> - 🎨 **Premium background on Popup sub-pages** — MCP tools & local model pages layer the catgirl portrait with translucent glassmorphism cards
-> - 🖼️ **Sidepanel full-bleed background** — The side panel now shows the premium portrait cover with theme backgrounds stepped aside
-> - 💎 **Welcome translucent cards** — Cards & command rows switch to `color-mix` translucent materials blended into the cover background
-> - 📐 **Composition fixes** — Builder canvas & popup home backgrounds repositioned to `center top` so heads are no longer cropped
-> - 🔧 All packages bumped to v2.4.4
+> - 🎨 **App-wide portrait backgrounds** — Popup / Sidepanel / Welcome / Builder cards turn translucent and blend into the art (`color-mix` glassmorphism, `center top` composition fix)
+> - 💾 **IDBFS sync race fix** — Waits for the sync callback to finish, eliminating vector-DB sync races
+> - 🧵 **Per-tab content index dedup** — Reuses in-flight indexing promises per tab, no duplicate concurrent indexing
+> - 🗄️ **better-sqlite3 upgraded to ^13** — N-API prebuilt binaries, no source compilation on install
+> - 🔧 All packages bumped to v2.4.10
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

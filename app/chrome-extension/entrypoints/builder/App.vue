@@ -13,6 +13,7 @@
         :node-errors="nodeErrors"
         :focus-node-id="focusNodeId"
         :fit-seq="fitSeq"
+        :show-background="hiddenInterfaceUnlocked"
         @select-node="store.selectNode"
         @select-edge="store.selectEdge"
         @duplicate-node="store.duplicateNode"
@@ -318,6 +319,7 @@ import {
 } from '@/entrypoints/shared/utils';
 
 import { useBuilderStore } from '@/entrypoints/popup/components/builder/store/useBuilderStore';
+import { STORAGE_KEYS } from '@/common/constants';
 import { validateFlow } from '@/entrypoints/popup/components/builder/model/validation';
 import Canvas from '@/entrypoints/popup/components/builder/components/Canvas.vue';
 import Sidebar from '@/entrypoints/popup/components/builder/components/Sidebar.vue';
@@ -430,6 +432,14 @@ function toggleTheme() {
   } catch {}
 }
 const store = useBuilderStore();
+const hiddenInterfaceUnlocked = ref(false);
+
+async function loadHiddenInterfaceState() {
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED);
+    hiddenInterfaceUnlocked.value = stored[STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED] === true;
+  } catch {}
+}
 
 // V3 RPC client
 const rpc = useRRV3Rpc({
@@ -1045,6 +1055,7 @@ function onKey(e: KeyboardEvent) {
 }
 onMounted(() => {
   document.addEventListener('keydown', onKey);
+  void loadHiddenInterfaceState();
   bootstrap();
 });
 onUnmounted(() => document.removeEventListener('keydown', onKey));

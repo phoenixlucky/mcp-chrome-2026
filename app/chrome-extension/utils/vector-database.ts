@@ -38,46 +38,45 @@ let globalHnswlib: any = null;
 let globalHnswlibInitPromise: Promise<any> | null = null;
 let globalHnswlibInitialized = false;
 
-let fileSystemSyncQueue: Promise<void> = Promise.resolve();
+let fileSystemOperationQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Serialize every operation that can start an IDBFS sync.
+ *
+ * hnswlib-wasm's writeIndex() starts syncFS(false) internally and returns
+ * before IDBFS has finished. Therefore the queue must cover writeIndex itself,
+ * not only explicit syncFS calls.
+ */
+function queueFileSystemOperation(operation: () => Promise<void>): Promise<void> {
+  const queuedOperation = fileSystemOperationQueue.then(operation);
+
+  // Continue accepting work after a failed operation while preserving ordering.
+  fileSystemOperationQueue = queuedOperation.catch(() => undefined);
+  return queuedOperation;
+}
 
 function queueFileSystemSync(direction: 'read' | 'write'): Promise<void> {
-  const operation: Promise<void> = fileSystemSyncQueue.then(() => {
+  return queueFileSystemOperation(async () => {
     if (!globalHnswlib) return;
 
-    return new Promise<void>((resolve, reject) => {
-      // A timeout may report a slow sync, but must not release the queue early.
-      const timeout = setTimeout(() => {
-        console.warn(`VectorDatabase: Filesystem sync (${direction}) is still pending`);
-      }, 5000);
+    const syncPromise = globalHnswlib.EmscriptenFileSystemManager.syncFS(
+      direction === 'read',
+      () => undefined,
+    );
 
-      try {
-        // The callback is the IDBFS completion signal. The returned Promise may
-        // resolve when the request is dispatched, before FS.syncfs has finished.
-        const syncPromise = globalHnswlib.EmscriptenFileSystemManager.syncFS(
-          direction === 'read',
-          () => {
-            clearTimeout(timeout);
-            console.log(`VectorDatabase: Filesystem sync (${direction}) completed`);
-            resolve();
-          },
-        );
-
-        // Still observe rejected promises so a synchronous/API-level failure
-        // cannot leave the queue waiting forever.
-        Promise.resolve(syncPromise).catch((error) => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-      } catch (error) {
-        clearTimeout(timeout);
-        reject(error);
-      }
-    });
+    // The embind Promise only covers dispatch. The package's synced flag is
+    // updated after the IDBFS callback completes.
+    await Promise.resolve(syncPromise);
+    await waitForFileSystemSynced();
+    console.log(`VectorDatabase: Filesystem sync (${direction}) completed`);
   });
+}
 
-  // Continue the queue after a failure, but never overlap the failed operation.
-  fileSystemSyncQueue = operation.catch(() => undefined);
-  return operation;
+function queueIndexWrite(index: any, indexFileName: string): Promise<void> {
+  return queueFileSystemOperation(async () => {
+    await index.writeIndex(indexFileName);
+    await waitForFileSystemSynced();
+  });
 }
 
 const DB_NAME = 'VectorDatabaseStorage';
@@ -295,7 +294,9 @@ export class VectorDatabase {
       this.index = new hnswlib.HierarchicalNSW(
         'cosine',
         this.config.dimension,
-        this.config.indexFileName,
+        // Disable hnswlib-wasm's per-add auto-save. It starts an unawaitable
+        // IDBFS sync for every vector; persistence is explicit and queued below.
+        '',
       );
 
       const indexExists = hnswlib.EmscriptenFileSystemManager.checkFileExists(
@@ -961,8 +962,7 @@ export class VectorDatabase {
    */
   private async forceSaveIndex(): Promise<void> {
     try {
-      await this.index.writeIndex(this.config.indexFileName);
-      await this.syncFileSystem('write'); // Force sync
+      await queueIndexWrite(this.index, this.config.indexFileName);
     } catch (error) {
       console.error('VectorDatabase: Failed to force save index:', error);
     }
@@ -1127,12 +1127,7 @@ export class VectorDatabase {
 
   private async saveIndex(): Promise<void> {
     try {
-      await this.index.writeIndex(this.config.indexFileName);
-      // Reduce sync frequency, only sync when necessary
-      if (this.documents.size % 10 === 0) {
-        // Sync every 10 documents
-        await this.syncFileSystem('write');
-      }
+      await queueIndexWrite(this.index, this.config.indexFileName);
     } catch (error) {
       console.error('VectorDatabase: Failed to save index:', error);
     }

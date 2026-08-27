@@ -3,7 +3,10 @@
     :class="[
       'popup-container',
       'agent-theme',
-      { 'popup-container--premium': currentView !== 'home' },
+      {
+        'popup-container--premium': currentView !== 'home',
+        'popup-container--unlocked': hiddenInterfaceUnlocked,
+      },
     ]"
     :data-agent-theme="agentTheme"
   >
@@ -142,48 +145,57 @@
                 @change="saveBackgroundOperations"
               />
             </label>
-            <label class="background-operations-switch">
-              <span>
-                <strong>发送滚动坐标</strong>
-                <small>在页面编辑器左下角悬浮窗显示页面 X/Y 坐标</small>
-              </span>
-              <input
-                v-model="sendScrollCoordinates"
-                type="checkbox"
-                @change="saveScrollCoordinatesSetting"
-              />
-            </label>
-            <label class="background-operations-switch">
-              <span>
-                <strong>住宅代理</strong>
-                <small>{{
-                  proxy.enabled ? '已启用，当前 Chrome 配置文件流量将走代理' : '已关闭'
-                }}</small>
-              </span>
-              <input
-                :checked="proxy.enabled"
-                :disabled="proxySaving"
-                type="checkbox"
-                @change="toggleProxy"
-              />
-            </label>
-            <p v-if="proxyQuickResult" class="proxy-quick-result">{{ proxyQuickResult }}</p>
-            <div class="proxy-quick-actions">
-              <button
-                class="copy-config-button"
-                type="button"
-                :disabled="!proxy.enabled || proxySaving"
-                @click="rotateCurrentProxy"
-              >
-                {{ proxySaving ? '正在处理…' : '手动切换当前页 IP' }}
-              </button>
-            </div>
+            <template v-if="hiddenInterfaceUnlocked">
+              <label class="background-operations-switch">
+                <span>
+                  <strong>发送滚动坐标</strong>
+                  <small>在页面编辑器左下角悬浮窗显示页面 X/Y 坐标</small>
+                </span>
+                <input
+                  v-model="sendScrollCoordinates"
+                  type="checkbox"
+                  @change="saveScrollCoordinatesSetting"
+                />
+              </label>
+              <label class="background-operations-switch">
+                <span>
+                  <strong>住宅代理</strong>
+                  <small>{{
+                    proxy.enabled ? '已启用，当前 Chrome 配置文件流量将走代理' : '已关闭'
+                  }}</small>
+                </span>
+                <input
+                  :checked="proxy.enabled"
+                  :disabled="proxySaving"
+                  type="checkbox"
+                  @change="toggleProxy"
+                />
+              </label>
+              <p v-if="proxyQuickResult" class="proxy-quick-result">{{ proxyQuickResult }}</p>
+              <div class="proxy-quick-actions">
+                <button
+                  class="copy-config-button"
+                  type="button"
+                  :disabled="!proxy.enabled || proxySaving"
+                  @click="rotateCurrentProxy"
+                >
+                  {{ proxySaving ? '正在处理…' : '手动切换当前页 IP' }}
+                </button>
+              </div>
+            </template>
           </div>
         </div>
 
         <!-- 快捷工具卡片 -->
         <div class="section">
-          <h2 class="section-title">快捷工具</h2>
+          <button
+            type="button"
+            class="section-title quick-tools-unlock-trigger"
+            aria-label="快捷工具"
+            @click="handleQuickToolsClick"
+          >
+            快捷工具
+          </button>
           <div class="rr-icon-buttons">
             <button
               class="rr-icon-btn rr-icon-btn-edit has-tooltip"
@@ -246,7 +258,7 @@
         </div>
 
         <!-- 管理入口卡片 -->
-        <div class="section">
+        <div v-if="hiddenInterfaceUnlocked" class="section">
           <h2 class="section-title">管理入口</h2>
           <div class="entry-card">
             <button class="entry-item" @click="openAgentSidepanel">
@@ -508,7 +520,7 @@
         </div>
       </div>
 
-      <div class="footer">
+      <div v-if="hiddenInterfaceUnlocked" class="footer">
         <div class="footer-links">
           <button class="footer-link" @click="openWelcomePage" title="View installation guide">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,7 +570,11 @@
       </section>
     </div>
 
-    <div v-if="showProxyModal" class="error-log-modal" @click.self="showProxyModal = false">
+    <div
+      v-if="hiddenInterfaceUnlocked && showProxyModal"
+      class="error-log-modal"
+      @click.self="showProxyModal = false"
+    >
       <section
         class="error-log-dialog proxy-dialog"
         role="dialog"
@@ -668,7 +684,38 @@
       </section>
     </div>
 
-    <div v-if="showCookieModal" class="error-log-modal" @click.self="showCookieModal = false">
+    <div v-if="showUnlockPrompt" class="error-log-modal" @click.self="closeUnlockPrompt">
+      <section
+        class="error-log-dialog unlock-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="unlock-dialog-title"
+      >
+        <header class="error-log-header">
+          <strong id="unlock-dialog-title">开启隐藏入口</strong>
+          <button class="copy-config-button" type="button" @click="closeUnlockPrompt">取消</button>
+        </header>
+        <p class="unlock-description">请输入授权口令以永久显示高级入口和背景。</p>
+        <form class="unlock-form" @submit.prevent="unlockHiddenInterface">
+          <input
+            v-model="unlockPhrase"
+            type="text"
+            autocomplete="off"
+            autofocus
+            placeholder="请输入口令"
+            aria-label="授权口令"
+          />
+          <button class="copy-config-button unlock-submit" type="submit">确认开启</button>
+        </form>
+        <p v-if="unlockError" class="unlock-error" role="alert">{{ unlockError }}</p>
+      </section>
+    </div>
+
+    <div
+      v-if="hiddenInterfaceUnlocked && showCookieModal"
+      class="error-log-modal"
+      @click.self="showCookieModal = false"
+    >
       <section
         class="error-log-dialog cookie-dialog"
         role="dialog"
@@ -787,7 +834,7 @@
     </div>
 
     <div
-      v-if="showRecentRecordedScripts"
+      v-if="hiddenInterfaceUnlocked && showRecentRecordedScripts"
       class="error-log-modal"
       @click.self="showRecentRecordedScripts = false"
     >
@@ -944,6 +991,56 @@ const rrRpc = useRRV3Rpc();
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
 const homeContentRef = ref<HTMLElement | null>(null);
 let preservedHomeScrollTop = 0;
+
+const UNLOCK_CLICK_LIMIT = 5;
+const UNLOCK_PHRASES = new Set(['我付费了', '我是开发者']);
+const hiddenInterfaceUnlocked = ref(false);
+const quickToolsClickCount = ref(0);
+const showUnlockPrompt = ref(false);
+const unlockPhrase = ref('');
+const unlockError = ref('');
+
+async function loadHiddenInterfaceState() {
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED);
+    hiddenInterfaceUnlocked.value = stored[STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED] === true;
+  } catch (error) {
+    console.warn('加载隐藏界面状态失败:', error);
+  }
+}
+
+function handleQuickToolsClick() {
+  if (hiddenInterfaceUnlocked.value) return;
+  quickToolsClickCount.value += 1;
+  if (quickToolsClickCount.value < UNLOCK_CLICK_LIMIT) return;
+
+  quickToolsClickCount.value = 0;
+  unlockPhrase.value = '';
+  unlockError.value = '';
+  showUnlockPrompt.value = true;
+}
+
+function closeUnlockPrompt() {
+  showUnlockPrompt.value = false;
+  unlockPhrase.value = '';
+  unlockError.value = '';
+}
+
+async function unlockHiddenInterface() {
+  if (!UNLOCK_PHRASES.has(unlockPhrase.value.trim())) {
+    unlockError.value = '口令不正确，请重试。';
+    return;
+  }
+
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED]: true });
+    hiddenInterfaceUnlocked.value = true;
+    closeUnlockPrompt();
+  } catch (error) {
+    console.warn('保存隐藏界面状态失败:', error);
+    unlockError.value = '开启失败，请稍后重试。';
+  }
+}
 
 onBeforeUpdate(() => {
   const content = homeContentRef.value;
@@ -2612,6 +2709,7 @@ const setupServerStatusListener = () => {
 };
 
 onMounted(async () => {
+  await loadHiddenInterfaceState();
   // 初始化主题
   await initTheme();
   await loadPortPreference();
@@ -2676,10 +2774,7 @@ onUnmounted(() => {
   position: relative;
   height: 100%;
   min-height: 0;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
-    linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(248, 246, 251, 0.14)),
-    url('../../assets/catgirl-chat-background.webp') center / cover;
+  background: var(--ac-bg, #f8fafc);
   border-radius: 24px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
@@ -2689,10 +2784,26 @@ onUnmounted(() => {
 }
 
 .popup-container--premium {
+  background: var(--ac-bg, #f8fafc);
+}
+
+.popup-container--unlocked {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(248, 246, 251, 0.14)),
+    url('../../assets/catgirl-chat-background.webp') center / cover;
+}
+
+.popup-container--unlocked.popup-container--premium {
   background:
     linear-gradient(rgba(255, 255, 255, 0.43), rgba(255, 255, 255, 0.43)),
     linear-gradient(120deg, rgba(255, 255, 255, 0.28), rgba(248, 246, 251, 0.12)),
     url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
+}
+
+.popup-container:not(.popup-container--unlocked) {
+  background-image: none !important;
+  --ac-bg-pattern: none !important;
 }
 
 .popup-container--premium :deep(.mcp-tools-page) {
@@ -3297,9 +3408,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 14px;
   border-radius: 12px;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.42), rgba(246, 243, 250, 0.2)),
-    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
+  background: var(--ac-surface, #ffffff);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
   backdrop-filter: blur(16px);
 }
@@ -3340,9 +3449,7 @@ onUnmounted(() => {
   height: auto;
   max-height: calc(100% - 32px);
   overflow: auto;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.78)),
-    url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
+  background: var(--ac-surface, #ffffff);
 }
 
 .proxy-description,
@@ -3370,9 +3477,63 @@ onUnmounted(() => {
   height: auto;
   max-height: calc(100% - 32px);
   overflow: hidden;
+  background: var(--ac-surface, #ffffff);
+}
+
+.popup-container--unlocked .error-log-dialog,
+.popup-container--unlocked .proxy-dialog,
+.popup-container--unlocked .cookie-dialog {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.78)),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.42), rgba(246, 243, 250, 0.2)),
     url('/backgrounds/catgirl-premium-portrait.webp') center top / cover;
+}
+
+.quick-tools-unlock-trigger {
+  display: block;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-tools-unlock-trigger:focus-visible {
+  outline: 2px solid var(--ac-accent, #d97757);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.unlock-dialog {
+  height: auto;
+  max-width: 360px;
+}
+
+.unlock-description {
+  margin: 0;
+  color: var(--ac-text-muted, #6e6e6e);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.unlock-form {
+  display: flex;
+  gap: 8px;
+}
+
+.unlock-form input {
+  min-width: 0;
+  flex: 1;
+}
+
+.unlock-submit {
+  flex-shrink: 0;
+}
+
+.unlock-error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 12px;
 }
 
 .cookie-toolbar {

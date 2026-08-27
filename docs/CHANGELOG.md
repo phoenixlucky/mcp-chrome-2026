@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.4.10] - 2026-08-26
+
+### Added
+
+- **主题视觉升级** — 全应用高级立绘背景：Popup / Sidepanel / Welcome / Builder 页面卡片透明化并与背景图融合（`color-mix` 半透明材质、`center top` 构图修正）。
+- **`better-sqlite3` 升级 `^13.0.3`** — 迁移到 N-API 并自带全平台预编译二进制，安装不再需要源码编译。
+
+### Fixed
+
+- **IDBFS 同步竞态修复** — 等待 sync 回调完成后再继续，避免 IDBFS 同步竞态（`vector-database.ts`）。
+- **内容索引任务按 tab 去重** — 同一标签页的索引任务复用进行中的 Promise，避免并发重复索引；错误处理增强（`content-indexer.ts`）。
+
+### Changed
+
+- CI `check:versions` 修复，各包版本号统一为 2.4.10。
+- 版本统一为 v2.4.10。
+
 ## [v2.4.4] - 2026-08-26
 
 ### Changed

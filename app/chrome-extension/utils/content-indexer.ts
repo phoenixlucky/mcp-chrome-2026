@@ -27,6 +27,7 @@ export class ContentIndexer {
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;
   private indexedPages = new Set<string>();
+  private indexingTabs = new Map<number, Promise<void>>();
   private tabEventListenersSetUp = false;
   private readonly options: Required<IndexingOptions>;
 
@@ -122,6 +123,23 @@ export class ContentIndexer {
    * Index content of specified tab
    */
   public async indexTabContent(tabId: number): Promise<void> {
+    const existingTask = this.indexingTabs.get(tabId);
+    if (existingTask) return existingTask;
+
+    const task = this._indexTabContent(tabId);
+    this.indexingTabs.set(tabId, task);
+    task.then(
+      () => {
+        if (this.indexingTabs.get(tabId) === task) this.indexingTabs.delete(tabId);
+      },
+      () => {
+        if (this.indexingTabs.get(tabId) === task) this.indexingTabs.delete(tabId);
+      },
+    );
+    return task;
+  }
+
+  private async _indexTabContent(tabId: number): Promise<void> {
     // Check if semantic engine is ready before attempting to index
     if (!this.isSemanticEngineReady() && !this.isSemanticEngineInitializing()) {
       console.log(
@@ -558,15 +576,16 @@ export class ContentIndexer {
         action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_TEXT_CONTENT,
       });
 
-      if (response.success && response.textContent) {
+      if (response?.success && typeof response.textContent === 'string' && response.textContent) {
         return {
           textContent: response.textContent,
           title: response.title || '',
         };
       } else {
+        const error = response?.error || response?.selectorError || '页面没有可提取的文本';
         console.error(
           `ContentIndexer: Failed to extract content from tab ${tabId}:`,
-          response.error,
+          error,
         );
         return null;
       }

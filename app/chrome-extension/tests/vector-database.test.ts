@@ -34,7 +34,8 @@ describe('VectorDatabase filesystem sync', () => {
     );
 
     const stats = getHnswlibMockStats();
-    expect(stats.waitForFileSystemSyncedCallCount).toBe(1);
+    expect(stats.lastAutoSaveFilename).toBe('');
+    expect(stats.waitForFileSystemSyncedCallCount).toBe(21);
     expect(stats.syncFSCallCount).toBeGreaterThan(0);
     expect(stats.maxConcurrentSyncFS).toBe(1);
   });
