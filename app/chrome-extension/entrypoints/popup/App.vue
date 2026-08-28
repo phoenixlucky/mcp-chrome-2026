@@ -695,17 +695,21 @@
           <strong id="unlock-dialog-title">开启隐藏入口</strong>
           <button class="copy-config-button" type="button" @click="closeUnlockPrompt">取消</button>
         </header>
-        <p class="unlock-description">请输入授权口令以永久显示高级入口和背景。</p>
+        <p class="unlock-description">
+          {{ unlockStep === 1 ? '请输入第一步授权口令。' : '请输入第二步授权口令。' }}
+        </p>
         <form class="unlock-form" @submit.prevent="unlockHiddenInterface">
           <input
             v-model="unlockPhrase"
             type="text"
             autocomplete="off"
             autofocus
-            placeholder="请输入口令"
-            aria-label="授权口令"
+            :placeholder="unlockStep === 1 ? '请输入第一步口令' : '请输入第二步口令'"
+            :aria-label="unlockStep === 1 ? '第一步授权口令' : '第二步授权口令'"
           />
-          <button class="copy-config-button unlock-submit" type="submit">确认开启</button>
+          <button class="copy-config-button unlock-submit" type="submit">
+            {{ unlockStep === 1 ? '下一步' : '确认开启' }}
+          </button>
         </form>
         <p v-if="unlockError" class="unlock-error" role="alert">{{ unlockError }}</p>
       </section>
@@ -992,11 +996,17 @@ const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
 const homeContentRef = ref<HTMLElement | null>(null);
 let preservedHomeScrollTop = 0;
 
-const UNLOCK_CLICK_LIMIT = 5;
-const UNLOCK_PHRASES = new Set(['我付费了', '我是开发者']);
+const UNLOCK_CLICK_LIMIT = 10;
+const UNLOCK_HASH_SALT = 'rr-hidden-interface-v1';
+const UNLOCK_PRIMARY_DIGESTS = new Set([
+  '42dbccba93577cbeb7db3bddee95dccfaa5328fbd93dccea4bbe717dccbaefce',
+  '17889b8101b7aae9f29f4945b38f3869c9511e8acf80ab101b644973a1023a09',
+]);
+const UNLOCK_SECONDARY_DIGEST = '235284192023e02236e7d9886b14e7745e43587ed584e547c94eadebe4ad0794';
 const hiddenInterfaceUnlocked = ref(false);
 const quickToolsClickCount = ref(0);
 const showUnlockPrompt = ref(false);
+const unlockStep = ref<1 | 2>(1);
 const unlockPhrase = ref('');
 const unlockError = ref('');
 
@@ -1015,6 +1025,7 @@ function handleQuickToolsClick() {
   if (quickToolsClickCount.value < UNLOCK_CLICK_LIMIT) return;
 
   quickToolsClickCount.value = 0;
+  unlockStep.value = 1;
   unlockPhrase.value = '';
   unlockError.value = '';
   showUnlockPrompt.value = true;
@@ -1022,23 +1033,46 @@ function handleQuickToolsClick() {
 
 function closeUnlockPrompt() {
   showUnlockPrompt.value = false;
+  unlockStep.value = 1;
   unlockPhrase.value = '';
   unlockError.value = '';
 }
 
-async function unlockHiddenInterface() {
-  if (!UNLOCK_PHRASES.has(unlockPhrase.value.trim())) {
-    unlockError.value = '口令不正确，请重试。';
-    return;
-  }
+async function hashUnlockPhrase(phrase: string): Promise<string> {
+  const encoded = new TextEncoder().encode(UNLOCK_HASH_SALT + phrase);
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
 
+async function unlockHiddenInterface() {
   try {
+    const phraseDigest = await hashUnlockPhrase(unlockPhrase.value.trim());
+
+    if (unlockStep.value === 1) {
+      if (!UNLOCK_PRIMARY_DIGESTS.has(phraseDigest)) {
+        unlockError.value = '第一步口令不正确，请重试。';
+        return;
+      }
+
+      unlockStep.value = 2;
+      unlockPhrase.value = '';
+      unlockError.value = '';
+      return;
+    }
+
+    if (phraseDigest !== UNLOCK_SECONDARY_DIGEST) {
+      unlockError.value = '第二步口令不正确，请重试。';
+      return;
+    }
+
     await chrome.storage.local.set({ [STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED]: true });
     hiddenInterfaceUnlocked.value = true;
     closeUnlockPrompt();
   } catch (error) {
-    console.warn('保存隐藏界面状态失败:', error);
-    unlockError.value = '开启失败，请稍后重试。';
+    console.warn('验证或保存隐藏界面状态失败:', error);
+    unlockError.value = '验证失败，请稍后重试。';
   }
 }
 
@@ -3495,7 +3529,7 @@ onUnmounted(() => {
   border: 0;
   background: transparent;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 
 .quick-tools-unlock-trigger:focus-visible {
