@@ -30,6 +30,7 @@ function resolveServerPort(requested?: unknown): number {
 }
 
 export class NativeMessagingHost {
+  private readonly standaloneMode = process.env.CHROME_MCP_STANDALONE === '1';
   private associatedServer: Server | null = null;
   private pendingRequests: Map<string, PendingRequest> = new Map();
   private connected = false;
@@ -64,6 +65,8 @@ export class NativeMessagingHost {
   }
 
   private setupMessageHandling(): void {
+    if (this.standaloneMode) return;
+
     let buffer = Buffer.alloc(0);
     let expectedLength = -1;
     const MAX_MESSAGES_PER_TICK = 100; // Safety guard to avoid long-running loops per readable tick
@@ -356,6 +359,8 @@ export class NativeMessagingHost {
    * Send message to Chrome extension
    */
   public sendMessage(message: any): void {
+    if (this.standaloneMode) return;
+
     try {
       const messageString = JSON.stringify(message);
       const messageBuffer = Buffer.from(messageString);
