@@ -14,6 +14,7 @@
     "build:extension": "pnpm --filter @ethanwilkins/chrome-mcp-server-2026 build",
     "build:wasm": "pnpm --filter @chrome-mcp/wasm-simd build && pnpm run copy:wasm",
     "build:release": "pnpm run build:wasm && pnpm run build",
+    "package:windows": "node scripts/package-windows.mjs",
     "build": "pnpm -r --filter=!@chrome-mcp/wasm-simd build",
     "copy:wasm": "node scripts/copy-wasm.mjs",
     "dev:shared": "pnpm --filter @ethanwilkins/chrome-mcp-shared-2026 dev",
