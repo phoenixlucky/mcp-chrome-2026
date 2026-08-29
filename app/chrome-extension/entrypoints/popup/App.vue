@@ -16,6 +16,7 @@
         <div class="header-content">
           <h1 class="header-title">猫娘 Chrome MCP Server</h1>
           <button
+            v-if="hiddenInterfaceUnlocked"
             type="button"
             class="header-logo-button"
             title="打开欢迎页"
@@ -24,6 +25,9 @@
           >
             <img class="header-logo" :src="extensionLogoUrl" alt="" />
           </button>
+          <div v-else class="header-logo-button header-logo-button--hidden" aria-hidden="true">
+            <img class="header-logo" :src="extensionLogoUrl" alt="" />
+          </div>
         </div>
       </div>
       <div ref="homeContentRef" class="content">
@@ -1855,6 +1859,8 @@ async function toggleElementMarker() {
 }
 
 async function openWelcomePage() {
+  if (!hiddenInterfaceUnlocked.value) return;
+
   try {
     await chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
   } catch {
@@ -2886,6 +2892,10 @@ onUnmounted(() => {
   background: transparent;
   cursor: pointer;
   line-height: 0;
+}
+
+.header-logo-button--hidden {
+  cursor: default;
 }
 
 .header-logo-button:focus-visible {

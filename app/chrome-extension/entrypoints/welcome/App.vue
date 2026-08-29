@@ -95,6 +95,7 @@ async function openDocs(): Promise<void> {
 
 <template>
   <div
+    v-if="hiddenInterfaceUnlocked"
     :class="['agent-theme', 'welcome-root', { 'welcome-root--unlocked': hiddenInterfaceUnlocked }]"
   >
     <div class="min-h-screen flex flex-col">
