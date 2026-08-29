@@ -44,6 +44,10 @@ const rotatingTabs = new Set<number>();
 const rotationTimes = new Map<string, number[]>();
 let sessionIdsByScope: Record<string, string> = {};
 let lastProxyAuth: { host: string; port: number; matched: boolean; at: number } | undefined;
+// A manual rotation needs to probe the same sticky session as the active page.
+// The probe itself always targets Oxylabs' location endpoint, so temporarily
+// override the session used for that endpoint while the request is in flight.
+let proxyProbeSessionId: string | undefined;
 const AUTO_ROTATION_COOLDOWN_MS = 5 * 60_000;
 const AUTO_ROTATION_WINDOW_MS = 60 * 60_000;
 const EXPLICIT_ROTATION_WINDOW_MS = 60_000;
@@ -259,6 +263,9 @@ function persistSessionIds(): void {
 }
 
 function sessionIdForUrl(url: string): string {
+  if (proxyProbeSessionId && url.startsWith('https://ip.oxylabs.io/')) {
+    return proxyProbeSessionId;
+  }
   const scope = getProxyScope(url) || 'global';
   const existing = sessionIdsByScope[scope];
   if (existing) return existing;
@@ -330,6 +337,8 @@ type ProxyRotationResult = {
   rotated: boolean;
   tabId: number;
   skipped?: string;
+  previousIp?: string;
+  currentIp?: string;
 };
 
 async function rotateAndReload(
@@ -371,16 +380,41 @@ async function rotateAndReload(
   rotatingTabs.add(tabId);
   rotationTimes.set(rotationKey, [...recent, now]);
   try {
+    const previousSessionId = explicit ? sessionIdForUrl(url) : undefined;
+    const previousIp = explicit ? await readProxyIpForSession(previousSessionId) : undefined;
     rotateCountryStickyPort();
     rotateSessionForUrl(url);
     await reconnectProxy();
-    await chrome.tabs.reload(tabId, { bypassCache: true });
-    return { rotated: true, tabId };
+    let skipped: string | undefined;
+    try {
+      await chrome.tabs.reload(tabId, { bypassCache: true });
+    } catch (reloadError) {
+      if (!isClosedTabError(reloadError)) throw reloadError;
+      skipped = 'tab_closed_after_rotation';
+    }
+    const currentIp = explicit ? await readProxyIpForSession(sessionIdForUrl(url)) : undefined;
+    return {
+      rotated: true,
+      tabId,
+      ...(skipped ? { skipped } : {}),
+      ...(previousIp ? { previousIp } : {}),
+      ...(currentIp ? { currentIp } : {}),
+    };
   } catch (reloadError) {
     if (!isClosedTabError(reloadError)) throw reloadError;
     return { rotated: true, tabId, skipped: 'tab_closed_after_rotation' };
   } finally {
     rotatingTabs.delete(tabId);
+  }
+}
+
+async function readProxyIpForSession(sessionId: string | undefined): Promise<string | undefined> {
+  try {
+    return (await testProxyConnection(sessionId)).ip;
+  } catch {
+    // IP probing is supplemental UI information; a failed probe must not
+    // prevent the requested proxy rotation from completing.
+    return undefined;
   }
 }
 
@@ -467,19 +501,25 @@ export async function getProxyDiagnostics(
   return diagnostics;
 }
 
-async function testProxyConnection(): Promise<{ ip: string; country?: string }> {
+async function testProxyConnection(sessionId?: string): Promise<{ ip: string; country?: string }> {
   if (!config.enabled) throw new Error('请先启用并保存代理');
-  const response = await fetch('https://ip.oxylabs.io/location', {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) throw new Error(`代理测试失败（HTTP ${response.status}）`);
-  const result = (await response.json()) as { ip?: unknown; country?: unknown };
-  if (typeof result.ip !== 'string') throw new Error('代理测试未返回出口 IP');
-  return {
-    ip: result.ip,
-    ...(typeof result.country === 'string' ? { country: result.country } : {}),
-  };
+  const previousProbeSessionId = proxyProbeSessionId;
+  proxyProbeSessionId = sessionId;
+  try {
+    const response = await fetch('https://ip.oxylabs.io/location', {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) throw new Error(`代理测试失败（HTTP ${response.status}）`);
+    const result = (await response.json()) as { ip?: unknown; country?: unknown };
+    if (typeof result.ip !== 'string') throw new Error('代理测试未返回出口 IP');
+    return {
+      ip: result.ip,
+      ...(typeof result.country === 'string' ? { country: result.country } : {}),
+    };
+  } finally {
+    proxyProbeSessionId = previousProbeSessionId;
+  }
 }
 
 async function runProxyTest(): Promise<ProxyTestResult> {

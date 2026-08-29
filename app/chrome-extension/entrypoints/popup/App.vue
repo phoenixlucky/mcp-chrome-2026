@@ -181,9 +181,16 @@
                   class="copy-config-button"
                   type="button"
                   :disabled="!proxy.enabled || proxySaving"
+                  :aria-busy="proxyRotationPending"
                   @click="rotateCurrentProxy"
                 >
-                  {{ proxySaving ? '正在处理…' : '手动切换当前页 IP' }}
+                  {{
+                    proxyRotationPending
+                      ? '切换中，请稍后…'
+                      : proxySaving
+                        ? '正在处理…'
+                        : '手动切换当前页 IP'
+                  }}
                 </button>
               </div>
             </template>
@@ -688,6 +695,46 @@
       </section>
     </div>
 
+    <div
+      v-if="hiddenInterfaceUnlocked && showProxyRotationResult"
+      class="error-log-modal"
+      @click.self="closeProxyRotationResult"
+    >
+      <section
+        class="error-log-dialog proxy-rotation-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="proxy-rotation-result-title"
+      >
+        <header class="error-log-header">
+          <strong id="proxy-rotation-result-title">IP 切换完成</strong>
+          <button class="copy-config-button" type="button" @click="closeProxyRotationResult"
+            >关闭</button
+          >
+        </header>
+        <div class="proxy-rotation-success" role="status" aria-live="polite">
+          <span class="proxy-rotation-icon" aria-hidden="true">✓</span>
+          <div class="proxy-rotation-copy">
+            <strong>当前页 IP 已更新</strong>
+            <p>当前 IP 已由以下地址切换为：</p>
+          </div>
+        </div>
+        <div class="proxy-ip-change" aria-label="IP 切换前后对比">
+          <code class="proxy-ip-value">{{ proxyRotationResult?.previousIp || '获取失败' }}</code>
+          <span class="proxy-ip-arrow" aria-hidden="true">→</span>
+          <code class="proxy-ip-value proxy-ip-value--current">{{
+            proxyRotationResult?.currentIp || '获取失败'
+          }}</code>
+        </div>
+        <p class="proxy-rotation-note">当前网页正在重新加载，请稍后查看。</p>
+        <footer class="error-log-actions">
+          <button class="copy-config-button" type="button" @click="closeProxyRotationResult"
+            >知道了</button
+          >
+        </footer>
+      </section>
+    </div>
+
     <div v-if="showUnlockPrompt" class="error-log-modal" @click.self="closeUnlockPrompt">
       <section
         class="error-log-dialog unlock-dialog"
@@ -1097,8 +1144,11 @@ onUpdated(() => {
 const showErrorLogs = ref(false);
 const showProxyModal = ref(false);
 const proxySaving = ref(false);
+const proxyRotationPending = ref(false);
 const proxyResult = ref('');
 const proxyQuickResult = ref('');
+const showProxyRotationResult = ref(false);
+const proxyRotationResult = ref<{ previousIp?: string; currentIp?: string } | null>(null);
 const proxyDomains = ref('');
 const proxy = reactive({
   enabled: false,
@@ -1664,7 +1714,10 @@ async function openProxySettings() {
 async function rotateCurrentProxy() {
   if (proxySaving.value) return;
   proxySaving.value = true;
-  proxyQuickResult.value = '正在为当前网页切换 IP…';
+  proxyRotationPending.value = true;
+  showProxyRotationResult.value = false;
+  proxyRotationResult.value = null;
+  proxyQuickResult.value = '切换中，请稍后…';
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (!tab?.id) throw new Error('当前没有可切换代理的网页标签');
@@ -1674,7 +1727,8 @@ async function rotateCurrentProxy() {
       reason: '用户在插件中手动切换 IP',
     });
     if (!response?.success) throw new Error(response?.error || '切换 IP 失败');
-    const result = response.result;
+    const result = response.result as
+      { rotated?: boolean; skipped?: string; previousIp?: string; currentIp?: string } | undefined;
     if (!result?.rotated) {
       const reasons: Record<string, string> = {
         proxy_disabled: '代理未启用',
@@ -1682,14 +1736,24 @@ async function rotateCurrentProxy() {
         rate_limited: '切换过于频繁，请稍后再试',
         outside_proxy_scope: '当前网页不在代理网站范围内',
       };
-      throw new Error(reasons[result?.skipped] || '当前未切换 IP');
+      throw new Error((result?.skipped ? reasons[result.skipped] : undefined) || '当前未切换 IP');
     }
-    proxyQuickResult.value = '当前网页已切换 IP，页面正在重新加载。';
+    proxyRotationResult.value = {
+      previousIp: result.previousIp,
+      currentIp: result.currentIp,
+    };
+    proxyQuickResult.value = 'IP 切换完成。';
+    showProxyRotationResult.value = true;
   } catch (error: any) {
     proxyQuickResult.value = `错误：${error?.message || String(error)}`;
   } finally {
+    proxyRotationPending.value = false;
     proxySaving.value = false;
   }
+}
+
+function closeProxyRotationResult() {
+  showProxyRotationResult.value = false;
 }
 
 function isCookiePageUrl(url: unknown): url is string {
@@ -3514,6 +3578,95 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.proxy-rotation-dialog {
+  width: min(100%, 360px);
+  height: auto;
+  max-height: calc(100% - 32px);
+  background: var(--ac-surface, #ffffff);
+}
+
+.proxy-rotation-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  border-radius: 10px;
+  background: rgba(240, 253, 244, 0.76);
+}
+
+.proxy-rotation-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.proxy-rotation-copy {
+  min-width: 0;
+}
+
+.proxy-rotation-copy strong {
+  display: block;
+  color: #166534;
+  font-size: 13px;
+}
+
+.proxy-rotation-copy p,
+.proxy-rotation-note {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.proxy-ip-change {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.proxy-ip-value {
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font:
+    11px/1.35 'Monaco',
+    'Menlo',
+    monospace;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.proxy-ip-value--current {
+  border-color: rgba(22, 163, 74, 0.35);
+  color: #166534;
+}
+
+.proxy-ip-arrow {
+  color: var(--ac-accent, #d97757);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.proxy-rotation-note {
+  margin-top: 0;
 }
 
 .cookie-dialog {
