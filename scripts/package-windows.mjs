@@ -222,6 +222,9 @@ async function main() {
   const launcherSource = path.join(root, 'scripts', 'sea-launcher.cjs');
   const launcherPath = path.join(stageDir, 'sea-launcher.cjs');
   await fs.copyFile(launcherSource, launcherPath);
+  const desktopUiSource = path.join(root, 'scripts', 'desktop-ui.ps1');
+  const desktopUiAssetPath = path.join(stageDir, 'desktop-ui.ps1');
+  await fs.copyFile(desktopUiSource, desktopUiAssetPath);
   await fs.writeFile(
     seaConfigPath,
     JSON.stringify(
@@ -230,7 +233,10 @@ async function main() {
         output: seaBlobPath,
         disableExperimentalSEAWarning: true,
         useCodeCache: false,
-        assets: { 'chrome-mcp-bundle.zip': bundleZip },
+        assets: {
+          'chrome-mcp-bundle.zip': bundleZip,
+          'chrome-mcp-desktop-ui.ps1': desktopUiAssetPath,
+        },
       },
       null,
       2,

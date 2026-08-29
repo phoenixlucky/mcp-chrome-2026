@@ -217,7 +217,9 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 }
 ```
 
-`--stdio` 会自动启动或复用本机的 MCP HTTP 服务。直接双击 EXE 是服务模式；不要把不带参数的 EXE 直接当作 stdio MCP 服务调用，因为默认模式使用的是 Chrome Native Messaging 协议。若 Chrome 扩展随后启动 Native Messaging 宿主，宿主会自动接管已启动的 `12306` 服务，避免 HTTP 服务进程与 Chrome 连接分离。
+`--stdio` 会自动启动或复用本机的 MCP HTTP 服务。直接双击 EXE 会打开常驻的桌面管理器：窗口关闭会最小化到系统托盘，插件连接后管理器只显示状态，不会退出或与 Native Host 抢占 `12306`。不要把不带参数的 EXE 直接当作 stdio MCP 服务调用；需要 stdio 时请使用 `--stdio`。
+
+桌面管理器提供服务状态、Chrome 扩展连接、Native Host 连接、MCP 会话数、工具数和健康检查。点击“停止服务”只暂停桥接服务并保留本机控制通道，点击“启动服务”即可恢复；托盘菜单中的“退出客户端（停止服务）”会停止服务并关闭管理器。若端口尚未监听，请先确认 Chrome 扩展已加载，扩展会自动启动 Native Host。
 
 便携版排障可访问 `http://127.0.0.1:12306/status?probe=1`：`nativeHost.connected` 表示 Native Messaging 握手，`probe.ok` 表示桥接服务已经实际收到 Chrome 回包；仅 `/ping` 正常不能证明 Chrome 已接管。
 

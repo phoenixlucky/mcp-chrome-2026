@@ -323,6 +323,99 @@ function writeLog(message) {
   } catch {}
 }
 
+function managerLockPath() {
+  return path.join(dataRoot(), 'mcp-chrome-bridge', 'desktop-manager.lock');
+}
+
+function acquireManagerLock() {
+  const lockPath = managerLockPath();
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const fd = fs.openSync(lockPath, 'wx');
+      fs.writeFileSync(fd, `${process.pid}\n${Date.now()}`);
+      return { fd, lockPath };
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      const info = getLockInfo(lockPath);
+      if (info?.pid && isProcessAlive(info.pid)) return null;
+      try { fs.rmSync(lockPath, { force: true }); } catch {}
+    }
+  }
+  return null;
+}
+
+function releaseManagerLock(lock) {
+  if (!lock) return;
+  try { fs.closeSync(lock.fd); } catch {}
+  try { fs.rmSync(lock.lockPath, { force: true }); } catch {}
+}
+
+function launchDesktopManager(config, port) {
+  const lock = acquireManagerLock();
+  if (!lock) {
+    showWindowsMessage(
+      'Chrome MCP Bridge',
+      '客户端已经在运行中。请从系统托盘打开已有窗口，不要重复启动。',
+      'Information',
+    );
+    return null;
+  }
+
+  const uiDirectory = path.join(dataRoot(), 'mcp-chrome-bridge', 'ui');
+  const uiScriptPath = path.join(uiDirectory, `desktop-ui-${config.version}.ps1`);
+  try {
+    fs.mkdirSync(uiDirectory, { recursive: true });
+    const script = Buffer.from(getAsset('chrome-mcp-desktop-ui.ps1'));
+    // Windows PowerShell 5.1 needs a UTF-8 BOM to read non-ASCII UI text.
+    fs.writeFileSync(uiScriptPath, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), script]));
+    const uiProcess = childProcess.spawn(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-STA',
+        '-WindowStyle',
+        'Hidden',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        uiScriptPath,
+        '-Port',
+        String(port),
+        '-Version',
+        String(config.version),
+        '-ExtensionId',
+        String(config.extensionId),
+        '-HostName',
+        String(config.hostName),
+        '-LogPath',
+        logPath(),
+      ],
+      // Keep the WinForms window visible. PowerShell's -WindowStyle Hidden
+      // hides its console; Node's windowsHide flag would also hide the UI
+      // window created by System.Windows.Forms.
+      { stdio: 'ignore', windowsHide: false },
+    );
+    uiProcess.once('error', (error) => {
+      writeLog(`桌面管理器启动失败：${error.message}`);
+      releaseManagerLock(lock);
+      try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
+      showWindowsMessage('Chrome MCP Bridge 启动失败', `桌面管理器启动失败：${error.message}`);
+      process.exitCode = 1;
+    });
+    uiProcess.once('exit', (code) => {
+      releaseManagerLock(lock);
+      try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
+      process.exit(code === null ? 0 : code);
+    });
+    return uiProcess;
+  } catch (error) {
+    releaseManagerLock(lock);
+    try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
+    throw error;
+  }
+}
+
 function validatePayload(payloadRoot) {
   const requiredPaths = [
     path.join(payloadRoot, 'payload-config.json'),
@@ -465,7 +558,15 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
         `服务仍会尝试启动。诊断日志：${logPath()}`,
       ].join('\n');
       writeLog(`启动前提醒：\n${warningText}`);
-      showWindowsMessage('Chrome MCP Bridge 环境提醒', warningText, 'Warning');
+      // The desktop manager displays warnings in its status panel. A modal
+      // message box here would block the manager whenever Native Host already
+      // owns the expected port, which is the normal Chrome-connected state.
+      if (!standaloneLaunch) showWindowsMessage('Chrome MCP Bridge 环境提醒', warningText, 'Warning');
+    }
+
+    if (standaloneLaunch) {
+      launchDesktopManager(config, port);
+      return;
     }
 
     createRequire(entryPath)(entryPath);
