@@ -75,6 +75,8 @@ const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
 
 async function listDynamicFlowTools(): Promise<Tool[]> {
+  if (!nativeMessagingHostInstance.isExtensionConnected()) return [];
+
   try {
     const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
       {},

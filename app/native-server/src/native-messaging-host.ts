@@ -1,5 +1,7 @@
 import { stdin, stdout } from 'process';
 import { randomUUID } from 'node:crypto';
+import { request as httpRequest } from 'node:http';
+import net from 'node:net';
 import { Server } from './server';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { NATIVE_SERVER_PORT, TIMEOUTS } from './constant';
@@ -29,6 +31,72 @@ function resolveServerPort(requested?: unknown): number {
   return Number.isInteger(port) && port > 0 && port <= 65535 ? port : NATIVE_SERVER_PORT;
 }
 
+function isAddressInUse(error: any): boolean {
+  return error?.code === 'EADDRINUSE' || String(error?.message || '').includes('EADDRINUSE');
+}
+
+function requestPortTakeover(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const request = httpRequest(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: '/__chrome_mcp_bridge/takeover',
+        method: 'POST',
+        headers: { Connection: 'close' },
+        timeout: 2_000,
+      },
+      (response) => {
+        response.resume();
+        resolve(response.statusCode === 200);
+      },
+    );
+    request.on('timeout', () => request.destroy());
+    request.on('error', () => resolve(false));
+    request.end();
+  });
+}
+
+function waitForPortAvailable(port: number, timeoutMs = 8_000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    let settled = false;
+    const retry = () => {
+      if (settled) return;
+      if (Date.now() >= deadline) {
+        settled = true;
+        reject(new Error(`等待端口 ${port} 释放超时。`));
+        return;
+      }
+      setTimeout(attempt, 100);
+    };
+    const attempt = () => {
+      if (settled) return;
+      const probe = net.createServer();
+      probe.once('listening', () => {
+        probe.close(() => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        });
+      });
+      probe.once('error', (error: any) => {
+        probe.close();
+        if (error?.code === 'EADDRINUSE') {
+          retry();
+          return;
+        }
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      });
+      probe.listen({ host: '127.0.0.1', port });
+    };
+    attempt();
+  });
+}
+
 export class NativeMessagingHost {
   private readonly standaloneMode = process.env.CHROME_MCP_STANDALONE === '1';
   private associatedServer: Server | null = null;
@@ -46,6 +114,10 @@ export class NativeMessagingHost {
     };
   }
 
+  public isExtensionConnected(): boolean {
+    return this.connected;
+  }
+
   public setServer(serverInstance: Server): void {
     this.associatedServer = serverInstance;
   }
@@ -55,7 +127,10 @@ export class NativeMessagingHost {
   // message arriving after a reconnect.
   public start(): void {
     try {
-      this.connected = true;
+      // The process can be launched by Chrome before the extension has sent
+      // its first message. Mark the session ready only after a valid message
+      // arrives so callers do not wait for a request that cannot be delivered.
+      this.connected = false;
       this.lastActivityAt = new Date();
       this.setupMessageHandling();
       void this.startServer(resolveServerPort(NATIVE_SERVER_PORT));
@@ -136,6 +211,7 @@ export class NativeMessagingHost {
       this.sendError('Invalid message format');
       return;
     }
+    this.connected = true;
 
     if (message.type === NativeMessageType.TOOL_PROGRESS && message.requestId) {
       const pending = this.pendingRequests.get(message.requestId);
@@ -246,6 +322,10 @@ export class NativeMessagingHost {
     onProgress?: (payload: any) => void | Promise<void>,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!this.connected) {
+        reject(new Error('Chrome extension is not connected to the Native Host.'));
+        return;
+      }
       const requestId = randomUUID(); // Generate unique request ID
 
       const cancel = () => {
@@ -295,7 +375,7 @@ export class NativeMessagingHost {
   /**
    * Start Fastify server (now accepts Server instance)
    */
-  private async startServer(port: number): Promise<void> {
+  private async startServer(port: number, allowPortTakeover = true): Promise<void> {
     if (!this.associatedServer) {
       this.sendError('Internal error: server instance not set');
       return;
@@ -316,8 +396,21 @@ export class NativeMessagingHost {
         payload: { port },
       });
     } catch (error: any) {
-      // If port is already in use (another process started the server), treat as success
-      if (error.code === 'EADDRINUSE' || (error.message && error.message.includes('EADDRINUSE'))) {
+      // A manually opened service instance may already own the port. Ask that
+      // instance to stop, then let the Chrome-launched Native Messaging host
+      // take over so HTTP requests and the native connection share one process.
+      if (allowPortTakeover && isAddressInUse(error)) {
+        const takeoverAccepted = await requestPortTakeover(port);
+        if (takeoverAccepted) {
+          await waitForPortAvailable(port);
+          await this.startServer(port, false);
+          return;
+        }
+      }
+
+      // If another unrelated/native host owns the port, keep the connection
+      // alive and let the existing server decide whether it can serve requests.
+      if (isAddressInUse(error)) {
         this.sendMessage({
           type: NativeMessageType.SERVER_STARTED,
           payload: { port },

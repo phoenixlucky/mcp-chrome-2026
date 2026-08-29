@@ -68,6 +68,7 @@ export class Server {
   private startedAt = Date.now();
   private reclaimedSessions = 0;
   private cleanupTimer: NodeJS.Timeout | null = null;
+  private takeoverRequested = false;
   private agentStreamManager: AgentStreamManager;
   private agentChatService: AgentChatService;
 
@@ -203,6 +204,21 @@ export class Server {
         });
       },
     );
+
+    // A user may have opened the EXE before Chrome launches the Native
+    // Messaging host. The latter must be able to take over the HTTP port so
+    // the MCP server and the extension connection live in the same process.
+    this.fastify.post('/__chrome_mcp_bridge/takeover', async (_request, reply) => {
+      if (!this.isRunning || this.takeoverRequested) {
+        return reply.status(404).send({ status: 'not_available' });
+      }
+      this.takeoverRequested = true;
+      reply.status(HTTP_STATUS.OK).send({ status: 'stopping' });
+      const stop = () => {
+        void this.stop().finally(() => process.exit(0));
+      };
+      setTimeout(stop, 100).unref();
+    });
   }
 
   private addSession(sessionId: string, transport: McpTransport): void {
@@ -386,11 +402,6 @@ export class Server {
         reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: ERROR_MESSAGES.INVALID_SSE_SESSION });
         return;
       }
-
-      reply.raw.setHeader('Content-Type', 'text/event-stream');
-      reply.raw.setHeader('Cache-Control', 'no-cache');
-      reply.raw.setHeader('Connection', 'keep-alive');
-      reply.raw.flushHeaders();
 
       try {
         await transport.handleRequest(request.raw, reply.raw);
