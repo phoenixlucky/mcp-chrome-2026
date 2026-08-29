@@ -382,6 +382,7 @@ export class NativeMessagingHost {
     }
     try {
       if (this.associatedServer.isRunning) {
+        await this.associatedServer.startService();
         this.sendMessage({
           type: NativeMessageType.SERVER_STARTED,
           payload: { port },
@@ -424,7 +425,7 @@ export class NativeMessagingHost {
   /**
    * Stop Fastify server
    */
-  private async stopServer(): Promise<void> {
+  public async stopService(): Promise<void> {
     if (!this.associatedServer) {
       this.sendError('Internal error: server instance not set');
       return;
@@ -439,13 +440,20 @@ export class NativeMessagingHost {
         return;
       }
 
-      await this.associatedServer.stop();
-      // this.serverStarted = false; // Server should update its own status after successful stop
+      await this.associatedServer.stopService();
 
       this.sendMessage({ type: NativeMessageType.SERVER_STOPPED }); // Distinguish from previous 'stopped'
     } catch (error: any) {
       this.sendError(`Failed to stop server: ${error.message}`);
     }
+  }
+
+  public async startService(port = resolveServerPort(NATIVE_SERVER_PORT)): Promise<void> {
+    await this.startServer(port);
+  }
+
+  private async stopServer(): Promise<void> {
+    await this.stopService();
   }
 
   /**

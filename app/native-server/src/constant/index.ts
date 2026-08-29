@@ -34,8 +34,7 @@ export function isAllowedCorsOrigin(origin: string): boolean {
       return Boolean(url.hostname);
     }
     return (
-      url.protocol === 'http:' &&
-      (url.hostname === '127.0.0.1' || url.hostname === 'localhost')
+      url.protocol === 'http:' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost')
     );
   } catch {
     return false;
@@ -51,6 +50,7 @@ export const HTTP_STATUS = {
   FORBIDDEN: 403,
   UNAUTHORIZED: 401,
   NOT_FOUND: 404,
+  SERVICE_UNAVAILABLE: 503,
   INTERNAL_SERVER_ERROR: 500,
   GATEWAY_TIMEOUT: 504,
 } as const;

@@ -63,6 +63,8 @@ const SESSION_TTL_MS = 10 * 60_000;
 export class Server {
   private fastify: FastifyInstance;
   public isRunning = false;
+  /** Keep the control plane alive while the Chrome-facing service is paused. */
+  public serviceEnabled = false;
   private nativeHost: NativeMessagingHost | null = null;
   private transportsMap = new Map<string, McpSession>();
   private startedAt = Date.now();
@@ -109,6 +111,8 @@ export class Server {
     // Health check
     this.setupHealthRoutes();
 
+    this.setupServiceGate();
+
     // Extension communication
     this.setupExtensionRoutes();
 
@@ -120,6 +124,17 @@ export class Server {
 
     // MCP routes
     this.setupMcpRoutes();
+  }
+
+  private setupServiceGate(): void {
+    this.fastify.addHook('onRequest', async (request, reply) => {
+      const pathname = (request.raw.url ?? '').split('?')[0];
+      if (!['/mcp', '/sse', '/messages', '/ask-extension'].includes(pathname)) return;
+      if (this.serviceEnabled) return;
+      reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
+        error: 'Chrome MCP Bridge 服务当前已停止，请先在客户端中启动服务。',
+      });
+    });
   }
 
   /**
@@ -171,7 +186,7 @@ export class Server {
       async (request: FastifyRequest<{ Querystring: { probe?: string } }>, reply: FastifyReply) => {
         const sessions = [...this.transportsMap.values()];
         let probe: Record<string, unknown> | undefined;
-        if (request.query.probe === '1') {
+        if (request.query.probe === '1' && this.serviceEnabled) {
           const startedAt = Date.now();
           try {
             const response = await this.nativeHost?.sendRequestToExtensionAndWait(
@@ -185,7 +200,12 @@ export class Server {
           }
         }
         return reply.status(HTTP_STATUS.OK).send({
-          server: { version: packageJson.version, uptimeMs: Date.now() - this.startedAt },
+          server: {
+            version: packageJson.version,
+            running: this.isRunning,
+            serviceRunning: this.serviceEnabled,
+            uptimeMs: Date.now() - this.startedAt,
+          },
           packages: {
             'mcp-chrome-bridge-2026': packageJson.version,
           },
@@ -204,6 +224,42 @@ export class Server {
         });
       },
     );
+
+    this.fastify.post('/__chrome_mcp_bridge/start', async (_request, reply) => {
+      if (!this.nativeHost) {
+        return reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
+          status: 'not_available',
+          message: 'Chrome Native Host 尚未连接。请确认扩展已加载并重载。',
+        });
+      }
+      try {
+        await this.nativeHost.startService();
+        return reply.status(HTTP_STATUS.OK).send({ status: 'started' });
+      } catch (error) {
+        return reply.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send({
+          status: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+
+    this.fastify.post('/__chrome_mcp_bridge/stop', async (_request, reply) => {
+      if (!this.nativeHost) {
+        return reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
+          status: 'not_available',
+          message: 'Chrome Native Host 尚未连接。',
+        });
+      }
+      try {
+        await this.nativeHost.stopService();
+        return reply.status(HTTP_STATUS.OK).send({ status: 'stopped' });
+      } catch (error) {
+        return reply.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send({
+          status: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
 
     // A user may have opened the EXE before Chrome launches the Native
     // Messaging host. The latter must be able to take over the HTTP port so
@@ -457,6 +513,7 @@ export class Server {
     }
 
     if (this.isRunning) {
+      await this.startService();
       return;
     }
 
@@ -468,6 +525,7 @@ export class Server {
       process.env.MCP_HTTP_PORT = String(port);
 
       this.isRunning = true;
+      this.serviceEnabled = true;
       this.startedAt = Date.now();
       this.cleanupTimer = setInterval(() => void this.cleanupStaleSessions(), 60_000);
       this.cleanupTimer.unref();
@@ -483,17 +541,32 @@ export class Server {
     }
 
     try {
-      await browserProfileManager.stopAll();
+      await this.stopService();
       if (this.cleanupTimer) clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
       await this.fastify.close();
-      closeDb();
       this.isRunning = false;
+      this.serviceEnabled = false;
     } catch (err) {
       this.isRunning = false;
+      this.serviceEnabled = false;
       closeDb();
       throw err;
     }
+  }
+
+  public async startService(): Promise<void> {
+    if (!this.isRunning) {
+      throw new Error('Chrome MCP Bridge 控制服务尚未启动。');
+    }
+    this.serviceEnabled = true;
+  }
+
+  public async stopService(): Promise<void> {
+    if (!this.isRunning) return;
+    await browserProfileManager.stopAll();
+    this.serviceEnabled = false;
+    closeDb();
   }
 
   public getInstance(): FastifyInstance {
