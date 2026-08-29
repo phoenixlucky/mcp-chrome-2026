@@ -1,9 +1,10 @@
 param(
   [int]$Port = 12306,
-  [string]$Version = '2.4.10',
+  [string]$Version = '2.4.11',
   [string]$ExtensionId = 'djclnaepokchbblcnepfempfdhejjdml',
   [string]$HostName = 'com.chromemcp.nativehost',
-  [string]$LogPath = ''
+  [string]$LogPath = '',
+  [string]$IconPath = ''
 )
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -103,12 +104,17 @@ function Update-Status([bool]$probe = $false) {
 
   $data = $result.Json
   $serverRunning = [bool]$data.server.serviceRunning
+  $extensionConnected = [bool]$data.extension.connected
   $nativeConnected = [bool]$data.nativeHost.connected
-  $serverText = if ($serverRunning) { '运行中' } else { '已停止' }
-  $serverColor = if ($serverRunning) { [System.Drawing.Color]::FromArgb(25, 130, 70) } else { [System.Drawing.Color]::FromArgb(180, 110, 20) }
+  $serverText = if ($serverRunning -and $nativeConnected) { '运行中' } elseif ($serverRunning) { '运行中（等待 Chrome）' } else { '已停止' }
+  $serverColor = if ($serverRunning -and $nativeConnected) { [System.Drawing.Color]::FromArgb(25, 130, 70) } else { [System.Drawing.Color]::FromArgb(180, 110, 20) }
+  $extensionText = if ($extensionConnected) { '已连接' } else { '未连接' }
+  $extensionColor = if ($extensionConnected) { [System.Drawing.Color]::FromArgb(25, 130, 70) } else { [System.Drawing.Color]::FromArgb(180, 70, 60) }
+  $nativeText = if ($nativeConnected) { '已连接' } else { '等待连接' }
+  $nativeColor = if ($nativeConnected) { [System.Drawing.Color]::FromArgb(25, 130, 70) } else { [System.Drawing.Color]::FromArgb(180, 110, 20) }
   Set-Value '服务状态' $serverText $serverColor
-  Set-Value 'Chrome 扩展' (if ($nativeConnected) { '已连接' } else { '未连接' }) (if ($nativeConnected) { [System.Drawing.Color]::FromArgb(25, 130, 70) } else { [System.Drawing.Color]::FromArgb(180, 70, 60) })
-  Set-Value 'Native Host' (if ($nativeConnected) { '已连接' } else { '等待连接' }) (if ($nativeConnected) { [System.Drawing.Color]::FromArgb(25, 130, 70) } else { [System.Drawing.Color]::FromArgb(180, 110, 20) })
+  Set-Value 'Chrome 扩展' $extensionText $extensionColor
+  Set-Value 'Native Host' $nativeText $nativeColor
   Set-Value '端口' "$Port"
   Set-Value 'MCP 会话' ([string]$data.mcp.activeSessions)
   Set-Value '工具数量' ([string]$data.tools.count)
@@ -119,6 +125,8 @@ function Update-Status([bool]$probe = $false) {
     } else {
       Set-Value '健康检查' '失败：Chrome 没有返回' ([System.Drawing.Color]::FromArgb(180, 70, 60))
     }
+  } elseif ($serverRunning -and -not $nativeConnected) {
+    Set-Value '健康检查' '无法检查（Chrome 未连接）' ([System.Drawing.Color]::FromArgb(180, 70, 60))
   } elseif ($serverRunning) {
     Set-Value '健康检查' '未检查（点击“健康检查”）' ([System.Drawing.Color]::FromArgb(100, 100, 100))
   } else {
@@ -238,7 +246,16 @@ $hint.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
 $form.Controls.Add($hint)
 
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
-$notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
+$trayIcon = $null
+if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
+  try { $trayIcon = New-Object System.Drawing.Icon -ArgumentList $IconPath } catch { $trayIcon = $null }
+}
+if ($trayIcon) {
+  $form.Icon = $trayIcon
+  $notifyIcon.Icon = $trayIcon
+} else {
+  $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
+}
 $notifyIcon.Text = "Chrome MCP Bridge $Version"
 $notifyIcon.Visible = $true
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
@@ -288,10 +305,16 @@ $startupTimer.Add_Tick({
 $startupTimer.Start()
 
 $form.Add_Shown({ $form.Activate() })
+# Explicitly show the form because the parent EXE starts PowerShell with a
+# hidden console; relying only on Application.Run can inherit that state.
+$form.Show()
+$form.BringToFront()
+$form.Activate()
 [System.Windows.Forms.Application]::Run($form)
 
 $refreshTimer.Stop()
 $startupTimer.Stop()
 $notifyIcon.Visible = $false
 $notifyIcon.Dispose()
+if ($trayIcon) { $trayIcon.Dispose() }
 $menu.Dispose()

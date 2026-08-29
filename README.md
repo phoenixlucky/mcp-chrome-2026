@@ -147,6 +147,16 @@ bash start-server.sh
 
 服务将在 `http://127.0.0.1:12306/mcp` 监听。
 
+### Windows 开发者：一键打包便携版 EXE
+
+在仓库根目录双击 `package-windows.bat`。脚本会自动读取根 `package.json` 的版本并生成：
+
+```text
+releases/chrome-mcp-bridge-<版本>-win-x64.exe
+```
+
+主程序版本更新后无需修改 BAT；打包前会自动检查所有子包版本是否一致。
+
 ### 可选：保护 HTTP MCP 端点
 
 默认保持本机免认证，便于直接使用。需要保护 HTTP / SSE 端点时，在启动服务前设置：
@@ -210,7 +220,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.4.10-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.4.11-win-x64.exe",
       "args": ["--stdio"]
     }
   }

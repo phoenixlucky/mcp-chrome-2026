@@ -53,6 +53,13 @@ async function copyPackageFiles(source, destination) {
   await fs.mkdir(destination, { recursive: true });
   for (const entry of await fs.readdir(source, { withFileTypes: true })) {
     if (entry.name === 'node_modules') continue;
+    // Package documentation is not needed at runtime. Skipping it also avoids
+    // copying locked/read-protected license files from some pnpm stores.
+    if (
+      entry.name.startsWith('.') ||
+      /^(README|LICENSE|CHANGELOG|eslint|prettier|tsconfig|vitest|jest|rollup|webpack|babel)(\.|$)/i.test(entry.name) ||
+      /\.(map|d\.ts)$/i.test(entry.name)
+    ) continue;
     const sourcePath = path.join(source, entry.name);
     const destinationPath = path.join(destination, entry.name);
     if (entry.isDirectory() && !entry.isSymbolicLink()) {
@@ -160,12 +167,14 @@ async function main() {
   const nativeDir = path.join(root, 'app', 'native-server');
   const nativeDist = path.join(nativeDir, 'dist');
   const extensionDist = path.join(root, 'app', 'chrome-extension', '.output', 'chrome-mv3');
+  const iconSource = path.join(root, 'app', 'chrome-extension', 'public', 'icon', 'catgirl.ico');
   const sourceNodeModules = path.join(nativeDir, 'node_modules');
   const stageNativeDir = path.join(payloadDir, 'app', 'native-server');
   const stageNodeModules = path.join(stageNativeDir, 'node_modules');
 
   if (!existsSync(nativeDist)) throw new Error('Native server dist is missing.');
   if (!existsSync(extensionDist)) throw new Error('Chrome extension build output is missing.');
+  if (!existsSync(iconSource)) throw new Error('Catgirl icon asset is missing.');
   if (!existsSync(sourceNodeModules)) throw new Error('Native server dependencies are missing.');
 
   await fs.copyFile(process.execPath, path.join(payloadDir, 'node.exe'));
@@ -222,6 +231,8 @@ async function main() {
   const launcherSource = path.join(root, 'scripts', 'sea-launcher.cjs');
   const launcherPath = path.join(stageDir, 'sea-launcher.cjs');
   await fs.copyFile(launcherSource, launcherPath);
+  const iconAssetPath = path.join(stageDir, 'chrome-mcp-icon.ico');
+  await fs.copyFile(iconSource, iconAssetPath);
   const desktopUiSource = path.join(root, 'scripts', 'desktop-ui.ps1');
   const desktopUiAssetPath = path.join(stageDir, 'desktop-ui.ps1');
   await fs.copyFile(desktopUiSource, desktopUiAssetPath);
@@ -236,6 +247,7 @@ async function main() {
         assets: {
           'chrome-mcp-bundle.zip': bundleZip,
           'chrome-mcp-desktop-ui.ps1': desktopUiAssetPath,
+          'chrome-mcp-icon.ico': iconAssetPath,
         },
       },
       null,
@@ -245,6 +257,18 @@ async function main() {
 
   run(process.execPath, [`--experimental-sea-config=${seaConfigPath}`]);
   await fs.copyFile(process.execPath, seaStubPath);
+  run('powershell.exe', [
+    '-NoProfile',
+    '-NonInteractive',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-File',
+    path.join(root, 'scripts', 'set-windows-icon.ps1'),
+    '-ExePath',
+    seaStubPath,
+    '-IconPath',
+    iconAssetPath,
+  ]);
   run('npx.cmd', [
     '--yes',
     'postject@1.0.0-alpha.6',
@@ -255,9 +279,18 @@ async function main() {
     'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2',
   ]);
 
-  await fs.copyFile(seaStubPath, outputExe);
-  console.log(`\n完成：${outputExe}`);
-  console.log(`大小：${( (await fs.stat(outputExe)).size / 1024 / 1024 ).toFixed(1)} MB`);
+  let publishedExe = outputExe;
+  try {
+    await fs.copyFile(seaStubPath, outputExe);
+  } catch (error) {
+    if (!['EBUSY', 'EPERM', 'EACCES'].includes(error?.code)) throw error;
+    publishedExe = outputExe.replace(/\.exe$/i, '.new.exe');
+    await fs.copyFile(seaStubPath, publishedExe);
+    console.warn(`发布文件正在被运行中的客户端占用，已改写入：${publishedExe}`);
+    console.warn('关闭旧客户端后，可将该 .new.exe 改名为原文件名。');
+  }
+  console.log(`\n完成：${publishedExe}`);
+  console.log(`大小：${( (await fs.stat(publishedExe)).size / 1024 / 1024 ).toFixed(1)} MB`);
 }
 
 await main();

@@ -20,7 +20,7 @@ const nativeMessagingLaunch = process.argv.some(
 // service mode even when it came from a desktop shortcut or double-click.
 const standaloneLaunch = !stdioLaunch && !nativeMessagingLaunch && process.argv.length <= 2;
 const defaultConfig = {
-  version: '2.4.10',
+  version: '2.4.11',
   payloadRevision: '2026-08-29-4',
   extensionId: 'djclnaepokchbblcnepfempfdhejjdml',
   hostName: 'com.chromemcp.nativehost',
@@ -364,11 +364,14 @@ function launchDesktopManager(config, port) {
 
   const uiDirectory = path.join(dataRoot(), 'mcp-chrome-bridge', 'ui');
   const uiScriptPath = path.join(uiDirectory, `desktop-ui-${config.version}.ps1`);
+  const iconPath = path.join(uiDirectory, 'chrome-mcp-icon.ico');
   try {
     fs.mkdirSync(uiDirectory, { recursive: true });
     const script = Buffer.from(getAsset('chrome-mcp-desktop-ui.ps1'));
+    const icon = Buffer.from(getAsset('chrome-mcp-icon.ico'));
     // Windows PowerShell 5.1 needs a UTF-8 BOM to read non-ASCII UI text.
     fs.writeFileSync(uiScriptPath, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), script]));
+    fs.writeFileSync(iconPath, icon);
     const uiProcess = childProcess.spawn(
       'powershell.exe',
       [
@@ -388,6 +391,8 @@ function launchDesktopManager(config, port) {
         String(config.extensionId),
         '-HostName',
         String(config.hostName),
+        '-IconPath',
+        iconPath,
         '-LogPath',
         logPath(),
       ],
@@ -400,18 +405,21 @@ function launchDesktopManager(config, port) {
       writeLog(`桌面管理器启动失败：${error.message}`);
       releaseManagerLock(lock);
       try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
+      try { fs.rmSync(iconPath, { force: true }); } catch {}
       showWindowsMessage('Chrome MCP Bridge 启动失败', `桌面管理器启动失败：${error.message}`);
       process.exitCode = 1;
     });
     uiProcess.once('exit', (code) => {
       releaseManagerLock(lock);
       try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
+      try { fs.rmSync(iconPath, { force: true }); } catch {}
       process.exit(code === null ? 0 : code);
     });
     return uiProcess;
   } catch (error) {
     releaseManagerLock(lock);
     try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
+    try { fs.rmSync(iconPath, { force: true }); } catch {}
     throw error;
   }
 }
