@@ -204,6 +204,23 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 
 `mcp-chrome-stdio` 内部使用 MCP SDK 的 Streamable HTTP 客户端，自动管理 HTTP POST、SSE 和 `sessionId` 生命周期；因此只支持 STDIO 的客户端也不需要另装 `mcp-bridge.js`。如果服务启用了 API Key，在同一段 `env` 中加入 `CHROME_MCP_API_KEY` 即可。
 
+如果使用便携版 Windows EXE 作为 MCP 客户端的 `command`，请传入 `--stdio`：
+
+```json
+{
+  "mcpServers": {
+    "chrome-mcp-bridge": {
+      "command": "D:\\path\\chrome-mcp-bridge-2.4.10-win-x64.exe",
+      "args": ["--stdio"]
+    }
+  }
+}
+```
+
+`--stdio` 会自动启动或复用本机的 MCP HTTP 服务。直接双击 EXE 是服务模式；不要把不带参数的 EXE 直接当作 stdio MCP 服务调用，因为默认模式使用的是 Chrome Native Messaging 协议。若 Chrome 扩展随后启动 Native Messaging 宿主，宿主会自动接管已启动的 `12306` 服务，避免 HTTP 服务进程与 Chrome 连接分离。
+
+便携版排障可访问 `http://127.0.0.1:12306/status?probe=1`：`nativeHost.connected` 表示 Native Messaging 握手，`probe.ok` 表示桥接服务已经实际收到 Chrome 回包；仅 `/ping` 正常不能证明 Chrome 已接管。
+
 ---
 
 ## 🧩 隔离浏览器 Profile

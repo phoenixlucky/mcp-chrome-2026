@@ -1,18 +1,27 @@
 'use strict';
 
 const fs = require('node:fs');
+const http = require('node:http');
 const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
 const { createRequire } = require('node:module');
 const childProcess = require('node:child_process');
+const { createHash } = require('node:crypto');
 const { getAsset } = require('node:sea');
 
 let bundle;
-const standaloneLaunch = Boolean(process.stdin.isTTY || process.stdout.isTTY);
+const stdioLaunch = process.argv.some((argument) => argument === '--stdio' || argument === '--mcp-stdio');
+const nativeMessagingLaunch = process.argv.some(
+  (argument) => argument.startsWith('chrome-extension://') || argument === '--parent-window=0',
+);
+// Explorer launches have no TTY. Native Messaging launches are identifiable by
+// Chrome's extension-origin argument, so a no-argument launch is the user-facing
+// service mode even when it came from a desktop shortcut or double-click.
+const standaloneLaunch = !stdioLaunch && !nativeMessagingLaunch && process.argv.length <= 2;
 const defaultConfig = {
   version: '2.4.10',
-  payloadRevision: '2026-08-28-3',
+  payloadRevision: '2026-08-29-4',
   extensionId: 'djclnaepokchbblcnepfempfdhejjdml',
   hostName: 'com.chromemcp.nativehost',
   port: 12306,
@@ -97,14 +106,91 @@ function checkPort(port) {
   });
 }
 
+function waitForHttpServer(port, timeoutMs = 30_000) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    let settled = false;
+
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve();
+    };
+
+    const attempt = () => {
+      if (settled) return;
+      if (Date.now() >= deadline) {
+        finish(new Error(`等待 MCP HTTP 服务就绪超时（http://127.0.0.1:${port}/mcp）。请先启动独立版 EXE，或检查端口是否被其他程序占用。`));
+        return;
+      }
+
+      const request = http.get(
+        { hostname: '127.0.0.1', port, path: '/ping', timeout: 1_000 },
+        (response) => {
+          response.resume();
+          if (response.statusCode === 200) {
+            finish();
+            return;
+          }
+          setTimeout(attempt, 250);
+        },
+      );
+      request.on('timeout', () => request.destroy());
+      request.on('error', () => setTimeout(attempt, 250));
+    };
+
+    attempt();
+  });
+}
+
 function readConfig(root) {
   const configPath = path.join(root, 'payload-config.json');
   if (!fs.existsSync(configPath)) return defaultConfig;
   return { ...defaultConfig, ...JSON.parse(fs.readFileSync(configPath, 'utf8')) };
 }
 
+function isProcessAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error && error.code === 'EPERM';
+  }
+}
+
+function getLockInfo(lockPath) {
+  try {
+    const stat = fs.statSync(lockPath);
+    const content = fs.readFileSync(lockPath, 'utf8').trim().split(/\s+/);
+    const pid = Number.parseInt(content[0], 10);
+    return { pid, ageMs: Math.max(0, Date.now() - stat.mtimeMs) };
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    return { pid: 0, ageMs: Number.POSITIVE_INFINITY };
+  }
+}
+
+function recoverStaleExtractionLock(lockPath) {
+  const info = getLockInfo(lockPath);
+  if (!info) return true;
+
+  const stale = info.pid > 0 ? !isProcessAlive(info.pid) : info.ageMs > 60_000;
+  if (!stale) return false;
+
+  try {
+    fs.rmSync(lockPath, { force: true });
+    writeLog(`已清理残留运行时解压锁：${lockPath}（pid=${info.pid || 'unknown'}）`);
+    return true;
+  } catch (error) {
+    if (error.code === 'ENOENT') return true;
+    return false;
+  }
+}
+
 function waitForExtractionLock(lockPath, markerPath) {
-  for (let attempt = 0; attempt < 3000; attempt += 1) {
+  for (let attempt = 0; attempt < 600; attempt += 1) {
     try {
       const fd = fs.openSync(lockPath, 'wx');
       fs.writeFileSync(fd, `${process.pid}\n${Date.now()}`);
@@ -112,21 +198,29 @@ function waitForExtractionLock(lockPath, markerPath) {
     } catch (error) {
       if (error.code !== 'EEXIST') throw error;
       if (fs.existsSync(markerPath)) return null;
+      recoverStaleExtractionLock(lockPath);
       sleep(100);
     }
   }
-  throw new Error('等待运行时解压锁超时。');
+  const info = getLockInfo(lockPath);
+  const owner = info?.pid ? `持锁进程 PID=${info.pid}（${isProcessAlive(info.pid) ? '仍在运行' : '已退出'}）` : '无法读取持锁进程信息';
+  throw new Error(`等待运行时解压锁超时：${lockPath}；${owner}。请关闭残留的 Chrome MCP Bridge 进程后重试。`);
 }
 
 function extractPayload() {
   const localAppData = dataRoot();
   if (!bundle) throw new Error('内嵌运行时资源无法读取，EXE 文件可能已损坏。');
 
+  // A version-only cache key can keep an older payload forever when an EXE is
+  // rebuilt without changing the public package version. Include the embedded
+  // bundle hash so every changed binary gets a fresh extraction directory.
+  const bundleHash = createHash('sha256').update(bundle).digest('hex').slice(0, 12);
+
   const root = path.join(
     localAppData,
     'mcp-chrome-bridge',
     'portable',
-    `${defaultConfig.version}-${defaultConfig.payloadRevision}`,
+    `${defaultConfig.version}-${defaultConfig.payloadRevision}-${bundleHash}`,
   );
   const markerPath = path.join(root, '.complete');
   const lockPath = `${root}.lock`;
@@ -252,8 +346,72 @@ function validatePayload(payloadRoot) {
   return entryPath;
 }
 
+function getStdioEntry(payloadRoot) {
+  const entryPath = path.join(payloadRoot, 'app', 'native-server', 'dist', 'mcp', 'mcp-server-stdio.js');
+  if (!fs.existsSync(entryPath)) {
+    throw new Error('内嵌运行时不包含 MCP stdio 入口文件，请重新下载完整 EXE。');
+  }
+  return entryPath;
+}
+
+let embeddedServerChild;
+
+async function ensureEmbeddedHttpServer(payloadRoot, port, portAvailable) {
+  if (!portAvailable) {
+    await waitForHttpServer(port, 5_000);
+    return;
+  }
+
+  const nodePath = path.join(payloadRoot, 'node.exe');
+  const serverEntry = path.join(payloadRoot, 'app', 'native-server', 'dist', 'index.js');
+  embeddedServerChild = childProcess.spawn(nodePath, [serverEntry], {
+    env: {
+      ...process.env,
+      CHROME_MCP_STANDALONE: '1',
+      CHROME_MCP_PORT: String(port),
+      MCP_HTTP_PORT: String(port),
+    },
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  embeddedServerChild.once('error', (error) => writeLog(`MCP stdio 内嵌 HTTP 服务启动失败：${error.message}`));
+  embeddedServerChild.once('exit', (code, signal) => {
+    if (!embeddedServerChild) return;
+    if (code !== 0 && signal === null) {
+      writeLog(`MCP stdio 内嵌 HTTP 服务提前退出：code=${code}`);
+    }
+  });
+
+  try {
+    await waitForHttpServer(port);
+  } catch (error) {
+    try { embeddedServerChild.kill(); } catch {}
+    embeddedServerChild = undefined;
+    throw error;
+  }
+}
+
+function stopEmbeddedHttpServer() {
+  if (!embeddedServerChild) return;
+  try { embeddedServerChild.kill(); } catch {}
+  embeddedServerChild = undefined;
+}
+
 function formatError(error) {
   return error && typeof error.message === 'string' ? error.message : String(error);
+}
+
+function printStartupInfo(config, port) {
+  if (!standaloneLaunch) return;
+  process.stdout.write(
+    [
+      `Chrome MCP Bridge ${config.version}`,
+      `扩展 ID：${config.extensionId}`,
+      `Native Messaging 主机：${config.hostName}`,
+      `服务地址：http://127.0.0.1:${port}`,
+      '',
+    ].join('\n'),
+  );
 }
 
 function waitForUserBeforeExit() {
@@ -289,6 +447,17 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
     warnings.push(...registerNativeMessagingHost(config));
 
     const entryPath = validatePayload(payloadRoot);
+    if (stdioLaunch) {
+      const stdioEntryPath = getStdioEntry(payloadRoot);
+      await ensureEmbeddedHttpServer(payloadRoot, port, portStatus.available);
+      if (!process.env.MCP_SERVER_URL) {
+        process.env.MCP_SERVER_URL = `http://127.0.0.1:${port}/mcp`;
+      }
+      process.once('exit', stopEmbeddedHttpServer);
+      createRequire(stdioEntryPath)(stdioEntryPath);
+      return;
+    }
+    printStartupInfo(config, port);
     if (warnings.length > 0) {
       const warningText = [
         ...warnings,
