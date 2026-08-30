@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "Default permissions for the Chrome MCP Bridge desktop client",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

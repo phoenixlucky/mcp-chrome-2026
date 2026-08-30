@@ -1,0 +1,9 @@
+{
+  "main-capability": {
+    "identifier": "main-capability",
+    "description": "Default permissions for the Chrome MCP Bridge desktop client",
+    "local": true,
+    "windows": ["main"],
+    "permissions": ["core:default"]
+  }
+}

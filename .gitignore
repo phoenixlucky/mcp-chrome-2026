@@ -55,3 +55,5 @@ reasonix.toml
 
 # Release artifacts (use GitHub Releases instead)
 releases/
+app/desktop-client/bridge/*.exe
+app/desktop-client/src-tauri/target/
