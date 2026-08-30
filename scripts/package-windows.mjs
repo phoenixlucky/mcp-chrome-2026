@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { promises as fs, existsSync, realpathSync, readFileSync, lstatSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,7 +11,7 @@ const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json')
 const version = packageJson.version;
 const skipBuild = process.argv.includes('--skip-build');
 const releaseDir = path.join(root, 'releases');
-const stageDir = path.join(releaseDir, `.windows-stage-${version}-${process.pid}`);
+const stageDir = path.join(tmpdir(), `chrome-mcp-bridge-stage-${version}-${process.pid}`);
 const payloadDir = path.join(stageDir, 'payload');
 const bundleZip = path.join(stageDir, `chrome-mcp-bundle-${version}.zip`);
 const seaConfigPath = path.join(stageDir, 'sea-config.json');
@@ -33,6 +34,15 @@ function run(command, args) {
     return;
   }
   execFileSync(command, args, { cwd: root, stdio: 'inherit', windowsHide: true });
+}
+
+function canRun(command, args = ['--version']) {
+  try {
+    execFileSync(command, args, { cwd: root, stdio: 'ignore', windowsHide: true });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function extensionIdFromManifest(manifestPath) {
@@ -222,11 +232,15 @@ async function main() {
   );
 
   console.log('Compressing embedded runtime...');
-  run('powershell.exe', [
-    '-NoProfile',
-    '-Command',
-    `Compress-Archive -Path '${payloadDir.replaceAll("'", "''")}\\*' -DestinationPath '${bundleZip.replaceAll("'", "''")}' -CompressionLevel Optimal`,
-  ]);
+  if (canRun('tar.exe')) {
+    run('tar.exe', ['-a', '-c', '-f', bundleZip, '-C', payloadDir, '.']);
+  } else {
+    run('powershell.exe', [
+      '-NoProfile',
+      '-Command',
+      `Import-Module Microsoft.PowerShell.Archive; Compress-Archive -Path '${payloadDir.replaceAll("'", "''")}\\*' -DestinationPath '${bundleZip.replaceAll("'", "''")}' -CompressionLevel Optimal`,
+    ]);
+  }
 
   const launcherSource = path.join(root, 'scripts', 'sea-launcher.cjs');
   const launcherPath = path.join(stageDir, 'sea-launcher.cjs');
@@ -269,8 +283,8 @@ async function main() {
     '-IconPath',
     iconAssetPath,
   ]);
-  run('npx.cmd', [
-    '--yes',
+  run('pnpm.cmd', [
+    'dlx',
     'postject@1.0.0-alpha.6',
     seaStubPath,
     'NODE_SEA_BLOB',
@@ -293,4 +307,8 @@ async function main() {
   console.log(`大小：${( (await fs.stat(publishedExe)).size / 1024 / 1024 ).toFixed(1)} MB`);
 }
 
-await main();
+try {
+  await main();
+} finally {
+  await fs.rm(stageDir, { recursive: true, force: true }).catch(() => {});
+}
