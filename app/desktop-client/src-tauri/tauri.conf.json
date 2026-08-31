@@ -30,6 +30,6 @@
     "active": true,
     "targets": ["nsis", "msi"],
     "resources": ["../bridge/*"],
-    "icon": ["../../../app/chrome-extension/public/icon/128.png"]
+    "icon": ["icons/icon.ico"]
   }
 }
