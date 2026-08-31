@@ -41,6 +41,20 @@ if errorlevel 1 (
 set "RELEASE_DIR=%~dp0releases"
 if not exist "%RELEASE_DIR%" mkdir "%RELEASE_DIR%"
 
+rem Keep the portable release directory focused on the three distributable files.
+del /q "%RELEASE_DIR%\Chrome MCP Bridge_*.msi" 2>nul
+del /q "%RELEASE_DIR%\Chrome MCP Bridge_*-setup.exe" 2>nul
+del /q "%RELEASE_DIR%\chrome-mcp-bridge-*-win-x64.exe" 2>nul
+
+echo Packaging Chrome extension ZIP...
+call %PNPM_CMD% --filter @ethanwilkins/chrome-mcp-server-2026 zip
+if errorlevel 1 (
+  echo.
+  echo Chrome extension packaging failed.
+  pause
+  exit /b 1
+)
+
 copy /y "%~dp0app\desktop-client\src-tauri\target\release\chrome-mcp-desktop.exe" "%RELEASE_DIR%\chrome-mcp-desktop-%VERSION%-win-x64.exe" >nul
 if errorlevel 1 (
   echo.
@@ -57,13 +71,20 @@ if errorlevel 1 (
   exit /b 1
 )
 
-for /r "%~dp0app\desktop-client\src-tauri\target\release\bundle" %%F in (*.exe *.msi) do copy /y "%%F" "%RELEASE_DIR%" >nul
+copy /y "%~dp0app\chrome-extension\.output\chrome-mcp-server-%VERSION%-chrome.zip" "%RELEASE_DIR%\chrome-mcp-server-%VERSION%-chrome.zip" >nul
+if errorlevel 1 (
+  echo.
+  echo Failed to copy the Chrome extension package into releases\.
+  pause
+  exit /b 1
+)
 
 echo.
 echo Desktop client packaging complete.
 echo Output folder: releases\
 echo Desktop EXE: releases\chrome-mcp-desktop-%VERSION%-win-x64.exe
 echo Bridge runtime: releases\chrome-mcp-bridge.exe
-echo Installers: copied into releases\ when generated
+echo Chrome extension: releases\chrome-mcp-server-%VERSION%-chrome.zip
+echo Only the portable three-file package is copied; MSI/setup installers are omitted.
 pause
 exit /b 0
