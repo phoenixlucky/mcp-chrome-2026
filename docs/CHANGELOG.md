@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.4.11] - 2026-08-31
+
+### Added
+
+- **Tauri 2 + Vue 桌面客户端** — 新增 `app/desktop-client`：原生桌面管理器（Rust + Vue），支持 Windows 打包（NSIS/MSI），图标与托盘集成。
+- **便携版单文件 EXE** — `scripts/package-windows.mjs` 基于 Node SEA + postject 打包 `chrome-mcp-bridge-<ver>-win-x64.exe`，内嵌完整运行时并自动注册 Chrome/Chromium Native Messaging。
+- **桌面管理器与托盘常驻** — WinForms 状态面板（服务/扩展/Native Host/MCP 会话/工具数），关闭窗口最小化到系统托盘，支持启动/停止服务、健康检查与日志入口；`--stdio` 便携模式可直接作为 MCP 客户端 command。
+- **一键打包脚本** — `package-windows.bat` / `package-desktop-windows.bat`，打包前自动校验版本一致性。
+
+### Changed
+
+- **服务开关与状态控制通道** — `/__chrome_mcp_bridge/start`、`/stop` 控制端点；服务停止时 `/mcp` 等端点返回 503，保留本机控制通道。
+- **HTTP 端口接管** — Chrome 原生消息宿主启动时可接管已占用端口，保证扩展连接与 HTTP 服务同进程。
+- **代理轮换 IP 对比** — 手动轮换时展示切换前后出口 IP，探测期间临时覆盖探针会话。
+- **图标与打包改进** — 桌面客户端/管理器使用 catgirl 图标，EXE 资源注入（`UpdateResource`）；跳过文档/配置源文件、发布文件被占用时回退 `.new.exe`；pnpm 升至 11.24.0，打包改用 tar zip。
+- 版本统一为 v2.4.11。
+
 ## [v2.4.10] - 2026-08-26
 
 ### Added
