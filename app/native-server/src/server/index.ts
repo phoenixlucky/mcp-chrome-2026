@@ -47,14 +47,62 @@ interface ExtensionRequestPayload {
 }
 
 type McpTransport = StreamableHTTPServerTransport | SSEServerTransport;
+type McpTransportType = 'streamable-http' | 'sse';
+
+interface McpClientInfo {
+  name: string;
+  version: string;
+}
+
+interface McpSessionMetadata {
+  transportType: McpTransportType;
+  clientInfo?: McpClientInfo | null;
+  remoteAddress?: string | null;
+  userAgent?: string | null;
+}
+
 interface McpSession {
   transport: McpTransport;
+  transportType: McpTransportType;
+  clientInfo: McpClientInfo | null;
+  remoteAddress: string | null;
+  userAgent: string | null;
   createdAt: Date;
   lastActivityAt: Date;
   activeRequests: number;
   lastError: string | null;
 }
 const SESSION_TTL_MS = 10 * 60_000;
+
+function getHeaderValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value.join(', ');
+  return value ?? null;
+}
+
+function getMcpClientInfo(body: unknown): McpClientInfo | null {
+  if (!body || typeof body !== 'object') return null;
+
+  const params =
+    'params' in body && body.params && typeof body.params === 'object' ? body.params : null;
+  const clientInfo =
+    params && 'clientInfo' in params && params.clientInfo && typeof params.clientInfo === 'object'
+      ? params.clientInfo
+      : null;
+  if (!clientInfo) return null;
+
+  const name =
+    'name' in clientInfo && typeof clientInfo.name === 'string' ? clientInfo.name.trim() : '';
+  const version =
+    'version' in clientInfo && typeof clientInfo.version === 'string'
+      ? clientInfo.version.trim()
+      : '';
+  if (!name && !version) return null;
+
+  return {
+    name: name || 'Unknown client',
+    version: version || 'Unknown version',
+  };
+}
 
 // ============================================================
 // Server Class
@@ -214,6 +262,17 @@ export class Server {
             activeRequests: sessions.reduce((total, session) => total + session.activeRequests, 0),
             reclaimedSessions: this.reclaimedSessions,
             streamableHttp: true,
+            clients: [...this.transportsMap.entries()].map(([sessionId, session]) => ({
+              sessionId,
+              clientInfo: session.clientInfo,
+              transport: session.transportType,
+              remoteAddress: session.remoteAddress,
+              userAgent: session.userAgent,
+              createdAt: session.createdAt.toISOString(),
+              lastActivityAt: session.lastActivityAt.toISOString(),
+              activeRequests: session.activeRequests,
+              lastError: session.lastError,
+            })),
           },
           extension: this.nativeHost?.getStatus() ?? null,
           nativeHost: this.nativeHost?.getStatus() ?? null,
@@ -277,9 +336,17 @@ export class Server {
     });
   }
 
-  private addSession(sessionId: string, transport: McpTransport): void {
+  private addSession(
+    sessionId: string,
+    transport: McpTransport,
+    metadata: McpSessionMetadata,
+  ): void {
     this.transportsMap.set(sessionId, {
       transport,
+      transportType: metadata.transportType,
+      clientInfo: metadata.clientInfo ?? null,
+      remoteAddress: metadata.remoteAddress ?? null,
+      userAgent: metadata.userAgent ?? null,
       createdAt: new Date(),
       lastActivityAt: new Date(),
       activeRequests: 0,
@@ -347,7 +414,7 @@ export class Server {
 
   private setupMcpRoutes(): void {
     // SSE endpoint
-    this.fastify.get('/sse', async (_, reply) => {
+    this.fastify.get('/sse', async (request, reply) => {
       try {
         reply.raw.writeHead(HTTP_STATUS.OK, {
           'Content-Type': 'text/event-stream',
@@ -356,7 +423,11 @@ export class Server {
         });
 
         const transport = new SSEServerTransport('/messages', reply.raw);
-        this.addSession(transport.sessionId, transport);
+        this.addSession(transport.sessionId, transport, {
+          transportType: 'sse',
+          remoteAddress: request.ip,
+          userAgent: getHeaderValue(request.headers['user-agent']),
+        });
 
         reply.raw.on('close', () => {
           this.transportsMap.delete(transport.sessionId);
@@ -385,6 +456,7 @@ export class Server {
         }
 
         session.lastActivityAt = new Date();
+        session.clientInfo = getMcpClientInfo(req.body) ?? session.clientInfo;
         session.activeRequests++;
         try {
           await transport.handlePostMessage(req.raw, reply.raw, req.body);
@@ -404,6 +476,7 @@ export class Server {
       let session = this.transportsMap.get(sessionId || '');
       let transport: StreamableHTTPServerTransport | undefined = session?.transport as
         StreamableHTTPServerTransport | undefined;
+      const clientInfo = getMcpClientInfo(request.body);
 
       if (transport) {
         // Transport found, proceed
@@ -413,7 +486,12 @@ export class Server {
           sessionIdGenerator: () => newSessionId,
           onsessioninitialized: (initializedSessionId) => {
             if (transport && initializedSessionId === newSessionId) {
-              this.addSession(initializedSessionId, transport);
+              this.addSession(initializedSessionId, transport, {
+                transportType: 'streamable-http',
+                clientInfo,
+                remoteAddress: request.ip,
+                userAgent: getHeaderValue(request.headers['user-agent']),
+              });
             }
           },
         });
@@ -431,6 +509,7 @@ export class Server {
 
       session = this.transportsMap.get(transport.sessionId || sessionId || '');
       if (session) {
+        session.clientInfo = clientInfo ?? session.clientInfo;
         session.lastActivityAt = new Date();
         session.activeRequests++;
       }
@@ -460,6 +539,7 @@ export class Server {
       }
 
       try {
+        if (session) session.lastActivityAt = new Date();
         await transport.handleRequest(request.raw, reply.raw);
         if (!reply.sent) {
           reply.hijack();

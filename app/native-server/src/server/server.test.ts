@@ -37,6 +37,43 @@ describe('服务器测试', () => {
     expect(response.body.tools.count).toBeGreaterThan(0);
   });
 
+  test('MCP 初始化后 /status 应返回客户端详情', async () => {
+    Server.serviceEnabled = true;
+    try {
+      const response = await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
+          },
+        })
+        .expect(200);
+
+      const sessionId = response.headers['mcp-session-id'];
+      expect(sessionId).toEqual(expect.any(String));
+
+      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      expect(status.body.mcp.clients).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sessionId,
+            clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
+            transport: 'streamable-http',
+          }),
+        ]),
+      );
+    } finally {
+      Server.serviceEnabled = false;
+    }
+  });
+
   test('智能助手设置允许跨域 PUT 保存', async () => {
     const response = await supertest(Server.getInstance().server)
       .options('/agent/settings/deepseek')
