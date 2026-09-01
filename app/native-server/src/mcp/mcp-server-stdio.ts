@@ -18,6 +18,7 @@ import { checkToolAccess, filterToolsByPermission } from './permission-policy.js
 
 let stdioMcpServer: Server | null = null;
 let mcpClient: Client | null = null;
+let mcpClientConnectPromise: Promise<Client | undefined> | null = null;
 
 const DEFAULT_MCP_SERVER_ORIGIN = 'chrome-extension://mcp-stdio';
 
@@ -57,34 +58,44 @@ export const getStdioMcpServer = () => {
 };
 
 export const ensureMcpClient = async () => {
-  try {
-    if (mcpClient) {
-      const pingResult = await mcpClient.ping();
-      if (pingResult) {
-        return mcpClient;
-      }
-    }
+  if (mcpClient) return mcpClient;
+  if (mcpClientConnectPromise) return mcpClientConnectPromise;
 
-    const config = loadConfig();
-    mcpClient = new Client({ name: 'Mcp Chrome Proxy', version: '1.0.0' }, { capabilities: {} });
-    const apiKey = process.env.CHROME_MCP_API_KEY?.trim();
-    const requestHeaders: Record<string, string> = {
-      // Keep the backwards-compatible no-key STDIO transport distinguishable
-      // from an unauthenticated request with no Origin header.
-      Origin: process.env.MCP_SERVER_ORIGIN?.trim() || DEFAULT_MCP_SERVER_ORIGIN,
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-    };
-    const transport = new StreamableHTTPClientTransport(
-      new URL(config.url),
-      { requestInit: { headers: requestHeaders } },
-    );
-    await mcpClient.connect(transport);
-    return mcpClient;
-  } catch (error) {
-    mcpClient?.close();
-    mcpClient = null;
-    console.error('Failed to connect to MCP server:', error);
+  const connection = (async () => {
+    try {
+      const config = loadConfig();
+      mcpClient = new Client({ name: 'Mcp Chrome Proxy', version: '1.0.0' }, { capabilities: {} });
+      const apiKey = process.env.CHROME_MCP_API_KEY?.trim();
+      const requestHeaders: Record<string, string> = {
+        // Keep the backwards-compatible no-key STDIO transport distinguishable
+        // from an unauthenticated request with no Origin header.
+        Origin: process.env.MCP_SERVER_ORIGIN?.trim() || DEFAULT_MCP_SERVER_ORIGIN,
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      };
+      const transport = new StreamableHTTPClientTransport(new URL(config.url), {
+        requestInit: { headers: requestHeaders },
+      });
+      await mcpClient.connect(transport);
+      return mcpClient;
+    } catch (error) {
+      mcpClient?.close();
+      mcpClient = null;
+      console.error('Failed to connect to MCP server:', error);
+      return undefined;
+    }
+  })();
+  mcpClientConnectPromise = connection;
+  try {
+    return await connection;
+  } finally {
+    if (mcpClientConnectPromise === connection) mcpClientConnectPromise = null;
   }
+};
+
+const resetMcpClient = () => {
+  const client = mcpClient;
+  mcpClient = null;
+  void client?.close().catch(() => undefined);
 };
 
 export const setupTools = (server: Server) => {
@@ -96,6 +107,7 @@ export const setupTools = (server: Server) => {
       const result = await client.listTools();
       return { ...result, tools: filterToolsByPermission(result.tools) };
     } catch {
+      resetMcpClient();
       return { tools: filterToolsByPermission(TOOL_SCHEMAS) };
     }
   });
@@ -104,7 +116,6 @@ export const setupTools = (server: Server) => {
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
     handleToolCall(request.params.name, request.params.arguments || {}, extra),
   );
-
 };
 
 const handleToolCall = async (
@@ -127,33 +138,38 @@ const handleToolCall = async (
     // Use a sane default of 2 minutes; the previous value mistakenly used 2*6*1000 (12s)
     const DEFAULT_CALL_TIMEOUT_MS = 2 * 60 * 1000;
     const progressToken = extra?._meta?.progressToken;
-    const result = await client.callTool(
-      {
-        name,
-        arguments: args,
-        ...(extra?._meta ? { _meta: extra._meta } : {}),
-      },
-      undefined,
-      {
-        timeout: DEFAULT_CALL_TIMEOUT_MS,
-        signal: extra?.signal,
-        onprogress:
-          progressToken === undefined
-            ? undefined
-            : (progress) => {
-                void extra?.sendNotification({
-                  method: 'notifications/progress',
-                  params: {
-                    progressToken,
-                    progress: progress.progress,
-                    ...(progress.total === undefined ? {} : { total: progress.total }),
-                    ...(progress.message === undefined ? {} : { message: progress.message }),
-                  },
-                });
-              },
-      },
-    );
-    return result as CallToolResult;
+    try {
+      const result = await client.callTool(
+        {
+          name,
+          arguments: args,
+          ...(extra?._meta ? { _meta: extra._meta } : {}),
+        },
+        undefined,
+        {
+          timeout: DEFAULT_CALL_TIMEOUT_MS,
+          signal: extra?.signal,
+          onprogress:
+            progressToken === undefined
+              ? undefined
+              : (progress) => {
+                  void extra?.sendNotification({
+                    method: 'notifications/progress',
+                    params: {
+                      progressToken,
+                      progress: progress.progress,
+                      ...(progress.total === undefined ? {} : { total: progress.total }),
+                      ...(progress.message === undefined ? {} : { message: progress.message }),
+                    },
+                  });
+                },
+        },
+      );
+      return result as CallToolResult;
+    } catch (error) {
+      resetMcpClient();
+      throw error;
+    }
   } catch (error: any) {
     return {
       content: [
