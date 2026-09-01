@@ -70,6 +70,11 @@ interface McpSession {
   createdAt: Date;
   lastActivityAt: Date;
   activeRequests: number;
+  requestCount: number;
+  totalRequestLatencyMs: number;
+  lastRequestLatencyMs: number | null;
+  maxRequestLatencyMs: number | null;
+  errorCount: number;
   lastError: string | null;
 }
 const SESSION_TTL_MS = 10 * 60_000;
@@ -271,6 +276,13 @@ export class Server {
               createdAt: session.createdAt.toISOString(),
               lastActivityAt: session.lastActivityAt.toISOString(),
               activeRequests: session.activeRequests,
+              requestCount: session.requestCount,
+              lastRequestLatencyMs: session.lastRequestLatencyMs,
+              averageRequestLatencyMs: session.requestCount
+                ? Math.round(session.totalRequestLatencyMs / session.requestCount)
+                : null,
+              maxRequestLatencyMs: session.maxRequestLatencyMs,
+              errorCount: session.errorCount,
               lastError: session.lastError,
             })),
           },
@@ -350,8 +362,21 @@ export class Server {
       createdAt: new Date(),
       lastActivityAt: new Date(),
       activeRequests: 0,
+      requestCount: 0,
+      totalRequestLatencyMs: 0,
+      lastRequestLatencyMs: null,
+      maxRequestLatencyMs: null,
+      errorCount: 0,
       lastError: null,
     });
+  }
+
+  private recordRequestLatency(session: McpSession, startedAt: number): void {
+    const latencyMs = Math.max(0, Date.now() - startedAt);
+    session.requestCount++;
+    session.totalRequestLatencyMs += latencyMs;
+    session.lastRequestLatencyMs = latencyMs;
+    session.maxRequestLatencyMs = Math.max(session.maxRequestLatencyMs ?? 0, latencyMs);
   }
 
   private async cleanupStaleSessions(): Promise<void> {
@@ -458,10 +483,16 @@ export class Server {
         session.lastActivityAt = new Date();
         session.clientInfo = getMcpClientInfo(req.body) ?? session.clientInfo;
         session.activeRequests++;
+        const startedAt = Date.now();
         try {
           await transport.handlePostMessage(req.raw, reply.raw, req.body);
+        } catch (error) {
+          session.errorCount++;
+          session.lastError = error instanceof Error ? error.message : String(error);
+          throw error;
         } finally {
           session.activeRequests--;
+          this.recordRequestLatency(session, startedAt);
         }
       } catch (error) {
         if (!reply.sent) {
@@ -508,22 +539,30 @@ export class Server {
       }
 
       session = this.transportsMap.get(transport.sessionId || sessionId || '');
+      const trackedSession = Boolean(session);
       if (session) {
         session.clientInfo = clientInfo ?? session.clientInfo;
         session.lastActivityAt = new Date();
         session.activeRequests++;
       }
+      const startedAt = Date.now();
       try {
         await transport.handleRequest(request.raw, reply.raw, request.body);
       } catch (error) {
-        if (session) session.lastError = error instanceof Error ? error.message : String(error);
+        if (session) {
+          session.errorCount++;
+          session.lastError = error instanceof Error ? error.message : String(error);
+        }
         if (!reply.sent) {
           reply
             .code(HTTP_STATUS.INTERNAL_SERVER_ERROR)
             .send({ error: ERROR_MESSAGES.MCP_REQUEST_PROCESSING_ERROR });
         }
       } finally {
-        if (session) session.activeRequests--;
+        if (trackedSession && session) session.activeRequests--;
+        const currentSession =
+          session ?? this.transportsMap.get(transport.sessionId || sessionId || '');
+        if (currentSession) this.recordRequestLatency(currentSession, startedAt);
       }
     });
 

@@ -66,6 +66,11 @@ describe('服务器测试', () => {
             sessionId,
             clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
             transport: 'streamable-http',
+            requestCount: expect.any(Number),
+            lastRequestLatencyMs: expect.any(Number),
+            averageRequestLatencyMs: expect.any(Number),
+            maxRequestLatencyMs: expect.any(Number),
+            errorCount: 0,
           }),
         ]),
       );
