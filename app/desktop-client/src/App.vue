@@ -24,6 +24,7 @@ type McpClient = {
   activeRequests: number;
   requestCount: number;
   lastRequestLatencyMs: number | null;
+  p95RequestLatencyMs: number | null;
   averageRequestLatencyMs: number | null;
   maxRequestLatencyMs: number | null;
   errorCount: number;
@@ -227,6 +228,10 @@ onUnmounted(() => {
         <p class="eyebrow">LOCAL AUTOMATION RUNTIME</p>
         <h1>Chrome MCP Bridge</h1>
         <p class="subtitle">让 AI 安全、直接地使用你当前的 Chrome</p>
+        <blockquote class="motto">
+          “夫蚤决先定，若计不先定，虑不蚤决，则进退不定，疑生必败。”
+          <cite>—《尉缭子·勒卒令》</cite>
+        </blockquote>
       </div>
       <div class="hero-status" :class="`tone-${phaseMeta.tone}`">
         <span class="status-dot"></span>
@@ -407,13 +412,13 @@ onUnmounted(() => {
                 ><dt>最后活动</dt><dd>{{ formatActivity(client.lastActivityAt) }}</dd></div
               >
               <div
-                ><dt>最近延迟</dt
+                ><dt>最近耗时</dt
                 ><dd :class="latencyTone(client.lastRequestLatencyMs)">
                   {{ formatLatency(client.lastRequestLatencyMs) }}
                 </dd></div
               >
               <div
-                ><dt>平均延迟</dt
+                ><dt>平均耗时</dt
                 ><dd :class="latencyTone(client.averageRequestLatencyMs)">
                   {{ formatLatency(client.averageRequestLatencyMs) }}
                 </dd></div
@@ -428,9 +433,15 @@ onUnmounted(() => {
                 ><dt>处理中</dt><dd>{{ client.activeRequests }} 个请求</dd></div
               >
               <div v-if="client.maxRequestLatencyMs !== null"
-                ><dt>峰值延迟</dt
+                ><dt>峰值耗时</dt
                 ><dd :class="latencyTone(client.maxRequestLatencyMs)">{{
                   formatLatency(client.maxRequestLatencyMs)
+                }}</dd></div
+              >
+              <div v-if="client.p95RequestLatencyMs !== null"
+                ><dt>P95 耗时</dt
+                ><dd :class="latencyTone(client.p95RequestLatencyMs)">{{
+                  formatLatency(client.p95RequestLatencyMs)
                 }}</dd></div
               >
               <div v-if="client.errorCount"
@@ -449,8 +460,8 @@ onUnmounted(() => {
         </div>
 
         <p class="modal-note"
-          >客户端名称来自 MCP initialize 请求；延迟为服务端统计的最近一次 MCP 请求往返耗时，不是网络
-          Ping。</p
+          >客户端名称来自 MCP initialize 请求；耗时为服务端统计的 MCP
+          请求处理耗时，包含浏览器工具执行时间，不是网络 Ping。P95 只统计最近 100 次请求。</p
         >
       </section>
     </div>

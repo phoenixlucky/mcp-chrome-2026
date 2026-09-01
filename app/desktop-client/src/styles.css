@@ -83,6 +83,21 @@ h1 {
   color: #9ba5b6;
   font-size: 12px;
 }
+.motto {
+  max-width: 540px;
+  margin: 9px 0 0;
+  color: #c4a9ff;
+  font-size: 11px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+.motto cite {
+  display: block;
+  margin-top: 2px;
+  color: #7e8aa0;
+  font-size: 10px;
+  font-style: normal;
+}
 .hero-status {
   margin-left: auto;
   z-index: 1;

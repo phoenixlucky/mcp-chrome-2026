@@ -74,10 +74,18 @@ interface McpSession {
   totalRequestLatencyMs: number;
   lastRequestLatencyMs: number | null;
   maxRequestLatencyMs: number | null;
+  latencySamplesMs: number[];
   errorCount: number;
   lastError: string | null;
 }
 const SESSION_TTL_MS = 10 * 60_000;
+
+function percentile(values: number[], ratio: number): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.ceil(sorted.length * ratio) - 1);
+  return sorted[index];
+}
 
 function getHeaderValue(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value.join(', ');
@@ -128,7 +136,12 @@ export class Server {
   private agentChatService: AgentChatService;
 
   constructor() {
-    this.fastify = Fastify({ logger: SERVER_CONFIG.LOGGER_ENABLED });
+    this.fastify = Fastify({
+      logger: SERVER_CONFIG.LOGGER_ENABLED,
+      // Give clients that reuse an HTTP connection enough time between calls.
+      keepAliveTimeout: 60_000,
+      connectionTimeout: 0,
+    });
     this.agentStreamManager = new AgentStreamManager();
     this.agentChatService = new AgentChatService({
       engines: [new CodexEngine(), new ClaudeEngine(), new DeepSeekEngine()],
@@ -278,6 +291,7 @@ export class Server {
               activeRequests: session.activeRequests,
               requestCount: session.requestCount,
               lastRequestLatencyMs: session.lastRequestLatencyMs,
+              p95RequestLatencyMs: percentile(session.latencySamplesMs, 0.95),
               averageRequestLatencyMs: session.requestCount
                 ? Math.round(session.totalRequestLatencyMs / session.requestCount)
                 : null,
@@ -366,6 +380,7 @@ export class Server {
       totalRequestLatencyMs: 0,
       lastRequestLatencyMs: null,
       maxRequestLatencyMs: null,
+      latencySamplesMs: [],
       errorCount: 0,
       lastError: null,
     });
@@ -376,6 +391,8 @@ export class Server {
     session.requestCount++;
     session.totalRequestLatencyMs += latencyMs;
     session.lastRequestLatencyMs = latencyMs;
+    session.latencySamplesMs.push(latencyMs);
+    if (session.latencySamplesMs.length > 100) session.latencySamplesMs.shift();
     session.maxRequestLatencyMs = Math.max(session.maxRequestLatencyMs ?? 0, latencyMs);
   }
 

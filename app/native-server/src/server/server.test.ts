@@ -68,6 +68,7 @@ describe('服务器测试', () => {
             transport: 'streamable-http',
             requestCount: expect.any(Number),
             lastRequestLatencyMs: expect.any(Number),
+            p95RequestLatencyMs: expect.any(Number),
             averageRequestLatencyMs: expect.any(Number),
             maxRequestLatencyMs: expect.any(Number),
             errorCount: 0,
