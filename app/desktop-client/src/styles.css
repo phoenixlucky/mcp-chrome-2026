@@ -519,6 +519,18 @@ footer {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.latency-good {
+  color: #4ecd91 !important;
+}
+.latency-warning {
+  color: #f6be4b !important;
+}
+.latency-danger {
+  color: #f46b6e !important;
+}
+.latency-muted {
+  color: #778397 !important;
+}
 .client-user-agent {
   margin: 12px 0 0 42px;
   overflow: hidden;

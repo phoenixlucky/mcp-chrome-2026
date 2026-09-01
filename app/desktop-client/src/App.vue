@@ -22,6 +22,11 @@ type McpClient = {
   createdAt: string;
   lastActivityAt: string;
   activeRequests: number;
+  requestCount: number;
+  lastRequestLatencyMs: number | null;
+  averageRequestLatencyMs: number | null;
+  maxRequestLatencyMs: number | null;
+  errorCount: number;
   lastError: string | null;
 };
 
@@ -95,6 +100,30 @@ function transportLabel(transport: McpClient['transport']) {
 
 function shortSessionId(sessionId: string) {
   return sessionId ? `…${sessionId.slice(-8)}` : '—';
+}
+
+function formatLatency(value: number | null | undefined) {
+  if (typeof value !== 'number') return '暂无请求';
+  return value < 1 ? '<1 ms' : `${value} ms`;
+}
+
+function latencyTone(value: number | null | undefined) {
+  if (typeof value !== 'number') return 'latency-muted';
+  if (value <= 100) return 'latency-good';
+  if (value <= 500) return 'latency-warning';
+  return 'latency-danger';
+}
+
+function formatDuration(value: string | undefined) {
+  if (!value) return '—';
+  const elapsedMs = Math.max(0, Date.now() - new Date(value).getTime());
+  if (!Number.isFinite(elapsedMs)) return '—';
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) return '不到 1 分钟';
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时 ${minutes % 60} 分钟`;
+  return `${Math.floor(hours / 24)} 天 ${hours % 24} 小时`;
 }
 
 async function localRequest(path: string, method = 'GET'): Promise<BridgeResponse> {
@@ -372,13 +401,40 @@ onUnmounted(() => {
                 ><dt>建立时间</dt><dd>{{ formatActivity(client.createdAt) }}</dd></div
               >
               <div
+                ><dt>连接时长</dt><dd>{{ formatDuration(client.createdAt) }}</dd></div
+              >
+              <div
                 ><dt>最后活动</dt><dd>{{ formatActivity(client.lastActivityAt) }}</dd></div
+              >
+              <div
+                ><dt>最近延迟</dt
+                ><dd :class="latencyTone(client.lastRequestLatencyMs)">
+                  {{ formatLatency(client.lastRequestLatencyMs) }}
+                </dd></div
+              >
+              <div
+                ><dt>平均延迟</dt
+                ><dd :class="latencyTone(client.averageRequestLatencyMs)">
+                  {{ formatLatency(client.averageRequestLatencyMs) }}
+                </dd></div
+              >
+              <div
+                ><dt>请求数</dt><dd>{{ client.requestCount }} 次</dd></div
               >
               <div v-if="client.remoteAddress"
                 ><dt>来源地址</dt><dd>{{ client.remoteAddress }}</dd></div
               >
               <div v-if="client.activeRequests"
                 ><dt>处理中</dt><dd>{{ client.activeRequests }} 个请求</dd></div
+              >
+              <div v-if="client.maxRequestLatencyMs !== null"
+                ><dt>峰值延迟</dt
+                ><dd :class="latencyTone(client.maxRequestLatencyMs)">{{
+                  formatLatency(client.maxRequestLatencyMs)
+                }}</dd></div
+              >
+              <div v-if="client.errorCount"
+                ><dt>错误次数</dt><dd class="latency-danger">{{ client.errorCount }} 次</dd></div
               >
             </dl>
             <p v-if="client.userAgent" class="client-user-agent" :title="client.userAgent">
@@ -393,7 +449,8 @@ onUnmounted(() => {
         </div>
 
         <p class="modal-note"
-          >客户端名称来自 MCP initialize 请求；未提供信息的客户端会标记为“未识别客户端”。</p
+          >客户端名称来自 MCP initialize 请求；延迟为服务端统计的最近一次 MCP 请求往返耗时，不是网络
+          Ping。</p
         >
       </section>
     </div>
