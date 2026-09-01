@@ -999,7 +999,17 @@ export const TOOL_SCHEMAS: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['create', 'list', 'get', 'enable', 'disable', 'update', 'remove', 'send_command', 'export'],
+          enum: [
+            'create',
+            'list',
+            'get',
+            'enable',
+            'disable',
+            'update',
+            'remove',
+            'send_command',
+            'export',
+          ],
           description: '要执行的用户脚本操作。',
         },
         args: {
@@ -1104,6 +1114,17 @@ export const TOOL_SCHEMAS: Tool[] = [
         refresh: {
           type: 'boolean',
           description: '刷新当前激活标签页而非打开 URL。为 true 时忽略 url 参数。默认为 false',
+        },
+        waitForReady: {
+          type: 'boolean',
+          description:
+            '是否等待标签页加载完成后再返回。默认为 true；设为 false 可快速返回，适合后续自行等待或读取页面的场景。',
+        },
+        waitTimeoutMs: {
+          type: 'number',
+          minimum: 0,
+          maximum: 30000,
+          description: '等待标签页加载完成的最大时间（毫秒），默认 15000，最大 30000。',
         },
       },
       required: [],

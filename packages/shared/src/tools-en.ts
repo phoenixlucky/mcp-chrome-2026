@@ -110,7 +110,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.BATCH,
-    description: 'Run a bounded sequence of browser tool calls; profileId can pin the batch to one isolated Profile.',
+    description:
+      'Run a bounded sequence of browser tool calls; profileId can pin the batch to one isolated Profile.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1028,7 +1029,17 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['create', 'list', 'get', 'enable', 'disable', 'update', 'remove', 'send_command', 'export'],
+          enum: [
+            'create',
+            'list',
+            'get',
+            'enable',
+            'disable',
+            'update',
+            'remove',
+            'send_command',
+            'export',
+          ],
           description: 'Userscript operation to perform.',
         },
         args: {
@@ -1061,13 +1072,19 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
               enum: ['auto', 'ISOLATED', 'MAIN'],
               description: 'Script execution world.',
             },
-            allFrames: { type: 'boolean', description: 'Inject into all frames; defaults to true.' },
+            allFrames: {
+              type: 'boolean',
+              description: 'Inject into all frames; defaults to true.',
+            },
             mode: {
               type: 'string',
               enum: ['auto', 'css', 'persistent', 'once'],
               description: 'Injection strategy; once evaluates once without persistence.',
             },
-            dnrFallback: { type: 'boolean', description: 'Use DNR fallback when needed; defaults to true.' },
+            dnrFallback: {
+              type: 'boolean',
+              description: 'Use DNR fallback when needed; defaults to true.',
+            },
             tags: {
               type: 'array',
               items: { type: 'string' },
@@ -1139,6 +1156,18 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           type: 'boolean',
           description:
             'Refresh the current active tab instead of navigating to a URL. When true, the url parameter is ignored. Defaults to false',
+        },
+        waitForReady: {
+          type: 'boolean',
+          description:
+            'Wait for the tab to finish loading before returning. Defaults to true; set to false for a fast return when the caller will wait or read the page separately.',
+        },
+        waitTimeoutMs: {
+          type: 'number',
+          minimum: 0,
+          maximum: 30000,
+          description:
+            'Maximum time to wait for the tab to finish loading in milliseconds. Defaults to 15000; maximum 30000.',
         },
       },
       required: [],

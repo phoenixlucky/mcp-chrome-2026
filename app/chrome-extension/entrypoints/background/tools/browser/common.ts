@@ -8,6 +8,7 @@ import { cdpSessionManager } from '@/utils/cdp-session-manager';
 const DEFAULT_WINDOW_WIDTH = 1280;
 const DEFAULT_WINDOW_HEIGHT = 720;
 const PAGE_READY_TIMEOUT_MS = 15_000;
+const MAX_PAGE_READY_TIMEOUT_MS = 30_000;
 
 interface NavigateToolParams {
   url?: string;
@@ -19,6 +20,19 @@ interface NavigateToolParams {
   windowId?: number;
   background?: boolean; // when true, do not focus window
   activateTab?: boolean; // activate within its window without focusing that window
+  waitForReady?: boolean; // when false, return after the navigation request is accepted
+  waitTimeoutMs?: number; // maximum wait for the tab to report complete
+}
+
+function getNavigationWaitOptions(args: NavigateToolParams) {
+  const requestedTimeout =
+    typeof args.waitTimeoutMs === 'number' && Number.isFinite(args.waitTimeoutMs)
+      ? args.waitTimeoutMs
+      : PAGE_READY_TIMEOUT_MS;
+  return {
+    waitForReady: args.waitForReady !== false,
+    waitTimeoutMs: Math.min(MAX_PAGE_READY_TIMEOUT_MS, Math.max(0, requestedTimeout)),
+  };
 }
 
 /**
@@ -42,7 +56,10 @@ class NavigateTool extends BaseBrowserToolExecutor {
     }
   }
 
-  private waitForNavigationReady(tabId: number): Promise<boolean> {
+  private waitForNavigationReady(
+    tabId: number,
+    timeoutMs = PAGE_READY_TIMEOUT_MS,
+  ): Promise<boolean> {
     return new Promise((resolve) => {
       let settled = false;
       const done = (ready: boolean) => {
@@ -55,7 +72,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
       const onUpdated = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
         if (updatedTabId === tabId && changeInfo.status === 'complete') done(true);
       };
-      const timeout = setTimeout(() => done(false), PAGE_READY_TIMEOUT_MS);
+      const timeout = setTimeout(() => done(false), timeoutMs);
       chrome.tabs.onUpdated.addListener(onUpdated);
       void chrome.tabs
         .get(tabId)
@@ -91,7 +108,14 @@ class NavigateTool extends BaseBrowserToolExecutor {
       background = true,
       activateTab = false,
       windowId,
+      waitForReady,
+      waitTimeoutMs,
     } = args;
+    const waitOptions = getNavigationWaitOptions({ waitForReady, waitTimeoutMs });
+    const waitForPage = (targetTabId: number) =>
+      waitOptions.waitForReady
+        ? this.waitForNavigationReady(targetTabId, waitOptions.waitTimeoutMs)
+        : Promise.resolve(false);
 
     console.log(
       `Attempting to ${refresh ? 'refresh current tab' : `open URL: ${url}`} with options:`,
@@ -107,7 +131,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
         const targetTab = explicit || (await this.getActiveTabOrThrowInWindow(windowId));
         if (!targetTab.id) return createErrorResponse('No target tab found to refresh');
         await chrome.tabs.reload(targetTab.id);
-        const pageReady = await this.waitForNavigationReady(targetTab.id);
+        const pageReady = await waitForPage(targetTab.id);
 
         console.log(`Refreshed tab ID: ${targetTab.id}`);
 
@@ -161,7 +185,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
           await chrome.tabs.goBack(targetTab.id);
           console.log(`Navigated back in tab ID: ${targetTab.id}`);
         }
-        const pageReady = await this.waitForNavigationReady(targetTab.id);
+        const pageReady = await waitForPage(targetTab.id);
 
         const updatedTab = await chrome.tabs.get(targetTab.id);
 
@@ -315,7 +339,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
         }
 
         console.log(`Activated existing Tab ID: ${existingTab.id}`);
-        const pageReady = await this.waitForNavigationReady(existingTab.id);
+        const pageReady = await waitForPage(existingTab.id);
         // Get updated tab information and return it
         const updatedTab = await chrome.tabs.get(existingTab.id);
 
@@ -359,7 +383,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
           // Trigger auto-capture if the new window has a tab
           const firstTab = newWindow.tabs?.[0];
-          const pageReady = firstTab?.id ? await this.waitForNavigationReady(firstTab.id) : false;
+          const pageReady = firstTab?.id ? await waitForPage(firstTab.id) : false;
           if (firstTab?.id) {
             await this.triggerAutoCapture(firstTab.id, firstTab.url);
           }
@@ -407,7 +431,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
           if (background !== true) {
             await chrome.windows.update(targetWindow.id, { focused: true });
           }
-          const pageReady = newTab.id ? await this.waitForNavigationReady(newTab.id) : false;
+          const pageReady = newTab.id ? await waitForPage(newTab.id) : false;
 
           console.log(
             `URL opened in new Tab ID: ${newTab.id} in existing Window ID: ${targetWindow.id}`,
@@ -451,7 +475,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
             // Trigger auto-capture if fallback window has a tab
             const firstTab = fallbackWindow.tabs?.[0];
-          const pageReady = firstTab?.id ? await this.waitForNavigationReady(firstTab.id) : false;
+            const pageReady = firstTab?.id ? await waitForPage(firstTab.id) : false;
             if (firstTab?.id) {
               await this.triggerAutoCapture(firstTab.id, firstTab.url);
             }
