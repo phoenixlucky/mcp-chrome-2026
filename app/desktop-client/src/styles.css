@@ -490,6 +490,12 @@ footer {
   border-radius: 13px;
   background: rgba(17, 20, 28, 0.52);
 }
+.stateless-entry {
+  padding: 14px;
+  border: 1px solid #5b4d85;
+  border-radius: 13px;
+  background: rgba(34, 26, 55, 0.62);
+}
 .client-entry-heading {
   display: flex;
   align-items: center;
@@ -506,6 +512,10 @@ footer {
   background: linear-gradient(145deg, #634fa0, #3d315f);
   font-size: 13px;
   font-weight: 800;
+}
+.stateless-avatar {
+  color: #e4d8ff;
+  background: linear-gradient(145deg, #745db7, #473671);
 }
 .client-title {
   min-width: 0;
@@ -539,6 +549,12 @@ footer {
   width: 6px;
   height: 6px;
 }
+.stateless-note {
+  margin: 12px 0 0 42px;
+  color: #8d82a8;
+  font-size: 10px;
+  line-height: 1.5;
+}
 .client-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -551,6 +567,14 @@ footer {
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
+}
+.client-details .client-detail-endpoint {
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #34445c;
+  border-radius: 8px;
+  background: rgba(22, 31, 46, 0.66);
 }
 .client-details dt {
   color: #778397;
@@ -568,6 +592,13 @@ footer {
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.client-details .client-endpoint {
+  color: #9fc5ff;
+  font-family: Consolas, monospace;
+  overflow-wrap: anywhere;
+  text-align: right;
+  white-space: normal;
 }
 .latency-good {
   color: #4ecd91 !important;

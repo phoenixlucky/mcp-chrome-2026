@@ -16,7 +16,8 @@ type BridgeResponse = {
 type McpClient = {
   sessionId: string;
   clientInfo: { name: string; version: string } | null;
-  transport: 'streamable-http' | 'sse';
+  transport: 'streamable-http' | 'sse' | 'stdio';
+  endpoint?: '/mcp' | '/sse';
   remoteAddress: string | null;
   userAgent: string | null;
   createdAt: string;
@@ -29,6 +30,19 @@ type McpClient = {
   maxRequestLatencyMs: number | null;
   errorCount: number;
   lastError: string | null;
+};
+
+type StatelessMcpStatus = {
+  endpoint: '/mcp-new';
+  transport: 'streamable-http';
+  activeRequests: number;
+  requestCount: number;
+  lastRequestAt: string | null;
+  lastRequestLatencyMs: number | null;
+  clientInfo: { name: string; version: string } | null;
+  remoteAddress: string | null;
+  userAgent: string | null;
+  errorCount: number;
 };
 
 const state = reactive({
@@ -66,6 +80,10 @@ const clients = computed<McpClient[]>(() => {
   const value = state.data?.mcp?.clients;
   return Array.isArray(value) ? (value as McpClient[]) : [];
 });
+const statelessMcp = computed<StatelessMcpStatus | null>(() => {
+  const value = state.data?.mcp?.stateless as Partial<StatelessMcpStatus> | undefined;
+  return value?.endpoint === '/mcp-new' ? (value as StatelessMcpStatus) : null;
+});
 const showClients = ref(false);
 
 watch(showClients, (open) => {
@@ -95,8 +113,18 @@ function clientInitial(client: McpClient) {
   return clientName(client).slice(0, 1).toUpperCase();
 }
 
-function transportLabel(transport: McpClient['transport']) {
-  return transport === 'sse' ? 'SSE' : 'Streamable HTTP';
+function transportLabel(client: McpClient) {
+  if (client.transport === 'stdio') return 'STDIO';
+  if (client.endpoint === '/sse' || client.transport === 'sse') return 'SSE（旧版 MCP）';
+  return 'Streamable HTTP（兼容版）';
+}
+
+function endpointLabel(client: McpClient) {
+  const endpoint = client.endpoint || (client.transport === 'sse' ? '/sse' : '/mcp');
+  if (client.transport === 'stdio') {
+    return `mcp-chrome-stdio / EXE --stdio → http://127.0.0.1:${PORT}${endpoint}`;
+  }
+  return `http://127.0.0.1:${PORT}${endpoint}`;
 }
 
 function shortSessionId(sessionId: string) {
@@ -248,14 +276,16 @@ onUnmounted(() => {
       <button
         class="metric metric-button panel accent-purple"
         type="button"
-        :disabled="clients.length === 0"
-        :aria-label="`查看 ${sessions} 个活跃 MCP 会话的连接客户端`"
+        :disabled="clients.length === 0 && !statelessMcp"
+        :aria-label="`查看 ${sessions} 个活跃 MCP 会话和无会话请求监控`"
         @click="showClients = true"
       >
         <span class="metric-label">活跃 MCP 会话</span>
         <strong>{{ sessions }}</strong>
-        <small>{{ clients.length ? '点击查看连接客户端' : '暂无客户端详情' }}</small>
-        <span v-if="clients.length" class="metric-action"
+        <small>{{
+          clients.length || statelessMcp ? '点击查看连接与请求监控' : '暂无客户端详情'
+        }}</small>
+        <span v-if="clients.length || statelessMcp" class="metric-action"
           >查看详情 <span aria-hidden="true">↗</span></span
         >
       </button>
@@ -404,7 +434,11 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">ACTIVE SESSIONS</span>
             <h2 id="clients-title">当前连接客户端</h2>
-            <p>共 {{ sessions }} 个 MCP 会话</p>
+            <p>
+              共 {{ sessions }} 个 MCP 会话<span v-if="statelessMcp">
+                · 另有 {{ statelessMcp.requestCount }} 次无会话请求</span
+              >
+            </p>
           </div>
           <button
             class="icon-button"
@@ -415,6 +449,55 @@ onUnmounted(() => {
             ×
           </button>
         </div>
+
+        <article v-if="statelessMcp" class="stateless-entry">
+          <div class="client-entry-heading">
+            <span class="client-avatar stateless-avatar">↯</span>
+            <div class="client-title">
+              <strong>Streamable HTTP（尝鲜版）</strong>
+              <small>无会话请求监控 · {{ statelessMcp.endpoint }}</small>
+            </div>
+            <span class="client-connected stateless-connected">
+              <span class="status-dot"></span
+              >{{ statelessMcp.activeRequests ? '请求中' : '已监控' }}
+            </span>
+          </div>
+          <dl class="client-details stateless-details">
+            <div class="client-detail-endpoint"
+              ><dt>服务入口</dt
+              ><dd class="client-endpoint"
+                >http://127.0.0.1:{{ PORT }}{{ statelessMcp.endpoint }}</dd
+              ></div
+            >
+            <div
+              ><dt>最近客户端</dt
+              ><dd>{{ statelessMcp.clientInfo?.name || '未识别客户端' }}</dd></div
+            >
+            <div
+              ><dt>最近活动</dt
+              ><dd>{{ formatActivity(statelessMcp.lastRequestAt || undefined) }}</dd></div
+            >
+            <div
+              ><dt>请求数</dt><dd>{{ statelessMcp.requestCount }} 次</dd></div
+            >
+            <div
+              ><dt>最近耗时</dt
+              ><dd :class="latencyTone(statelessMcp.lastRequestLatencyMs)">
+                {{ formatLatency(statelessMcp.lastRequestLatencyMs) }}
+              </dd></div
+            >
+            <div v-if="statelessMcp.remoteAddress"
+              ><dt>来源地址</dt><dd>{{ statelessMcp.remoteAddress }}</dd></div
+            >
+            <div v-if="statelessMcp.errorCount"
+              ><dt>错误次数</dt
+              ><dd class="latency-danger">{{ statelessMcp.errorCount }} 次</dd></div
+            >
+          </dl>
+          <p class="stateless-note"
+            >无会话模式不会生成 session ID，这里按请求记录最近活动与耗时。</p
+          >
+        </article>
 
         <div v-if="clients.length" class="client-list">
           <article v-for="client in clients" :key="client.sessionId" class="client-entry">
@@ -428,7 +511,10 @@ onUnmounted(() => {
             </div>
             <dl class="client-details">
               <div
-                ><dt>传输</dt><dd>{{ transportLabel(client.transport) }}</dd></div
+                ><dt>连接方式</dt><dd>{{ transportLabel(client) }}</dd></div
+              >
+              <div class="client-detail-endpoint"
+                ><dt>服务入口</dt><dd class="client-endpoint">{{ endpointLabel(client) }}</dd></div
               >
               <div
                 ><dt>会话 ID</dt
@@ -485,7 +571,7 @@ onUnmounted(() => {
             </p>
           </article>
         </div>
-        <div v-else class="empty-clients">
+        <div v-if="!clients.length && !statelessMcp" class="empty-clients">
           <span class="empty-icon">⌁</span>
           <strong>暂时没有可显示的客户端</strong>
           <p>客户端建立 MCP 会话后，这里会显示它在初始化请求中报告的名称和版本。</p>
@@ -493,7 +579,8 @@ onUnmounted(() => {
 
         <p class="modal-note"
           >客户端名称来自 MCP initialize 请求；耗时为服务端统计的 MCP
-          请求处理耗时，包含浏览器工具执行时间，不是网络 Ping。P95 只统计最近 100 次请求。</p
+          请求处理耗时，包含浏览器工具执行时间，不是网络 Ping。P95 只统计最近 100 次请求； /mcp-new
+          为无会话入口，不会出现在此列表。</p
         >
       </section>
     </div>
