@@ -26,15 +26,14 @@
 
 ---
 
-## 📢 What's New in v2.4.10
+## 📢 What's New in v2.5.0
 
-> **Theme visual upgrade + vector DB / indexer stability** — Looks and reliability, together.
+> **MCP 2026-07-28 early access + multiple transports** — New protocol support and more ways to connect.
 >
-> - 🎨 **App-wide portrait backgrounds** — Popup / Sidepanel / Welcome / Builder cards turn translucent and blend into the art (`color-mix` glassmorphism, `center top` composition fix)
-> - 💾 **IDBFS sync race fix** — Waits for the sync callback to finish, eliminating vector-DB sync races
-> - 🧵 **Per-tab content index dedup** — Reuses in-flight indexing promises per tab, no duplicate concurrent indexing
-> - 🗄️ **better-sqlite3 upgraded to ^13** — N-API prebuilt binaries, no source compilation on install
-> - 🔧 All packages bumped to v2.4.10
+> - 🆕 **Streamable HTTP (early access)** — New `/mcp-new` endpoint with MCP 2026-07-28 session-less transport; tools and permission policy match the compatibility endpoint
+> - 🔌 **All transports coexist** — Compatibility `/mcp` (stateful), legacy SSE `/sse` + `/messages`, and STDIO are all kept
+> - 🖥️ **Desktop transport panel** — `chrome-mcp-desktop` shows every MCP service entry point and status
+> - 🔧 All packages bumped to v2.5.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
