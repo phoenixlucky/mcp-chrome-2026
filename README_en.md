@@ -145,7 +145,7 @@ start-server.bat
 bash start-server.sh
 ```
 
-The service listens on `http://127.0.0.1:12306/mcp`.
+The service listens on `http://127.0.0.1:12306/mcp` and also keeps the new `/mcp-new`, legacy SSE, and STDIO entry points.
 
 ### Optional: protect HTTP MCP endpoints
 
@@ -174,7 +174,7 @@ HTTP MCP requests without an `Origin` must carry a valid API key; requests with 
 
 ### 4️⃣ Configure Your MCP Client
 
-**Streamable HTTP (Recommended)**
+**Streamable HTTP (Compatibility endpoint, recommended for existing clients)**
 
 ```json
 {
@@ -186,6 +186,26 @@ HTTP MCP requests without an `Origin` must carry a valid API key; requests with 
   }
 }
 ```
+
+**Streamable HTTP (Early Access)**
+
+The MCP 2026-07-28 stateless endpoint is available at `http://127.0.0.1:12306/mcp-new`:
+
+```json
+{
+  "mcpServers": {
+    "chrome-mcp-new": {
+      "type": "streamableHttp",
+      "url": "http://127.0.0.1:12306/mcp-new"
+    }
+  }
+}
+```
+
+**SSE (Legacy MCP)**
+
+- SSE endpoint: `http://127.0.0.1:12306/sse`
+- Message endpoint: `http://127.0.0.1:12306/messages?sessionId=...`
 
 **STDIO (No extra bridge)**
 
@@ -306,7 +326,7 @@ It checks the Native Host extension connection and browser probe, creates a real
 ### ✅ Done
 
 - **76 MCP Tools** — Full browser API coverage, including public `chrome_userscript`
-- **Streamable HTTP + STDIO** — Dual transport
+- **Streamable HTTP (compatibility / early access) + SSE + STDIO** — All transports retained
 - **Smart Assistant** — Claude / Codex / DeepSeek
 - **Semantic Search** — Vector DB + local embeddings
 - **SIMD Acceleration** — WASM engine 4-8× faster

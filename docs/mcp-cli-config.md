@@ -4,8 +4,8 @@ This guide explains how to configure Codex CLI and Claude Code to connect to the
 
 ## Overview
 
-The Chrome MCP Server exposes its MCP interface at `http://127.0.0.1:12306/mcp` (default port).
-Both Codex CLI and Claude Code can connect to this endpoint to use Chrome browser control tools.
+The Chrome MCP Server exposes its compatibility MCP interface at `http://127.0.0.1:12306/mcp` (default port).
+The early-access MCP 2026-07-28 endpoint is `http://127.0.0.1:12306/mcp-new`; legacy SSE and STDIO remain available.
 
 ## Codex CLI Configuration
 
@@ -30,6 +30,25 @@ Set the MCP URL via environment variable before running codex:
 ```bash
 export MCP_HTTP_PORT=12306
 ```
+
+### Early-access Streamable HTTP
+
+Use this endpoint only with clients that support MCP 2026-07-28:
+
+```json
+{
+  "mcpServers": {
+    "chrome-mcp-new": {
+      "url": "http://127.0.0.1:12306/mcp-new"
+    }
+  }
+}
+```
+
+### Legacy SSE
+
+- SSE endpoint: `http://127.0.0.1:12306/sse`
+- Message endpoint: `http://127.0.0.1:12306/messages?sessionId=...`
 
 ## Claude Code Configuration
 
@@ -105,11 +124,11 @@ If port 12306 is already in use:
 
 ## Environment Variables
 
-| Variable                     | Description                            | Default |
-| ---------------------------- | -------------------------------------- | ------- |
-| `MCP_HTTP_PORT`              | HTTP port for MCP server               | 12306   |
-| `MCP_SERVER_URL`             | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp` |
-| `MCP_SERVER_ORIGIN`          | Origin sent by the native stdio client | `chrome-extension://mcp-stdio` |
-| `CHROME_MCP_API_KEY`         | Bearer key forwarded to the HTTP MCP server | (none) |
-| `MCP_ALLOWED_WORKSPACE_BASE` | Additional allowed workspace directory | (none)  |
-| `CHROME_MCP_NODE_PATH`       | Override Node.js executable path       | (auto)  |
+| Variable                     | Description                                              | Default                        |
+| ---------------------------- | -------------------------------------------------------- | ------------------------------ |
+| `MCP_HTTP_PORT`              | HTTP port for MCP server                                 | 12306                          |
+| `MCP_SERVER_URL`             | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp`   |
+| `MCP_SERVER_ORIGIN`          | Origin sent by the native stdio client                   | `chrome-extension://mcp-stdio` |
+| `CHROME_MCP_API_KEY`         | Bearer key forwarded to the HTTP MCP server              | (none)                         |
+| `MCP_ALLOWED_WORKSPACE_BASE` | Additional allowed workspace directory                   | (none)                         |
+| `CHROME_MCP_NODE_PATH`       | Override Node.js executable path                         | (auto)                         |

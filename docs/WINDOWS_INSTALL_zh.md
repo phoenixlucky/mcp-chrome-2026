@@ -72,7 +72,15 @@ where.exe npm
 
 4. **在 CherryStudio 中使用**
 
-类型选streamableHttp，url填http://127.0.0.1:12306/mcp
+兼容版类型选 `streamableHttp`，URL 填 `http://127.0.0.1:12306/mcp`。
+
+Windows 桌面版 `chrome-mcp-desktop-2.5.0-win-x64` 同时提供以下全部入口：
+
+- **Streamable HTTP（兼容版）**：`http://127.0.0.1:12306/mcp`
+- **Streamable HTTP（尝鲜版）**：`http://127.0.0.1:12306/mcp-new`（MCP 2026-07-28）
+- **SSE（旧版 MCP）**：`http://127.0.0.1:12306/sse`
+- **SSE 消息地址**：`http://127.0.0.1:12306/messages?sessionId=...`
+- **STDIO**：使用 `mcp-chrome-stdio`，或便携版 EXE 加 `--stdio`
 
 <img width="675" alt="截屏2025-06-11 15 00 29" src="https://github.com/user-attachments/assets/6631e9e4-57f9-477e-b708-6a285cc0d881" />
 

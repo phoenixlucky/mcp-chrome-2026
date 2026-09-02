@@ -145,7 +145,7 @@ start-server.bat
 bash start-server.sh
 ```
 
-服务将在 `http://127.0.0.1:12306/mcp` 监听。
+服务将在 `http://127.0.0.1:12306/mcp` 监听；同时保留 `mcp-new` 尝鲜版、旧 SSE 和 STDIO 入口。
 
 ### Windows 开发者：一键打包便携版 EXE
 
@@ -184,7 +184,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 
 ### 4️⃣ 配置客户端
 
-**Streamable HTTP（推荐）**
+**Streamable HTTP（兼容版，推荐用于现有客户端）**
 
 ```json
 {
@@ -196,6 +196,28 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
   }
 }
 ```
+
+**Streamable HTTP（尝鲜版）**
+
+新版 MCP 2026-07-28 无会话端点，地址为 `http://127.0.0.1:12306/mcp-new`：
+
+```json
+{
+  "mcpServers": {
+    "chrome-mcp-new": {
+      "type": "streamableHttp",
+      "url": "http://127.0.0.1:12306/mcp-new"
+    }
+  }
+}
+```
+
+**SSE（旧版 MCP）**
+
+需要旧 SSE 协议的客户端继续使用：
+
+- SSE 地址：`http://127.0.0.1:12306/sse`
+- 消息地址：`http://127.0.0.1:12306/messages?sessionId=...`
 
 **STDIO（无需额外桥接器）**
 
@@ -220,7 +242,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.4.11-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.5.0-win-x64.exe",
       "args": ["--stdio"]
     }
   }
@@ -337,7 +359,7 @@ pnpm test:chrome-smoke
 ### ✅ 已实现
 
 - **76 MCP 工具** — 浏览器全能力覆盖，包含公开的 `chrome_userscript`
-- **Streamable HTTP + STDIO 双传输**
+- **Streamable HTTP（兼容版 / 尝鲜版）+ SSE + STDIO 全部保留**
 - **智能助手** — Claude / Codex / DeepSeek
 - **语义搜索** — 向量数据库 + 本地嵌入
 - **SIMD 加速** — WASM 引擎 4-8× 更快

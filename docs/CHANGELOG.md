@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.5.0] - 2026-09-02
+
+### Added
+
+- **Streamable HTTP（尝鲜版）** — 新增 `/mcp-new`，提供 MCP 2026-07-28 无会话传输。
+- **多传输入口共存** — 保留兼容版 `/mcp`、旧 SSE `/sse` + `/messages` 与 STDIO。
+- **桌面版入口面板** — `chrome-mcp-desktop-2.5.0-win-x64` 展示全部 MCP 服务入口。
+
+### Changed
+
+- **版本统一为 v2.5.0** — 根包、子包、Tauri/Cargo、便携版运行时和桌面管理器统一升级。
+
 ## [v2.4.11] - 2026-08-31
 
 ### Added
