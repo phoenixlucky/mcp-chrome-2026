@@ -24,7 +24,11 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
+import { createMcpHandler } from '@modelcontextprotocol/server';
+import { toNodeHandler } from '@modelcontextprotocol/node';
 import { getMcpServer } from '../mcp/mcp-server';
+import { getModernMcpServer } from '../mcp/mcp-server-modern.js';
+import { getLegacyMcpServer } from '../mcp/mcp-server-legacy.js';
 import { AgentStreamManager } from '../agent/stream-manager';
 import { AgentChatService } from '../agent/chat-service';
 import { CodexEngine } from '../agent/engines/codex';
@@ -134,6 +138,12 @@ export class Server {
   private takeoverRequested = false;
   private agentStreamManager: AgentStreamManager;
   private agentChatService: AgentChatService;
+  /** Streamable HTTP（尝鲜版）：MCP 2026-07-28, stateless and strict. */
+  private readonly modernMcpHandler = createMcpHandler(() => getModernMcpServer(), {
+    legacy: 'reject',
+    keepAliveMs: 15_000,
+  });
+  private readonly modernMcpNodeHandler = toNodeHandler(this.modernMcpHandler);
 
   constructor() {
     this.fastify = Fastify({
@@ -195,7 +205,7 @@ export class Server {
   private setupServiceGate(): void {
     this.fastify.addHook('onRequest', async (request, reply) => {
       const pathname = (request.raw.url ?? '').split('?')[0];
-      if (!['/mcp', '/sse', '/messages', '/ask-extension'].includes(pathname)) return;
+      if (!['/mcp', '/mcp-new', '/sse', '/messages', '/ask-extension'].includes(pathname)) return;
       if (this.serviceEnabled) return;
       reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
         error: 'Chrome MCP Bridge 服务当前已停止，请先在客户端中启动服务。',
@@ -210,7 +220,7 @@ export class Server {
   private setupMcpAuth(): void {
     this.fastify.addHook('onRequest', async (request, reply) => {
       const pathname = (request.raw.url ?? '').split('?')[0];
-      if (!['/mcp', '/sse', '/messages'].includes(pathname)) return;
+      if (!['/mcp', '/mcp-new', '/sse', '/messages'].includes(pathname)) return;
 
       const expectedKey = process.env[MCP_API_KEY_ENV]?.trim();
       const origin = request.headers.origin;
@@ -475,7 +485,7 @@ export class Server {
           this.transportsMap.delete(transport.sessionId);
         });
 
-        const server = getMcpServer();
+        const server = getLegacyMcpServer();
         await server.connect(transport);
 
         reply.raw.write(':\n\n');
@@ -518,7 +528,7 @@ export class Server {
       }
     });
 
-    // MCP POST endpoint
+    // Existing stateful Streamable HTTP endpoint.
     this.fastify.post('/mcp', async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       let session = this.transportsMap.get(sessionId || '');
@@ -583,7 +593,7 @@ export class Server {
       }
     });
 
-    // MCP GET endpoint (SSE stream)
+    // Existing Streamable HTTP SSE stream.
     this.fastify.get('/mcp', async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       const session = sessionId ? this.transportsMap.get(sessionId) : undefined;
@@ -611,7 +621,7 @@ export class Server {
       });
     });
 
-    // MCP DELETE endpoint
+    // Existing Streamable HTTP session deletion.
     this.fastify.delete('/mcp', async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       const session = sessionId ? this.transportsMap.get(sessionId) : undefined;
@@ -634,6 +644,11 @@ export class Server {
             .send({ error: ERROR_MESSAGES.MCP_SESSION_DELETION_ERROR });
         }
       }
+    });
+
+    // Streamable HTTP（尝鲜版） handles POST, GET and DELETE on one endpoint.
+    this.fastify.all('/mcp-new', async (request, reply) => {
+      await this.modernMcpNodeHandler(request.raw, reply.raw, request.body);
     });
   }
 

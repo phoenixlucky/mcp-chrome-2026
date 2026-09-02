@@ -74,7 +74,7 @@ const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
 
-async function listDynamicFlowTools(): Promise<Tool[]> {
+export async function listDynamicFlowTools(): Promise<Tool[]> {
   if (!nativeMessagingHostInstance.isExtensionConnected()) return [];
 
   try {
@@ -381,7 +381,7 @@ async function handleBatchTool(
   };
 }
 
-const handleToolCall = async (
+export const handleToolCall = async (
   name: string,
   args: any,
   signal?: AbortSignal,

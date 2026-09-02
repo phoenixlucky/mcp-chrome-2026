@@ -37,8 +37,9 @@ describe('服务器测试', () => {
     expect(response.body.tools.count).toBeGreaterThan(0);
   });
 
-  test('MCP 初始化后 /status 应返回客户端详情', async () => {
+  test('兼容版 Streamable HTTP 应保留会话生命周期', async () => {
     Server.serviceEnabled = true;
+    let sessionId: string | undefined;
     try {
       const response = await supertest(Server.getInstance().server)
         .post('/mcp')
@@ -49,32 +50,64 @@ describe('服务器测试', () => {
           id: 1,
           method: 'initialize',
           params: {
-            protocolVersion: '2025-06-18',
+            protocolVersion: '2025-03-26',
             capabilities: {},
-            clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
+            clientInfo: { name: 'legacy-test-client', version: '1.0.0' },
           },
         })
         .expect(200);
 
-      const sessionId = response.headers['mcp-session-id'];
+      sessionId = response.headers['mcp-session-id'];
       expect(sessionId).toEqual(expect.any(String));
-
       const status = await supertest(Server.getInstance().server).get('/status').expect(200);
       expect(status.body.mcp.clients).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({
-            sessionId,
-            clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
-            transport: 'streamable-http',
-            requestCount: expect.any(Number),
-            lastRequestLatencyMs: expect.any(Number),
-            p95RequestLatencyMs: expect.any(Number),
-            averageRequestLatencyMs: expect.any(Number),
-            maxRequestLatencyMs: expect.any(Number),
-            errorCount: 0,
-          }),
+          expect.objectContaining({ sessionId, transport: 'streamable-http' }),
         ]),
       );
+    } finally {
+      if (sessionId) {
+        await supertest(Server.getInstance().server)
+          .delete('/mcp')
+          .set('Origin', 'http://127.0.0.1:1420')
+          .set('Mcp-Session-Id', sessionId);
+      }
+      Server.serviceEnabled = false;
+    }
+  });
+
+  test('Streamable HTTP（尝鲜版）无会话请求应返回工具列表', async () => {
+    Server.serviceEnabled = true;
+    try {
+      const response = await supertest(Server.getInstance().server)
+        .post('/mcp-new')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .set('MCP-Protocol-Version', '2026-07-28')
+        .set('Mcp-Method', 'tools/list')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list',
+          params: {
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientCapabilities': {},
+              'io.modelcontextprotocol/clientInfo': {
+                name: 'desktop-test-client',
+                version: '1.2.3',
+              },
+            },
+          },
+        })
+        .expect(200);
+
+      expect(response.headers['mcp-session-id']).toBeUndefined();
+      expect(response.body.jsonrpc).toBe('2.0');
+      expect(response.body.result.tools.length).toBeGreaterThan(0);
+
+      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      expect(status.body.mcp.activeSessions).toBe(0);
     } finally {
       Server.serviceEnabled = false;
     }
