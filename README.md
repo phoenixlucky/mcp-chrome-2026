@@ -211,6 +211,8 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 }
 ```
 
+完整的请求头、`_meta` 结构和调试示例见 [`/mcp-new` 接口说明](docs/MCP_NEW_zh.md)。
+
 **SSE（旧版 MCP）**
 
 需要旧 SSE 协议的客户端继续使用：
@@ -409,11 +411,12 @@ MIT — 详见 [LICENSE](LICENSE) 文件。
 
 ## 📖 更多文档
 
-| 文档             | 链接                                                |
-| ---------------- | --------------------------------------------------- |
-| 🏗️ 架构设计      | [ARCHITECTURE_zh.md](docs/ARCHITECTURE_zh.md)       |
-| 🔧 工具 API 参考 | [TOOLS_zh.md](docs/TOOLS_zh.md)                     |
-| 🤖 智能助手指南  | [SMART_ASSISTANT_zh.md](docs/SMART_ASSISTANT_zh.md) |
-| ⚡ 快捷工具指南  | [QUICK_TOOLS_zh.md](docs/QUICK_TOOLS_zh.md)         |
-| 🔍 故障排除      | [TROUBLESHOOTING_zh.md](docs/TROUBLESHOOTING_zh.md) |
-| 📋 更新日志      | [CHANGELOG.md](docs/CHANGELOG.md)                   |
+| 文档                   | 链接                                                |
+| ---------------------- | --------------------------------------------------- |
+| 🏗️ 架构设计            | [ARCHITECTURE_zh.md](docs/ARCHITECTURE_zh.md)       |
+| 🔧 工具 API 参考       | [TOOLS_zh.md](docs/TOOLS_zh.md)                     |
+| 🤖 智能助手指南        | [SMART_ASSISTANT_zh.md](docs/SMART_ASSISTANT_zh.md) |
+| ⚡ 快捷工具指南        | [QUICK_TOOLS_zh.md](docs/QUICK_TOOLS_zh.md)         |
+| 🌐 `/mcp-new` 接口说明 | [MCP_NEW_zh.md](docs/MCP_NEW_zh.md)                 |
+| 🔍 故障排除            | [TROUBLESHOOTING_zh.md](docs/TROUBLESHOOTING_zh.md) |
+| 📋 更新日志            | [CHANGELOG.md](docs/CHANGELOG.md)                   |
