@@ -324,6 +324,38 @@ onUnmounted(() => {
       </article>
     </section>
 
+    <section class="panel card transport-card">
+      <div class="card-heading">
+        <div>
+          <span class="section-kicker">MCP TRANSPORTS</span>
+          <h2>全部服务入口</h2>
+        </div>
+        <span class="local-only">LOCAL ONLY</span>
+      </div>
+      <div class="transport-grid">
+        <div class="transport-entry">
+          <strong>Streamable HTTP（兼容版）</strong>
+          <code>http://127.0.0.1:{{ PORT }}/mcp</code>
+          <small>保留会话，兼容现有客户端</small>
+        </div>
+        <div class="transport-entry transport-entry-new">
+          <strong>Streamable HTTP（尝鲜版）</strong>
+          <code>http://127.0.0.1:{{ PORT }}/mcp-new</code>
+          <small>MCP 2026-07-28，无会话</small>
+        </div>
+        <div class="transport-entry">
+          <strong>SSE（旧版 MCP）</strong>
+          <code>http://127.0.0.1:{{ PORT }}/sse</code>
+          <small>消息地址：/messages?sessionId=…</small>
+        </div>
+        <div class="transport-entry">
+          <strong>STDIO</strong>
+          <code>mcp-chrome-stdio 或 EXE --stdio</code>
+          <small>内部连接 Streamable HTTP（兼容版）</small>
+        </div>
+      </div>
+    </section>
+
     <section class="action-bar panel">
       <div class="action-copy"
         ><b>快捷操作</b
@@ -352,7 +384,7 @@ onUnmounted(() => {
 
     <section class="details panel">
       <div class="detail-head"
-        ><span class="section-kicker">DIAGNOSTICS</span><span>v2.4.11</span></div
+        ><span class="section-kicker">DIAGNOSTICS</span><span>v2.5.0</span></div
       >
       <p>{{ state.message }}</p>
       <code>Native Messaging：com.chromemcp.nativehost</code>

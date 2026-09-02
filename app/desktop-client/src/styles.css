@@ -306,6 +306,41 @@ h2 {
     monospace;
   text-align: right;
 }
+.transport-card {
+  min-height: 0;
+  margin-top: 14px;
+}
+.transport-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.transport-entry {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid #30394a;
+  border-radius: 11px;
+  background: rgba(20, 25, 35, 0.46);
+}
+.transport-entry strong {
+  color: #dbe3ef;
+  font-size: 11px;
+}
+.transport-entry code {
+  overflow-wrap: anywhere;
+  color: #a9caff;
+  font:
+    10px Consolas,
+    monospace;
+}
+.transport-entry small {
+  color: #778397;
+  font-size: 10px;
+}
+.transport-entry-new {
+  border-color: rgba(183, 156, 255, 0.45);
+}
 .privacy-note {
   margin: 18px 0 0;
   color: #778397;
@@ -609,6 +644,9 @@ footer {
 }
 
 @media (max-width: 560px) {
+  .transport-grid {
+    grid-template-columns: 1fr;
+  }
   .client-details {
     grid-template-columns: 1fr;
     margin-left: 0;
