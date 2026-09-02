@@ -51,7 +51,9 @@ interface ExtensionRequestPayload {
 }
 
 type McpTransport = StreamableHTTPServerTransport | SSEServerTransport;
-type McpTransportType = 'streamable-http' | 'sse';
+type McpTransportType = 'streamable-http' | 'sse' | 'stdio';
+type McpEndpoint = '/mcp' | '/sse';
+const STDIO_MCP_ORIGIN = 'chrome-extension://mcp-stdio';
 
 interface McpClientInfo {
   name: string;
@@ -60,6 +62,7 @@ interface McpClientInfo {
 
 interface McpSessionMetadata {
   transportType: McpTransportType;
+  endpoint: McpEndpoint;
   clientInfo?: McpClientInfo | null;
   remoteAddress?: string | null;
   userAgent?: string | null;
@@ -68,6 +71,7 @@ interface McpSessionMetadata {
 interface McpSession {
   transport: McpTransport;
   transportType: McpTransportType;
+  endpoint: McpEndpoint;
   clientInfo: McpClientInfo | null;
   remoteAddress: string | null;
   userAgent: string | null;
@@ -81,6 +85,17 @@ interface McpSession {
   latencySamplesMs: number[];
   errorCount: number;
   lastError: string | null;
+}
+
+interface StatelessMcpStats {
+  activeRequests: number;
+  requestCount: number;
+  lastRequestAt: Date | null;
+  lastRequestLatencyMs: number | null;
+  clientInfo: McpClientInfo | null;
+  remoteAddress: string | null;
+  userAgent: string | null;
+  errorCount: number;
 }
 const SESSION_TTL_MS = 10 * 60_000;
 
@@ -101,10 +116,22 @@ function getMcpClientInfo(body: unknown): McpClientInfo | null {
 
   const params =
     'params' in body && body.params && typeof body.params === 'object' ? body.params : null;
-  const clientInfo =
+  const directClientInfo =
     params && 'clientInfo' in params && params.clientInfo && typeof params.clientInfo === 'object'
       ? params.clientInfo
       : null;
+  const meta =
+    params && '_meta' in params && params._meta && typeof params._meta === 'object'
+      ? params._meta
+      : null;
+  const modernClientInfo =
+    meta &&
+    'io.modelcontextprotocol/clientInfo' in meta &&
+    meta['io.modelcontextprotocol/clientInfo'] &&
+    typeof meta['io.modelcontextprotocol/clientInfo'] === 'object'
+      ? meta['io.modelcontextprotocol/clientInfo']
+      : null;
+  const clientInfo = directClientInfo ?? modernClientInfo;
   if (!clientInfo) return null;
 
   const name =
@@ -132,6 +159,16 @@ export class Server {
   public serviceEnabled = false;
   private nativeHost: NativeMessagingHost | null = null;
   private transportsMap = new Map<string, McpSession>();
+  private readonly statelessMcpStats: StatelessMcpStats = {
+    activeRequests: 0,
+    requestCount: 0,
+    lastRequestAt: null,
+    lastRequestLatencyMs: null,
+    clientInfo: null,
+    remoteAddress: null,
+    userAgent: null,
+    errorCount: 0,
+  };
   private startedAt = Date.now();
   private reclaimedSessions = 0;
   private cleanupTimer: NodeJS.Timeout | null = null;
@@ -294,6 +331,7 @@ export class Server {
               sessionId,
               clientInfo: session.clientInfo,
               transport: session.transportType,
+              endpoint: session.endpoint,
               remoteAddress: session.remoteAddress,
               userAgent: session.userAgent,
               createdAt: session.createdAt.toISOString(),
@@ -309,6 +347,18 @@ export class Server {
               errorCount: session.errorCount,
               lastError: session.lastError,
             })),
+            stateless: {
+              endpoint: '/mcp-new',
+              transport: 'streamable-http',
+              activeRequests: this.statelessMcpStats.activeRequests,
+              requestCount: this.statelessMcpStats.requestCount,
+              lastRequestAt: this.statelessMcpStats.lastRequestAt?.toISOString() ?? null,
+              lastRequestLatencyMs: this.statelessMcpStats.lastRequestLatencyMs,
+              clientInfo: this.statelessMcpStats.clientInfo,
+              remoteAddress: this.statelessMcpStats.remoteAddress,
+              userAgent: this.statelessMcpStats.userAgent,
+              errorCount: this.statelessMcpStats.errorCount,
+            },
           },
           extension: this.nativeHost?.getStatus() ?? null,
           nativeHost: this.nativeHost?.getStatus() ?? null,
@@ -380,6 +430,7 @@ export class Server {
     this.transportsMap.set(sessionId, {
       transport,
       transportType: metadata.transportType,
+      endpoint: metadata.endpoint,
       clientInfo: metadata.clientInfo ?? null,
       remoteAddress: metadata.remoteAddress ?? null,
       userAgent: metadata.userAgent ?? null,
@@ -477,6 +528,7 @@ export class Server {
         const transport = new SSEServerTransport('/messages', reply.raw);
         this.addSession(transport.sessionId, transport, {
           transportType: 'sse',
+          endpoint: '/sse',
           remoteAddress: request.ip,
           userAgent: getHeaderValue(request.headers['user-agent']),
         });
@@ -545,7 +597,10 @@ export class Server {
           onsessioninitialized: (initializedSessionId) => {
             if (transport && initializedSessionId === newSessionId) {
               this.addSession(initializedSessionId, transport, {
-                transportType: 'streamable-http',
+                // The stdio proxy marks its internal HTTP hop with this origin.
+                transportType:
+                  request.headers.origin === STDIO_MCP_ORIGIN ? 'stdio' : 'streamable-http',
+                endpoint: '/mcp',
                 clientInfo,
                 remoteAddress: request.ip,
                 userAgent: getHeaderValue(request.headers['user-agent']),
@@ -648,7 +703,23 @@ export class Server {
 
     // Streamable HTTP（尝鲜版） handles POST, GET and DELETE on one endpoint.
     this.fastify.all('/mcp-new', async (request, reply) => {
-      await this.modernMcpNodeHandler(request.raw, reply.raw, request.body);
+      const stats = this.statelessMcpStats;
+      const startedAt = Date.now();
+      stats.activeRequests++;
+      stats.requestCount++;
+      stats.lastRequestAt = new Date();
+      stats.clientInfo = getMcpClientInfo(request.body) ?? stats.clientInfo;
+      stats.remoteAddress = request.ip;
+      stats.userAgent = getHeaderValue(request.headers['user-agent']);
+      try {
+        await this.modernMcpNodeHandler(request.raw, reply.raw, request.body);
+      } catch (error) {
+        stats.errorCount++;
+        throw error;
+      } finally {
+        stats.activeRequests--;
+        stats.lastRequestLatencyMs = Math.max(0, Date.now() - startedAt);
+      }
     });
   }
 

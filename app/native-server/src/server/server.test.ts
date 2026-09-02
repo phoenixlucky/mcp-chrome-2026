@@ -62,7 +62,7 @@ describe('服务器测试', () => {
       const status = await supertest(Server.getInstance().server).get('/status').expect(200);
       expect(status.body.mcp.clients).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ sessionId, transport: 'streamable-http' }),
+          expect.objectContaining({ sessionId, transport: 'streamable-http', endpoint: '/mcp' }),
         ]),
       );
     } finally {
@@ -70,6 +70,44 @@ describe('服务器测试', () => {
         await supertest(Server.getInstance().server)
           .delete('/mcp')
           .set('Origin', 'http://127.0.0.1:1420')
+          .set('Mcp-Session-Id', sessionId);
+      }
+      Server.serviceEnabled = false;
+    }
+  });
+
+  test('STDIO 代理应标记为 STDIO 连接', async () => {
+    Server.serviceEnabled = true;
+    let sessionId: string | undefined;
+    try {
+      const response = await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'chrome-extension://mcp-stdio')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-03-26',
+            capabilities: {},
+            clientInfo: { name: 'stdio-test-client', version: '1.0.0' },
+          },
+        })
+        .expect(200);
+
+      sessionId = response.headers['mcp-session-id'];
+      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      expect(status.body.mcp.clients).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ sessionId, transport: 'stdio', endpoint: '/mcp' }),
+        ]),
+      );
+    } finally {
+      if (sessionId) {
+        await supertest(Server.getInstance().server)
+          .delete('/mcp')
+          .set('Origin', 'chrome-extension://mcp-stdio')
           .set('Mcp-Session-Id', sessionId);
       }
       Server.serviceEnabled = false;
@@ -108,6 +146,14 @@ describe('服务器测试', () => {
 
       const status = await supertest(Server.getInstance().server).get('/status').expect(200);
       expect(status.body.mcp.activeSessions).toBe(0);
+      expect(status.body.mcp.stateless).toMatchObject({
+        endpoint: '/mcp-new',
+        transport: 'streamable-http',
+        requestCount: expect.any(Number),
+        lastRequestAt: expect.any(String),
+        lastRequestLatencyMs: expect.any(Number),
+        clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
+      });
     } finally {
       Server.serviceEnabled = false;
     }
