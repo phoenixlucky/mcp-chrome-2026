@@ -57,3 +57,6 @@ reasonix.toml
 releases/
 app/desktop-client/bridge/*.exe
 app/desktop-client/src-tauri/target/
+
+# Build temp caches
+.build-temp/
