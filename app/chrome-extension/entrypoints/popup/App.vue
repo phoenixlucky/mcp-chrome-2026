@@ -101,8 +101,39 @@
             <div v-if="showMcpConfig" class="mcp-config-section">
               <div class="mcp-config-header">
                 <p class="mcp-config-label">{{ getMessage('mcpServerConfigLabel') }}</p>
-                <button class="copy-config-button" @click="copyMcpConfig">
+                <button
+                  type="button"
+                  class="copy-config-button"
+                  :aria-label="`复制${selectedMcpTransportOption.title}配置`"
+                  @click="copyMcpConfig"
+                >
                   {{ copyButtonText }}
+                </button>
+              </div>
+              <div class="mcp-transport-options" role="radiogroup" aria-label="MCP 服务入口">
+                <button
+                  v-for="transport in mcpTransportOptions"
+                  :key="transport.id"
+                  type="button"
+                  role="radio"
+                  class="mcp-transport-option"
+                  :class="{
+                    'mcp-transport-option--selected': selectedMcpTransport === transport.id,
+                  }"
+                  :aria-checked="selectedMcpTransport === transport.id"
+                  @click="selectedMcpTransport = transport.id"
+                >
+                  <span class="mcp-transport-option-header">
+                    <strong class="mcp-transport-option-title">{{ transport.title }}</strong>
+                    <span
+                      v-if="selectedMcpTransport === transport.id"
+                      class="mcp-transport-option-selected"
+                    >
+                      当前
+                    </span>
+                  </span>
+                  <code class="mcp-transport-option-endpoint">{{ transport.endpoint }}</code>
+                  <span class="mcp-transport-option-description">{{ transport.description }}</span>
                 </button>
               </div>
               <div class="mcp-config-content">
@@ -1482,17 +1513,92 @@ const showMcpConfig = computed(() => {
 
 const copyButtonText = ref(getMessage('copyConfigButton'));
 
-const mcpConfigJson = computed(() => {
+type McpTransportId = 'streamable-http' | 'streamable-http-new' | 'sse' | 'stdio';
+
+type McpTransportOption = {
+  id: McpTransportId;
+  title: string;
+  endpoint: string;
+  description: string;
+  config: Record<string, unknown>;
+};
+
+const selectedMcpTransport = ref<McpTransportId>('streamable-http');
+
+const mcpTransportOptions = computed<McpTransportOption[]>(() => {
   const port = serverStatus.value.port || nativeServerPort.value;
-  const config = {
-    mcpServers: {
-      'streamable-mcp-server': {
-        type: 'streamable-http',
-        url: `http://127.0.0.1:${port}/mcp`,
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  return [
+    {
+      id: 'streamable-http',
+      title: 'Streamable HTTP（兼容版）',
+      endpoint: `${baseUrl}/mcp`,
+      description: '保留会话，兼容现有客户端',
+      config: {
+        mcpServers: {
+          'streamable-mcp-server': {
+            type: 'streamable-http',
+            url: `${baseUrl}/mcp`,
+          },
+        },
       },
     },
-  };
-  return JSON.stringify(config, null, 2);
+    {
+      id: 'streamable-http-new',
+      title: 'Streamable HTTP（尝鲜版）',
+      endpoint: `${baseUrl}/mcp-new`,
+      description: 'MCP 2026-07-28，无会话',
+      config: {
+        mcpServers: {
+          'streamable-mcp-server-new': {
+            type: 'streamable-http',
+            url: `${baseUrl}/mcp-new`,
+          },
+        },
+      },
+    },
+    {
+      id: 'sse',
+      title: 'SSE（旧版 MCP）',
+      endpoint: `${baseUrl}/sse`,
+      description: '消息地址：/messages?sessionId=…',
+      config: {
+        mcpServers: {
+          'sse-mcp-server': {
+            url: `${baseUrl}/sse`,
+          },
+        },
+      },
+    },
+    {
+      id: 'stdio',
+      title: 'STDIO',
+      endpoint: 'mcp-chrome-stdio 或 EXE --stdio',
+      description: '内部连接 Streamable HTTP（兼容版）',
+      config: {
+        mcpServers: {
+          'chrome-mcp-stdio': {
+            command: 'mcp-chrome-stdio',
+            env: {
+              MCP_SERVER_URL: `${baseUrl}/mcp`,
+            },
+          },
+        },
+      },
+    },
+  ];
+});
+
+const selectedMcpTransportOption = computed<McpTransportOption>(() => {
+  return (
+    mcpTransportOptions.value.find(({ id }) => id === selectedMcpTransport.value) ??
+    mcpTransportOptions.value[0]
+  );
+});
+
+const mcpConfigJson = computed(() => {
+  return JSON.stringify(selectedMcpTransportOption.value.config, null, 2);
 });
 
 const currentModel = ref<ModelPreset | null>(null);
@@ -3436,6 +3542,82 @@ onUnmounted(() => {
   font-weight: 500;
   color: #64748b;
   margin: 0;
+}
+
+.mcp-transport-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mcp-transport-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 9px 11px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mcp-transport-option:hover {
+  background: #faf5ff;
+  border-color: #c4b5fd;
+}
+
+.mcp-transport-option--selected {
+  background: #faf5ff;
+  border-color: #8b5cf6;
+  box-shadow: inset 3px 0 0 #8b5cf6;
+}
+
+.mcp-transport-option:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 1px;
+}
+
+.mcp-transport-option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mcp-transport-option-title {
+  min-width: 0;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.mcp-transport-option-selected {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mcp-transport-option-endpoint {
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mcp-transport-option-description {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .copy-config-button {
