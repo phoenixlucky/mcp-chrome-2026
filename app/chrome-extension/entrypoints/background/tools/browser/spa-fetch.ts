@@ -26,6 +26,40 @@ const SCROLL_STEP_PX = 800;
 const POST_NAVIGATION_STABILIZE_MS = 2_000;
 const POST_SCROLL_STABILIZE_MS = 1_000;
 const POLL_INTERVAL_MS = 500;
+const TEMP_TAB_IDLE_TIMEOUT_MINUTES = 2;
+const TEMP_TAB_ALARM_PREFIX = 'chrome-spa-fetch-idle:';
+
+const getTempTabAlarmName = (tabId: number) => `${TEMP_TAB_ALARM_PREFIX}${tabId}`;
+
+export async function pauseSpaFetchTabCleanup(tabId: number): Promise<boolean> {
+  const alarmName = getTempTabAlarmName(tabId);
+  const alarm = await chrome.alarms.get(alarmName);
+  if (!alarm) return false;
+  await chrome.alarms.clear(alarmName);
+  return true;
+}
+
+export async function scheduleSpaFetchTabCleanup(tabId: number): Promise<void> {
+  try {
+    await chrome.tabs.get(tabId);
+  } catch {
+    return;
+  }
+  await chrome.alarms.create(getTempTabAlarmName(tabId), {
+    delayInMinutes: TEMP_TAB_IDLE_TIMEOUT_MINUTES,
+  });
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (!alarm.name.startsWith(TEMP_TAB_ALARM_PREFIX)) return;
+  const tabId = Number(alarm.name.slice(TEMP_TAB_ALARM_PREFIX.length));
+  if (!Number.isInteger(tabId)) return;
+  void chrome.tabs.remove(tabId).catch(() => undefined);
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  void chrome.alarms.clear(getTempTabAlarmName(tabId));
+});
 
 // ============================================================================
 // Types
@@ -59,6 +93,7 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
       waitTimeout = DEFAULT_WAIT_TIMEOUT_MS,
       extractHtml = false,
     } = args;
+    let temporaryTabId: number | null = null;
 
     try {
       // ── Step 1: Navigate to the URL ──────────────────────────────
@@ -75,6 +110,7 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
             active: !background,
             ...(typeof args.windowId === 'number' ? { windowId: args.windowId } : {}),
           });
+          if (typeof tab.id === 'number') temporaryTabId = tab.id;
         }
 
         if (typeof tab.id !== 'number') {
@@ -158,6 +194,10 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
       return createErrorResponse(
         `SPA fetch failed: ${error instanceof Error ? error.message : String(error)}`,
       );
+    } finally {
+      if (temporaryTabId !== null) {
+        await scheduleSpaFetchTabCleanup(temporaryTabId).catch(() => undefined);
+      }
     }
   }
 

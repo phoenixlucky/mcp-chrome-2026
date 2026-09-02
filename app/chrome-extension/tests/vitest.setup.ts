@@ -64,6 +64,12 @@ if (typeof globalThis.chrome === 'undefined') {
     commands: {
       onCommand: { addListener: vi.fn(), removeListener: vi.fn() },
     },
+    alarms: {
+      get: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(true),
+      onAlarm: { addListener: vi.fn(), removeListener: vi.fn() },
+    },
     contextMenus: {
       create: vi.fn(),
       remove: vi.fn(),

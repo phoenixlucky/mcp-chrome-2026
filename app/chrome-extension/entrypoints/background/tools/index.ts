@@ -3,6 +3,7 @@ import { ERROR_MESSAGES } from '@/common/constants';
 import type { ToolResult } from '@/common/tool-handler';
 import { resolveActionPolicy, runWithActionPolicy } from './action-policy';
 import * as browserTools from './browser';
+import { pauseSpaFetchTabCleanup, scheduleSpaFetchTabCleanup } from './browser/spa-fetch';
 
 const tools = browserTools as any;
 const toolsMap = new Map(Object.values(tools).map((tool: any) => [tool.name, tool]));
@@ -370,11 +371,13 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
         }
         const key = '__mcpOperationOverlayTimer__';
         clearTimeout((window as any)[key]);
-        if (state !== '执行中')
-          (window as any)[key] = setTimeout(() => {
+        (window as any)[key] = setTimeout(
+          () => {
             status?.remove();
             highlight?.remove();
-          }, 1800);
+          },
+          state === '执行中' ? 120_000 : 1_800,
+        );
       },
     });
   } catch {
@@ -408,6 +411,7 @@ export const handleCallTool = async (
     return createErrorResponse(`Tool ${param.name} not found`);
   }
 
+  let pausedTemporaryTabId: number | null = null;
   try {
     if (signal?.aborted) return createErrorResponse('Tool call cancelled');
     const urlError = await checkExpectedUrl(param);
@@ -417,6 +421,15 @@ export const handleCallTool = async (
       const { backgroundOperations = true } =
         await chrome.storage.local.get('backgroundOperations');
       args.background = backgroundOperations;
+    }
+    if (!(param.name === 'chrome_spa_fetch' && args.url && args.tabId === undefined)) {
+      const targetTabId =
+        typeof args.tabId === 'number'
+          ? args.tabId
+          : (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
+      if (typeof targetTabId === 'number' && (await pauseSpaFetchTabCleanup(targetTabId))) {
+        pausedTemporaryTabId = targetTabId;
+      }
     }
     await showOperation(param, '执行中');
     const actionPolicy = resolveActionPolicy(param.name, args);
@@ -431,5 +444,9 @@ export const handleCallTool = async (
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.TOOL_EXECUTION_FAILED,
     );
+  } finally {
+    if (pausedTemporaryTabId !== null) {
+      await scheduleSpaFetchTabCleanup(pausedTemporaryTabId).catch(() => undefined);
+    }
   }
 };
