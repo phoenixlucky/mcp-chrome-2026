@@ -38,7 +38,7 @@ import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
 import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import packageJson from '../../package.json';
-import { getRecentToolCalls } from '../mcp/register-tools';
+import { getRecentToolCalls, getToolAdmissionStats } from '../mcp/register-tools';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { browserProfileManager } from '../browser-profile-manager.js';
 
@@ -146,6 +146,16 @@ function getMcpClientInfo(body: unknown): McpClientInfo | null {
     name: name || 'Unknown client',
     version: version || 'Unknown version',
   };
+}
+
+function createHttpAbortController(request: FastifyRequest, reply: FastifyReply): AbortController {
+  const controller = new AbortController();
+  const abort = () => {
+    if (!reply.raw.writableEnded) controller.abort();
+  };
+  request.raw.once('aborted', abort);
+  reply.raw.once('close', abort);
+  return controller;
 }
 
 // ============================================================
@@ -363,6 +373,7 @@ export class Server {
           extension: this.nativeHost?.getStatus() ?? null,
           nativeHost: this.nativeHost?.getStatus() ?? null,
           tools: { count: TOOL_SCHEMAS.length },
+          toolAdmission: getToolAdmissionStats(),
           browserProfiles: await browserProfileManager.summary(),
           recentToolCalls: getRecentToolCalls(),
           ...(probe ? { probe } : {}),
@@ -487,11 +498,13 @@ export class Server {
             .send({ error: ERROR_MESSAGES.SERVER_NOT_RUNNING });
         }
 
+        const requestController = createHttpAbortController(request, reply);
         try {
           const extensionResponse = await this.nativeHost.sendRequestToExtensionAndWait(
             request.query,
             'process_data',
             TIMEOUTS.EXTENSION_REQUEST_TIMEOUT,
+            requestController.signal,
           );
           return reply.status(HTTP_STATUS.OK).send({ status: 'success', data: extensionResponse });
         } catch (error: unknown) {

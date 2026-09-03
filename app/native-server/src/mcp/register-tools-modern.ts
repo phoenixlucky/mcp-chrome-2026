@@ -6,7 +6,7 @@ import {
 } from '@modelcontextprotocol/server';
 import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { filterToolsByPermission, getToolPermissionPolicy } from './permission-policy.js';
-import { handleToolCall, listDynamicFlowTools } from './register-tools.js';
+import { getToolDeadlineAt, handleToolCall, listDynamicFlowTools } from './register-tools.js';
 
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
 
@@ -55,6 +55,7 @@ export const setupModernTools = (server: Server): void => {
       request.params.arguments || {},
       ctx.mcpReq.signal,
       reportProgress,
+      getToolDeadlineAt(ctx.mcpReq._meta),
     )) as unknown as CallToolResult;
   });
 };

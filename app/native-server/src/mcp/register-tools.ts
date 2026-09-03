@@ -5,7 +5,12 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import nativeMessagingHostInstance from '../native-messaging-host';
-import { NativeMessageType, TOOL_NAMES, TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
+import {
+  NativeMessageType,
+  NativeProtocolError,
+  TOOL_NAMES,
+  TOOL_SCHEMAS,
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
 import { browserProfileManager } from '../browser-profile-manager.js';
@@ -72,7 +77,187 @@ const LONG_TOOL =
   /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|select_all_items)/;
 const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
+const TOOL_DEADLINE_META_KEY = 'chrome-mcp/deadlineAt';
+const MAX_CONCURRENT_TOOL_CALLS = Math.max(
+  1,
+  Number.parseInt(process.env.CHROME_MCP_MAX_CONCURRENT_TOOLS || '8', 10) || 8,
+);
+const MAX_QUEUED_TOOL_CALLS = Math.max(
+  0,
+  Number.parseInt(process.env.CHROME_MCP_MAX_QUEUED_TOOLS || '64', 10) || 64,
+);
+let activeToolCallCount = 0;
+type ToolQueueKind = 'read' | 'write';
+interface QueuedToolCall {
+  signal?: AbortSignal;
+  profileId: string;
+  kind: ToolQueueKind;
+  enqueuedAt: number;
+  deadlineAt?: number;
+  timeoutId?: ReturnType<typeof setTimeout>;
+  resolve: (release: () => void) => void;
+  reject: (error: Error) => void;
+  onAbort: () => void;
+}
+const queuedToolCalls: Record<ToolQueueKind, QueuedToolCall[]> = { read: [], write: [] };
+const activeByProfile = new Map<string, number>();
+let queueWaitTotalMs = 0;
+let queueWaitSamples = 0;
+let queueRejectCount = 0;
+let queueTimeoutCount = 0;
+let lastAdmissionKind: ToolQueueKind = 'write';
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
+
+function queuedToolCount(): number {
+  return queuedToolCalls.read.length + queuedToolCalls.write.length;
+}
+
+function addActive(profileId: string): void {
+  activeToolCallCount += 1;
+  activeByProfile.set(profileId, (activeByProfile.get(profileId) || 0) + 1);
+}
+
+function removeActive(profileId: string): void {
+  activeToolCallCount = Math.max(0, activeToolCallCount - 1);
+  const next = Math.max(0, (activeByProfile.get(profileId) || 1) - 1);
+  if (next) activeByProfile.set(profileId, next);
+  else activeByProfile.delete(profileId);
+}
+
+function nextQueuedTool(): QueuedToolCall | undefined {
+  const preferred = lastAdmissionKind === 'write' ? 'read' : 'write';
+  const first = queuedToolCalls[preferred].length
+    ? queuedToolCalls[preferred]
+    : queuedToolCalls[preferred === 'read' ? 'write' : 'read'];
+  const waiter = first.shift();
+  if (waiter) lastAdmissionKind = waiter.kind;
+  return waiter;
+}
+
+function drainToolCallQueue(): void {
+  while (activeToolCallCount < MAX_CONCURRENT_TOOL_CALLS && queuedToolCount()) {
+    const waiter = nextQueuedTool();
+    if (!waiter) return;
+    if (waiter.timeoutId) clearTimeout(waiter.timeoutId);
+    waiter.signal?.removeEventListener('abort', waiter.onAbort);
+    if (waiter.signal?.aborted) {
+      waiter.reject(new Error('Request cancelled'));
+      continue;
+    }
+    if (waiter.deadlineAt !== undefined && waiter.deadlineAt <= Date.now()) {
+      waiter.reject(
+        new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'),
+      );
+      continue;
+    }
+
+    queueWaitTotalMs += Math.max(0, Date.now() - waiter.enqueuedAt);
+    queueWaitSamples += 1;
+    addActive(waiter.profileId);
+    let released = false;
+    waiter.resolve(() => {
+      if (released) return;
+      released = true;
+      removeActive(waiter.profileId);
+      drainToolCallQueue();
+    });
+  }
+}
+
+function acquireToolCallSlot(
+  signal: AbortSignal | undefined,
+  kind: ToolQueueKind,
+  profileId: string,
+  deadlineAt?: number,
+): Promise<() => void> {
+  if (signal?.aborted) return Promise.reject(new Error('Request cancelled'));
+  if (activeToolCallCount < MAX_CONCURRENT_TOOL_CALLS) {
+    addActive(profileId);
+    let released = false;
+    return Promise.resolve(() => {
+      if (released) return;
+      released = true;
+      removeActive(profileId);
+      drainToolCallQueue();
+    });
+  }
+  if (queuedToolCount() >= MAX_QUEUED_TOOL_CALLS) {
+    queueRejectCount += 1;
+    return Promise.reject(
+      new NativeProtocolError('QUEUE_FULL', 'Too many browser tool calls are queued'),
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    const waiter: QueuedToolCall = {
+      signal,
+      profileId,
+      kind,
+      enqueuedAt: Date.now(),
+      deadlineAt,
+      resolve,
+      reject,
+      onAbort: () => {
+        if (waiter.timeoutId) clearTimeout(waiter.timeoutId);
+        const index = queuedToolCalls[kind].indexOf(waiter);
+        if (index >= 0) queuedToolCalls[kind].splice(index, 1);
+        reject(new Error('Request cancelled'));
+      },
+    };
+    if (deadlineAt !== undefined) {
+      const remaining = deadlineAt - Date.now();
+      if (remaining <= 0) {
+        reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
+        return;
+      }
+      waiter.timeoutId = setTimeout(() => {
+        const index = queuedToolCalls[kind].indexOf(waiter);
+        if (index < 0) return;
+        queuedToolCalls[kind].splice(index, 1);
+        signal?.removeEventListener('abort', waiter.onAbort);
+        reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
+      }, remaining);
+    }
+    signal?.addEventListener('abort', waiter.onAbort, { once: true });
+    queuedToolCalls[kind].push(waiter);
+  });
+}
+
+export function getToolAdmissionStats(): {
+  active: number;
+  queued: number;
+  maxActive: number;
+  maxQueued: number;
+  averageQueueMs: number;
+  rejected: number;
+  timedOut: number;
+  byProfile: Record<string, { active: number; queued: number }>;
+} {
+  const byProfile: Record<string, { active: number; queued: number }> = {};
+  for (const [profileId, active] of activeByProfile) byProfile[profileId] = { active, queued: 0 };
+  for (const kind of ['read', 'write'] as const) {
+    for (const waiter of queuedToolCalls[kind]) {
+      byProfile[waiter.profileId] ||= { active: 0, queued: 0 };
+      byProfile[waiter.profileId].queued += 1;
+    }
+  }
+  return {
+    active: activeToolCallCount,
+    queued: queuedToolCount(),
+    maxActive: MAX_CONCURRENT_TOOL_CALLS,
+    maxQueued: MAX_QUEUED_TOOL_CALLS,
+    averageQueueMs: queueWaitSamples ? Math.round(queueWaitTotalMs / queueWaitSamples) : 0,
+    rejected: queueRejectCount,
+    timedOut: queueTimeoutCount,
+    byProfile,
+  };
+}
+
+export function getToolDeadlineAt(meta: unknown): number | undefined {
+  if (!meta || typeof meta !== 'object') return undefined;
+  const value = (meta as Record<string, unknown>)[TOOL_DEADLINE_META_KEY];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
 
 export async function listDynamicFlowTools(): Promise<Tool[]> {
   if (!nativeMessagingHostInstance.isExtensionConnected()) return [];
@@ -191,16 +376,21 @@ export const setupTools = (server: Server) => {
       request.params.arguments || {},
       extra.signal,
       reportProgress,
+      getToolDeadlineAt(extra._meta),
     );
   });
 };
 
-function timeoutFor(name: string, args: any): number {
+function timeoutFor(name: string, args: any, deadlineAt?: number): number {
   const ceiling = LONG_TOOL.test(name) ? 120_000 : 60_000;
   const requested = Number(args.timeoutMs ?? args.timeout);
-  return Number.isFinite(requested)
+  const timeout = Number.isFinite(requested)
     ? Math.min(Math.max(requested, MIN_TOOL_TRANSPORT_TIMEOUT_MS), ceiling)
     : ceiling;
+  if (typeof deadlineAt !== 'number') return timeout;
+  const remaining = Math.floor(deadlineAt - Date.now());
+  if (remaining <= 0) throw new Error('Request deadline exceeded');
+  return Math.max(250, Math.min(timeout, remaining));
 }
 
 function serialByTab<T>(
@@ -213,7 +403,9 @@ function serialByTab<T>(
     onStart?.();
     return task();
   }
-  const key = `tab:${typeof args.tabId === 'number' ? args.tabId : 'active'}`;
+  const profileId =
+    typeof args.profileId === 'string' && args.profileId.trim() ? args.profileId.trim() : 'default';
+  const key = `${profileId}:tab:${typeof args.tabId === 'number' ? args.tabId : 'active'}`;
   const previous = tabQueues.get(key) || Promise.resolve();
   const result = previous
     .catch(() => undefined)
@@ -353,6 +545,7 @@ async function handleBatchTool(
   args: Record<string, unknown>,
   signal?: AbortSignal,
   reportProgress?: ToolProgressReporter,
+  deadlineAt?: number,
 ): Promise<CallToolResult> {
   if (!Array.isArray(args.calls) || args.calls.length > 50)
     throw new Error('calls must be an array with at most 50 items');
@@ -371,7 +564,7 @@ async function handleBatchTool(
         ? { ...(call.arguments as Record<string, unknown>) }
         : {};
     if (inheritedProfileId && !callArgs.profileId) callArgs.profileId = inheritedProfileId;
-    const result = await handleToolCall(call.name, callArgs, signal, reportProgress);
+    const result = await handleToolCall(call.name, callArgs, signal, reportProgress, deadlineAt);
     results.push({ name: call.name, result });
     if (result.isError && stopOnError) break;
   }
@@ -386,6 +579,7 @@ export const handleToolCall = async (
   args: any,
   signal?: AbortSignal,
   reportProgress?: ToolProgressReporter,
+  deadlineAt?: number,
 ): Promise<CallToolResult> => {
   const activity: ToolActivity = {
     requestId: randomUUID(),
@@ -395,6 +589,7 @@ export const handleToolCall = async (
   };
   recentToolCalls.push(activity);
   if (recentToolCalls.length > 100) recentToolCalls.shift();
+  let releaseToolCallSlot: (() => void) | null = null;
   try {
     const access = checkToolAccess(name);
     if (!access.allowed) {
@@ -407,10 +602,15 @@ export const handleToolCall = async (
     }
 
     if (name === TOOL_NAMES.BROWSER.BATCH) {
-      const response = await handleBatchTool(args, signal, reportProgress);
+      const response = await handleBatchTool(args, signal, reportProgress, deadlineAt);
       activity.outcome = response.isError ? 'error' : 'success';
       return response;
     }
+
+    const profileId = typeof args.profileId === 'string' ? args.profileId.trim() : 'default';
+    const queueKind: ToolQueueKind =
+      WRITE_TOOL.test(name) || name.startsWith('flow.') ? 'write' : 'read';
+    releaseToolCallSlot = await acquireToolCallSlot(signal, queueKind, profileId, deadlineAt);
 
     if (name === TOOL_NAMES.BROWSER.PROFILE) {
       const response = await handleProfileTool(args);
@@ -418,11 +618,12 @@ export const handleToolCall = async (
       return response;
     }
 
-    const profileId = typeof args.profileId === 'string' ? args.profileId.trim() : '';
-    if (profileId) {
+    if (profileId !== 'default') {
       const { profileId: _profileId, ...profileArgs } = args;
       activity.profileId = profileId;
-      const response = await browserProfileManager.callTool(profileId, name, profileArgs, signal);
+      const response = await serialByTab(name, args, () =>
+        browserProfileManager.callTool(profileId, name, profileArgs, signal),
+      );
       activity.outcome = response.isError ? 'error' : 'success';
       return response;
     }
@@ -454,7 +655,7 @@ export const handleToolCall = async (
             nativeMessagingHostInstance.sendRequestToExtensionAndWait(
               flowArgs,
               'rr_run_flow',
-              timeoutFor('flow.run', args),
+              timeoutFor('flow.run', args, deadlineAt),
               signal,
               reportProgress,
             ),
@@ -496,7 +697,7 @@ export const handleToolCall = async (
         nativeMessagingHostInstance.sendRequestToExtensionAndWait(
           { name, args },
           NativeMessageType.CALL_TOOL,
-          timeoutFor(name, args),
+          timeoutFor(name, args, deadlineAt),
           signal,
           reportProgress,
         ),
@@ -522,18 +723,23 @@ export const handleToolCall = async (
       };
     }
   } catch (error: any) {
+    const code = error instanceof NativeProtocolError ? error.code : undefined;
+    if (code === 'DEADLINE_EXCEEDED' || /deadline exceeded/i.test(error?.message || '')) {
+      queueTimeoutCount += 1;
+    }
     activity.outcome = error.message === 'Request cancelled' ? 'cancelled' : 'error';
-    activity.error = error.message;
+    activity.error = code ? `${code}: ${error.message}` : error.message;
     return {
       content: [
         {
           type: 'text',
-          text: `Error calling tool: ${error.message}`,
+          text: `Error calling tool${code ? ` [${code}]` : ''}: ${error.message}`,
         },
       ],
       isError: true,
     };
   } finally {
+    releaseToolCallSlot?.();
     activity.elapsedMs = Date.now() - new Date(activity.startedAt).getTime();
   }
 };

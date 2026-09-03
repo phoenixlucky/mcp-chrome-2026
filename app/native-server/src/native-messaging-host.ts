@@ -3,7 +3,20 @@ import { randomUUID } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import net from 'node:net';
 import { Server } from './server';
-import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
+import {
+  NativeProtocolError,
+  NATIVE_PROTOCOL_VERSION,
+  createNativeCapabilities,
+  createNativeErrorResponse,
+  createNativeHello,
+  createNativeResponse,
+  negotiateNativeProtocolVersion,
+  parseNativeProtocolMessage,
+  type NativeProtocolMessage,
+  type NativeRequest,
+  type NativeResponse,
+  type NativeConnectionState,
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 import { NATIVE_SERVER_PORT, TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
 
@@ -12,10 +25,15 @@ interface PendingRequest {
   reject: (reason?: any) => void;
   onProgress?: (payload: any) => void | Promise<void>;
   timeoutId: NodeJS.Timeout;
+  traceId: string;
+  method: string;
+  sideEffect: boolean;
+  settled: boolean;
 }
 
 export interface NativeHostStatus {
   connected: boolean;
+  state: NativeConnectionState;
   pendingRequests: number;
   lastActivityAt: string | null;
   lastSuccessAt: string | null;
@@ -102,12 +120,18 @@ export class NativeMessagingHost {
   private associatedServer: Server | null = null;
   private pendingRequests: Map<string, PendingRequest> = new Map();
   private connected = false;
+  private connectionState: NativeConnectionState = 'stopped';
   private lastActivityAt: Date | null = null;
   private lastSuccessAt: Date | null = null;
+  private respondedProtocolRequests = new Set<string>();
+  private activeProtocolRequests = new Set<string>();
+  private activeProtocolControllers = new Map<string, AbortController>();
+  private readonly maxDeduplicatedRequests = 4096;
 
   public getStatus(): NativeHostStatus {
     return {
       connected: this.connected,
+      state: this.connectionState,
       pendingRequests: this.pendingRequests.size,
       lastActivityAt: this.lastActivityAt?.toISOString() ?? null,
       lastSuccessAt: this.lastSuccessAt?.toISOString() ?? null,
@@ -131,6 +155,7 @@ export class NativeMessagingHost {
       // its first message. Mark the session ready only after a valid message
       // arrives so callers do not wait for a request that cannot be delivered.
       this.connected = false;
+      this.connectionState = 'starting';
       this.lastActivityAt = new Date();
       this.setupMessageHandling();
       void this.startServer(resolveServerPort(NATIVE_SERVER_PORT));
@@ -211,101 +236,219 @@ export class NativeMessagingHost {
       this.sendError('Invalid message format');
       return;
     }
-    this.connected = true;
-
-    if (message.type === NativeMessageType.TOOL_PROGRESS && message.requestId) {
-      const pending = this.pendingRequests.get(message.requestId);
-      if (pending?.onProgress) {
-        void Promise.resolve(pending.onProgress(message.payload)).catch(() => undefined);
-      }
-      return;
-    }
-
-    if (message.responseToRequestId) {
-      const requestId = message.responseToRequestId;
-      const pending = this.pendingRequests.get(requestId);
-
-      if (pending) {
-        clearTimeout(pending.timeoutId);
-        if (message.error) {
-          pending.reject(new Error(message.error));
-        } else {
-          pending.resolve(message.payload);
-          this.lastSuccessAt = new Date();
-        }
-        this.pendingRequests.delete(requestId);
-      } else {
-        // just ignore
-      }
-      return;
-    }
-
-    // Handle directive messages from Chrome
     try {
-      switch (message.type) {
-        case NativeMessageType.START:
-          await this.startServer(resolveServerPort(message.payload?.port));
-          break;
-        case NativeMessageType.STOP:
-          await this.stopServer();
-          break;
-        // Keep ping/pong for simple liveness detection, but this differs from request-response pattern
-        case 'ping_from_extension':
-          this.sendMessage({ type: 'pong_to_extension' });
-          break;
-        case 'file_operation':
-          await this.handleFileOperation(message);
-          break;
-        default:
-          // Double check when message type is not supported
-          if (!message.responseToRequestId) {
-            this.sendError(
-              `Unknown message type or non-response message: ${message.type || 'no type'}`,
+      await this.handleProtocolMessage(parseNativeProtocolMessage(message));
+    } catch (error) {
+      const protocolError =
+        error instanceof NativeProtocolError
+          ? error
+          : new NativeProtocolError(
+              'INVALID_REQUEST',
+              error instanceof Error ? error.message : String(error),
             );
-          }
+      if (typeof message.requestId === 'string' && typeof message.traceId === 'string') {
+        this.sendMessage({
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'response',
+          requestId: message.requestId,
+          traceId: message.traceId,
+          ok: false,
+          error: { code: protocolError.code, message: protocolError.message },
+        });
+      } else {
+        this.sendError(protocolError.message, protocolError.code);
       }
-    } catch (error: any) {
-      this.sendError(`Failed to handle directive message: ${error.message}`);
     }
   }
 
-  /**
-   * Handle file operations from the extension
-   */
-  private async handleFileOperation(message: any): Promise<void> {
-    try {
-      const result = await fileHandler.handleFileRequest(message.payload);
-
-      if (message.requestId) {
-        // Send response back with the request ID
-        this.sendMessage({
-          type: 'file_operation_response',
-          responseToRequestId: message.requestId,
-          payload: result,
-        });
-      } else {
-        // No request ID, just send result
-        this.sendMessage({
-          type: 'file_operation_result',
-          payload: result,
-        });
-      }
-    } catch (error: any) {
-      const errorResponse = {
-        success: false,
-        error: error.message || 'Unknown error during file operation',
-      };
-
-      if (message.requestId) {
-        this.sendMessage({
-          type: 'file_operation_response',
-          responseToRequestId: message.requestId,
-          error: errorResponse.error,
-        });
-      } else {
-        this.sendError(`File operation failed: ${errorResponse.error}`);
-      }
+  private async handleProtocolMessage(message: NativeProtocolMessage): Promise<void> {
+    this.connected = true;
+    if (this.connectionState === 'starting' || this.connectionState === 'stopped') {
+      this.connectionState = 'connected';
     }
+
+    switch (message.type) {
+      case 'hello': {
+        const selectedVersion = negotiateNativeProtocolVersion(message.supportedVersions);
+        if (selectedVersion === null) {
+          throw new NativeProtocolError(
+            'UNSUPPORTED_VERSION',
+            'No mutually supported protocol version',
+          );
+        }
+        this.sendMessage({
+          ...createNativeHello(
+            'native-service',
+            { name: 'chrome-mcp-native', version: '2' },
+            message.traceId,
+          ),
+          selectedVersion,
+        });
+        this.sendMessage(createNativeCapabilities(message.traceId));
+        this.connectionState = 'ready';
+        return;
+      }
+      case 'ping':
+        this.sendMessage({
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'pong',
+          nonce: message.nonce,
+          traceId: message.traceId,
+        });
+        return;
+      case 'pong':
+      case 'capabilities':
+      case 'event':
+        if (message.type === 'event' && message.requestId) {
+          this.pendingRequests.get(message.requestId)?.onProgress?.(message.data);
+        }
+        return;
+      case 'cancel':
+        {
+          this.activeProtocolControllers.get(message.requestId)?.abort();
+          const pending = this.pendingRequests.get(message.requestId);
+          if (pending && !pending.settled) {
+            clearTimeout(pending.timeoutId);
+            pending.settled = true;
+            this.pendingRequests.delete(message.requestId);
+            pending.reject(
+              new NativeProtocolError('CANCELED', message.reason || 'Request canceled'),
+            );
+          }
+        }
+        return;
+      case 'response':
+        this.resolveProtocolResponse(message);
+        return;
+      case 'request':
+        await this.handleProtocolRequest(message);
+        return;
+    }
+  }
+
+  private resolveProtocolResponse(message: NativeResponse): void {
+    const pending = this.pendingRequests.get(message.requestId);
+    if (!pending || pending.settled || pending.traceId !== message.traceId) return;
+    clearTimeout(pending.timeoutId);
+    pending.settled = true;
+    this.pendingRequests.delete(message.requestId);
+    if (message.ok) {
+      pending.resolve(message.result);
+      this.lastSuccessAt = new Date();
+    } else {
+      const error = message.error!;
+      pending.reject(new NativeProtocolError(error.code, error.message, error.details));
+    }
+  }
+
+  private async handleProtocolRequest(message: NativeRequest): Promise<void> {
+    if (
+      this.respondedProtocolRequests.has(message.requestId) ||
+      this.activeProtocolRequests.has(message.requestId)
+    )
+      return;
+    this.activeProtocolRequests.add(message.requestId);
+    const controller = new AbortController();
+    this.activeProtocolControllers.set(message.requestId, controller);
+    const deadlineTimer = setTimeout(
+      () => controller.abort(),
+      Math.max(1, message.deadlineAt - Date.now()),
+    );
+    if (message.deadlineAt <= Date.now()) {
+      this.sendProtocolResponseOnce(
+        message,
+        createNativeErrorResponse(
+          message,
+          new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded'),
+        ),
+      );
+      clearTimeout(deadlineTimer);
+      this.activeProtocolControllers.delete(message.requestId);
+      this.activeProtocolRequests.delete(message.requestId);
+      return;
+    }
+    try {
+      switch (message.method) {
+        case 'native.start':
+          await this.startServer(resolveServerPort((message.params as any)?.port));
+          if (controller.signal.aborted)
+            throw new NativeProtocolError('CANCELED', 'Request canceled');
+          this.sendProtocolResponseOnce(message, {
+            version: NATIVE_PROTOCOL_VERSION,
+            type: 'response',
+            requestId: message.requestId,
+            traceId: message.traceId,
+            ok: true,
+            result: { started: true },
+          });
+          return;
+        case 'native.stop':
+          await this.stopServer();
+          if (controller.signal.aborted)
+            throw new NativeProtocolError('CANCELED', 'Request canceled');
+          this.sendProtocolResponseOnce(message, {
+            version: NATIVE_PROTOCOL_VERSION,
+            type: 'response',
+            requestId: message.requestId,
+            traceId: message.traceId,
+            ok: true,
+            result: { stopped: true },
+          });
+          return;
+        case 'file.operation':
+          {
+            const result = await fileHandler.handleFileRequest(message.params);
+            if (controller.signal.aborted) {
+              throw new NativeProtocolError(
+                message.deadlineAt <= Date.now() ? 'DEADLINE_EXCEEDED' : 'CANCELED',
+                'Request canceled',
+              );
+            }
+            this.sendProtocolResponseOnce(message, createNativeResponse(message, result));
+          }
+          return;
+        default:
+          this.sendProtocolResponseOnce(
+            message,
+            createNativeErrorResponse(
+              message,
+              new NativeProtocolError('EXECUTION_UNKNOWN', `Unsupported method: ${message.method}`),
+            ),
+          );
+      }
+    } catch (error) {
+      const errorCode = controller.signal.aborted
+        ? message.deadlineAt <= Date.now()
+          ? 'DEADLINE_EXCEEDED'
+          : 'CANCELED'
+        : error instanceof NativeProtocolError
+          ? error.code
+          : 'BROWSER_ERROR';
+      this.sendProtocolResponseOnce(
+        message,
+        createNativeErrorResponse(
+          message,
+          new NativeProtocolError(
+            errorCode,
+            error instanceof Error ? error.message : String(error),
+          ),
+        ),
+      );
+    } finally {
+      clearTimeout(deadlineTimer);
+      this.activeProtocolRequests.delete(message.requestId);
+      this.activeProtocolControllers.delete(message.requestId);
+    }
+  }
+
+  private sendProtocolResponseOnce(request: NativeRequest, response: object): void {
+    if (this.respondedProtocolRequests.has(request.requestId)) return;
+    if (this.respondedProtocolRequests.size >= this.maxDeduplicatedRequests) {
+      const oldest = this.respondedProtocolRequests.values().next().value;
+      if (typeof oldest === 'string') this.respondedProtocolRequests.delete(oldest);
+    }
+    this.respondedProtocolRequests.add(request.requestId);
+    this.sendMessage(response);
   }
 
   /**
@@ -323,53 +466,129 @@ export class NativeMessagingHost {
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
-        reject(new Error('Chrome extension is not connected to the Native Host.'));
+        reject(
+          new NativeProtocolError(
+            'NATIVE_DISCONNECTED',
+            'Chrome extension is not connected to the Native Host.',
+          ),
+        );
         return;
       }
-      const requestId = randomUUID(); // Generate unique request ID
+      const requestId = randomUUID();
+      const traceId = randomUUID();
+      const deadlineAt = Date.now() + timeoutMs;
+      const method = this.protocolMethodFor(messageType);
+      const sideEffect = this.isSideEffectRequest(method, messagePayload);
+      let settled = false;
 
       const cancel = () => {
         const pending = this.pendingRequests.get(requestId);
-        if (!pending) return;
+        if (!pending || pending.settled) return;
         clearTimeout(pending.timeoutId);
+        pending.settled = true;
         this.pendingRequests.delete(requestId);
-        this.sendMessage({ type: NativeMessageType.CANCEL_TOOL, payload: { requestId } });
-        reject(new Error('Request cancelled'));
+        this.sendMessage({
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'cancel',
+          requestId,
+          traceId,
+          reason: 'client_abort',
+        });
+        reject(
+          new NativeProtocolError(
+            sideEffect ? 'EXECUTION_UNKNOWN' : 'CANCELED',
+            sideEffect
+              ? 'Side-effect execution state is unknown after cancellation'
+              : 'Request canceled',
+          ),
+        );
       };
       if (signal?.aborted) {
-        reject(new Error('Request cancelled'));
+        reject(new NativeProtocolError('CANCELED', 'Request canceled'));
         return;
       }
       signal?.addEventListener('abort', cancel, { once: true });
 
       const timeoutId = setTimeout(() => {
-        this.pendingRequests.delete(requestId); // Remove from Map after timeout
+        const pending = this.pendingRequests.get(requestId);
+        if (!pending || pending.settled) return;
+        pending.settled = true;
+        this.pendingRequests.delete(requestId);
         signal?.removeEventListener('abort', cancel);
-        this.sendMessage({ type: NativeMessageType.CANCEL_TOOL, payload: { requestId } });
-        reject(new Error(`Request timed out after ${timeoutMs}ms`));
+        this.sendMessage({
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'cancel',
+          requestId,
+          traceId,
+          reason: 'deadline_exceeded',
+        });
+        reject(
+          new NativeProtocolError(
+            sideEffect ? 'EXECUTION_UNKNOWN' : 'DEADLINE_EXCEEDED',
+            sideEffect
+              ? 'Side-effect execution state is unknown after deadline cancellation'
+              : `Request deadline exceeded at ${deadlineAt}`,
+          ),
+        );
       }, timeoutMs);
 
       // Store request's resolve/reject functions and timeout ID
       this.pendingRequests.set(requestId, {
         resolve: (value) => {
+          if (settled) return;
+          settled = true;
           signal?.removeEventListener('abort', cancel);
           resolve(value);
         },
         reject: (reason) => {
+          if (settled) return;
+          settled = true;
           signal?.removeEventListener('abort', cancel);
           reject(reason);
         },
         onProgress,
         timeoutId,
+        traceId,
+        method,
+        sideEffect,
+        settled: false,
       });
 
       // Send message with requestId to Chrome
       this.sendMessage({
-        type: messageType, // Define a request type, e.g. 'request_data'
-        payload: messagePayload,
-        requestId: requestId, // <--- Key: include request ID
+        version: NATIVE_PROTOCOL_VERSION,
+        type: 'request',
+        requestId,
+        traceId,
+        method,
+        deadlineAt,
+        params: messagePayload,
       });
     });
+  }
+
+  private isSideEffectRequest(method: string, payload: any): boolean {
+    if (method === 'rr.runFlow' || method === 'file.operation') return true;
+    if (method !== 'browser.callTool') return false;
+    const name = typeof payload?.name === 'string' ? payload.name : '';
+    return /(?:click|submit|delete|download|upload|create|close|navigate|fill|select|keyboard|paste|bookmark|storage_(?:set|delete)|dialog|userscript|proxy|record|rotate|post_to)/i.test(
+      name,
+    );
+  }
+
+  private protocolMethodFor(messageType: string): string {
+    switch (messageType) {
+      case 'call_tool':
+        return 'browser.callTool';
+      case 'process_data':
+        return 'browser.processData';
+      case 'rr_list_published_flows':
+        return 'rr.listPublishedFlows';
+      case 'rr_run_flow':
+        return 'rr.runFlow';
+      default:
+        return messageType;
+    }
   }
 
   /**
@@ -384,8 +603,10 @@ export class NativeMessagingHost {
       if (this.associatedServer.isRunning) {
         await this.associatedServer.startService();
         this.sendMessage({
-          type: NativeMessageType.SERVER_STARTED,
-          payload: { port },
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'event',
+          event: 'native.serverStarted',
+          data: { port },
         });
         return;
       }
@@ -393,8 +614,10 @@ export class NativeMessagingHost {
       await this.associatedServer.start(port, this);
 
       this.sendMessage({
-        type: NativeMessageType.SERVER_STARTED,
-        payload: { port },
+        version: NATIVE_PROTOCOL_VERSION,
+        type: 'event',
+        event: 'native.serverStarted',
+        data: { port },
       });
     } catch (error: any) {
       // A manually opened service instance may already own the port. Ask that
@@ -413,8 +636,10 @@ export class NativeMessagingHost {
       // alive and let the existing server decide whether it can serve requests.
       if (isAddressInUse(error)) {
         this.sendMessage({
-          type: NativeMessageType.SERVER_STARTED,
-          payload: { port },
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'event',
+          event: 'native.serverStarted',
+          data: { port, reused: true },
         });
         return;
       }
@@ -433,16 +658,17 @@ export class NativeMessagingHost {
     try {
       // Check status through associatedServer
       if (!this.associatedServer.isRunning) {
-        this.sendMessage({
-          type: NativeMessageType.ERROR,
-          payload: { message: 'Server is not running' },
-        });
+        this.sendError('Server is not running', 'BROWSER_ERROR');
         return;
       }
 
       await this.associatedServer.stopService();
 
-      this.sendMessage({ type: NativeMessageType.SERVER_STOPPED }); // Distinguish from previous 'stopped'
+      this.sendMessage({
+        version: NATIVE_PROTOCOL_VERSION,
+        type: 'event',
+        event: 'native.serverStopped',
+      });
     } catch (error: any) {
       this.sendError(`Failed to stop server: ${error.message}`);
     }
@@ -485,10 +711,12 @@ export class NativeMessagingHost {
   /**
    * Send error message to Chrome extension (mainly for sending non-request-response type errors)
    */
-  private sendError(errorMessage: string): void {
+  private sendError(errorMessage: string, code: string = 'INVALID_REQUEST'): void {
     this.sendMessage({
-      type: NativeMessageType.ERROR_FROM_NATIVE_HOST, // Use more explicit type
-      payload: { message: errorMessage },
+      version: NATIVE_PROTOCOL_VERSION,
+      type: 'event',
+      event: 'native.error',
+      data: { code, message: errorMessage },
     });
   }
 
@@ -497,12 +725,20 @@ export class NativeMessagingHost {
    */
   private cleanup(): void {
     this.connected = false;
+    this.connectionState = 'stopped';
     // Reject all pending requests
     this.pendingRequests.forEach((pending) => {
       clearTimeout(pending.timeoutId);
-      pending.reject(new Error('Native host is shutting down or Chrome disconnected.'));
+      pending.reject(
+        new NativeProtocolError(
+          pending.sideEffect ? 'EXECUTION_UNKNOWN' : 'NATIVE_DISCONNECTED',
+          'Native host is shutting down or Chrome disconnected.',
+        ),
+      );
     });
     this.pendingRequests.clear();
+    for (const controller of this.activeProtocolControllers.values()) controller.abort();
+    this.activeProtocolControllers.clear();
 
     if (this.associatedServer && this.associatedServer.isRunning) {
       this.associatedServer

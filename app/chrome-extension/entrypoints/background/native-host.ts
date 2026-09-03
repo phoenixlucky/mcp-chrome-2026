@@ -1,4 +1,16 @@
-import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
+import {
+  NativeMessageType,
+  NATIVE_PROTOCOL_VERSION,
+  NativeProtocolError,
+  createNativeCapabilities,
+  createNativeHello,
+  createNativeErrorResponse,
+  parseNativeProtocolMessage,
+  negotiateNativeProtocolVersion,
+  type NativeProtocolMessage,
+  type NativeRequest,
+  type NativeConnectionState,
+} from '@ethanwilkins/chrome-mcp-shared-2026';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { NATIVE_HOST, STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/common/constants';
 import { handleCallTool } from './tools';
@@ -8,7 +20,13 @@ import { acquireKeepalive } from './keepalive-manager';
 const LOG_PREFIX = '[NativeHost]';
 
 let nativePort: chrome.runtime.Port | null = null;
+let nativeConnectionState: NativeConnectionState = 'stopped';
+let negotiatedVersion: number | undefined;
+let nativeCapabilities: NativeConnectionSnapshot['capabilities'];
 const activeToolCalls = new Map<string, AbortController>();
+const respondedProtocolRequests = new Set<string>();
+const forwardedFileRequests = new Set<string>();
+const MAX_DEDUPLICATED_REQUESTS = 4096;
 export const HOST_NAME = NATIVE_HOST.NAME;
 
 // ==================== Reconnect Configuration ====================
@@ -42,6 +60,52 @@ let currentServerStatus: ServerStatus = {
   isRunning: false,
   lastUpdated: Date.now(),
 };
+
+interface NativeConnectionSnapshot {
+  state: NativeConnectionState;
+  updatedAt: number;
+  negotiatedVersion?: number;
+  capabilities?: { methods: string[]; events: string[]; features: string[] };
+  lastError?: string;
+}
+
+function persistNativeConnectionState(lastError?: string): void {
+  const snapshot: NativeConnectionSnapshot = {
+    state: nativeConnectionState,
+    updatedAt: Date.now(),
+    ...(negotiatedVersion ? { negotiatedVersion } : {}),
+    ...(nativeCapabilities ? { capabilities: nativeCapabilities } : {}),
+    ...(lastError ? { lastError } : {}),
+  };
+  void chrome.storage.local
+    .set({ [STORAGE_KEYS.NATIVE_CONNECTION_STATE]: snapshot })
+    .catch((error) => console.warn(`${LOG_PREFIX} Failed to persist connection state`, error));
+}
+
+function setNativeConnectionState(state: NativeConnectionState, lastError?: string): void {
+  if (nativeConnectionState === state && !lastError) return;
+  nativeConnectionState = state;
+  persistNativeConnectionState(lastError);
+}
+
+async function loadNativeConnectionState(): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get([STORAGE_KEYS.NATIVE_CONNECTION_STATE]);
+    const stored = result[
+      STORAGE_KEYS.NATIVE_CONNECTION_STATE
+    ] as Partial<NativeConnectionSnapshot>;
+    if (
+      stored?.state &&
+      ['starting', 'connected', 'ready', 'degraded', 'stopped'].includes(stored.state)
+    ) {
+      nativeConnectionState = stored.state as NativeConnectionState;
+    }
+    if (typeof stored?.negotiatedVersion === 'number') negotiatedVersion = stored.negotiatedVersion;
+    if (stored?.capabilities) nativeCapabilities = stored.capabilities;
+  } catch (error) {
+    console.warn(`${LOG_PREFIX} Failed to load connection state`, error);
+  }
+}
 
 /**
  * Save server status to chrome.storage
@@ -137,6 +201,152 @@ function clearReconnectTimer(): void {
 function resetReconnectState(): void {
   reconnectAttempts = 0;
   clearReconnectTimer();
+}
+
+function postProtocolResponseOnce(request: NativeRequest, response: Record<string, unknown>): void {
+  if (respondedProtocolRequests.has(request.requestId)) return;
+  if (respondedProtocolRequests.size >= MAX_DEDUPLICATED_REQUESTS) {
+    const oldest = respondedProtocolRequests.values().next().value;
+    if (typeof oldest === 'string') respondedProtocolRequests.delete(oldest);
+  }
+  respondedProtocolRequests.add(request.requestId);
+  nativePort?.postMessage(response);
+}
+
+function protocolErrorResponse(
+  request: NativeRequest,
+  code: NativeProtocolError['code'],
+  message: string,
+) {
+  return createNativeErrorResponse(request, new NativeProtocolError(code, message));
+}
+
+async function handleProtocolRequest(message: NativeRequest): Promise<void> {
+  if (respondedProtocolRequests.has(message.requestId) || activeToolCalls.has(message.requestId))
+    return;
+  if (message.deadlineAt <= Date.now()) {
+    postProtocolResponseOnce(
+      message,
+      protocolErrorResponse(message, 'DEADLINE_EXCEEDED', 'Request deadline exceeded'),
+    );
+    return;
+  }
+
+  const controller = new AbortController();
+  activeToolCalls.set(message.requestId, controller);
+  const remainingMs = Math.max(1, message.deadlineAt - Date.now());
+  let deadlineExpired = false;
+  const deadlineTimer = setTimeout(() => {
+    deadlineExpired = true;
+    controller.abort();
+  }, remainingMs);
+  try {
+    let result: unknown;
+    switch (message.method) {
+      case 'browser.callTool': {
+        const toolResult = await handleCallTool(
+          message.params as any,
+          controller.signal,
+          (progress) => {
+            if (controller.signal.aborted) return;
+            nativePort?.postMessage({
+              version: NATIVE_PROTOCOL_VERSION,
+              type: 'event',
+              requestId: message.requestId,
+              traceId: message.traceId,
+              event: 'tool.progress',
+              data: progress,
+            });
+          },
+        );
+        result = {
+          status: 'success',
+          message: SUCCESS_MESSAGES.TOOL_EXECUTED,
+          data: toolResult,
+        };
+        break;
+      }
+      case 'browser.processData':
+        result = {
+          status: 'success',
+          message: SUCCESS_MESSAGES.TOOL_EXECUTED,
+          data: message.params,
+        };
+        break;
+      case 'rr.listPublishedFlows': {
+        const published = await listFlows();
+        const items = [] as any[];
+        for (const p of published) {
+          const flow = await getFlow(p.id);
+          if (!flow) continue;
+          items.push({
+            id: p.id,
+            slug: p.id,
+            version: p.schemaVersion,
+            name: p.name,
+            description: p.description || flow.description || '',
+            variables: flow.variables || [],
+            meta: flow.meta || {},
+          });
+        }
+        result = { status: 'success', items };
+        break;
+      }
+      case 'rr.runFlow': {
+        const { flowId, args } = (message.params || {}) as any;
+        if (typeof flowId !== 'string' || !flowId) throw new Error('flowId is required');
+        if (!(await getFlow(flowId))) throw new Error(`Flow not found: ${flowId}`);
+        const run = await enqueueFlow(flowId, args);
+        result = {
+          status: 'success',
+          data: { content: [{ type: 'text', text: JSON.stringify(run) }], isError: false },
+        };
+        break;
+      }
+      default:
+        postProtocolResponseOnce(
+          message,
+          protocolErrorResponse(
+            message,
+            'EXECUTION_UNKNOWN',
+            `Unsupported method: ${message.method}`,
+          ),
+        );
+        return;
+    }
+    if (controller.signal.aborted) {
+      postProtocolResponseOnce(
+        message,
+        protocolErrorResponse(
+          message,
+          deadlineExpired ? 'DEADLINE_EXCEEDED' : 'CANCELED',
+          deadlineExpired ? 'Request deadline exceeded' : 'Request canceled',
+        ),
+      );
+    } else {
+      postProtocolResponseOnce(message, {
+        version: NATIVE_PROTOCOL_VERSION,
+        type: 'response',
+        requestId: message.requestId,
+        traceId: message.traceId,
+        ok: true,
+        result,
+      });
+    }
+  } catch (error) {
+    const code = controller.signal.aborted
+      ? deadlineExpired
+        ? 'DEADLINE_EXCEEDED'
+        : 'CANCELED'
+      : 'BROWSER_ERROR';
+    postProtocolResponseOnce(
+      message,
+      protocolErrorResponse(message, code, error instanceof Error ? error.message : String(error)),
+    );
+  } finally {
+    clearTimeout(deadlineTimer);
+    activeToolCalls.delete(message.requestId);
+  }
 }
 
 // ==================== Keepalive Management ====================
@@ -238,6 +448,8 @@ function scheduleReconnect(reason: string): void {
   if (!autoConnectEnabled) return;
   if (reconnectTimer) return;
 
+  setNativeConnectionState('degraded', reason);
+
   const delay = getReconnectDelayMs(reconnectAttempts);
   console.debug(
     `${LOG_PREFIX} Reconnect scheduled in ${delay}ms (attempt=${reconnectAttempts}, reason=${reason})`,
@@ -288,7 +500,7 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
   if (ensurePromise) return ensurePromise;
 
   ensurePromise = (async () => {
-    // Avoid a stale storage read overwriting SERVER_STARTED from a new host.
+    // Avoid a stale storage read overwriting native.serverStarted from a new host.
     await statusReady;
 
     // Load auto-connect setting if not yet loaded
@@ -300,6 +512,7 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
 
     // If auto-connect is disabled, do nothing
     if (!autoConnectEnabled) {
+      setNativeConnectionState('stopped', 'auto_connect_disabled');
       console.debug(`${LOG_PREFIX} Auto-connect disabled, skipping ensure (trigger=${trigger})`);
       return false;
     }
@@ -309,8 +522,9 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
 
     // Already connected
     if (nativePort) {
-      console.debug(`${LOG_PREFIX} Already connected (trigger=${trigger})`);
-      return true;
+      const ready = nativeConnectionState === 'ready';
+      console.debug(`${LOG_PREFIX} Already connected (ready=${ready}, trigger=${trigger})`);
+      return ready;
     }
 
     // Get the port to use
@@ -326,7 +540,7 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
     }
 
     console.debug(`${LOG_PREFIX} Connection initiated successfully (trigger=${trigger})`);
-    // Note: Don't reset reconnect state here. Wait for SERVER_STARTED confirmation.
+    // Note: Don't reset reconnect state here. Wait for native.serverStarted confirmation.
     // Chrome may return a Port but disconnect immediately if native host is missing.
     return true;
   })().finally(() => {
@@ -342,144 +556,148 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
  */
 export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): boolean {
   if (nativePort) {
-    return true;
+    return nativeConnectionState === 'ready';
   }
 
   try {
+    setNativeConnectionState('starting');
+    negotiatedVersion = undefined;
+    nativeCapabilities = undefined;
     nativePort = chrome.runtime.connectNative(HOST_NAME);
 
     nativePort.onMessage.addListener(async (message) => {
-      if (message.type === NativeMessageType.PROCESS_DATA && message.requestId) {
-        const requestId = message.requestId;
-        const requestPayload = message.payload;
-
-        nativePort?.postMessage({
-          responseToRequestId: requestId,
-          payload: {
-            status: 'success',
-            message: SUCCESS_MESSAGES.TOOL_EXECUTED,
-            data: requestPayload,
-          },
-        });
-      } else if (message.type === NativeMessageType.CALL_TOOL && message.requestId) {
-        const requestId = message.requestId;
-        const controller = new AbortController();
-        activeToolCalls.set(requestId, controller);
+      if (typeof message?.version === 'number') {
+        let protocolMessage: NativeProtocolMessage;
         try {
-          const result = await handleCallTool(message.payload, controller.signal, (progress) => {
-            if (controller.signal.aborted) return;
-            nativePort?.postMessage({
-              type: NativeMessageType.TOOL_PROGRESS,
-              requestId,
-              payload: progress,
-            });
-          });
-          if (controller.signal.aborted) return;
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: {
-              status: 'success',
-              message: SUCCESS_MESSAGES.TOOL_EXECUTED,
-              data: result,
-            },
-          });
+          protocolMessage = parseNativeProtocolMessage(message);
         } catch (error) {
-          if (controller.signal.aborted) return;
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: {
-              status: 'error',
-              message: ERROR_MESSAGES.TOOL_EXECUTION_FAILED,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          });
-        } finally {
-          activeToolCalls.delete(requestId);
-        }
-      } else if (message.type === NativeMessageType.CANCEL_TOOL && message.payload?.requestId) {
-        activeToolCalls.get(message.payload.requestId)?.abort();
-      } else if (message.type === 'rr_list_published_flows' && message.requestId) {
-        const requestId = message.requestId;
-        try {
-          const published = await listFlows();
-          const items = [] as any[];
-          for (const p of published) {
-            const flow = await getFlow(p.id);
-            if (!flow) continue;
-            items.push({
-              id: p.id,
-              slug: p.id,
-              version: p.schemaVersion,
-              name: p.name,
-              description: p.description || flow.description || '',
-              variables: flow.variables || [],
-              meta: flow.meta || {},
+          console.warn(`${LOG_PREFIX} Invalid protocol message`, error);
+          if (typeof message?.requestId === 'string' && typeof message?.traceId === 'string') {
+            nativePort?.postMessage({
+              version: NATIVE_PROTOCOL_VERSION,
+              type: 'response',
+              requestId: message.requestId,
+              traceId: message.traceId,
+              ok: false,
+              error: {
+                code: error instanceof NativeProtocolError ? error.code : 'INVALID_REQUEST',
+                message: error instanceof Error ? error.message : String(error),
+              },
             });
           }
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: { status: 'success', items },
-          });
-        } catch (error: any) {
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: { status: 'error', error: error?.message || String(error) },
-          });
+          return;
         }
-      } else if (message.type === 'rr_run_flow' && message.requestId) {
-        const requestId = message.requestId;
-        try {
-          const { flowId, args } = message.payload || {};
-          if (typeof flowId !== 'string' || !flowId) throw new Error('flowId is required');
-          const flow = await getFlow(flowId);
-          if (!flow) throw new Error(`Flow not found: ${flowId}`);
-          const result = await enqueueFlow(flowId, args);
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: {
-              status: 'success',
-              data: { content: [{ type: 'text', text: JSON.stringify(result) }], isError: false },
-            },
-          });
-        } catch (error: any) {
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: { status: 'error', error: error?.message || String(error) },
-          });
+
+        switch (protocolMessage.type) {
+          case 'hello': {
+            const selected =
+              protocolMessage.selectedVersion ??
+              negotiateNativeProtocolVersion(protocolMessage.supportedVersions);
+            if (selected === null) {
+              setNativeConnectionState('degraded', 'unsupported_protocol_version');
+              console.warn(`${LOG_PREFIX} Native host has no compatible protocol version`);
+              return;
+            }
+            setNativeConnectionState('connected');
+            negotiatedVersion = selected;
+            persistNativeConnectionState();
+            if (!protocolMessage.selectedVersion) {
+              nativePort?.postMessage({
+                ...createNativeHello(
+                  'extension-background',
+                  { name: 'chrome-mcp-extension', version: '2' },
+                  protocolMessage.traceId,
+                ),
+                selectedVersion: selected,
+              });
+            }
+            nativePort?.postMessage(createNativeCapabilities(protocolMessage.traceId));
+            return;
+          }
+          case 'capabilities':
+            nativeCapabilities = {
+              methods: [...protocolMessage.methods],
+              events: [...protocolMessage.events],
+              features: [...protocolMessage.features],
+            };
+            persistNativeConnectionState();
+            setNativeConnectionState('ready');
+            return;
+          case 'ping':
+            nativePort?.postMessage({
+              version: NATIVE_PROTOCOL_VERSION,
+              type: 'pong',
+              nonce: protocolMessage.nonce,
+              traceId: protocolMessage.traceId,
+            });
+            return;
+          case 'cancel':
+            activeToolCalls.get(protocolMessage.requestId)?.abort();
+            return;
+          case 'request':
+            await handleProtocolRequest(protocolMessage);
+            return;
+          case 'event':
+            if (protocolMessage.event === 'tool.progress' && protocolMessage.requestId) {
+              // Progress is consumed by the native request callback; no local action is needed.
+            } else if (protocolMessage.event === 'native.serverStarted') {
+              const port = (protocolMessage.data as { port?: unknown } | undefined)?.port;
+              currentServerStatus = {
+                isRunning: true,
+                port: normalizePort(port) ?? currentServerStatus.port,
+                lastUpdated: Date.now(),
+              };
+              await saveServerStatus(currentServerStatus);
+              broadcastServerStatusChange(currentServerStatus);
+              resetReconnectState();
+            } else if (protocolMessage.event === 'native.serverStopped') {
+              await markServerStopped('native_protocol_event');
+            }
+            return;
+          case 'pong':
+            return;
+          case 'response':
+            if (forwardedFileRequests.delete(protocolMessage.requestId)) {
+              chrome.runtime
+                .sendMessage(
+                  protocolMessage.ok
+                    ? {
+                        type: 'native_file_operation_response',
+                        requestId: protocolMessage.requestId,
+                        ok: true,
+                        result: protocolMessage.result,
+                      }
+                    : {
+                        type: 'native_file_operation_response',
+                        requestId: protocolMessage.requestId,
+                        ok: false,
+                        error: protocolMessage.error?.message || 'File operation failed',
+                      },
+                )
+                .catch(() => undefined);
+            }
+            return;
         }
-      } else if (message.type === NativeMessageType.SERVER_STARTED) {
-        const port = message.payload?.port;
-        currentServerStatus = {
-          isRunning: true,
-          port: port,
-          lastUpdated: Date.now(),
-        };
-        await saveServerStatus(currentServerStatus);
-        broadcastServerStatusChange(currentServerStatus);
-        // Server is confirmed running - now we can reset reconnect state
-        resetReconnectState();
-        console.log(`${SUCCESS_MESSAGES.SERVER_STARTED} on port ${port}`);
-      } else if (message.type === NativeMessageType.SERVER_STOPPED) {
-        currentServerStatus = {
-          isRunning: false,
-          port: currentServerStatus.port, // Keep last known port for reconnection
-          lastUpdated: Date.now(),
-        };
-        await saveServerStatus(currentServerStatus);
-        broadcastServerStatusChange(currentServerStatus);
-        console.log(SUCCESS_MESSAGES.SERVER_STOPPED);
-      } else if (message.type === NativeMessageType.ERROR_FROM_NATIVE_HOST) {
-        console.error('Error from native host:', message.payload?.message || 'Unknown error');
-      } else if (message.type === 'file_operation_response') {
-        // Forward file operation response back to the requesting tool
-        chrome.runtime.sendMessage(message).catch(() => {
-          // Ignore if no listeners
-        });
       }
+
+      return;
     });
 
     nativePort.onDisconnect.addListener(() => {
       console.warn(ERROR_MESSAGES.NATIVE_DISCONNECTED, chrome.runtime.lastError);
+      for (const controller of activeToolCalls.values()) controller.abort();
+      activeToolCalls.clear();
+      for (const requestId of forwardedFileRequests) {
+        chrome.runtime
+          .sendMessage({
+            type: 'native_file_operation_response',
+            requestId,
+            ok: false,
+            error: 'Native host disconnected before the file operation completed',
+          })
+          .catch(() => undefined);
+      }
+      forwardedFileRequests.clear();
       nativePort = null;
 
       // Mark server as stopped since native host disconnection means server is down
@@ -488,19 +706,36 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
       // Handle reconnection based on disconnect reason
       if (manualDisconnect) {
         manualDisconnect = false;
+        setNativeConnectionState('stopped', 'manual_disconnect');
         return;
       }
-      if (!autoConnectEnabled) return;
+      if (!autoConnectEnabled) {
+        setNativeConnectionState('stopped', 'auto_connect_disabled');
+        return;
+      }
+      setNativeConnectionState('degraded', 'native_port_disconnected');
       scheduleReconnect('native_port_disconnected');
     });
 
-    nativePort.postMessage({ type: NativeMessageType.START, payload: { port } });
-    // Note: Don't reset reconnect state here. Wait for SERVER_STARTED confirmation.
+    nativePort.postMessage(
+      createNativeHello('extension-background', { name: 'chrome-mcp-extension', version: '2' }),
+    );
+    nativePort.postMessage({
+      version: NATIVE_PROTOCOL_VERSION,
+      type: 'request',
+      requestId: crypto.randomUUID(),
+      traceId: crypto.randomUUID(),
+      method: 'native.start',
+      deadlineAt: Date.now() + 15_000,
+      params: { port },
+    });
+    // Note: Don't reset reconnect state here. Wait for native.serverStarted confirmation.
     // Chrome may return a Port but disconnect immediately if native host is missing.
     return true;
   } catch (error) {
     console.warn(ERROR_MESSAGES.NATIVE_CONNECTION_FAILED, error);
     nativePort = null;
+    setNativeConnectionState('degraded', error instanceof Error ? error.message : String(error));
     return false;
   }
 }
@@ -510,8 +745,8 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
  */
 export const initNativeHostListener = () => {
   // Initialize server status from storage
-  statusReady = loadServerStatus()
-    .then((status) => {
+  statusReady = Promise.all([loadServerStatus(), loadNativeConnectionState()])
+    .then(([status]) => {
       currentServerStatus = status;
     })
     .catch((error) => {
@@ -549,10 +784,20 @@ export const initNativeHostListener = () => {
       const portOverride = typeof message === 'object' ? message.port : undefined;
       ensureNativeConnected('ui_ensure', portOverride)
         .then((connected) => {
-          sendResponse({ success: true, connected, autoConnectEnabled });
+          sendResponse({
+            success: true,
+            connected,
+            state: nativeConnectionState,
+            autoConnectEnabled,
+          });
         })
         .catch((e) => {
-          sendResponse({ success: false, connected: nativePort !== null, error: String(e) });
+          sendResponse({
+            success: false,
+            connected: nativePort !== null,
+            state: nativeConnectionState,
+            error: String(e),
+          });
         });
       return true;
     }
@@ -578,17 +823,22 @@ export const initNativeHostListener = () => {
         return ensureNativeConnected('ui_connect', normalized ?? undefined);
       })()
         .then((connected) => {
-          sendResponse({ success: true, connected });
+          sendResponse({ success: true, connected, state: nativeConnectionState });
         })
         .catch((e) => {
-          sendResponse({ success: false, connected: nativePort !== null, error: String(e) });
+          sendResponse({
+            success: false,
+            connected: nativePort !== null,
+            state: nativeConnectionState,
+            error: String(e),
+          });
         });
       return true;
     }
 
     if (msgType === NativeMessageType.PING_NATIVE) {
       const connected = nativePort !== null;
-      sendResponse({ connected, autoConnectEnabled });
+      sendResponse({ connected, state: nativeConnectionState, autoConnectEnabled });
       return true;
     }
 
@@ -612,6 +862,7 @@ export const initNativeHostListener = () => {
           }
           nativePort = null;
         }
+        setNativeConnectionState('stopped', 'manual_disconnect');
         await markServerStopped('manual_disconnect');
       })()
         .then(() => {
@@ -628,6 +879,7 @@ export const initNativeHostListener = () => {
         success: true,
         serverStatus: currentServerStatus,
         connected: nativePort !== null,
+        state: nativeConnectionState,
       });
       return true;
     }
@@ -640,6 +892,7 @@ export const initNativeHostListener = () => {
             success: true,
             serverStatus: currentServerStatus,
             connected: nativePort !== null,
+            state: nativeConnectionState,
           });
         })
         .catch((error) => {
@@ -649,6 +902,7 @@ export const initNativeHostListener = () => {
             error: ERROR_MESSAGES.SERVER_STATUS_LOAD_FAILED,
             serverStatus: currentServerStatus,
             connected: nativePort !== null,
+            state: nativeConnectionState,
           });
         });
       return true;
@@ -663,8 +917,13 @@ export const initNativeHostListener = () => {
             return;
           }
           nativePort.postMessage({
-            type: NativeMessageType.START,
-            payload: { port: portOverride },
+            version: NATIVE_PROTOCOL_VERSION,
+            type: 'request',
+            requestId: crypto.randomUUID(),
+            traceId: crypto.randomUUID(),
+            method: 'native.start',
+            deadlineAt: Date.now() + 15_000,
+            params: { port: portOverride },
           });
           sendResponse({ success: true, connected: true });
         })
@@ -675,9 +934,22 @@ export const initNativeHostListener = () => {
     }
 
     // Forward file operation messages to native host
-    if (message.type === 'forward_to_native' && message.message) {
+    if (message.type === 'forward_to_native' && message.request) {
       if (nativePort) {
-        nativePort.postMessage(message.message);
+        const requestId =
+          typeof message.request.requestId === 'string'
+            ? message.request.requestId
+            : crypto.randomUUID();
+        forwardedFileRequests.add(requestId);
+        nativePort.postMessage({
+          version: NATIVE_PROTOCOL_VERSION,
+          type: 'request',
+          requestId,
+          traceId: crypto.randomUUID(),
+          method: 'file.operation',
+          deadlineAt: Date.now() + 30_000,
+          params: message.request.params,
+        });
         sendResponse({ success: true });
       } else {
         sendResponse({ success: false, error: 'Native host not connected' });

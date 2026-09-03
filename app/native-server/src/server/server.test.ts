@@ -35,6 +35,12 @@ describe('服务器测试', () => {
     });
     expect(response.body.mcp).toMatchObject({ activeSessions: 0, streamableHttp: true });
     expect(response.body.tools.count).toBeGreaterThan(0);
+    expect(response.body.toolAdmission).toMatchObject({
+      active: 0,
+      queued: 0,
+      maxActive: expect.any(Number),
+      maxQueued: expect.any(Number),
+    });
   });
 
   test('兼容版 Streamable HTTP 应保留会话生命周期', async () => {

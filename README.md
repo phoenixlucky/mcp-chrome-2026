@@ -167,6 +167,18 @@ mcp-chrome-bridge start
 
 客户端发送 `Authorization: Bearer <key>`（或 `x-api-key`）即可；STDIO 代理会读取同一个环境变量并自动转发 Bearer token。
 
+### 工具并发和队列上限
+
+为避免多个任务同时操作浏览器造成积压，服务端默认最多并行执行 8 个工具调用，最多排队 64 个。可按机器性能调整：
+
+```powershell
+$env:CHROME_MCP_MAX_CONCURRENT_TOOLS = "8"
+$env:CHROME_MCP_MAX_QUEUED_TOOLS = "64"
+mcp-chrome-bridge start
+```
+
+当前占用和排队数量可通过 `http://127.0.0.1:12306/status` 的 `toolAdmission` 查看。
+
 ### 工具权限范围与高风险审批
 
 可用逗号分隔的工具名或简单前缀通配符（例如 `flow.*`）限制 MCP 客户端能发现和调用的工具：
@@ -375,6 +387,7 @@ pnpm test:chrome-smoke
 - **Profile 诊断** — 汇总 Profile、CDP、MCP、代理与扩展状态
 - **安全升级** — 精确版本、SHA-512 校验、失败回滚
 - **批量与定时任务** — `chrome_batch`、工作流队列和 cron/interval 触发
+- **Native Messaging 控制通道与并发治理** — 全局并发限制与全局队列限制（`CHROME_MCP_MAX_CONCURRENT_TOOLS=8` / `CHROME_MCP_MAX_QUEUED_TOOLS=64`）、同一 Tab 写操作串行、`chrome_batch` 不额外占用外层并发槽位、`/status` 的 `toolAdmission` 实时暴露占用与排队
 
 ### 🎯 规划中
 
@@ -382,6 +395,39 @@ pnpm test:chrome-smoke
 - **实时监控仪表盘** — Web 面板查看调用、性能、错误
 - **多版本 Chrome 实机矩阵** — 在不同 Chrome 版本 / Profile / 运行环境中做真实浏览器回归
 - **产品边界扩展** — 托管浏览器与远程 CDP
+
+#### 🧭 三层通道架构（规划中）
+
+目标通道布局：Native Messaging 继续作为**安全控制通道**；大块二进制（截图、PDF、完整 HTML）不经过 Native Messaging，改走 Artifact 文件面；高频事件按需走 WebSocket。
+
+```text
+MCP Client
+    │ stdio JSON-RPC
+    ▼
+mcp-chrome-bridge
+    │ HTTP / MCP
+    ▼
+Native Service
+    ├── 控制面：Native Messaging + JSON-RPC v2
+    ├── 数据面：Artifact 文件 + localhost HTTP
+    └── 事件面：localhost WebSocket（可选）
+    ▼
+Chrome Extension Background
+    ├── chrome.tabs / scripting
+    └── CDP
+```
+
+**核心原则**：Native Messaging 不传大块二进制；写操作不自动重试；同一 Tab 操作串行；所有请求具备超时、取消、追踪与最终状态；WebSocket、Go/Rust 重写只在性能数据证明需要时引入（Chrome Native Messaging 单条消息上限约 1 MB，不适合承载大截图、PDF 与完整 HTML）。
+
+- **阶段一 · 协议 V2** — 统一 Native Service 与 Extension Background 协议：消息类型 `request` / `response` / `event` / `cancel` / `ping` / `pong` / `hello` / `capabilities`；协议版本协商、能力发现、JSON Schema 校验、requestId 去重、traceId 链路追踪、deadline 传播、AbortSignal 取消、统一错误码、单请求只响应一次。错误码：`INVALID_REQUEST` / `UNSUPPORTED_VERSION` / `DEADLINE_EXCEEDED` / `CANCELED` / `NATIVE_DISCONNECTED` / `QUEUE_FULL` / `BROWSER_ERROR` / `EXECUTION_UNKNOWN`
+- **阶段二 · 连接与请求生命周期** — 统一状态机 `starting → connected → ready → degraded → stopped`；由一个重连管理器统一负责 Native Host 重连；断线时取消所有 active/pending 请求，HTTP 断开向下游传播取消；超时发送 cancel 而非仅返回错误；pending 请求最终必须进入完成 / 取消 / 失败。MV3 Service Worker 关键状态持久化到 `chrome.storage` / IndexedDB。副作用操作区分 `succeeded` / `failed-before-execution` / `execution-unknown`，断线后不自动重试
+- **阶段三 · 并发、队列和隔离** — 在已完成机制之上继续：按浏览器实例 / Profile 隔离队列；读、写操作分离；写操作保持 Tab 内严格顺序；队列满返回 `QUEUE_FULL`；统计平均排队时长、拒绝次数、超时次数；读操作可选优先级但不打乱写顺序
+- **阶段四 · Artifact 数据面** — 控制消息只返回元数据（`artifactId` / `contentType` / `size` / `sha256`）；小数据直接 JSON 返回，大文件分片传输（每片 256～512 KB，`artifactId + seq + eof + sha256`）；写入临时文件后原子改名；TTL 自动清理、容量上限、断线删除残留；对 Cookie / Token / Authorization 脱敏。第一版：Native Messaging 分片上传 + localhost HTTP 下载（改动最小）
+- **阶段五 · localhost WebSocket 事件通道** — 仅当事件推送或高频数据成为瓶颈时启用；随机端口 + 一次性 Token 下发；适用于 Tab 状态变化、下载 / 长任务进度、网络事件、订阅与流式数据；只绑定 127.0.0.1、Origin 白名单、连接数 / 空闲 / 请求大小限制、禁止匿名访问敏感接口；Service Worker 中需周期性通信维持活跃
+- **阶段六 · 安全和可观测性** — 精确校验扩展 ID、支持 `CHROME_MCP_ALLOWED_ORIGINS`、localhost 接口用 API Key / 一次性 Token、日志禁止输出 Cookie / Token / 完整页面、限制请求体与执行时间与 Artifact 容量、默认关闭调试接口；每请求 traceId 并记录 `stdio_wait` / `http_process` / `native_queue_wait` / `native_roundtrip` / `browser_execution` / `total` 分段耗时；`/status` 增加 `connectionState` / `pendingRequests` / `activeTools` / `queuedTools` / `reconnectCount` / `timeoutCount` / `cancelCount` / `queueRejectCount` / `lastError`；跨进程链路追踪（OpenTelemetry）暂缓
+- **阶段七 · 统一传输实现** — 收敛 `mcp-bridge.js` 与 stdio 适配器公共逻辑（JSON-RPC 编解码、deadline、retry、错误映射、取消、Content-Length、`/mcp-new` 与 `/mcp` 兼容）；迁移顺序：Native Service 同时支持 V1/V2 → Extension Background 支持 V2 → Bridge 优先 V2 → `/mcp-new` 默认 → `/mcp` 仅兼容
+- **阶段八 · 测试和发布** — 故障场景覆盖：Native Host 断线、响应丢失但操作成功、半包 / 粘包、Service Worker 休眠恢复、CDP 被 DevTools 占用、队列满取消、batch 达最大并发、Artifact 传输中断、重连连发请求、同一写操作重复请求、V1/V2 兼容。发布门槛：1000 次混合读写通过、30 分钟压测无内存持续增长、断线后 pending / controller / queue 归零、写操作无自动重放、单条 Native 输出低于安全阈值、大文件全走 Artifact、`/status` 准确、`/mcp` 兼容与 `/mcp-new` 主流程测试全过
+- **最终技术选择与路线** — 推荐 Node.js/TypeScript：JSON-RPC V2 + TypeBox 校验 + AbortController + Artifact 文件存储 + localhost HTTP；WebSocket 仅用于高频事件与流式；暂不引入 WebTransport / gRPC / 直接 9222 CDP。路线：先统一协议 → 再完善取消与断线恢复 → 再拆分 Artifact 数据面 → 再按指标引入 WebSocket → 最后考虑 Go/Rust Native Host；优先完成协议 V2、生命周期管理、Artifact 与故障测试
 
 ### 🆕 新增工具
 

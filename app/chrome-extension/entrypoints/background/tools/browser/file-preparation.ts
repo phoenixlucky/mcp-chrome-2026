@@ -17,24 +17,21 @@ export async function prepareFileFromRemote(options: {
     }, 30_000);
 
     const handleMessage = (message: any) => {
-      if (message?.type !== 'file_operation_response' || message.responseToRequestId !== requestId)
+      if (message?.type !== 'native_file_operation_response' || message.requestId !== requestId)
         return;
 
       clearTimeout(timeout);
       chrome.runtime.onMessage.removeListener(handleMessage);
-      resolve(
-        message.payload?.success && message.payload.filePath ? message.payload.filePath : null,
-      );
+      resolve(message.result?.success && message.result.filePath ? message.result.filePath : null);
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
     chrome.runtime
       .sendMessage({
         type: 'forward_to_native',
-        message: {
-          type: 'file_operation',
+        request: {
           requestId,
-          payload: { action: 'prepareFile', fileUrl, base64Data, fileName },
+          params: { action: 'prepareFile', fileUrl, base64Data, fileName },
         },
       })
       .catch(() => {

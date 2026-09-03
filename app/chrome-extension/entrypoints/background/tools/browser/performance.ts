@@ -123,22 +123,21 @@ async function saveTraceToNativeTemp(
       const listener = (message: any) => {
         if (
           message &&
-          message.type === 'file_operation_response' &&
-          message.responseToRequestId === requestId
+          message.type === 'native_file_operation_response' &&
+          message.requestId === requestId
         ) {
           clearTimeout(timer);
           chrome.runtime.onMessage.removeListener(listener);
-          resolve(message.payload);
+          resolve(message.result);
         }
       };
       chrome.runtime.onMessage.addListener(listener);
       chrome.runtime
         .sendMessage({
           type: 'forward_to_native',
-          message: {
-            type: 'file_operation',
+          request: {
             requestId,
-            payload: {
+            params: {
               action: 'prepareFile',
               base64Data: base64,
               fileName: filename,
@@ -174,8 +173,8 @@ async function cleanupNativeTempFile(filePath: string): Promise<void> {
       const listener = (message: any) => {
         if (
           message &&
-          message.type === 'file_operation_response' &&
-          message.responseToRequestId === requestId
+          message.type === 'native_file_operation_response' &&
+          message.requestId === requestId
         ) {
           clearTimeout(timer);
           chrome.runtime.onMessage.removeListener(listener);
@@ -186,10 +185,9 @@ async function cleanupNativeTempFile(filePath: string): Promise<void> {
       chrome.runtime
         .sendMessage({
           type: 'forward_to_native',
-          message: {
-            type: 'file_operation',
+          request: {
             requestId,
-            payload: {
+            params: {
               action: 'cleanupFile',
               filePath,
             },
@@ -450,22 +448,21 @@ class PerformanceAnalyzeInsightTool extends BaseBrowserToolExecutor {
             const listener = (message: any) => {
               if (
                 message &&
-                message.type === 'file_operation_response' &&
-                message.responseToRequestId === requestId
+                message.type === 'native_file_operation_response' &&
+                message.requestId === requestId
               ) {
                 clearTimeout(timer);
                 chrome.runtime.onMessage.removeListener(listener);
-                resolve(message.payload);
+                resolve(message.result);
               }
             };
             chrome.runtime.onMessage.addListener(listener);
             chrome.runtime
               .sendMessage({
                 type: 'forward_to_native',
-                message: {
-                  type: 'file_operation',
+                request: {
                   requestId,
-                  payload: { action: 'analyzeTrace', traceFilePath: fullPath, insightName },
+                  params: { action: 'analyzeTrace', traceFilePath: fullPath, insightName },
                 },
               })
               .catch((err) => {

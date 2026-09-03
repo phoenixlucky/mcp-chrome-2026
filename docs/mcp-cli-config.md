@@ -124,11 +124,13 @@ If port 12306 is already in use:
 
 ## Environment Variables
 
-| Variable                     | Description                                              | Default                        |
-| ---------------------------- | -------------------------------------------------------- | ------------------------------ |
-| `MCP_HTTP_PORT`              | HTTP port for MCP server                                 | 12306                          |
-| `MCP_SERVER_URL`             | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp`   |
-| `MCP_SERVER_ORIGIN`          | Origin sent by the native stdio client                   | `chrome-extension://mcp-stdio` |
-| `CHROME_MCP_API_KEY`         | Bearer key forwarded to the HTTP MCP server              | (none)                         |
-| `MCP_ALLOWED_WORKSPACE_BASE` | Additional allowed workspace directory                   | (none)                         |
-| `CHROME_MCP_NODE_PATH`       | Override Node.js executable path                         | (auto)                         |
+| Variable                          | Description                                              | Default                        |
+| --------------------------------- | -------------------------------------------------------- | ------------------------------ |
+| `MCP_HTTP_PORT`                   | HTTP port for MCP server                                 | 12306                          |
+| `MCP_SERVER_URL`                  | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp`   |
+| `MCP_SERVER_ORIGIN`               | Origin sent by the native stdio client                   | `chrome-extension://mcp-stdio` |
+| `CHROME_MCP_API_KEY`              | Bearer key forwarded to the HTTP MCP server              | (none)                         |
+| `CHROME_MCP_MAX_CONCURRENT_TOOLS` | Maximum browser tools executing at once                  | 8                              |
+| `CHROME_MCP_MAX_QUEUED_TOOLS`     | Maximum browser tools waiting for a slot                 | 64                             |
+| `MCP_ALLOWED_WORKSPACE_BASE`      | Additional allowed workspace directory                   | (none)                         |
+| `CHROME_MCP_NODE_PATH`            | Override Node.js executable path                         | (auto)                         |
