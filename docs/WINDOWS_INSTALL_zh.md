@@ -74,7 +74,7 @@ where.exe npm
 
 兼容版类型选 `streamableHttp`，URL 填 `http://127.0.0.1:12306/mcp`。
 
-Windows 桌面版 `chrome-mcp-desktop-2.5.0-win-x64` 同时提供以下全部入口：
+Windows 桌面版 `chrome-mcp-desktop-2.5.5-win-x64` 同时提供以下全部入口：
 
 - **Streamable HTTP（兼容版）**：`http://127.0.0.1:12306/mcp`
 - **Streamable HTTP（尝鲜版）**：`http://127.0.0.1:12306/mcp-new`（MCP 2026-07-28）

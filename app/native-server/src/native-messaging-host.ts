@@ -16,9 +16,14 @@ import {
   type NativeRequest,
   type NativeResponse,
   type NativeConnectionState,
+  type NativeArtifact,
 } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { NATIVE_SERVER_PORT, TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
+import { ArtifactStore } from './artifact-store.js';
+import { LocalEventWebSocketServer, type EventChannelInfo } from './event-websocket-server.js';
+import { RequestStageTimings, structuredLog } from './observability.js';
+import { MAX_NATIVE_MESSAGE_SIZE_BYTES, NativeMessageFrameDecoder } from './native-frame.js';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -37,6 +42,11 @@ export interface NativeHostStatus {
   pendingRequests: number;
   lastActivityAt: string | null;
   lastSuccessAt: string | null;
+  reconnectCount: number;
+  timeoutCount: number;
+  cancelCount: number;
+  lastError: string | null;
+  lastTimings: RequestStageTimings | null;
 }
 
 function resolveServerPort(requested?: unknown): number {
@@ -123,10 +133,19 @@ export class NativeMessagingHost {
   private connectionState: NativeConnectionState = 'stopped';
   private lastActivityAt: Date | null = null;
   private lastSuccessAt: Date | null = null;
+  private reconnectCount = 0;
+  private timeoutCount = 0;
+  private cancelCount = 0;
+  private lastError: string | null = null;
+  private lastTimings: RequestStageTimings | null = null;
   private respondedProtocolRequests = new Set<string>();
   private activeProtocolRequests = new Set<string>();
   private activeProtocolControllers = new Map<string, AbortController>();
+  private failedArtifactUploads = new Set<string>();
   private readonly maxDeduplicatedRequests = 4096;
+  private readonly artifactStore = new ArtifactStore();
+  private readonly eventChannel = new LocalEventWebSocketServer();
+  private eventChannelInfo: EventChannelInfo | null = null;
 
   public getStatus(): NativeHostStatus {
     return {
@@ -135,7 +154,17 @@ export class NativeMessagingHost {
       pendingRequests: this.pendingRequests.size,
       lastActivityAt: this.lastActivityAt?.toISOString() ?? null,
       lastSuccessAt: this.lastSuccessAt?.toISOString() ?? null,
+      reconnectCount: this.reconnectCount,
+      timeoutCount: this.timeoutCount,
+      cancelCount: this.cancelCount,
+      lastError: this.lastError,
+      lastTimings: this.lastTimings,
     };
+  }
+
+  public recordRequestTimings(traceId: string, timings: RequestStageTimings): void {
+    this.lastTimings = timings;
+    structuredLog('request.completed', { traceId, timings });
   }
 
   public isExtensionConnected(): boolean {
@@ -144,6 +173,10 @@ export class NativeMessagingHost {
 
   public setServer(serverInstance: Server): void {
     this.associatedServer = serverInstance;
+  }
+
+  public getArtifactStore(): ArtifactStore {
+    return this.artifactStore;
   }
 
   // Start the HTTP server as soon as the native host is connected. The
@@ -167,56 +200,31 @@ export class NativeMessagingHost {
   private setupMessageHandling(): void {
     if (this.standaloneMode) return;
 
-    let buffer = Buffer.alloc(0);
-    let expectedLength = -1;
-    const MAX_MESSAGES_PER_TICK = 100; // Safety guard to avoid long-running loops per readable tick
-    const MAX_MESSAGE_SIZE_BYTES = 16 * 1024 * 1024; // 16MB upper bound for a single message
+    const decoder = new NativeMessageFrameDecoder();
 
     const processAvailable = () => {
-      let processed = 0;
-      while (processed < MAX_MESSAGES_PER_TICK) {
-        // Read length header when needed
-        if (expectedLength === -1) {
-          if (buffer.length < 4) break; // not enough for header
-          expectedLength = buffer.readUInt32LE(0);
-          buffer = buffer.slice(4);
-
-          // Validate length header
-          if (expectedLength <= 0 || expectedLength > MAX_MESSAGE_SIZE_BYTES) {
-            this.sendError(`Invalid message length: ${expectedLength}`);
-            // Reset state to resynchronize stream
-            expectedLength = -1;
-            buffer = Buffer.alloc(0);
-            break;
+      try {
+        for (const messageBuffer of decoder.readMessages()) {
+          try {
+            const message = JSON.parse(messageBuffer.toString());
+            void this.handleMessage(message);
+          } catch (error: any) {
+            this.sendError(`Failed to parse message: ${error.message}`);
           }
         }
-
-        // Wait for complete body
-        if (buffer.length < expectedLength) break;
-
-        const messageBuffer = buffer.slice(0, expectedLength);
-        buffer = buffer.slice(expectedLength);
-        expectedLength = -1;
-        processed++;
-
-        try {
-          const message = JSON.parse(messageBuffer.toString());
-          this.handleMessage(message);
-        } catch (error: any) {
-          this.sendError(`Failed to parse message: ${error.message}`);
-        }
+      } catch (error: any) {
+        this.sendError(error.message);
       }
 
-      // If we hit the cap but still have at least one complete message pending, schedule to continue soon
-      if (processed === MAX_MESSAGES_PER_TICK) {
-        setImmediate(processAvailable);
-      }
+      // Continue on the next turn if a coalesced input contained more than
+      // the per-read safety limit.
+      if (decoder.hasCompleteMessage()) setImmediate(processAvailable);
     };
 
     stdin.on('readable', () => {
       let chunk;
       while ((chunk = stdin.read()) !== null) {
-        buffer = Buffer.concat([buffer, chunk]);
+        decoder.append(chunk);
         processAvailable();
       }
     });
@@ -246,6 +254,13 @@ export class NativeMessagingHost {
               'INVALID_REQUEST',
               error instanceof Error ? error.message : String(error),
             );
+      this.lastError = protocolError.message;
+      structuredLog('protocol.error', {
+        code: protocolError.code,
+        message: protocolError.message,
+        requestId: typeof message.requestId === 'string' ? message.requestId : undefined,
+        traceId: typeof message.traceId === 'string' ? message.traceId : undefined,
+      });
       if (typeof message.requestId === 'string' && typeof message.traceId === 'string') {
         this.sendMessage({
           version: NATIVE_PROTOCOL_VERSION,
@@ -262,6 +277,7 @@ export class NativeMessagingHost {
   }
 
   private async handleProtocolMessage(message: NativeProtocolMessage): Promise<void> {
+    if (!this.connected && this.connectionState !== 'starting') this.reconnectCount += 1;
     this.connected = true;
     if (this.connectionState === 'starting' || this.connectionState === 'stopped') {
       this.connectionState = 'connected';
@@ -286,6 +302,7 @@ export class NativeMessagingHost {
         });
         this.sendMessage(createNativeCapabilities(message.traceId));
         this.connectionState = 'ready';
+        void this.openEventChannel(message.traceId);
         return;
       }
       case 'ping':
@@ -303,8 +320,17 @@ export class NativeMessagingHost {
           this.pendingRequests.get(message.requestId)?.onProgress?.(message.data);
         }
         return;
+      case 'artifact':
+        try {
+          this.handleArtifact(message);
+        } catch (error) {
+          this.failedArtifactUploads.add(message.artifactId);
+          throw error;
+        }
+        return;
       case 'cancel':
         {
+          this.cancelCount += 1;
           this.activeProtocolControllers.get(message.requestId)?.abort();
           const pending = this.pendingRequests.get(message.requestId);
           if (pending && !pending.settled) {
@@ -326,6 +352,38 @@ export class NativeMessagingHost {
     }
   }
 
+  private async openEventChannel(traceId?: string): Promise<void> {
+    try {
+      this.eventChannelInfo = await this.eventChannel.start();
+      this.sendMessage({
+        version: NATIVE_PROTOCOL_VERSION,
+        type: 'event',
+        traceId,
+        event: 'native.eventChannelReady',
+        data: this.eventChannelInfo,
+      });
+    } catch (error) {
+      this.sendError(
+        `Failed to start event channel: ${error instanceof Error ? error.message : String(error)}`,
+        'BROWSER_ERROR',
+      );
+    }
+  }
+
+  private handleArtifact(message: NativeArtifact): void {
+    if (message.data === undefined || message.seq === undefined || message.eof === undefined)
+      return;
+    this.artifactStore.receiveChunk({
+      artifactId: message.artifactId,
+      contentType: message.contentType,
+      size: message.size,
+      sha256: message.sha256,
+      seq: message.seq,
+      eof: message.eof,
+      data: message.data,
+    });
+  }
+
   private resolveProtocolResponse(message: NativeResponse): void {
     const pending = this.pendingRequests.get(message.requestId);
     if (!pending || pending.settled || pending.traceId !== message.traceId) return;
@@ -333,10 +391,27 @@ export class NativeMessagingHost {
     pending.settled = true;
     this.pendingRequests.delete(message.requestId);
     if (message.ok) {
-      pending.resolve(message.result);
+      const result = message.result as Record<string, unknown> | undefined;
+      const artifactId = typeof result?.artifactId === 'string' ? result.artifactId : undefined;
+      if (artifactId && this.failedArtifactUploads.has(artifactId)) {
+        this.failedArtifactUploads.delete(artifactId);
+        pending.reject(
+          new NativeProtocolError('BROWSER_ERROR', 'Artifact upload did not complete'),
+        );
+        return;
+      }
+      pending.resolve(
+        artifactId && this.artifactStore.get(artifactId)
+          ? {
+              ...result,
+              url: `http://127.0.0.1:${resolveServerPort()}/artifacts/${artifactId}?token=${encodeURIComponent(this.artifactStore.get(artifactId)!.downloadToken)}`,
+            }
+          : message.result,
+      );
       this.lastSuccessAt = new Date();
     } else {
       const error = message.error!;
+      this.lastError = error.message;
       pending.reject(new NativeProtocolError(error.code, error.message, error.details));
     }
   }
@@ -463,6 +538,7 @@ export class NativeMessagingHost {
     timeoutMs: number = TIMEOUTS.DEFAULT_REQUEST_TIMEOUT,
     signal?: AbortSignal,
     onProgress?: (payload: any) => void | Promise<void>,
+    traceIdOverride?: string,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -475,7 +551,7 @@ export class NativeMessagingHost {
         return;
       }
       const requestId = randomUUID();
-      const traceId = randomUUID();
+      const traceId = traceIdOverride || randomUUID();
       const deadlineAt = Date.now() + timeoutMs;
       const method = this.protocolMethodFor(messageType);
       const sideEffect = this.isSideEffectRequest(method, messagePayload);
@@ -487,6 +563,8 @@ export class NativeMessagingHost {
         clearTimeout(pending.timeoutId);
         pending.settled = true;
         this.pendingRequests.delete(requestId);
+        this.cancelCount += 1;
+        structuredLog('request.canceled', { requestId, traceId, method });
         this.sendMessage({
           version: NATIVE_PROTOCOL_VERSION,
           type: 'cancel',
@@ -514,6 +592,9 @@ export class NativeMessagingHost {
         if (!pending || pending.settled) return;
         pending.settled = true;
         this.pendingRequests.delete(requestId);
+        this.timeoutCount += 1;
+        this.lastError = `Request deadline exceeded at ${deadlineAt}`;
+        structuredLog('request.timeout', { requestId, traceId, method, deadlineAt });
         signal?.removeEventListener('abort', cancel);
         this.sendMessage({
           version: NATIVE_PROTOCOL_VERSION,
@@ -691,6 +772,11 @@ export class NativeMessagingHost {
     try {
       const messageString = JSON.stringify(message);
       const messageBuffer = Buffer.from(messageString);
+      if (messageBuffer.length > MAX_NATIVE_MESSAGE_SIZE_BYTES) {
+        this.lastError = `Native output exceeds ${MAX_NATIVE_MESSAGE_SIZE_BYTES} bytes`;
+        structuredLog('native.output_rejected', { size: messageBuffer.length });
+        return;
+      }
       const headerBuffer = Buffer.alloc(4);
       headerBuffer.writeUInt32LE(messageBuffer.length, 0);
       // Ensure atomic write
@@ -702,6 +788,8 @@ export class NativeMessagingHost {
         }
       });
     } catch (error: any) {
+      this.lastError = error instanceof Error ? error.message : String(error);
+      structuredLog('native.send_error', { error: this.lastError });
       // Catch JSON.stringify or Buffer operation errors
       // If preparation stage fails, associated request may never be sent
       // Need to consider whether to reject corresponding Promise (if called within sendRequestToExtensionAndWait)
@@ -726,6 +814,9 @@ export class NativeMessagingHost {
   private cleanup(): void {
     this.connected = false;
     this.connectionState = 'stopped';
+    this.lastError = 'Native host is shutting down or Chrome disconnected.';
+    this.artifactStore.cleanupIncomplete();
+    void this.eventChannel.stop();
     // Reject all pending requests
     this.pendingRequests.forEach((pending) => {
       clearTimeout(pending.timeoutId);

@@ -5,10 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
 import { promisify } from 'node:util';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { getAgentDataDir } from './agent/storage.js';
+import { UnifiedMcpClient } from './mcp/unified-transport.js';
 
 const execFileAsync = promisify(execFile);
 const PROFILE_ID_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
@@ -71,14 +70,15 @@ interface ProfileFile {
 }
 
 class ProfileMcpConnection {
-  private readonly client: Client;
-  private readonly transport: StreamableHTTPClientTransport;
-  private connected = false;
-  private connecting: Promise<void> | null = null;
+  private readonly client: UnifiedMcpClient;
 
   constructor(private readonly port: number) {
-    this.transport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`));
-    this.client = new Client({ name: 'chrome-mcp-profile-proxy', version: '2.3.0' }, {});
+    this.client = new UnifiedMcpClient({
+      url: `http://127.0.0.1:${port}/mcp-new`,
+      compatUrl: `http://127.0.0.1:${port}/mcp`,
+      clientName: 'chrome-mcp-profile-proxy',
+      clientVersion: '2.3.0',
+    });
   }
 
   async callTool(
@@ -86,27 +86,11 @@ class ProfileMcpConnection {
     args: Record<string, unknown>,
     signal?: AbortSignal,
   ): Promise<CallToolResult> {
-    if (!this.connected) {
-      this.connecting ||= this.client
-        .connect(this.transport)
-        .then(() => undefined)
-        .finally(() => {
-          this.connecting = null;
-        });
-      await this.connecting;
-      this.connected = true;
-    }
-    return (await this.client.callTool(
-      { name, arguments: args },
-      undefined,
-      signal ? { signal } : undefined,
-    )) as CallToolResult;
+    return this.client.callTool(name, args, signal ? { signal } : undefined);
   }
 
   async close(): Promise<void> {
-    if (!this.connected) return;
-    this.connected = false;
-    await this.client.close().catch(() => undefined);
+    await this.client.close();
   }
 }
 
@@ -290,7 +274,9 @@ export class BrowserProfileManager {
     if (this.profiles) return this.profiles;
     this.loading ||= (async () => {
       try {
-        const raw = JSON.parse(await fs.readFile(profileFilePath(), 'utf8')) as Partial<ProfileFile>;
+        const raw = JSON.parse(
+          await fs.readFile(profileFilePath(), 'utf8'),
+        ) as Partial<ProfileFile>;
         return Array.isArray(raw.profiles) ? raw.profiles : [];
       } catch {
         return [];

@@ -30,8 +30,13 @@ export const SERVER_CONFIG = {
 export function isAllowedCorsOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
+    const configuredOrigins = process.env[MCP_ALLOWED_ORIGINS_ENV]?.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (configuredOrigins?.length) return configuredOrigins.includes(origin);
     if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') {
-      return Boolean(url.hostname);
+      const expectedExtensionId = process.env[MCP_EXTENSION_ID_ENV]?.trim();
+      return expectedExtensionId ? url.hostname === expectedExtensionId : Boolean(url.hostname);
     }
     return (
       url.protocol === 'http:' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost')
@@ -81,6 +86,10 @@ export const ERROR_MESSAGES = {
 export const CHROME_MCP_PORT_ENV = 'CHROME_MCP_PORT';
 export const MCP_HTTP_PORT_ENV = 'MCP_HTTP_PORT';
 export const MCP_API_KEY_ENV = 'CHROME_MCP_API_KEY';
+export const MCP_ALLOWED_ORIGINS_ENV = 'CHROME_MCP_ALLOWED_ORIGINS';
+export const MCP_EXTENSION_ID_ENV = 'CHROME_MCP_EXTENSION_ID';
+export const MCP_ENABLE_DEBUG_ENDPOINTS_ENV = 'CHROME_MCP_ENABLE_DEBUG_ENDPOINTS';
+export const MCP_MAX_HTTP_BODY_BYTES_ENV = 'CHROME_MCP_MAX_HTTP_BODY_BYTES';
 export const MCP_ALLOWED_TOOLS_ENV = 'CHROME_MCP_ALLOWED_TOOLS';
 export const MCP_APPROVED_TOOLS_ENV = 'CHROME_MCP_APPROVED_TOOLS';
 export const MCP_REQUIRE_APPROVAL_ENV = 'CHROME_MCP_REQUIRE_APPROVAL';

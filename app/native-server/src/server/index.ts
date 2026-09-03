@@ -18,6 +18,8 @@ import {
   ERROR_MESSAGES,
   isAllowedCorsOrigin,
   MCP_API_KEY_ENV,
+  MCP_ENABLE_DEBUG_ENDPOINTS_ENV,
+  MCP_MAX_HTTP_BODY_BYTES_ENV,
 } from '../constant';
 import { NativeMessagingHost } from '../native-messaging-host';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
@@ -36,11 +38,16 @@ import { ClaudeEngine } from '../agent/engines/claude';
 import { DeepSeekEngine } from '../agent/engines/deepseek';
 import { closeDb } from '../agent/db';
 import { registerAgentRoutes } from './routes';
-import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { NATIVE_PROTOCOL_VERSION, TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
 import packageJson from '../../package.json';
-import { getRecentToolCalls, getToolAdmissionStats } from '../mcp/register-tools';
+import {
+  getRecentToolCalls,
+  getToolAdmissionStats,
+  getToolObservabilityStats,
+} from '../mcp/register-tools';
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { browserProfileManager } from '../browser-profile-manager.js';
+import { createReadStream } from 'node:fs';
 
 // ============================================================
 // Types
@@ -195,6 +202,9 @@ export class Server {
   constructor() {
     this.fastify = Fastify({
       logger: SERVER_CONFIG.LOGGER_ENABLED,
+      bodyLimit:
+        Number.parseInt(process.env[MCP_MAX_HTTP_BODY_BYTES_ENV] || '8388608', 10) ||
+        8 * 1024 * 1024,
       // Give clients that reuse an HTTP connection enough time between calls.
       keepAliveTimeout: 60_000,
       connectionTimeout: 0,
@@ -267,7 +277,14 @@ export class Server {
   private setupMcpAuth(): void {
     this.fastify.addHook('onRequest', async (request, reply) => {
       const pathname = (request.raw.url ?? '').split('?')[0];
-      if (!['/mcp', '/mcp-new', '/sse', '/messages'].includes(pathname)) return;
+      const isMcpRoute = ['/mcp', '/mcp-new', '/sse', '/messages'].includes(pathname);
+      const isProtectedLocalRoute =
+        pathname === '/status' ||
+        pathname === '/ask-extension' ||
+        pathname.startsWith('/artifacts/') ||
+        pathname === '/__chrome_mcp_bridge/start' ||
+        pathname === '/__chrome_mcp_bridge/stop';
+      if (!isMcpRoute && !isProtectedLocalRoute) return;
 
       const expectedKey = process.env[MCP_API_KEY_ENV]?.trim();
       const origin = request.headers.origin;
@@ -275,21 +292,35 @@ export class Server {
         reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
         return;
       }
-      if (!origin && !expectedKey) {
+      if (isMcpRoute && !origin && !expectedKey) {
         reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
         return;
       }
       // Browsers do not send Authorization on CORS preflight requests; the
       // actual MCP request is authenticated below.
       if (request.method === 'OPTIONS') return;
-      if (!expectedKey) return;
 
       const authorization = request.headers.authorization;
       const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
       const providedKey = bearer ?? request.headers['x-api-key'];
-      if (typeof providedKey !== 'string' || providedKey !== expectedKey) {
+      if (expectedKey && providedKey === expectedKey) return;
+      const artifactId =
+        isProtectedLocalRoute && pathname.startsWith('/artifacts/')
+          ? pathname.slice('/artifacts/'.length)
+          : '';
+      const artifactToken =
+        new URL(request.raw.url ?? '/', 'http://127.0.0.1').searchParams.get('token') || '';
+      const artifactTokenAccepted = Boolean(
+        artifactId &&
+        this.nativeHost?.getArtifactStore().consumeDownloadToken(artifactId, artifactToken),
+      );
+      if (artifactTokenAccepted) return;
+      if (expectedKey || artifactId) {
         reply.status(HTTP_STATUS.UNAUTHORIZED).send({ error: ERROR_MESSAGES.UNAUTHORIZED });
+        return;
       }
+      // The server is loopback-only; non-artifact local routes remain compatible
+      // when the optional API key is not configured.
     });
   }
 
@@ -322,9 +353,25 @@ export class Server {
             probe = { ok: false, elapsedMs: Date.now() - startedAt, error: String(error) };
           }
         }
+        const admission = getToolAdmissionStats();
+        const nativeStatus = this.nativeHost?.getStatus() ?? null;
+        const requestObservability = getToolObservabilityStats();
+        const observability = {
+          connectionState: nativeStatus?.state ?? 'stopped',
+          pendingRequests: nativeStatus?.pendingRequests ?? 0,
+          activeTools: admission.active,
+          queuedTools: admission.queued,
+          reconnectCount: nativeStatus?.reconnectCount ?? 0,
+          timeoutCount: (nativeStatus?.timeoutCount ?? 0) + admission.timedOut,
+          cancelCount: (nativeStatus?.cancelCount ?? 0) + admission.cancelled,
+          queueRejectCount: admission.rejected,
+          lastError: nativeStatus?.lastError ?? null,
+          lastTimings: requestObservability.lastTimings ?? nativeStatus?.lastTimings ?? null,
+        };
         return reply.status(HTTP_STATUS.OK).send({
           server: {
             version: packageJson.version,
+            protocolVersion: NATIVE_PROTOCOL_VERSION,
             running: this.isRunning,
             serviceRunning: this.serviceEnabled,
             uptimeMs: Date.now() - this.startedAt,
@@ -372,6 +419,8 @@ export class Server {
           },
           extension: this.nativeHost?.getStatus() ?? null,
           nativeHost: this.nativeHost?.getStatus() ?? null,
+          ...observability,
+          observability,
           tools: { count: TOOL_SCHEMAS.length },
           toolAdmission: getToolAdmissionStats(),
           browserProfiles: await browserProfileManager.summary(),
@@ -382,6 +431,9 @@ export class Server {
     );
 
     this.fastify.post('/__chrome_mcp_bridge/start', async (_request, reply) => {
+      if (process.env[MCP_ENABLE_DEBUG_ENDPOINTS_ENV] !== '1') {
+        return reply.status(HTTP_STATUS.NOT_FOUND).send({ status: 'not_found' });
+      }
       if (!this.nativeHost) {
         return reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
           status: 'not_available',
@@ -400,6 +452,9 @@ export class Server {
     });
 
     this.fastify.post('/__chrome_mcp_bridge/stop', async (_request, reply) => {
+      if (process.env[MCP_ENABLE_DEBUG_ENDPOINTS_ENV] !== '1') {
+        return reply.status(HTTP_STATUS.NOT_FOUND).send({ status: 'not_found' });
+      }
       if (!this.nativeHost) {
         return reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
           status: 'not_available',
@@ -484,6 +539,16 @@ export class Server {
   // ============================================================
 
   private setupExtensionRoutes(): void {
+    this.fastify.get('/artifacts/:artifactId', async (request, reply) => {
+      const artifactId = (request.params as { artifactId?: string }).artifactId;
+      const stored = artifactId ? this.nativeHost?.getArtifactStore().get(artifactId) : undefined;
+      if (!stored) return reply.status(HTTP_STATUS.NOT_FOUND).send({ error: 'Artifact not found' });
+      reply.header('Cache-Control', 'private, max-age=3600');
+      reply.header('Content-Length', String(stored.metadata.size));
+      reply.type(stored.metadata.contentType);
+      return reply.send(createReadStream(stored.filePath));
+    });
+
     this.fastify.get(
       '/ask-extension',
       async (request: FastifyRequest<{ Body: ExtensionRequestPayload }>, reply: FastifyReply) => {

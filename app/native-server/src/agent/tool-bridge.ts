@@ -1,7 +1,6 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { NATIVE_SERVER_PORT } from '../constant/index.js';
+import { UnifiedMcpClient } from '../mcp/unified-transport.js';
 
 export interface CliToolInvocation {
   /**
@@ -17,11 +16,13 @@ export interface CliToolInvocation {
    * JSON-serializable arguments for the tool call.
    */
   args?: Record<string, unknown>;
+  signal?: AbortSignal;
+  deadlineAt?: number;
 }
 
 export interface AgentToolBridgeOptions {
   /**
-   * Base URL of the local MCP HTTP endpoint (e.g. http://127.0.0.1:12306/mcp).
+   * Base URL of the local MCP HTTP endpoint (e.g. http://127.0.0.1:12306/mcp-new).
    * If omitted, DEFAULT_SERVER_PORT from chrome-mcp-shared is used.
    */
   mcpUrl?: string;
@@ -32,35 +33,27 @@ export interface AgentToolBridgeOptions {
  * against the local chrome MCP server via the official MCP SDK client.
  *
  * 中文说明：该桥接层负责将 CLI 上报的工具调用统一转为标准 MCP CallTool 请求，
- * 复用现有 /mcp HTTP server，而不是在本项目内自研额外协议。
+ * 复用统一的 /mcp-new HTTP client，并自动回退到 /mcp 兼容端点。
  */
 export class AgentToolBridge {
-  private readonly client: Client;
-  private readonly transport: StreamableHTTPClientTransport;
+  private readonly client: UnifiedMcpClient;
 
   constructor(options: AgentToolBridgeOptions = {}) {
     const url =
-      options.mcpUrl || `http://127.0.0.1:${process.env.MCP_HTTP_PORT || NATIVE_SERVER_PORT}/mcp`;
-
-    this.transport = new StreamableHTTPClientTransport(new URL(url));
-    this.client = new Client(
-      {
-        name: 'chrome-mcp-agent-bridge',
-        version: '1.0.0',
-      },
-      {},
-    );
+      options.mcpUrl ||
+      `http://127.0.0.1:${process.env.MCP_HTTP_PORT || NATIVE_SERVER_PORT}/mcp-new`;
+    this.client = new UnifiedMcpClient({
+      url,
+      clientName: 'chrome-mcp-agent-bridge',
+      clientVersion: '2',
+    });
   }
 
   /**
    * Connects the MCP client over Streamable HTTP if not already connected.
    */
   async ensureConnected(): Promise<void> {
-    // Client.connect is idempotent; repeated calls reuse the same transport session.
-    if ((this.transport as any)._sessionId) {
-      return;
-    }
-    await this.client.connect(this.transport);
+    await this.client.connect();
   }
 
   /**
@@ -71,12 +64,16 @@ export class AgentToolBridge {
     await this.ensureConnected();
 
     const args = invocation.args ?? {};
-    const result = await this.client.callTool({
-      name: invocation.tool,
-      arguments: args,
+    const result = await this.client.callTool(invocation.tool, args, {
+      signal: invocation.signal,
+      deadlineAt: invocation.deadlineAt,
     });
 
     // The SDK returns a compatible structure; cast to satisfy strict typing.
     return result as unknown as CallToolResult;
+  }
+
+  async close(): Promise<void> {
+    await this.client.close();
   }
 }

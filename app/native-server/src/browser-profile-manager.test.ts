@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -46,5 +46,11 @@ describe('BrowserProfileManager', () => {
     const profiles = await manager.list();
     expect(profiles.map((profile) => profile.id).sort()).toEqual(['account-a', 'account-b']);
     expect(new Set(profiles.map((profile) => profile.userDataDir)).size).toBe(2);
+  });
+
+  test('reports an unavailable CDP endpoint as not ready', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('CDP unavailable'));
+    await expect((new BrowserProfileManager() as any).waitForCdp(9222, 0)).resolves.toBe(false);
+    fetchMock.mockRestore();
   });
 });

@@ -30,6 +30,7 @@ describe('服务器测试', () => {
     const response = await supertest(Server.getInstance().server).get('/status').expect(200);
 
     expect(response.body.server.version).toEqual(expect.any(String));
+    expect(response.body.server.protocolVersion).toBe(2);
     expect(response.body.packages).toEqual({
       'mcp-chrome-bridge-2026': response.body.server.version,
     });
@@ -41,6 +42,18 @@ describe('服务器测试', () => {
       maxActive: expect.any(Number),
       maxQueued: expect.any(Number),
     });
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        connectionState: expect.any(String),
+        pendingRequests: expect.any(Number),
+        activeTools: expect.any(Number),
+        queuedTools: expect.any(Number),
+        reconnectCount: expect.any(Number),
+        timeoutCount: expect.any(Number),
+        cancelCount: expect.any(Number),
+        queueRejectCount: expect.any(Number),
+      }),
+    );
   });
 
   test('兼容版 Streamable HTTP 应保留会话生命周期', async () => {

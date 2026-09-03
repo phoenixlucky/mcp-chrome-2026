@@ -26,14 +26,17 @@
 
 ---
 
-## 📢 What's New in v2.5.0
+## 📢 What's New in v2.5.5
 
-> **MCP 2026-07-28 early access + multiple transports** — New protocol support and more ways to connect.
+> **Unified transport + native protocol V2 + concurrency governance** — More stable connections, more reliable channels.
 >
-> - 🆕 **Streamable HTTP (early access)** — New `/mcp-new` endpoint with MCP 2026-07-28 session-less transport; tools and permission policy match the compatibility endpoint
-> - 🔌 **All transports coexist** — Compatibility `/mcp` (stateful), legacy SSE `/sse` + `/messages`, and STDIO are all kept
-> - 🖥️ **Desktop transport panel** — `chrome-mcp-desktop` shows every MCP service entry point and status
-> - 🔧 All packages bumped to v2.5.0
+> - 🛣️ **Unified transport layer** — STDIO / CLI now default to `/mcp-new` (MCP 2026-07-28 session-less transport) and fall back to the compatibility `/mcp` endpoint; deadline, cancellation, retry, and error mapping are consistent across the stack, no `mcp-bridge.js` required
+> - 🔐 **Native protocol V2 only** — pending / controller / queue drain to zero after a disconnect and writes are never auto-replayed; V1 input is rejected with `UNSUPPORTED_VERSION`; single native message capped at 16 MiB
+> - 📦 **Artifact data plane** — chunked uploads for large files (`artifactId + seq + eof + sha256`), atomic writes, TTL and capacity cleanup, sensitive-field redaction
+> - 🛰️ **Event channel** — localhost WebSocket with random port + one-time token, Origin / extension-ID allowlist (reserved for high-frequency events and streaming)
+> - 🛡️ **Security & observability** — exact extension-ID / Origin allowlist, request-body limit (8 MiB default), debug endpoints off by default; per-request traceId and stage timings
+> - 🖥️ **Desktop & extension** — popup transport switching, desktop shows connection types and session-less endpoint stats, session P95
+> - 🔧 All packages bumped to v2.5.5
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

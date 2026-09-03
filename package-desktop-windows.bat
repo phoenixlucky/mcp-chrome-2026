@@ -29,6 +29,15 @@ set "SELECTION=%SELECTION: =%"
 set "SELECTION=%SELECTION:,=%"
 if /i "%SELECTION%"=="A" set "SELECTION=123"
 
+rem Validate the normalized selection before testing individual targets. The
+rem previous substitution-based check can be expanded against the wrong value
+rem by cmd.exe when this block is invoked from another batch file.
+echo(%SELECTION%|%SystemRoot%\System32\findstr.exe /r /x "[123][123]*" >nul
+if errorlevel 1 (
+  echo Invalid selection. Use 1, 2, 3, or combinations such as 1,3.
+  goto select-builds
+)
+
 set "BUILD_DESKTOP="
 set "BUILD_BRIDGE="
 set "BUILD_EXTENSION="
@@ -36,14 +45,6 @@ if not "%SELECTION:1=%"=="%SELECTION%" set "BUILD_DESKTOP=1"
 if not "%SELECTION:2=%"=="%SELECTION%" set "BUILD_BRIDGE=1"
 if not "%SELECTION:3=%"=="%SELECTION%" set "BUILD_EXTENSION=1"
 
-set "INVALID=%SELECTION%"
-set "INVALID=%INVALID:1=%"
-set "INVALID=%INVALID:2=%"
-set "INVALID=%INVALID:3=%"
-if defined INVALID (
-  echo Invalid selection. Use 1, 2, 3, or combinations such as 1,3.
-  goto select-builds
-)
 if not defined BUILD_DESKTOP if not defined BUILD_BRIDGE if not defined BUILD_EXTENSION (
   echo Please select at least one target.
   goto select-builds

@@ -125,6 +125,29 @@ export const nativeCapabilitiesSchema = z
   })
   .passthrough();
 
+export const nativeArtifactSchema = z
+  .object({
+    ...base,
+    type: z.literal('artifact'),
+    artifactId: id,
+    contentType: id,
+    size: z.number().finite().int().nonnegative(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+    requestId: id.optional(),
+    seq: z.number().int().nonnegative().optional(),
+    eof: z.boolean().optional(),
+    data: z.string().optional(),
+  })
+  .passthrough()
+  .superRefine((value, ctx) => {
+    if (value.data !== undefined && value.seq === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'artifact chunk requires seq' });
+    }
+    if (value.data !== undefined && value.eof === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'artifact chunk requires eof' });
+    }
+  });
+
 export const nativeProtocolMessageSchema = z.union([
   nativeRequestSchema,
   nativeResponseSchema,
@@ -134,6 +157,7 @@ export const nativeProtocolMessageSchema = z.union([
   nativePongSchema,
   nativeHelloSchema,
   nativeCapabilitiesSchema,
+  nativeArtifactSchema,
 ]);
 
 export type NativeRequest = z.infer<typeof nativeRequestSchema>;
@@ -144,6 +168,7 @@ export type NativePing = z.infer<typeof nativePingSchema>;
 export type NativePong = z.infer<typeof nativePongSchema>;
 export type NativeHello = z.infer<typeof nativeHelloSchema>;
 export type NativeCapabilities = z.infer<typeof nativeCapabilitiesSchema>;
+export type NativeArtifact = z.infer<typeof nativeArtifactSchema>;
 export type NativeProtocolMessage = z.infer<typeof nativeProtocolMessageSchema>;
 
 export class NativeProtocolError extends Error {
@@ -231,7 +256,12 @@ export const NATIVE_PROTOCOL_CAPABILITIES = {
     'native.stop',
     'file.operation',
   ],
-  events: ['native.serverStarted', 'native.serverStopped', 'tool.progress'],
+  events: [
+    'native.serverStarted',
+    'native.serverStopped',
+    'native.eventChannelReady',
+    'tool.progress',
+  ],
   features: [
     'abortSignal',
     'deadlines',
@@ -240,6 +270,8 @@ export const NATIVE_PROTOCOL_CAPABILITIES = {
     'singleResponse',
     'protocolNegotiation',
     'capabilityDiscovery',
+    'artifactTransfer',
+    'websocketEvents',
   ],
 } as const;
 
@@ -307,6 +339,7 @@ export const NATIVE_PROTOCOL_JSON_SCHEMA = {
     { $ref: '#/$defs/pong' },
     { $ref: '#/$defs/hello' },
     { $ref: '#/$defs/capabilities' },
+    { $ref: '#/$defs/artifact' },
   ],
   $defs: {
     base: {
@@ -422,6 +455,23 @@ export const NATIVE_PROTOCOL_JSON_SCHEMA = {
         methods: { type: 'array', items: { type: 'string', minLength: 1 } },
         events: { type: 'array', items: { type: 'string', minLength: 1 } },
         features: { type: 'array', items: { type: 'string', minLength: 1 } },
+      },
+    },
+    artifact: {
+      type: 'object',
+      required: ['version', 'type', 'artifactId', 'contentType', 'size', 'sha256'],
+      properties: {
+        version: { const: 2 },
+        type: { const: 'artifact' },
+        traceId: { type: 'string', minLength: 1 },
+        requestId: { type: 'string', minLength: 1 },
+        artifactId: { type: 'string', minLength: 1 },
+        contentType: { type: 'string', minLength: 1 },
+        size: { type: 'integer', minimum: 0 },
+        sha256: { type: 'string', pattern: '^[a-fA-F0-9]{64}$' },
+        seq: { type: 'integer', minimum: 0 },
+        eof: { type: 'boolean' },
+        data: { type: 'string' },
       },
     },
   },

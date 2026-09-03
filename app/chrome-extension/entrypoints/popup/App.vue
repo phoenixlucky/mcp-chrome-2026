@@ -1523,7 +1523,7 @@ type McpTransportOption = {
   config: Record<string, unknown>;
 };
 
-const selectedMcpTransport = ref<McpTransportId>('streamable-http');
+const selectedMcpTransport = ref<McpTransportId>('streamable-http-new');
 
 const mcpTransportOptions = computed<McpTransportOption[]>(() => {
   const port = serverStatus.value.port || nativeServerPort.value;
@@ -1575,13 +1575,13 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
       id: 'stdio',
       title: 'STDIO',
       endpoint: 'mcp-chrome-stdio 或 EXE --stdio',
-      description: '内部连接 Streamable HTTP（兼容版）',
+      description: '内部优先连接 /mcp-new，失败时回退 /mcp',
       config: {
         mcpServers: {
           'chrome-mcp-stdio': {
             command: 'mcp-chrome-stdio',
             env: {
-              MCP_SERVER_URL: `${baseUrl}/mcp`,
+              MCP_SERVER_URL: `${baseUrl}/mcp-new`,
             },
           },
         },

@@ -76,6 +76,10 @@ const extensionConnected = computed(() => Boolean(state.data?.extension?.connect
 const nativeConnected = computed(() => Boolean(state.data?.nativeHost?.connected));
 const sessions = computed(() => state.data?.mcp?.activeSessions ?? '—');
 const toolCount = computed(() => state.data?.tools?.count ?? '—');
+// V2 is currently the only supported Native/Extension protocol. Keep the
+// fallback for an already-running bridge built before /status exposed the
+// field, so the UI never renders an unknown protocol as "V—".
+const protocolVersion = computed(() => state.data?.server?.protocolVersion ?? 2);
 const clients = computed<McpClient[]>(() => {
   const value = state.data?.mcp?.clients;
   return Array.isArray(value) ? (value as McpClient[]) : [];
@@ -414,7 +418,8 @@ onUnmounted(() => {
 
     <section class="details panel">
       <div class="detail-head"
-        ><span class="section-kicker">DIAGNOSTICS</span><span>v2.5.0</span></div
+        ><span class="section-kicker">DIAGNOSTICS</span
+        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.5.5</span></div
       >
       <p>{{ state.message }}</p>
       <code>Native Messaging：com.chromemcp.nativehost</code>

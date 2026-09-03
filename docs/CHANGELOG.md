@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.5.5] - 2026-09-03
+
+### Added
+
+- **统一传输层** — 新增 `unified-transport` 与 `stdio-transport`：STDIO 客户端默认连接 `/mcp-new`（MCP 2026-07-28 无会话传输），失败自动回退兼容版 `/mcp`；JSON-RPC 编解码、deadline、取消、重试、错误映射与 newline JSON / `Content-Length` 双 framing 全链路一致。
+- **原生通道并发治理与协议 V2 唯一化** — Native Host 断线后 pending / controller / queue 归零，写操作不自动重放；V1 输入以 `UNSUPPORTED_VERSION` 拒绝；新增帧解码器（单条消息上限 16 MiB、半包/粘包重组、单次读取条数上限）。
+- **共享协议扩展** — `native-protocol` 增加 Artifact 分片消息（`artifactId + seq + eof + sha256`）与 `native.eventChannelReady` 事件，能力声明扩展。
+- **Artifact 数据面** — 新增 `artifact-store`：分片上传与校验、临时文件原子改名、TTL 自动清理与容量上限、断线残留清理；对 Cookie / Token / Authorization 脱敏。
+- **localhost WebSocket 事件通道** — 新增 `event-websocket-server`：随机端口 + 一次性 Token 下发、仅绑定 127.0.0.1、Origin / 扩展 ID 白名单、连接数与请求大小限制。
+- **安全与可观测性** — 支持精确扩展 ID（`CHROME_MCP_EXTENSION_ID`）与 Origin 白名单（`CHROME_MCP_ALLOWED_ORIGINS`）、请求体上限 `CHROME_MCP_MAX_HTTP_BODY_BYTES`（默认 8 MiB）、调试 start/stop 接口默认关闭（`CHROME_MCP_ENABLE_DEBUG_ENDPOINTS`）；每请求 traceId 并记录 `stdio_wait` / `http_process` / `native_queue_wait` / `native_roundtrip` / `browser_execution` / `total` 分段耗时。
+- **发布门禁** — 新增 `test:phase8` / `check:phase8` 与 `scripts/phase8-gates.mjs`（1000 次混合读写、断线归零、静态门禁）；`check-versions` 覆盖 desktop Tauri / Cargo / tauri.conf。
+- **浏览器与工具增强** — `navigate` 支持 `waitForReady` / `waitTimeoutMs`；spa fetch 临时标签页空闲回收保护；popup 支持多传输入口配置切换。
+
+### Changed
+
+- `/mcp-new` 成为默认端点（stdio 默认配置与 CLI 文档同步），`/mcp` 保留为兼容端点；同时保留旧 SSE `/sse` + `/messages` 与 STDIO 入口。
+- 桌面版展示全部 MCP 服务入口，新增连接类型 / 无会话端点统计、会话 P95 耗时与客户端详情（时长 / 延迟 / 列表弹窗）。
+- 原生 STDIO framing 同时接受 newline JSON 与 `Content-Length`；stdio 客户端连接增加并发保护与失效重置。
+- 打包脚本支持按目标选择构建；打包产物精简，pnpm 统一 11.25、桌面图标切换为本地 icon.ico。
+- 版本统一为 v2.5.5。
+
 ## [v2.5.0] - 2026-09-02
 
 ### Added

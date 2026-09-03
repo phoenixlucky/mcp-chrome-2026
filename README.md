@@ -26,14 +26,17 @@
 
 ---
 
-## 📢 v2.5.0 更新内容
+## 📢 v2.5.5 更新内容
 
-> **MCP 2026-07-28 尝鲜版 + 多传输入口** — 新协议支持与更完整的连接方式。
+> **统一传输层 + 原生协议 V2 + 并发治理** — 连接更稳、通道更可靠。
 >
-> - 🆕 **Streamable HTTP（尝鲜版）** — 新增 `/mcp-new`，提供 MCP 2026-07-28 无会话传输，工具与权限策略与兼容版完全一致
-> - 🔌 **多传输入口共存** — 兼容版 `/mcp`（保留会话）、旧 SSE `/sse` + `/messages`、STDIO 全部保留
-> - 🖥️ **桌面版入口面板** — `chrome-mcp-desktop` 展示全部 MCP 服务入口与状态
-> - 🔧 版本统一为 v2.5.0
+> - 🛣️ **统一传输层** — STDIO / CLI 默认连接 `/mcp-new`（MCP 2026-07-28 无会话传输），失败自动回退兼容版 `/mcp`；deadline、取消、重试与错误映射全链路一致，不再依赖 `mcp-bridge.js`
+> - 🔐 **原生通道协议 V2 唯一化** — 断线后 pending / controller / queue 归零、写操作不自动重放；V1 输入以 `UNSUPPORTED_VERSION` 拒绝；单条 Native 消息上限 16 MiB
+> - 📦 **Artifact 数据面** — 大文件分片上传（`artifactId + seq + eof + sha256`）、原子落盘、TTL 与容量清理、敏感字段脱敏
+> - 🛰️ **事件通道** — localhost WebSocket：随机端口 + 一次性 Token、Origin / 扩展 ID 白名单（为高频事件与流式预留）
+> - 🛡️ **安全与可观测** — 扩展 ID / Origin 精确白名单、请求体上限（默认 8 MiB）、调试接口默认关闭；每请求 traceId 与分段耗时
+> - 🖥️ **桌面版与扩展** — popup 多传输入口切换、桌面版展示连接类型与无会话端点统计、会话 P95
+> - 🔧 版本统一为 v2.5.5
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -144,7 +147,7 @@ start-server.bat
 bash start-server.sh
 ```
 
-服务将在 `http://127.0.0.1:12306/mcp` 监听；同时保留 `mcp-new` 尝鲜版、旧 SSE 和 STDIO 入口。
+服务默认使用 `http://127.0.0.1:12306/mcp-new`；同时保留 `/mcp` 兼容端点、旧 SSE 和 STDIO 入口。
 
 ### Windows 开发者：一键打包便携版 EXE
 
@@ -166,6 +169,17 @@ mcp-chrome-bridge start
 ```
 
 客户端发送 `Authorization: Bearer <key>`（或 `x-api-key`）即可；STDIO 代理会读取同一个环境变量并自动转发 Bearer token。
+
+需要收紧浏览器来源时，可配置精确的扩展 ID 或逗号分隔的 Origin 白名单；调试控制接口默认关闭：
+
+```powershell
+$env:CHROME_MCP_EXTENSION_ID = "abcdefghijklmnopabcdefghijklmnop"
+$env:CHROME_MCP_ALLOWED_ORIGINS = "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+# 仅在本地诊断时开启 start/stop 控制接口
+$env:CHROME_MCP_ENABLE_DEBUG_ENDPOINTS = "1"
+```
+
+HTTP 请求体默认限制为 8 MiB，可用 `CHROME_MCP_MAX_HTTP_BODY_BYTES` 调整；Artifact 的单文件、总目录和 TTL 限制沿用对应的 `CHROME_MCP_MAX_ARTIFACT_*` / `CHROME_MCP_ARTIFACT_TTL_MS` 配置。
 
 ### 工具并发和队列上限
 
@@ -240,14 +254,14 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
     "chrome-mcp-stdio": {
       "command": "mcp-chrome-stdio",
       "env": {
-        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp"
+        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp-new"
       }
     }
   }
 }
 ```
 
-`mcp-chrome-stdio` 内部使用 MCP SDK 的 Streamable HTTP 客户端，自动管理 HTTP POST、SSE 和 `sessionId` 生命周期；因此只支持 STDIO 的客户端也不需要另装 `mcp-bridge.js`。如果服务启用了 API Key，在同一段 `env` 中加入 `CHROME_MCP_API_KEY` 即可。
+`mcp-chrome-stdio` 使用统一传输层，优先连接 `/mcp-new`，失败时回退到 `/mcp`；同时统一处理 JSON-RPC、deadline、取消、重试和错误映射。STDIO framing 同时接受 newline JSON 与 `Content-Length`。如果服务启用了 API Key，在同一段 `env` 中加入 `CHROME_MCP_API_KEY` 即可。
 
 如果使用便携版 Windows EXE 作为 MCP 客户端的 `command`，请传入 `--stdio`：
 
@@ -255,7 +269,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.5.0-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.5.5-win-x64.exe",
       "args": ["--stdio"]
     }
   }
@@ -425,8 +439,19 @@ Chrome Extension Background
 - **阶段四 · Artifact 数据面** — 控制消息只返回元数据（`artifactId` / `contentType` / `size` / `sha256`）；小数据直接 JSON 返回，大文件分片传输（每片 256～512 KB，`artifactId + seq + eof + sha256`）；写入临时文件后原子改名；TTL 自动清理、容量上限、断线删除残留；对 Cookie / Token / Authorization 脱敏。第一版：Native Messaging 分片上传 + localhost HTTP 下载（改动最小）
 - **阶段五 · localhost WebSocket 事件通道** — 仅当事件推送或高频数据成为瓶颈时启用；随机端口 + 一次性 Token 下发；适用于 Tab 状态变化、下载 / 长任务进度、网络事件、订阅与流式数据；只绑定 127.0.0.1、Origin 白名单、连接数 / 空闲 / 请求大小限制、禁止匿名访问敏感接口；Service Worker 中需周期性通信维持活跃
 - **阶段六 · 安全和可观测性** — 精确校验扩展 ID、支持 `CHROME_MCP_ALLOWED_ORIGINS`、localhost 接口用 API Key / 一次性 Token、日志禁止输出 Cookie / Token / 完整页面、限制请求体与执行时间与 Artifact 容量、默认关闭调试接口；每请求 traceId 并记录 `stdio_wait` / `http_process` / `native_queue_wait` / `native_roundtrip` / `browser_execution` / `total` 分段耗时；`/status` 增加 `connectionState` / `pendingRequests` / `activeTools` / `queuedTools` / `reconnectCount` / `timeoutCount` / `cancelCount` / `queueRejectCount` / `lastError`；跨进程链路追踪（OpenTelemetry）暂缓
-- **阶段七 · 统一传输实现** — 收敛 `mcp-bridge.js` 与 stdio 适配器公共逻辑（JSON-RPC 编解码、deadline、retry、错误映射、取消、Content-Length、`/mcp-new` 与 `/mcp` 兼容）；迁移顺序：Native Service 同时支持 V1/V2 → Extension Background 支持 V2 → Bridge 优先 V2 → `/mcp-new` 默认 → `/mcp` 仅兼容
-- **阶段八 · 测试和发布** — 故障场景覆盖：Native Host 断线、响应丢失但操作成功、半包 / 粘包、Service Worker 休眠恢复、CDP 被 DevTools 占用、队列满取消、batch 达最大并发、Artifact 传输中断、重连连发请求、同一写操作重复请求、V1/V2 兼容。发布门槛：1000 次混合读写通过、30 分钟压测无内存持续增长、断线后 pending / controller / queue 归零、写操作无自动重放、单条 Native 输出低于安全阈值、大文件全走 Artifact、`/status` 准确、`/mcp` 兼容与 `/mcp-new` 主流程测试全过
+- **阶段七 · 统一传输实现** — 收敛 stdio 适配器公共逻辑（JSON-RPC 编解码、deadline、retry、错误映射、取消、Content-Length、`/mcp-new` 与 `/mcp` 兼容）；Native Messaging 只支持协议 V2，`/mcp-new` 默认，`/mcp` 仅保留兼容用途
+- **阶段八 · 测试和发布** — 故障场景覆盖：Native Host 断线、响应丢失但操作成功、半包 / 粘包、Service Worker 休眠恢复、CDP 被 DevTools 占用、队列满取消、batch 达最大并发、Artifact 传输中断、重连连发请求、同一写操作重复请求。发布门槛：1000 次混合读写通过、30 分钟压测无内存持续增长、断线后 pending / controller / queue 归零、写操作无自动重放、单条 Native 输出低于安全阈值、大文件全走 Artifact、`/status` 准确、`/mcp` 兼容与 `/mcp-new` 主流程测试全过
+
+阶段八门禁命令：
+
+```powershell
+pnpm run test:phase8
+pnpm run check:phase8
+$env:PHASE8_STRESS_MS = '1800000'; node --expose-gc scripts/phase8-gates.mjs
+```
+
+其中第一条运行 Native Service 回归测试，第二条构建并执行 1000 次混合读写及归零检查；30 分钟压力测试需显式执行。V1 不再实现，V1 输入由 `UNSUPPORTED_VERSION` 拒绝，V2 为唯一协议。
+
 - **最终技术选择与路线** — 推荐 Node.js/TypeScript：JSON-RPC V2 + TypeBox 校验 + AbortController + Artifact 文件存储 + localhost HTTP；WebSocket 仅用于高频事件与流式；暂不引入 WebTransport / gRPC / 直接 9222 CDP。路线：先统一协议 → 再完善取消与断线恢复 → 再拆分 Artifact 数据面 → 再按指标引入 WebSocket → 最后考虑 Go/Rust Native Host；优先完成协议 V2、生命周期管理、Artifact 与故障测试
 
 ### 🆕 新增工具

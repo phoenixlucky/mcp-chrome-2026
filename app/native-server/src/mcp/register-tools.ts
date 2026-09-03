@@ -13,6 +13,7 @@ import {
 } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'node:crypto';
+import type { RequestStageTimings } from '../observability.js';
 import { browserProfileManager } from '../browser-profile-manager.js';
 import {
   checkToolAccess,
@@ -22,6 +23,7 @@ import {
 
 interface ToolActivity {
   requestId: string;
+  traceId: string;
   name: string;
   profileId?: string;
   tabId?: number;
@@ -29,11 +31,16 @@ interface ToolActivity {
   queueMs?: number;
   executionStartedAt?: string;
   elapsedMs?: number;
+  timings?: RequestStageTimings;
   outcome: 'running' | 'success' | 'error' | 'cancelled';
   error?: string;
 }
 const recentToolCalls: ToolActivity[] = [];
+let lastToolTimings: RequestStageTimings | null = null;
 export const getRecentToolCalls = (): ToolActivity[] => recentToolCalls.slice(-20).reverse();
+export const getToolObservabilityStats = (): { lastTimings: RequestStageTimings | null } => ({
+  lastTimings: lastToolTimings,
+});
 const WRITE_TOOL =
   /(?:navigate|click|scroll|fill|keyboard|key|dialog|computer|upload|paste|proxy_rotate|locate_element|select_all_items|hover|storage_set|storage_delete)/;
 // A native browser dialog can block the helper call used to resolve the active tab.
@@ -105,6 +112,7 @@ let queueWaitTotalMs = 0;
 let queueWaitSamples = 0;
 let queueRejectCount = 0;
 let queueTimeoutCount = 0;
+let queueCancelCount = 0;
 let lastAdmissionKind: ToolQueueKind = 'write';
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
 
@@ -141,6 +149,7 @@ function drainToolCallQueue(): void {
     if (waiter.timeoutId) clearTimeout(waiter.timeoutId);
     waiter.signal?.removeEventListener('abort', waiter.onAbort);
     if (waiter.signal?.aborted) {
+      queueCancelCount += 1;
       waiter.reject(new Error('Request cancelled'));
       continue;
     }
@@ -164,7 +173,7 @@ function drainToolCallQueue(): void {
   }
 }
 
-function acquireToolCallSlot(
+export function acquireToolCallSlot(
   signal: AbortSignal | undefined,
   kind: ToolQueueKind,
   profileId: string,
@@ -198,6 +207,7 @@ function acquireToolCallSlot(
       resolve,
       reject,
       onAbort: () => {
+        queueCancelCount += 1;
         if (waiter.timeoutId) clearTimeout(waiter.timeoutId);
         const index = queuedToolCalls[kind].indexOf(waiter);
         if (index >= 0) queuedToolCalls[kind].splice(index, 1);
@@ -215,6 +225,7 @@ function acquireToolCallSlot(
         if (index < 0) return;
         queuedToolCalls[kind].splice(index, 1);
         signal?.removeEventListener('abort', waiter.onAbort);
+        queueTimeoutCount += 1;
         reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
       }, remaining);
     }
@@ -231,6 +242,7 @@ export function getToolAdmissionStats(): {
   averageQueueMs: number;
   rejected: number;
   timedOut: number;
+  cancelled: number;
   byProfile: Record<string, { active: number; queued: number }>;
 } {
   const byProfile: Record<string, { active: number; queued: number }> = {};
@@ -249,6 +261,7 @@ export function getToolAdmissionStats(): {
     averageQueueMs: queueWaitSamples ? Math.round(queueWaitTotalMs / queueWaitSamples) : 0,
     rejected: queueRejectCount,
     timedOut: queueTimeoutCount,
+    cancelled: queueCancelCount,
     byProfile,
   };
 }
@@ -583,6 +596,7 @@ export const handleToolCall = async (
 ): Promise<CallToolResult> => {
   const activity: ToolActivity = {
     requestId: randomUUID(),
+    traceId: randomUUID(),
     name,
     startedAt: new Date().toISOString(),
     outcome: 'running',
@@ -590,6 +604,16 @@ export const handleToolCall = async (
   recentToolCalls.push(activity);
   if (recentToolCalls.length > 100) recentToolCalls.shift();
   let releaseToolCallSlot: (() => void) | null = null;
+  const timings: RequestStageTimings = {
+    stdio_wait: 0,
+    http_process: 0,
+    native_queue_wait: 0,
+    native_roundtrip: 0,
+    browser_execution: 0,
+    total: 0,
+  };
+  activity.timings = timings;
+  const admissionStartedAt = Date.now();
   try {
     const access = checkToolAccess(name);
     if (!access.allowed) {
@@ -611,6 +635,7 @@ export const handleToolCall = async (
     const queueKind: ToolQueueKind =
       WRITE_TOOL.test(name) || name.startsWith('flow.') ? 'write' : 'read';
     releaseToolCallSlot = await acquireToolCallSlot(signal, queueKind, profileId, deadlineAt);
+    timings.native_queue_wait = Math.max(0, Date.now() - admissionStartedAt);
 
     if (name === TOOL_NAMES.BROWSER.PROFILE) {
       const response = await handleProfileTool(args);
@@ -637,11 +662,16 @@ export const handleToolCall = async (
     if (name && name.startsWith('flow.')) {
       // We need to resolve flow by slug to ID
       try {
+        const nativeStartedAt = Date.now();
         const resp = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
           {},
           'rr_list_published_flows',
           20000,
+          signal,
+          undefined,
+          activity.traceId,
         );
+        timings.native_roundtrip += Math.max(0, Date.now() - nativeStartedAt);
         const items = (resp && resp.items) || [];
         const slug = name.slice('flow.'.length);
         const match = items.find((it: any) => it.slug === slug);
@@ -652,13 +682,21 @@ export const handleToolCall = async (
           name,
           args,
           () =>
-            nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-              flowArgs,
-              'rr_run_flow',
-              timeoutFor('flow.run', args, deadlineAt),
-              signal,
-              reportProgress,
-            ),
+            (async () => {
+              const nativeStartedAt = Date.now();
+              try {
+                return await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+                  flowArgs,
+                  'rr_run_flow',
+                  timeoutFor('flow.run', args, deadlineAt),
+                  signal,
+                  reportProgress,
+                  activity.traceId,
+                );
+              } finally {
+                timings.native_roundtrip += Math.max(0, Date.now() - nativeStartedAt);
+              }
+            })(),
           () => {
             activity.queueMs = Date.now() - queuedAt;
             activity.executionStartedAt = new Date().toISOString();
@@ -694,13 +732,21 @@ export const handleToolCall = async (
       name,
       args,
       () =>
-        nativeMessagingHostInstance.sendRequestToExtensionAndWait(
-          { name, args },
-          NativeMessageType.CALL_TOOL,
-          timeoutFor(name, args, deadlineAt),
-          signal,
-          reportProgress,
-        ),
+        (async () => {
+          const nativeStartedAt = Date.now();
+          try {
+            return await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
+              { name, args },
+              NativeMessageType.CALL_TOOL,
+              timeoutFor(name, args, deadlineAt),
+              signal,
+              reportProgress,
+              activity.traceId,
+            );
+          } finally {
+            timings.native_roundtrip += Math.max(0, Date.now() - nativeStartedAt);
+          }
+        })(),
       () => {
         activity.queueMs = Date.now() - queuedAt;
         activity.executionStartedAt = new Date().toISOString();
@@ -727,7 +773,8 @@ export const handleToolCall = async (
     if (code === 'DEADLINE_EXCEEDED' || /deadline exceeded/i.test(error?.message || '')) {
       queueTimeoutCount += 1;
     }
-    activity.outcome = error.message === 'Request cancelled' ? 'cancelled' : 'error';
+    activity.outcome =
+      code === 'CANCELED' || /cancel/i.test(error?.message || '') ? 'cancelled' : 'error';
     activity.error = code ? `${code}: ${error.message}` : error.message;
     return {
       content: [
@@ -741,5 +788,13 @@ export const handleToolCall = async (
   } finally {
     releaseToolCallSlot?.();
     activity.elapsedMs = Date.now() - new Date(activity.startedAt).getTime();
+    timings.total = activity.elapsedMs;
+    timings.browser_execution = Math.max(0, timings.native_roundtrip);
+    timings.http_process = Math.max(
+      0,
+      timings.total - timings.native_queue_wait - timings.browser_execution,
+    );
+    lastToolTimings = { ...timings };
+    nativeMessagingHostInstance.recordRequestTimings(activity.traceId, timings);
   }
 };

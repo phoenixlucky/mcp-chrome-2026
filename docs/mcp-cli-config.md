@@ -4,8 +4,8 @@ This guide explains how to configure Codex CLI and Claude Code to connect to the
 
 ## Overview
 
-The Chrome MCP Server exposes its compatibility MCP interface at `http://127.0.0.1:12306/mcp` (default port).
-The early-access MCP 2026-07-28 endpoint is `http://127.0.0.1:12306/mcp-new`; legacy SSE and STDIO remain available.
+The Chrome MCP Server uses `http://127.0.0.1:12306/mcp-new` as the default endpoint.
+The compatibility MCP interface remains available at `http://127.0.0.1:12306/mcp`; legacy SSE and STDIO remain available.
 
 ## Codex CLI Configuration
 
@@ -17,7 +17,7 @@ Add the following to your `~/.codex/config.json`:
 {
   "mcpServers": {
     "chrome-mcp": {
-      "url": "http://127.0.0.1:12306/mcp"
+      "url": "http://127.0.0.1:12306/mcp-new"
     }
   }
 }
@@ -76,14 +76,14 @@ If you prefer stdio-based MCP communication:
     "chrome-mcp": {
       "command": "mcp-chrome-stdio",
       "env": {
-        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp"
+        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp-new"
       }
     }
   }
 }
 ```
 
-The native stdio entry point uses the MCP SDK Streamable HTTP client, so it manages POST, SSE, and `sessionId` lifecycle on behalf of the stdio client. No separate `mcp-bridge.js` is required. Add `CHROME_MCP_API_KEY` to `env` when the HTTP server is protected.
+The native stdio entry point uses the shared transport layer: it prefers `/mcp-new`, falls back to `/mcp`, and shares deadline, cancellation, retry, error mapping, and framing behavior. No separate `mcp-bridge.js` is required. Add `CHROME_MCP_API_KEY` to `env` when the HTTP server is protected.
 
 ## Verifying Connection
 
@@ -124,13 +124,17 @@ If port 12306 is already in use:
 
 ## Environment Variables
 
-| Variable                          | Description                                              | Default                        |
-| --------------------------------- | -------------------------------------------------------- | ------------------------------ |
-| `MCP_HTTP_PORT`                   | HTTP port for MCP server                                 | 12306                          |
-| `MCP_SERVER_URL`                  | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp`   |
-| `MCP_SERVER_ORIGIN`               | Origin sent by the native stdio client                   | `chrome-extension://mcp-stdio` |
-| `CHROME_MCP_API_KEY`              | Bearer key forwarded to the HTTP MCP server              | (none)                         |
-| `CHROME_MCP_MAX_CONCURRENT_TOOLS` | Maximum browser tools executing at once                  | 8                              |
-| `CHROME_MCP_MAX_QUEUED_TOOLS`     | Maximum browser tools waiting for a slot                 | 64                             |
-| `MCP_ALLOWED_WORKSPACE_BASE`      | Additional allowed workspace directory                   | (none)                         |
-| `CHROME_MCP_NODE_PATH`            | Override Node.js executable path                         | (auto)                         |
+| Variable                            | Description                                              | Default                          |
+| ----------------------------------- | -------------------------------------------------------- | -------------------------------- |
+| `MCP_HTTP_PORT`                     | HTTP port for MCP server                                 | 12306                            |
+| `MCP_SERVER_URL`                    | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp-new` |
+| `MCP_SERVER_ORIGIN`                 | Origin sent by the native stdio client                   | `chrome-extension://mcp-stdio`   |
+| `CHROME_MCP_API_KEY`                | Bearer key forwarded to the HTTP MCP server              | (none)                           |
+| `CHROME_MCP_ALLOWED_ORIGINS`        | Exact comma-separated HTTP Origin allowlist              | (none)                           |
+| `CHROME_MCP_EXTENSION_ID`           | Exact Chrome extension ID                                | (none)                           |
+| `CHROME_MCP_MAX_HTTP_BODY_BYTES`    | Maximum HTTP request body size                           | 8 MiB                            |
+| `CHROME_MCP_ENABLE_DEBUG_ENDPOINTS` | Enable local start/stop debug endpoints (`1`)            | disabled                         |
+| `CHROME_MCP_MAX_CONCURRENT_TOOLS`   | Maximum browser tools executing at once                  | 8                                |
+| `CHROME_MCP_MAX_QUEUED_TOOLS`       | Maximum browser tools waiting for a slot                 | 64                               |
+| `MCP_ALLOWED_WORKSPACE_BASE`        | Additional allowed workspace directory                   | (none)                           |
+| `CHROME_MCP_NODE_PATH`              | Override Node.js executable path                         | (auto)                           |

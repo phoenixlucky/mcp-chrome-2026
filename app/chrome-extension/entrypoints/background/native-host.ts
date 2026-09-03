@@ -23,6 +23,9 @@ let nativePort: chrome.runtime.Port | null = null;
 let nativeConnectionState: NativeConnectionState = 'stopped';
 let negotiatedVersion: number | undefined;
 let nativeCapabilities: NativeConnectionSnapshot['capabilities'];
+let eventSocket: WebSocket | null = null;
+let eventHeartbeat: ReturnType<typeof setInterval> | null = null;
+let eventKeepaliveRelease: (() => void) | null = null;
 const activeToolCalls = new Map<string, AbortController>();
 const respondedProtocolRequests = new Set<string>();
 const forwardedFileRequests = new Set<string>();
@@ -88,7 +91,7 @@ function setNativeConnectionState(state: NativeConnectionState, lastError?: stri
   persistNativeConnectionState(lastError);
 }
 
-async function loadNativeConnectionState(): Promise<void> {
+export async function loadNativeConnectionState(): Promise<void> {
   try {
     const result = await chrome.storage.local.get([STORAGE_KEYS.NATIVE_CONNECTION_STATE]);
     const stored = result[
@@ -221,6 +224,177 @@ function protocolErrorResponse(
   return createNativeErrorResponse(request, new NativeProtocolError(code, message));
 }
 
+export function getNativeConnectionState(): NativeConnectionState {
+  return nativeConnectionState;
+}
+
+function closeEventChannel(): void {
+  if (eventHeartbeat) clearInterval(eventHeartbeat);
+  eventHeartbeat = null;
+  if (eventSocket) {
+    try {
+      eventSocket.close();
+    } catch {
+      // The socket may already be closed.
+    }
+  }
+  eventSocket = null;
+  if (eventKeepaliveRelease) {
+    eventKeepaliveRelease();
+    eventKeepaliveRelease = null;
+  }
+}
+
+function connectEventChannel(data: unknown): void {
+  const info = data as { port?: unknown; token?: unknown; expiresAt?: unknown };
+  if (
+    typeof info?.port !== 'number' ||
+    typeof info.token !== 'string' ||
+    typeof info.expiresAt !== 'number' ||
+    info.expiresAt <= Date.now()
+  )
+    return;
+  closeEventChannel();
+  const socket = new WebSocket(
+    `ws://127.0.0.1:${info.port}/events?token=${encodeURIComponent(info.token)}`,
+  );
+  eventSocket = socket;
+  socket.onopen = () => {
+    if (eventSocket !== socket) return;
+    eventKeepaliveRelease = acquireKeepalive('native-event-channel');
+    eventHeartbeat = setInterval(() => {
+      if (eventSocket !== socket || socket.readyState !== WebSocket.OPEN) return;
+      try {
+        socket.send(JSON.stringify({ type: 'ping' }));
+      } catch {
+        closeEventChannel();
+      }
+    }, 20_000);
+  };
+  socket.onmessage = (event) => {
+    try {
+      const message = JSON.parse(String(event.data));
+      if (message?.type === 'pong') return;
+      chrome.runtime.sendMessage({ type: 'native_event', event: message }).catch(() => undefined);
+    } catch {
+      // The event channel only accepts JSON messages.
+    }
+  };
+  socket.onerror = () => {
+    if (eventSocket === socket) closeEventChannel();
+  };
+  socket.onclose = () => {
+    if (eventSocket === socket) closeEventChannel();
+  };
+}
+
+const INLINE_ARTIFACT_LIMIT_BYTES = 256 * 1024;
+const ARTIFACT_CHUNK_SIZE = 384 * 1024;
+
+function redactArtifactText(value: string): string {
+  return value
+    .replace(
+      /((?:authorization|proxy-authorization|cookie|set-cookie|x-api-key|api[_-]?token|access[_-]?token|refresh[_-]?token|password)\s*[=:]\s*)("[^"]*"|'[^']*'|[^,;\s<]+)/gi,
+      '$1[REDACTED]',
+    )
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED]');
+}
+
+function base64Bytes(value: string): Uint8Array | undefined {
+  const normalized = value.replace(/^data:[^;]+;base64,/, '');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) return undefined;
+  const binary = atob(normalized);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function sha256(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function uploadLargeArtifact(
+  request: NativeRequest,
+  toolName: string,
+  result: unknown,
+  signal: AbortSignal,
+): Promise<Record<string, unknown> | undefined> {
+  const content = (result as { content?: Array<{ type?: string; text?: string }> })?.content;
+  const text = Array.isArray(content)
+    ? content.find((item) => item?.type === 'text' && typeof item.text === 'string')?.text
+    : undefined;
+  let parsed: any;
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // Keep the original text as a text artifact.
+    }
+  }
+
+  const binaryValue =
+    (typeof parsed?.base64Data === 'string' && parsed.base64Data) ||
+    (typeof parsed?.base64 === 'string' && parsed.base64) ||
+    (typeof (result as any)?.base64Data === 'string' && (result as any).base64Data) ||
+    (parsed?.base64Encoded === true && typeof parsed?.responseBody === 'string'
+      ? parsed.responseBody
+      : undefined);
+  const binary = binaryValue ? base64Bytes(binaryValue) : undefined;
+  const contentType =
+    (typeof parsed?.mimeType === 'string' && parsed.mimeType) ||
+    (typeof parsed?.contentType === 'string' && parsed.contentType) ||
+    (toolName.includes('screenshot')
+      ? 'image/png'
+      : toolName.includes('pdf')
+        ? 'application/pdf'
+        : undefined);
+  const bytes =
+    binary && contentType
+      ? binary
+      : new TextEncoder().encode(
+          redactArtifactText(
+            typeof result === 'string' ? result : (JSON.stringify(result) ?? String(result)),
+          ),
+        );
+  if (bytes.byteLength <= INLINE_ARTIFACT_LIMIT_BYTES) return undefined;
+
+  const artifactId = crypto.randomUUID();
+  const digest = await sha256(bytes);
+  for (
+    let offset = 0, seq = 0;
+    offset < bytes.byteLength;
+    offset += ARTIFACT_CHUNK_SIZE, seq += 1
+  ) {
+    if (signal.aborted || !nativePort) throw new Error('Artifact upload canceled');
+    const chunk = bytes.slice(offset, Math.min(offset + ARTIFACT_CHUNK_SIZE, bytes.byteLength));
+    nativePort.postMessage({
+      version: NATIVE_PROTOCOL_VERSION,
+      type: 'artifact',
+      requestId: request.requestId,
+      traceId: request.traceId,
+      artifactId,
+      contentType: contentType || (toolName.includes('html') ? 'text/html' : 'application/json'),
+      size: bytes.byteLength,
+      sha256: digest,
+      seq,
+      eof: offset + chunk.byteLength === bytes.byteLength,
+      data: bytesToBase64(chunk),
+    });
+  }
+  return {
+    type: 'artifact',
+    artifactId,
+    contentType: contentType || (toolName.includes('html') ? 'text/html' : 'application/json'),
+    size: bytes.byteLength,
+    sha256: digest,
+  };
+}
+
 async function handleProtocolRequest(message: NativeRequest): Promise<void> {
   if (respondedProtocolRequests.has(message.requestId) || activeToolCalls.has(message.requestId))
     return;
@@ -324,13 +498,19 @@ async function handleProtocolRequest(message: NativeRequest): Promise<void> {
         ),
       );
     } else {
+      const artifact = await uploadLargeArtifact(
+        message,
+        String((message.params as any)?.name || message.method),
+        result,
+        controller.signal,
+      );
       postProtocolResponseOnce(message, {
         version: NATIVE_PROTOCOL_VERSION,
         type: 'response',
         requestId: message.requestId,
         traceId: message.traceId,
         ok: true,
-        result,
+        result: artifact || result,
       });
     }
   } catch (error) {
@@ -652,6 +832,8 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
               resetReconnectState();
             } else if (protocolMessage.event === 'native.serverStopped') {
               await markServerStopped('native_protocol_event');
+            } else if (protocolMessage.event === 'native.eventChannelReady') {
+              connectEventChannel(protocolMessage.data);
             }
             return;
           case 'pong':
@@ -698,6 +880,7 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
           .catch(() => undefined);
       }
       forwardedFileRequests.clear();
+      closeEventChannel();
       nativePort = null;
 
       // Mark server as stopped since native host disconnection means server is down
