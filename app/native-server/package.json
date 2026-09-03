@@ -40,6 +40,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.69",
     "@fastify/cors": "^11.0.1",
+    "@ethanwilkins/chrome-mcp-shared-2026": "workspace:*",
     "@modelcontextprotocol/client": "^2.0.0",
     "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
@@ -53,7 +54,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@ethanwilkins/chrome-mcp-shared-2026": "workspace:*",
     "@jest/globals": "^29.7.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/chrome": "^0.0.318",
