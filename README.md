@@ -468,6 +468,43 @@ PDF 工具默认返回 PDF 的 Base64 数据；传入 `savePdf: true` 可同时�
 
 ---
 
+## 💝 技术支持与赞助
+
+项目完全开源免费。如果你觉得它有用，或需要技术支持 / 新功能建议，欢迎通过以下方式联系作者。
+
+**赞助支持可解锁浏览器插件高级功能 🔓** —— 你的支持是持续开发的动力！
+
+<p align="center">
+  <table style="border-collapse: collapse; width: 100%; max-width: 960px; margin: 0 auto;">
+    <tr>
+      <td align="center" style="padding: 8px 12px;"><b>微信 · 交流与技术支持</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>支付宝 · 赞助支持</b></td>
+      <td align="center" style="padding: 8px 12px;"><b>微信支付 · 赞助支持</b></td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/support-wechat-friend.webp" alt="微信 添加好友" width="240" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/support-alipay.webp" alt="支付宝 赞助" width="240" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+      <td align="center" style="padding: 6px 12px;">
+        <img src="screenshots/support-wechat-pay.webp" alt="微信支付 赞助" width="240" loading="lazy"
+             style="border-radius: 12px; border: 1px solid rgba(127,127,127,0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">扫码添加好友，<br/>获取技术支持与交流</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">扫码赞助，<br/>解锁插件高级功能</td>
+      <td align="center" style="padding: 6px 12px; font-size: 0.9em; color: #6e7781;">扫码赞助，<br/>解锁插件高级功能</td>
+    </tr>
+  </table>
+</p>
+
+---
+
 ## 🤝 贡献
 
 欢迎贡献！提交 PR 前请阅读 [CONTRIBUTING_zh.md](docs/CONTRIBUTING_zh.md)。
