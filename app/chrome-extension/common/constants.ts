@@ -17,6 +17,7 @@ export const ICONS = {
 // Timeouts and Delays (in milliseconds)
 export const TIMEOUTS = {
   DEFAULT_WAIT: 1000,
+  CONTENT_MESSAGE_DEFAULT: 30000,
   NETWORK_CAPTURE_MAX: 30000,
   NETWORK_CAPTURE_IDLE: 3000,
   SCREENSHOT_DELAY: 100,
@@ -247,6 +248,7 @@ export const STORAGE_KEYS = {
   NATIVE_SERVER_PORT: 'nativeServerPort',
   NATIVE_AUTO_CONNECT_ENABLED: 'nativeAutoConnectEnabled',
   NATIVE_CONNECTION_STATE: 'nativeConnectionState',
+  CONTENT_MESSAGE_TIMEOUT: 'contentMessageTimeout',
   SEMANTIC_MODEL: 'selectedModel',
   USER_PREFERENCES: 'userPreferences',
   VECTOR_INDEX: 'vectorIndex',

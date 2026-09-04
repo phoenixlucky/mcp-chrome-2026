@@ -1,7 +1,7 @@
 [package]
 name = "simd-math"
-version = "2.5.6"
-edition = "2021"
+version = "2.6.7"
+edition = "2024"
 description = "SIMD-optimized WebAssembly math functions for Chrome MCP"
 license = "MIT"
 repository = "https://github.com/phoenixlucky/mcp-chrome-2026"

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.6.7] - 2026-09-04
+
+### Added
+
+- **全入口请求监控与中断** — 桌面版统一展示 `/mcp`、`/mcp-new`、`/sse` 和 STDIO 活动请求，并支持按请求 ID 中断。
+- **页面消息超时配置** — 扩展设置支持 5–300 秒手动配置，默认 30 秒。
+
+### Fixed
+
+- **`/mcp-new` deadline 过短** — 延长普通工具、长任务及标签解析等 native 请求窗口，减少间歇性 `DEADLINE_EXCEEDED`。
+
+### Changed
+
+- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.7。
+
 ## [v2.5.6] - 2026-09-04
 
 ### Fixed

@@ -26,16 +26,17 @@
 
 ---
 
-## 📢 v2.5.6 更新内容
+## 📢 v2.6.7 更新内容
 
-> **请求可观测、可中断，扩展断连自动恢复** — `/mcp-new` 卡请求更容易定位和处理。
+> **请求可观测、可中断，超时可配置** — 所有 MCP 入口的卡请求更容易定位和处理。
 >
-> - 🛰️ **无会话请求监控** — 桌面版显示 `/mcp-new` 当前执行中的工具、请求 ID、耗时和客户端信息。
+> - 🛰️ **全入口请求监控** — 桌面版显示 `/mcp`、`/mcp-new`、`/sse` 和 STDIO 当前执行中的工具、请求 ID、耗时和客户端信息。
 > - ⏹️ **中断卡住的请求** — 可从桌面版直接按请求 ID 中断，并将取消信号传递到 MCP / Native Messaging / Chrome 扩展。
 > - 🔁 **扩展断连恢复** — `getHtmlContent`、`getInteractiveElements` 等内容脚本调用遇到连接断开时，会等待标签页就绪、重新注入并重试一次。
 > - 📦 **大响应修复** — Artifact 大响应不再被误判为失败，不会再出现 `Error calling tool: undefined`。
+> - ⏱️ **超时手动配置** — 页面消息超时默认 30 秒，可在扩展设置中配置 5–300 秒；工具执行窗口同步放宽。
 > - 🛡️ **错误信息完整化** — Native 扩展返回异常响应时保留状态和具体原因，便于诊断。
-> - 🔧 所有发布包版本统一为 v2.5.6
+> - 🔧 所有发布包版本统一为 v2.6.7
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -268,7 +269,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.5.6-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.6.7-win-x64.exe",
       "args": ["--stdio"]
     }
   }

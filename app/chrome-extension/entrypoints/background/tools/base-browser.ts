@@ -1,9 +1,28 @@
 import { ToolExecutor } from '@/common/tool-handler';
 import type { ToolProgressReporter, ToolResult } from '@/common/tool-handler';
-import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
+import { TIMEOUTS, ERROR_MESSAGES, STORAGE_KEYS } from '@/common/constants';
 
 const PING_TIMEOUT_MS = 300;
-const CONTENT_MESSAGE_TIMEOUT_MS = 15_000;
+const MIN_CONTENT_MESSAGE_TIMEOUT_MS = 5_000;
+const MAX_CONTENT_MESSAGE_TIMEOUT_MS = 300_000;
+
+export function normalizeContentMessageTimeoutMs(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return TIMEOUTS.CONTENT_MESSAGE_DEFAULT;
+  return Math.min(
+    MAX_CONTENT_MESSAGE_TIMEOUT_MS,
+    Math.max(MIN_CONTENT_MESSAGE_TIMEOUT_MS, Math.round(parsed)),
+  );
+}
+
+export async function getContentMessageTimeoutMs(): Promise<number> {
+  try {
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.CONTENT_MESSAGE_TIMEOUT);
+    return normalizeContentMessageTimeoutMs(stored[STORAGE_KEYS.CONTENT_MESSAGE_TIMEOUT]);
+  } catch {
+    return TIMEOUTS.CONTENT_MESSAGE_DEFAULT;
+  }
+}
 
 const NON_INJECTABLE_PROTOCOLS = new Set([
   'chrome-error:',
@@ -162,6 +181,7 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
    * Send message to tab
    */
   protected async sendMessageToTab(tabId: number, message: any, frameId?: number): Promise<any> {
+    const contentMessageTimeoutMs = await getContentMessageTimeoutMs();
     try {
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
       try {
@@ -172,7 +192,7 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
           new Promise<never>((_, reject) => {
             timeoutId = setTimeout(
               () => reject(new Error(`Message action ${message?.action || 'unknown'} timed out`)),
-              CONTENT_MESSAGE_TIMEOUT_MS,
+              contentMessageTimeoutMs,
             );
           }),
         ]);

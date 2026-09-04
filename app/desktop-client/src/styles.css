@@ -560,6 +560,13 @@ footer {
   padding-top: 12px;
   border-top: 1px solid rgba(130, 108, 186, 0.3);
 }
+.global-request-monitor {
+  margin-left: 0;
+  padding: 14px;
+  border: 1px solid #5b4d85;
+  border-radius: 13px;
+  background: rgba(34, 26, 55, 0.42);
+}
 .request-monitor-heading {
   display: flex;
   justify-content: space-between;

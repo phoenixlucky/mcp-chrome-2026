@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BaseBrowserToolExecutor,
   isContentScriptDisconnectedError,
+  normalizeContentMessageTimeoutMs,
 } from '@/entrypoints/background/tools/base-browser';
 import type { ToolResult } from '@/common/tool-handler';
 
@@ -78,5 +79,12 @@ describe('BaseBrowserToolExecutor target tab resolution', () => {
       ),
     ).toBe(true);
     expect(isContentScriptDisconnectedError(new Error('Target tab 12 not found'))).toBe(false);
+  });
+
+  it('uses a 30-second default and clamps the configurable content timeout', () => {
+    expect(normalizeContentMessageTimeoutMs(undefined)).toBe(30_000);
+    expect(normalizeContentMessageTimeoutMs(60_000)).toBe(60_000);
+    expect(normalizeContentMessageTimeoutMs(1_000)).toBe(5_000);
+    expect(normalizeContentMessageTimeoutMs(999_000)).toBe(300_000);
   });
 });

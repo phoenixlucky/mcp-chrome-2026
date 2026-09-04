@@ -26,16 +26,17 @@
 
 ---
 
-## 📢 What's New in v2.5.6
+## 📢 What's New in v2.6.7
 
-> **Request observability, cancellation, and extension reconnects** — Easier to diagnose and recover stuck `/mcp-new` calls.
+> **Request observability, cancellation, and configurable timeouts** — Easier to diagnose and recover stuck MCP calls across all endpoints.
 >
-> - 🛰️ **Session-less request monitor** — The desktop client shows active `/mcp-new` tools, request IDs, elapsed time, and client information.
+> - 🛰️ **All-entry request monitor** — The desktop client shows active `/mcp`, `/mcp-new`, `/sse`, and STDIO tools, request IDs, elapsed time, and client information.
 > - ⏹️ **Cancel stuck requests** — Cancel a request from the desktop client by request ID and propagate cancellation through MCP, Native Messaging, and the Chrome extension.
 > - 🔁 **Extension reconnect recovery** — Content-script calls retry once after waiting for the tab and reinjecting the content script when the channel is disconnected.
 > - 📦 **Large-response fix** — Artifact responses are no longer misclassified as failures, eliminating `Error calling tool: undefined`.
+> - ⏱️ **Configurable timeouts** — Page-message timeout defaults to 30 seconds and can be configured from 5 to 300 seconds; tool execution windows are also more tolerant.
 > - 🛡️ **Complete error reporting** — Preserve status and details when the extension returns an unsuccessful response.
-> - 🔧 All release packages bumped to v2.5.6
+> - 🔧 All release packages bumped to v2.6.7
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

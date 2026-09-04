@@ -180,6 +180,24 @@
                 @change="saveBackgroundOperations"
               />
             </label>
+            <label class="background-operations-switch timeout-setting">
+              <span>
+                <strong>页面消息超时</strong>
+                <small>等待内容脚本响应，默认 30 秒（5–300 秒）</small>
+              </span>
+              <span class="timeout-input">
+                <input
+                  v-model.number="contentMessageTimeoutSeconds"
+                  type="number"
+                  min="5"
+                  max="300"
+                  step="1"
+                  aria-label="页面消息超时（秒）"
+                  @change="saveContentMessageTimeout"
+                />
+                <small>秒</small>
+              </span>
+            </label>
             <template v-if="hiddenInterfaceUnlocked">
               <label class="background-operations-switch">
                 <span>
@@ -1493,6 +1511,7 @@ const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('un
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
 const backgroundOperations = ref(true);
+const contentMessageTimeoutSeconds = ref(30);
 const sendScrollCoordinates = ref(false);
 const extensionId = chrome.runtime.id;
 const extensionLogoUrl = chrome.runtime.getURL('icon/128.png');
@@ -2590,6 +2609,29 @@ const saveBackgroundOperations = async () => {
   await chrome.storage.local.set({ backgroundOperations: backgroundOperations.value });
 };
 
+const normalizeContentMessageTimeoutSeconds = (value: unknown) => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return 30;
+  return Math.min(300, Math.max(5, Math.round(parsed)));
+};
+
+const loadContentMessageTimeout = async () => {
+  const settings = await chrome.storage.local.get(STORAGE_KEYS.CONTENT_MESSAGE_TIMEOUT);
+  const timeoutMs = settings[STORAGE_KEYS.CONTENT_MESSAGE_TIMEOUT];
+  contentMessageTimeoutSeconds.value = normalizeContentMessageTimeoutSeconds(
+    Number(timeoutMs) / 1000,
+  );
+};
+
+const saveContentMessageTimeout = async () => {
+  contentMessageTimeoutSeconds.value = normalizeContentMessageTimeoutSeconds(
+    contentMessageTimeoutSeconds.value,
+  );
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.CONTENT_MESSAGE_TIMEOUT]: contentMessageTimeoutSeconds.value * 1000,
+  });
+};
+
 const loadScrollCoordinatesSetting = async () => {
   const settings = await chrome.storage.local.get(STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES);
   sendScrollCoordinates.value = settings[STORAGE_KEYS.WEB_EDITOR_SEND_SCROLL_COORDINATES] === true;
@@ -2925,6 +2967,7 @@ onMounted(async () => {
   await loadPortPreference();
   await loadProxySettings();
   await loadBackgroundOperations();
+  await loadContentMessageTimeout();
   await loadScrollCoordinatesSetting();
   await loadModelPreference();
   await checkNativeConnection();
@@ -4147,6 +4190,25 @@ onUnmounted(() => {
   width: 16px;
   height: 16px;
   accent-color: var(--ac-accent, #d97757);
+}
+
+.timeout-input {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.timeout-input input {
+  width: 64px !important;
+  height: 32px !important;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border: 1px solid #dbe3ed;
+  border-radius: 7px;
+  color: #374151;
+  background: #fff;
+  accent-color: auto;
 }
 
 .port-section {

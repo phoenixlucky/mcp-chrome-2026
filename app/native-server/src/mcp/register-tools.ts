@@ -84,6 +84,10 @@ const LONG_TOOL =
   /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|select_all_items)/;
 const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
+const DEFAULT_TOOL_TRANSPORT_TIMEOUT_MS = 120_000;
+const LONG_TOOL_TRANSPORT_TIMEOUT_MS = 180_000;
+const MAX_TOOL_TRANSPORT_TIMEOUT_MS = 300_000;
+const INTERNAL_TOOL_TIMEOUT_MS = 30_000;
 const TOOL_DEADLINE_META_KEY = 'chrome-mcp/deadlineAt';
 const MAX_CONCURRENT_TOOL_CALLS = Math.max(
   1,
@@ -322,7 +326,7 @@ export async function listDynamicFlowTools(): Promise<Tool[]> {
     const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
       {},
       'rr_list_published_flows',
-      20000,
+      INTERNAL_TOOL_TIMEOUT_MS,
     );
     if (response && response.status === 'success' && Array.isArray(response.items)) {
       const tools: Tool[] = [];
@@ -437,12 +441,21 @@ export const setupTools = (server: Server) => {
   });
 };
 
+function timeoutUntilDeadline(fallbackMs: number, deadlineAt?: number): number {
+  if (typeof deadlineAt !== 'number') return fallbackMs;
+  const remaining = Math.floor(deadlineAt - Date.now());
+  if (remaining <= 0) throw new Error('Request deadline exceeded');
+  return Math.max(250, Math.min(fallbackMs, remaining));
+}
+
 function timeoutFor(name: string, args: any, deadlineAt?: number): number {
-  const ceiling = LONG_TOOL.test(name) ? 120_000 : 60_000;
+  const ceiling = MAX_TOOL_TRANSPORT_TIMEOUT_MS;
   const requested = Number(args.timeoutMs ?? args.timeout);
   const timeout = Number.isFinite(requested)
     ? Math.min(Math.max(requested, MIN_TOOL_TRANSPORT_TIMEOUT_MS), ceiling)
-    : ceiling;
+    : LONG_TOOL.test(name)
+      ? LONG_TOOL_TRANSPORT_TIMEOUT_MS
+      : DEFAULT_TOOL_TRANSPORT_TIMEOUT_MS;
   if (typeof deadlineAt !== 'number') return timeout;
   const remaining = Math.floor(deadlineAt - Date.now());
   if (remaining <= 0) throw new Error('Request deadline exceeded');
@@ -480,12 +493,12 @@ function serialByTab<T>(
   return result;
 }
 
-async function resolveWriteTab(args: any, signal?: AbortSignal): Promise<any> {
+async function resolveWriteTab(args: any, signal?: AbortSignal, deadlineAt?: number): Promise<any> {
   if (typeof args.tabId === 'number' || args.newWindow) return args;
   const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
     { name: 'chrome_get_tab_url', args: { windowId: args.windowId } },
     NativeMessageType.CALL_TOOL,
-    5_000,
+    timeoutUntilDeadline(INTERNAL_TOOL_TIMEOUT_MS, deadlineAt),
     signal,
   );
   const text = response?.data?.content?.[0]?.text;
@@ -507,6 +520,7 @@ async function resolveRecentOrActiveTab(
   args: any,
   signal: AbortSignal | undefined,
   excludeRequestId: string,
+  deadlineAt?: number,
 ): Promise<any> {
   if (typeof args.tabId === 'number' || args.newWindow || Array.isArray(args.tabIds)) return args;
 
@@ -522,7 +536,7 @@ async function resolveRecentOrActiveTab(
       const recentTab = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
         { name: 'chrome_get_tab_url', args: { tabId: recentTabId } },
         NativeMessageType.CALL_TOOL,
-        5_000,
+        timeoutUntilDeadline(INTERNAL_TOOL_TIMEOUT_MS, deadlineAt),
         signal,
       );
       if (recentTab?.status === 'success' && recentTab.data?.isError !== true) {
@@ -536,7 +550,7 @@ async function resolveRecentOrActiveTab(
   const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
     { name: 'chrome_get_tab_url', args: { windowId: args.windowId } },
     NativeMessageType.CALL_TOOL,
-    5_000,
+    timeoutUntilDeadline(INTERNAL_TOOL_TIMEOUT_MS, deadlineAt),
     signal,
   );
   const text = response?.data?.content?.[0]?.text;
@@ -697,9 +711,9 @@ export const handleToolCall = async (
     }
 
     if (RECENT_TAB_DEFAULT_TOOLS.has(name))
-      args = await resolveRecentOrActiveTab(args, signal, activity.requestId);
+      args = await resolveRecentOrActiveTab(args, signal, activity.requestId, deadlineAt);
     if (WRITE_TOOL.test(name) && !name.startsWith('flow.') && !SELF_RESOLVING_WRITE_TOOLS.has(name))
-      args = await resolveWriteTab(args, signal);
+      args = await resolveWriteTab(args, signal, deadlineAt);
     activity.tabId = args.tabId;
     // If calling a dynamic flow tool (name starts with flow.), proxy to common flow-run tool
     if (name && name.startsWith('flow.')) {
@@ -709,7 +723,7 @@ export const handleToolCall = async (
         const resp = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
           {},
           'rr_list_published_flows',
-          20000,
+          timeoutUntilDeadline(INTERNAL_TOOL_TIMEOUT_MS, deadlineAt),
           signal,
           undefined,
           activity.traceId,

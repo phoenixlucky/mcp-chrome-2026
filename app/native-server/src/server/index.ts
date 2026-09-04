@@ -59,7 +59,7 @@ interface ExtensionRequestPayload {
 
 type McpTransport = StreamableHTTPServerTransport | SSEServerTransport;
 type McpTransportType = 'streamable-http' | 'sse' | 'stdio';
-type McpEndpoint = '/mcp' | '/sse';
+type McpEndpoint = '/mcp' | '/mcp-new' | '/sse';
 const STDIO_MCP_ORIGIN = 'chrome-extension://mcp-stdio';
 
 interface McpClientInfo {
@@ -105,11 +105,14 @@ interface StatelessMcpStats {
   errorCount: number;
 }
 
-interface StatelessMcpRequest {
+interface ActiveMcpRequest {
   requestId: string;
   method: string;
   toolName: string | null;
   jsonRpcId: string | number | null;
+  endpoint?: McpEndpoint;
+  transport?: McpTransportType;
+  sessionId?: string | null;
   clientInfo: McpClientInfo | null;
   remoteAddress: string | null;
   userAgent: string | null;
@@ -199,7 +202,10 @@ export class Server {
     userAgent: null,
     errorCount: 0,
   };
-  private readonly statelessMcpRequests = new Map<string, StatelessMcpRequest>();
+  private readonly mcpRequests = new Map<string, ActiveMcpRequest>();
+  // Keep the old private name as an alias for compatibility with diagnostics
+  // and tests written for the original /mcp-new-only monitor.
+  private readonly statelessMcpRequests = this.mcpRequests;
   private startedAt = Date.now();
   private reclaimedSessions = 0;
   private cleanupTimer: NodeJS.Timeout | null = null;
@@ -298,6 +304,7 @@ export class Server {
         pathname.startsWith('/artifacts/') ||
         pathname === '/__chrome_mcp_bridge/start' ||
         pathname === '/__chrome_mcp_bridge/stop' ||
+        pathname.startsWith('/__chrome_mcp_bridge/requests/') ||
         pathname.startsWith('/__chrome_mcp_bridge/mcp-new/requests/');
       if (!isMcpRoute && !isProtectedLocalRoute) return;
 
@@ -354,6 +361,7 @@ export class Server {
       '/status',
       async (request: FastifyRequest<{ Querystring: { probe?: string } }>, reply: FastifyReply) => {
         const sessions = [...this.transportsMap.values()];
+        const activeMcpRequests = this.activeMcpRequestSnapshots();
         let probe: Record<string, unknown> | undefined;
         if (request.query.probe === '1' && this.serviceEnabled) {
           const startedAt = Date.now();
@@ -396,7 +404,8 @@ export class Server {
           },
           mcp: {
             activeSessions: sessions.length,
-            activeRequests: sessions.reduce((total, session) => total + session.activeRequests, 0),
+            activeRequests: activeMcpRequests.length,
+            requests: activeMcpRequests,
             reclaimedSessions: this.reclaimedSessions,
             streamableHttp: true,
             clients: [...this.transportsMap.entries()].map(([sessionId, session]) => ({
@@ -430,18 +439,10 @@ export class Server {
               remoteAddress: this.statelessMcpStats.remoteAddress,
               userAgent: this.statelessMcpStats.userAgent,
               errorCount: this.statelessMcpStats.errorCount,
-              requests: [...this.statelessMcpRequests.values()].map((activeRequest) => ({
-                requestId: activeRequest.requestId,
-                method: activeRequest.method,
-                toolName: activeRequest.toolName,
-                jsonRpcId: activeRequest.jsonRpcId,
-                clientInfo: activeRequest.clientInfo,
-                remoteAddress: activeRequest.remoteAddress,
-                userAgent: activeRequest.userAgent,
-                startedAt: activeRequest.startedAt,
-                elapsedMs: Math.max(0, Date.now() - new Date(activeRequest.startedAt).getTime()),
-                cancelRequestedAt: activeRequest.cancelRequestedAt,
-              })),
+              requests: activeMcpRequests.filter(
+                (activeRequest) =>
+                  activeRequest.endpoint === '/mcp-new' || activeRequest.endpoint === undefined,
+              ),
             },
           },
           extension: this.nativeHost?.getStatus() ?? null,
@@ -499,30 +500,30 @@ export class Server {
       }
     });
 
-    this.fastify.post(
-      '/__chrome_mcp_bridge/mcp-new/requests/:requestId/cancel',
-      async (request, reply) => {
-        const requestId = (request.params as { requestId?: string }).requestId?.trim();
-        const activeRequest = requestId ? this.statelessMcpRequests.get(requestId) : undefined;
-        if (!activeRequest) {
-          return reply.status(HTTP_STATUS.NOT_FOUND).send({
-            status: 'not_found',
-            message: '请求已结束或不存在。',
-          });
-        }
+    const cancelMcpRequest = async (request: FastifyRequest, reply: FastifyReply) => {
+      const requestId = (request.params as { requestId?: string }).requestId?.trim();
+      const activeRequest = requestId ? this.mcpRequests.get(requestId) : undefined;
+      if (!activeRequest) {
+        return reply.status(HTTP_STATUS.NOT_FOUND).send({
+          status: 'not_found',
+          message: '请求已结束或不存在。',
+        });
+      }
 
-        if (activeRequest.cancelRequestedAt || !activeRequest.cancel()) {
-          return reply.status(HTTP_STATUS.OK).send({
-            status: 'cancelling',
-            requestId: activeRequest.requestId,
-          });
-        }
-        return reply.status(HTTP_STATUS.ACCEPTED).send({
-          status: 'cancel_requested',
+      if (activeRequest.cancelRequestedAt || !activeRequest.cancel()) {
+        return reply.status(HTTP_STATUS.OK).send({
+          status: 'cancelling',
           requestId: activeRequest.requestId,
         });
-      },
-    );
+      }
+      return reply.status(HTTP_STATUS.ACCEPTED).send({
+        status: 'cancel_requested',
+        requestId: activeRequest.requestId,
+      });
+    };
+    this.fastify.post('/__chrome_mcp_bridge/requests/:requestId/cancel', cancelMcpRequest);
+    // Keep the original path as a compatibility alias for older desktop clients.
+    this.fastify.post('/__chrome_mcp_bridge/mcp-new/requests/:requestId/cancel', cancelMcpRequest);
 
     // A user may have opened the EXE before Chrome launches the Native
     // Messaging host. The latter must be able to take over the HTTP port so
@@ -573,6 +574,64 @@ export class Server {
     session.latencySamplesMs.push(latencyMs);
     if (session.latencySamplesMs.length > 100) session.latencySamplesMs.shift();
     session.maxRequestLatencyMs = Math.max(session.maxRequestLatencyMs ?? 0, latencyMs);
+  }
+
+  private trackMcpRequest(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    metadata: {
+      endpoint: McpEndpoint;
+      transport: McpTransportType;
+      sessionId?: string | null;
+    },
+  ): ActiveMcpRequest {
+    const body = request.body as Record<string, unknown> | undefined;
+    const params =
+      body?.params && typeof body.params === 'object'
+        ? (body.params as Record<string, unknown>)
+        : undefined;
+    const activeRequest: ActiveMcpRequest = {
+      requestId: randomUUID(),
+      method: typeof body?.method === 'string' ? body.method : request.method,
+      toolName: typeof params?.name === 'string' ? params.name : null,
+      jsonRpcId: typeof body?.id === 'string' || typeof body?.id === 'number' ? body.id : null,
+      endpoint: metadata.endpoint,
+      transport: metadata.transport,
+      sessionId: metadata.sessionId ?? null,
+      clientInfo: getMcpClientInfo(body),
+      remoteAddress: request.ip,
+      userAgent: getHeaderValue(request.headers['user-agent']),
+      startedAt: new Date().toISOString(),
+      cancelRequestedAt: null,
+      cancel: () => {
+        if (reply.raw.writableEnded || reply.raw.destroyed) return false;
+        activeRequest.cancelRequestedAt = new Date().toISOString();
+        // Closing the HTTP response propagates to the MCP transport's
+        // AbortSignal, which then cancels the browser tool execution.
+        reply.raw.destroy();
+        return true;
+      },
+    };
+    this.mcpRequests.set(activeRequest.requestId, activeRequest);
+    return activeRequest;
+  }
+
+  private activeMcpRequestSnapshots(): Array<Record<string, unknown>> {
+    return [...this.mcpRequests.values()].map((activeRequest) => ({
+      requestId: activeRequest.requestId,
+      method: activeRequest.method,
+      toolName: activeRequest.toolName,
+      endpoint: activeRequest.endpoint,
+      transport: activeRequest.transport,
+      sessionId: activeRequest.sessionId ?? null,
+      jsonRpcId: activeRequest.jsonRpcId,
+      clientInfo: activeRequest.clientInfo,
+      remoteAddress: activeRequest.remoteAddress,
+      userAgent: activeRequest.userAgent,
+      startedAt: activeRequest.startedAt,
+      elapsedMs: Math.max(0, Date.now() - new Date(activeRequest.startedAt).getTime()),
+      cancelRequestedAt: activeRequest.cancelRequestedAt,
+    }));
   }
 
   private async cleanupStaleSessions(): Promise<void> {
@@ -693,6 +752,11 @@ export class Server {
         session.clientInfo = getMcpClientInfo(req.body) ?? session.clientInfo;
         session.activeRequests++;
         const startedAt = Date.now();
+        const activeRequest = this.trackMcpRequest(req, reply, {
+          endpoint: '/sse',
+          transport: 'sse',
+          sessionId,
+        });
         try {
           await transport.handlePostMessage(req.raw, reply.raw, req.body);
         } catch (error) {
@@ -700,6 +764,7 @@ export class Server {
           session.lastError = error instanceof Error ? error.message : String(error);
           throw error;
         } finally {
+          this.mcpRequests.delete(activeRequest.requestId);
           session.activeRequests--;
           this.recordRequestLatency(session, startedAt);
         }
@@ -758,6 +823,13 @@ export class Server {
         session.activeRequests++;
       }
       const startedAt = Date.now();
+      const activeRequest = this.trackMcpRequest(request, reply, {
+        endpoint: '/mcp',
+        transport:
+          session?.transportType ??
+          (request.headers.origin === STDIO_MCP_ORIGIN ? 'stdio' : 'streamable-http'),
+        sessionId: sessionId || transport.sessionId || null,
+      });
       try {
         await transport.handleRequest(request.raw, reply.raw, request.body);
       } catch (error) {
@@ -771,6 +843,7 @@ export class Server {
             .send({ error: ERROR_MESSAGES.MCP_REQUEST_PROCESSING_ERROR });
         }
       } finally {
+        this.mcpRequests.delete(activeRequest.requestId);
         if (trackedSession && session) session.activeRequests--;
         const currentSession =
           session ?? this.transportsMap.get(transport.sessionId || sessionId || '');
@@ -833,34 +906,12 @@ export class Server {
 
     // Streamable HTTP（尝鲜版） handles POST, GET and DELETE on one endpoint.
     this.fastify.all('/mcp-new', async (request, reply) => {
-      const stats = this.statelessMcpStats;
       const startedAt = Date.now();
-      const body = request.body as Record<string, unknown> | undefined;
-      const params =
-        body?.params && typeof body.params === 'object'
-          ? (body.params as Record<string, unknown>)
-          : undefined;
-      const requestId = randomUUID();
-      const activeRequest: StatelessMcpRequest = {
-        requestId,
-        method: typeof body?.method === 'string' ? body.method : request.method,
-        toolName: typeof params?.name === 'string' ? params.name : null,
-        jsonRpcId: typeof body?.id === 'string' || typeof body?.id === 'number' ? body.id : null,
-        clientInfo: getMcpClientInfo(body),
-        remoteAddress: request.ip,
-        userAgent: getHeaderValue(request.headers['user-agent']),
-        startedAt: new Date().toISOString(),
-        cancelRequestedAt: null,
-        cancel: () => {
-          if (reply.raw.writableEnded || reply.raw.destroyed) return false;
-          activeRequest.cancelRequestedAt = new Date().toISOString();
-          // The MCP Node adapter listens for response close and propagates it
-          // to the request AbortSignal used by tools/call.
-          reply.raw.destroy();
-          return true;
-        },
-      };
-      this.statelessMcpRequests.set(requestId, activeRequest);
+      const activeRequest = this.trackMcpRequest(request, reply, {
+        endpoint: '/mcp-new',
+        transport: 'streamable-http',
+      });
+      const stats = this.statelessMcpStats;
       stats.activeRequests++;
       stats.requestCount++;
       stats.lastRequestAt = new Date();
@@ -873,7 +924,7 @@ export class Server {
         stats.errorCount++;
         throw error;
       } finally {
-        this.statelessMcpRequests.delete(requestId);
+        this.mcpRequests.delete(activeRequest.requestId);
         stats.activeRequests--;
         stats.lastRequestLatencyMs = Math.max(0, Date.now() - startedAt);
       }

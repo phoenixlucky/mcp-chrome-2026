@@ -174,7 +174,7 @@ fn cancel_mcp_request(request_id: String, state: State<'_, BridgeState>) -> Brid
     request_json(
         state.port,
         "POST",
-        &format!("/__chrome_mcp_bridge/mcp-new/requests/{request_id}/cancel"),
+        &format!("/__chrome_mcp_bridge/requests/{request_id}/cancel"),
     )
 }
 
