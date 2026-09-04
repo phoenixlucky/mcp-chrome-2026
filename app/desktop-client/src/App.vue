@@ -43,6 +43,20 @@ type StatelessMcpStatus = {
   remoteAddress: string | null;
   userAgent: string | null;
   errorCount: number;
+  requests: StatelessMcpRequest[];
+};
+
+type StatelessMcpRequest = {
+  requestId: string;
+  method: string;
+  toolName: string | null;
+  jsonRpcId: string | number | null;
+  clientInfo: { name: string; version: string } | null;
+  remoteAddress: string | null;
+  userAgent: string | null;
+  startedAt: string;
+  elapsedMs: number;
+  cancelRequestedAt: string | null;
 };
 
 const state = reactive({
@@ -88,7 +102,12 @@ const statelessMcp = computed<StatelessMcpStatus | null>(() => {
   const value = state.data?.mcp?.stateless as Partial<StatelessMcpStatus> | undefined;
   return value?.endpoint === '/mcp-new' ? (value as StatelessMcpStatus) : null;
 });
+const statelessRequests = computed<StatelessMcpRequest[]>(() => {
+  const value = statelessMcp.value?.requests;
+  return Array.isArray(value) ? value : [];
+});
 const showClients = ref(false);
+const cancellingRequestId = ref<string | null>(null);
 
 watch(showClients, (open) => {
   document.body.classList.toggle('modal-open', open);
@@ -157,6 +176,16 @@ function formatDuration(value: string | undefined) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} 小时 ${minutes % 60} 分钟`;
   return `${Math.floor(hours / 24)} 天 ${hours % 24} 小时`;
+}
+
+function formatElapsed(value: number | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  if (value < 1000) return `${value} ms`;
+  return `${(value / 1000).toFixed(1)} s`;
+}
+
+function shortRequestId(requestId: string) {
+  return requestId ? `…${requestId.slice(-8)}` : '—';
 }
 
 async function localRequest(path: string, method = 'GET'): Promise<BridgeResponse> {
@@ -236,6 +265,24 @@ async function openLog() {
     await invoke('open_log').catch((error) => {
       state.message = error instanceof Error ? error.message : String(error);
     });
+  }
+}
+
+async function cancelStatelessRequest(request: StatelessMcpRequest) {
+  if (cancellingRequestId.value) return;
+  cancellingRequestId.value = request.requestId;
+  state.message = '正在中断无会话请求…';
+  try {
+    const path = `/__chrome_mcp_bridge/mcp-new/requests/${encodeURIComponent(request.requestId)}/cancel`;
+    const response = isTauri
+      ? await invoke<BridgeResponse>('cancel_mcp_request', { requestId: request.requestId })
+      : await localRequest(path, 'POST');
+    state.message = response.ok ? '已发送中断请求' : response.error || '中断请求失败';
+  } catch (error) {
+    state.message = error instanceof Error ? error.message : String(error);
+  } finally {
+    cancellingRequestId.value = null;
+    await refresh();
   }
 }
 
@@ -419,7 +466,7 @@ onUnmounted(() => {
     <section class="details panel">
       <div class="detail-head"
         ><span class="section-kicker">DIAGNOSTICS</span
-        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.5.5</span></div
+        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.5.6</span></div
       >
       <p>{{ state.message }}</p>
       <code>Native Messaging：com.chromemcp.nativehost</code>
@@ -502,6 +549,38 @@ onUnmounted(() => {
           <p class="stateless-note"
             >无会话模式不会生成 session ID，这里按请求记录最近活动与耗时。</p
           >
+          <div class="request-monitor">
+            <div class="request-monitor-heading">
+              <strong>活动请求</strong>
+              <span>{{ statelessRequests.length }} 个</span>
+            </div>
+            <div v-if="statelessRequests.length" class="request-list">
+              <article
+                v-for="request in statelessRequests"
+                :key="request.requestId"
+                class="request-entry"
+              >
+                <div class="request-entry-copy">
+                  <strong>{{ request.toolName || request.method }}</strong>
+                  <small>
+                    {{ request.method }} · 已运行 {{ formatElapsed(request.elapsedMs) }} · ID
+                    {{ shortRequestId(request.requestId) }}
+                  </small>
+                  <small v-if="request.jsonRpcId !== null"
+                    >JSON-RPC ID：{{ request.jsonRpcId }}</small
+                  >
+                </div>
+                <button
+                  class="button danger request-cancel"
+                  type="button"
+                  :disabled="Boolean(cancellingRequestId) || Boolean(request.cancelRequestedAt)"
+                  @click="cancelStatelessRequest(request)"
+                  >{{ request.cancelRequestedAt ? '中断中…' : '中断' }}</button
+                >
+              </article>
+            </div>
+            <p v-else class="request-empty">当前没有执行中的无会话请求。</p>
+          </div>
         </article>
 
         <div v-if="clients.length" class="client-list">

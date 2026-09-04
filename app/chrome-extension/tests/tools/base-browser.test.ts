@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BaseBrowserToolExecutor } from '@/entrypoints/background/tools/base-browser';
+import {
+  BaseBrowserToolExecutor,
+  isContentScriptDisconnectedError,
+} from '@/entrypoints/background/tools/base-browser';
 import type { ToolResult } from '@/common/tool-handler';
 
 class TestBrowserTool extends BaseBrowserToolExecutor {
@@ -63,5 +66,17 @@ describe('BaseBrowserToolExecutor target tab resolution', () => {
     );
     expect(getFrame).toHaveBeenCalledWith({ tabId: 12, frameId: 0 });
     expect(executeScript).not.toHaveBeenCalled();
+  });
+
+  it('recognizes Chrome content-script disconnect errors', () => {
+    expect(isContentScriptDisconnectedError(new Error('Could not establish connection.'))).toBe(
+      true,
+    );
+    expect(
+      isContentScriptDisconnectedError(
+        new Error('A listener indicated an asynchronous response by returning true'),
+      ),
+    ).toBe(true);
+    expect(isContentScriptDisconnectedError(new Error('Target tab 12 not found'))).toBe(false);
   });
 });

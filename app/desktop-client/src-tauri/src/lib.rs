@@ -163,6 +163,22 @@ fn control_service(action: String, state: State<'_, BridgeState>) -> BridgeRespo
 }
 
 #[tauri::command]
+fn cancel_mcp_request(request_id: String, state: State<'_, BridgeState>) -> BridgeResponse {
+    if request_id.is_empty()
+        || !request_id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '-')
+    {
+        return error_response("无效的 MCP 请求 ID");
+    }
+    request_json(
+        state.port,
+        "POST",
+        &format!("/__chrome_mcp_bridge/mcp-new/requests/{request_id}/cancel"),
+    )
+}
+
+#[tauri::command]
 fn start_bridge(app: AppHandle, state: State<'_, BridgeState>) -> Result<String, String> {
     if request_json(state.port, "GET", "/ping").ok {
         return Ok("attached".into());
@@ -221,7 +237,14 @@ pub fn run() {
     };
     tauri::Builder::default()
         .manage(state)
-        .invoke_handler(tauri::generate_handler![get_status, health_check, control_service, start_bridge, open_log])
+        .invoke_handler(tauri::generate_handler![
+            get_status,
+            health_check,
+            control_service,
+            cancel_mcp_request,
+            start_bridge,
+            open_log
+        ])
         .setup(|app| {
             let show = MenuItem::with_id(app, "show", "显示客户端", true, None::<&str>)?;
             let health = MenuItem::with_id(app, "health", "立即健康检查", true, None::<&str>)?;

@@ -104,6 +104,19 @@ interface StatelessMcpStats {
   userAgent: string | null;
   errorCount: number;
 }
+
+interface StatelessMcpRequest {
+  requestId: string;
+  method: string;
+  toolName: string | null;
+  jsonRpcId: string | number | null;
+  clientInfo: McpClientInfo | null;
+  remoteAddress: string | null;
+  userAgent: string | null;
+  startedAt: string;
+  cancelRequestedAt: string | null;
+  cancel: () => boolean;
+}
 const SESSION_TTL_MS = 10 * 60_000;
 
 function percentile(values: number[], ratio: number): number | null {
@@ -186,6 +199,7 @@ export class Server {
     userAgent: null,
     errorCount: 0,
   };
+  private readonly statelessMcpRequests = new Map<string, StatelessMcpRequest>();
   private startedAt = Date.now();
   private reclaimedSessions = 0;
   private cleanupTimer: NodeJS.Timeout | null = null;
@@ -283,7 +297,8 @@ export class Server {
         pathname === '/ask-extension' ||
         pathname.startsWith('/artifacts/') ||
         pathname === '/__chrome_mcp_bridge/start' ||
-        pathname === '/__chrome_mcp_bridge/stop';
+        pathname === '/__chrome_mcp_bridge/stop' ||
+        pathname.startsWith('/__chrome_mcp_bridge/mcp-new/requests/');
       if (!isMcpRoute && !isProtectedLocalRoute) return;
 
       const expectedKey = process.env[MCP_API_KEY_ENV]?.trim();
@@ -415,6 +430,18 @@ export class Server {
               remoteAddress: this.statelessMcpStats.remoteAddress,
               userAgent: this.statelessMcpStats.userAgent,
               errorCount: this.statelessMcpStats.errorCount,
+              requests: [...this.statelessMcpRequests.values()].map((activeRequest) => ({
+                requestId: activeRequest.requestId,
+                method: activeRequest.method,
+                toolName: activeRequest.toolName,
+                jsonRpcId: activeRequest.jsonRpcId,
+                clientInfo: activeRequest.clientInfo,
+                remoteAddress: activeRequest.remoteAddress,
+                userAgent: activeRequest.userAgent,
+                startedAt: activeRequest.startedAt,
+                elapsedMs: Math.max(0, Date.now() - new Date(activeRequest.startedAt).getTime()),
+                cancelRequestedAt: activeRequest.cancelRequestedAt,
+              })),
             },
           },
           extension: this.nativeHost?.getStatus() ?? null,
@@ -471,6 +498,31 @@ export class Server {
         });
       }
     });
+
+    this.fastify.post(
+      '/__chrome_mcp_bridge/mcp-new/requests/:requestId/cancel',
+      async (request, reply) => {
+        const requestId = (request.params as { requestId?: string }).requestId?.trim();
+        const activeRequest = requestId ? this.statelessMcpRequests.get(requestId) : undefined;
+        if (!activeRequest) {
+          return reply.status(HTTP_STATUS.NOT_FOUND).send({
+            status: 'not_found',
+            message: '请求已结束或不存在。',
+          });
+        }
+
+        if (activeRequest.cancelRequestedAt || !activeRequest.cancel()) {
+          return reply.status(HTTP_STATUS.OK).send({
+            status: 'cancelling',
+            requestId: activeRequest.requestId,
+          });
+        }
+        return reply.status(HTTP_STATUS.ACCEPTED).send({
+          status: 'cancel_requested',
+          requestId: activeRequest.requestId,
+        });
+      },
+    );
 
     // A user may have opened the EXE before Chrome launches the Native
     // Messaging host. The latter must be able to take over the HTTP port so
@@ -783,6 +835,32 @@ export class Server {
     this.fastify.all('/mcp-new', async (request, reply) => {
       const stats = this.statelessMcpStats;
       const startedAt = Date.now();
+      const body = request.body as Record<string, unknown> | undefined;
+      const params =
+        body?.params && typeof body.params === 'object'
+          ? (body.params as Record<string, unknown>)
+          : undefined;
+      const requestId = randomUUID();
+      const activeRequest: StatelessMcpRequest = {
+        requestId,
+        method: typeof body?.method === 'string' ? body.method : request.method,
+        toolName: typeof params?.name === 'string' ? params.name : null,
+        jsonRpcId: typeof body?.id === 'string' || typeof body?.id === 'number' ? body.id : null,
+        clientInfo: getMcpClientInfo(body),
+        remoteAddress: request.ip,
+        userAgent: getHeaderValue(request.headers['user-agent']),
+        startedAt: new Date().toISOString(),
+        cancelRequestedAt: null,
+        cancel: () => {
+          if (reply.raw.writableEnded || reply.raw.destroyed) return false;
+          activeRequest.cancelRequestedAt = new Date().toISOString();
+          // The MCP Node adapter listens for response close and propagates it
+          // to the request AbortSignal used by tools/call.
+          reply.raw.destroy();
+          return true;
+        },
+      };
+      this.statelessMcpRequests.set(requestId, activeRequest);
       stats.activeRequests++;
       stats.requestCount++;
       stats.lastRequestAt = new Date();
@@ -795,6 +873,7 @@ export class Server {
         stats.errorCount++;
         throw error;
       } finally {
+        this.statelessMcpRequests.delete(requestId);
         stats.activeRequests--;
         stats.lastRequestLatencyMs = Math.max(0, Date.now() - startedAt);
       }

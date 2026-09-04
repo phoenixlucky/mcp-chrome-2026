@@ -49,6 +49,7 @@ export function isAllowedCorsOrigin(origin: string): boolean {
 // HTTP Status codes
 export const HTTP_STATUS = {
   OK: 200,
+  ACCEPTED: 202,
   CREATED: 201,
   NO_CONTENT: 204,
   BAD_REQUEST: 400,

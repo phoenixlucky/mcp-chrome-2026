@@ -116,6 +116,49 @@ let queueCancelCount = 0;
 let lastAdmissionKind: ToolQueueKind = 'write';
 type ToolProgressReporter = (progress: Record<string, unknown>) => void | Promise<void>;
 
+export function isArtifactResponse(response: unknown): response is {
+  type: 'artifact';
+  artifactId: string;
+  contentType?: string;
+  size?: number;
+  sha256?: string;
+  url?: string;
+} {
+  return Boolean(
+    response &&
+    typeof response === 'object' &&
+    (response as Record<string, unknown>).type === 'artifact' &&
+    typeof (response as Record<string, unknown>).artifactId === 'string',
+  );
+}
+
+export function formatNativeToolFailure(response: unknown): string {
+  if (response && typeof response === 'object') {
+    const value = response as Record<string, unknown>;
+    if (typeof value.error === 'string' && value.error.trim()) return value.error;
+    if (
+      value.error &&
+      typeof value.error === 'object' &&
+      typeof (value.error as Record<string, unknown>).message === 'string' &&
+      ((value.error as Record<string, unknown>).message as string).trim()
+    ) {
+      return (value.error as Record<string, unknown>).message as string;
+    }
+    if (typeof value.message === 'string' && value.message.trim()) return value.message;
+    if (typeof value.status === 'string') {
+      return `Chrome extension returned an unsuccessful response (status: ${value.status}).`;
+    }
+  }
+  return 'Chrome extension returned an invalid response.';
+}
+
+export function artifactAsToolResult(response: Record<string, unknown>): CallToolResult {
+  return {
+    content: [{ type: 'text', text: JSON.stringify(response) }],
+    isError: false,
+  };
+}
+
 function queuedToolCount(): number {
   return queuedToolCalls.read.length + queuedToolCalls.write.length;
 }
@@ -702,14 +745,23 @@ export const handleToolCall = async (
             activity.executionStartedAt = new Date().toISOString();
           },
         );
-        if (proxyRes.status === 'success') {
+        if (proxyRes?.status === 'success') {
           activity.outcome = 'success';
           return proxyRes.data;
         }
+        if (isArtifactResponse(proxyRes)) {
+          activity.outcome = 'success';
+          return artifactAsToolResult(proxyRes);
+        }
         activity.outcome = 'error';
-        activity.error = proxyRes.error;
+        activity.error = formatNativeToolFailure(proxyRes);
         return {
-          content: [{ type: 'text', text: `Error calling dynamic flow tool: ${proxyRes.error}` }],
+          content: [
+            {
+              type: 'text',
+              text: `Error calling dynamic flow tool: ${formatNativeToolFailure(proxyRes)}`,
+            },
+          ],
           isError: true,
         };
       } catch (err: any) {
@@ -752,22 +804,26 @@ export const handleToolCall = async (
         activity.executionStartedAt = new Date().toISOString();
       },
     );
-    if (response.status === 'success') {
+    if (response?.status === 'success') {
       activity.outcome = 'success';
       return response.data;
-    } else {
-      activity.outcome = 'error';
-      activity.error = response.error;
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error calling tool: ${response.error}`,
-          },
-        ],
-        isError: true,
-      };
     }
+    if (isArtifactResponse(response)) {
+      activity.outcome = 'success';
+      return artifactAsToolResult(response);
+    }
+    const responseError = formatNativeToolFailure(response);
+    activity.outcome = 'error';
+    activity.error = responseError;
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error calling tool: ${responseError}`,
+        },
+      ],
+      isError: true,
+    };
   } catch (error: any) {
     const code = error instanceof NativeProtocolError ? error.code : undefined;
     if (code === 'DEADLINE_EXCEEDED' || /deadline exceeded/i.test(error?.message || '')) {
@@ -775,12 +831,13 @@ export const handleToolCall = async (
     }
     activity.outcome =
       code === 'CANCELED' || /cancel/i.test(error?.message || '') ? 'cancelled' : 'error';
-    activity.error = code ? `${code}: ${error.message}` : error.message;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    activity.error = code ? `${code}: ${errorMessage}` : errorMessage;
     return {
       content: [
         {
           type: 'text',
-          text: `Error calling tool${code ? ` [${code}]` : ''}: ${error.message}`,
+          text: `Error calling tool${code ? ` [${code}]` : ''}: ${errorMessage}`,
         },
       ],
       isError: true,

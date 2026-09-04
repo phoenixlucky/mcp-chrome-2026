@@ -26,17 +26,16 @@
 
 ---
 
-## 📢 What's New in v2.5.5
+## 📢 What's New in v2.5.6
 
-> **Unified transport + native protocol V2 + concurrency governance** — More stable connections, more reliable channels.
+> **Request observability, cancellation, and extension reconnects** — Easier to diagnose and recover stuck `/mcp-new` calls.
 >
-> - 🛣️ **Unified transport layer** — STDIO / CLI now default to `/mcp-new` (MCP 2026-07-28 session-less transport) and fall back to the compatibility `/mcp` endpoint; deadline, cancellation, retry, and error mapping are consistent across the stack, no `mcp-bridge.js` required
-> - 🔐 **Native protocol V2 only** — pending / controller / queue drain to zero after a disconnect and writes are never auto-replayed; V1 input is rejected with `UNSUPPORTED_VERSION`; single native message capped at 16 MiB
-> - 📦 **Artifact data plane** — chunked uploads for large files (`artifactId + seq + eof + sha256`), atomic writes, TTL and capacity cleanup, sensitive-field redaction
-> - 🛰️ **Event channel** — localhost WebSocket with random port + one-time token, Origin / extension-ID allowlist (reserved for high-frequency events and streaming)
-> - 🛡️ **Security & observability** — exact extension-ID / Origin allowlist, request-body limit (8 MiB default), debug endpoints off by default; per-request traceId and stage timings
-> - 🖥️ **Desktop & extension** — popup transport switching, desktop shows connection types and session-less endpoint stats, session P95
-> - 🔧 All packages bumped to v2.5.5
+> - 🛰️ **Session-less request monitor** — The desktop client shows active `/mcp-new` tools, request IDs, elapsed time, and client information.
+> - ⏹️ **Cancel stuck requests** — Cancel a request from the desktop client by request ID and propagate cancellation through MCP, Native Messaging, and the Chrome extension.
+> - 🔁 **Extension reconnect recovery** — Content-script calls retry once after waiting for the tab and reinjecting the content script when the channel is disconnected.
+> - 📦 **Large-response fix** — Artifact responses are no longer misclassified as failures, eliminating `Error calling tool: undefined`.
+> - 🛡️ **Complete error reporting** — Preserve status and details when the extension returns an unsuccessful response.
+> - 🔧 All release packages bumped to v2.5.6
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

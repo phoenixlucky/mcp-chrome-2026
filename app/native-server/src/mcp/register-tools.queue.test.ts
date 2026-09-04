@@ -1,7 +1,40 @@
 import { afterEach, describe, expect, test } from '@jest/globals';
-import { acquireToolCallSlot, getToolAdmissionStats } from './register-tools.js';
+import {
+  acquireToolCallSlot,
+  artifactAsToolResult,
+  formatNativeToolFailure,
+  getToolAdmissionStats,
+  isArtifactResponse,
+} from './register-tools.js';
 
 describe('tool admission gates', () => {
+  test('never loses an extension error message', () => {
+    expect(formatNativeToolFailure({ status: 'error', error: 'tab is gone' })).toBe('tab is gone');
+    expect(formatNativeToolFailure({ status: 'error', error: { message: 'tab is gone' } })).toBe(
+      'tab is gone',
+    );
+    expect(formatNativeToolFailure({ status: 'error' })).toContain('status: error');
+    expect(formatNativeToolFailure(undefined)).toBe(
+      'Chrome extension returned an invalid response.',
+    );
+  });
+
+  test('treats a completed large-artifact response as a successful tool result', () => {
+    const response = {
+      type: 'artifact',
+      artifactId: 'artifact-1',
+      contentType: 'image/png',
+      size: 300_000,
+      sha256: 'a'.repeat(64),
+      url: 'http://127.0.0.1:12306/artifacts/artifact-1?token=test',
+    };
+    expect(isArtifactResponse(response)).toBe(true);
+    expect(artifactAsToolResult(response)).toEqual({
+      content: [{ type: 'text', text: JSON.stringify(response) }],
+      isError: false,
+    });
+  });
+
   test('rejects a full queue and cancels queued requests', async () => {
     const initial = getToolAdmissionStats();
     expect(initial.active).toBe(0);

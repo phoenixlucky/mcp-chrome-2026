@@ -20,7 +20,7 @@ const nativeMessagingLaunch = process.argv.some(
 // service mode even when it came from a desktop shortcut or double-click.
 const standaloneLaunch = !stdioLaunch && !nativeMessagingLaunch && process.argv.length <= 2;
 const defaultConfig = {
-  version: '2.5.5',
+  version: '2.5.6',
   payloadRevision: '2026-09-02-1',
   extensionId: 'djclnaepokchbblcnepfempfdhejjdml',
   hostName: 'com.chromemcp.nativehost',

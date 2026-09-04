@@ -178,6 +178,45 @@ describe('服务器测试', () => {
     }
   });
 
+  test('无会话活动请求应支持按 ID 中断', async () => {
+    const server = Server as any;
+    let cancelCalls = 0;
+    server.statelessMcpRequests.set('request-under-test', {
+      requestId: 'request-under-test',
+      method: 'tools/call',
+      toolName: 'chrome_wait',
+      jsonRpcId: 42,
+      clientInfo: null,
+      remoteAddress: '127.0.0.1',
+      userAgent: 'test',
+      startedAt: new Date().toISOString(),
+      cancelRequestedAt: null,
+      cancel: () => {
+        cancelCalls++;
+        return true;
+      },
+    });
+    try {
+      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      expect(status.body.mcp.stateless.requests).toEqual([
+        expect.objectContaining({
+          requestId: 'request-under-test',
+          method: 'tools/call',
+          toolName: 'chrome_wait',
+          jsonRpcId: 42,
+        }),
+      ]);
+
+      await supertest(Server.getInstance().server)
+        .post('/__chrome_mcp_bridge/mcp-new/requests/request-under-test/cancel')
+        .expect(202)
+        .expect({ status: 'cancel_requested', requestId: 'request-under-test' });
+      expect(cancelCalls).toBe(1);
+    } finally {
+      server.statelessMcpRequests.delete('request-under-test');
+    }
+  });
+
   test('智能助手设置允许跨域 PUT 保存', async () => {
     const response = await supertest(Server.getInstance().server)
       .options('/agent/settings/deepseek')

@@ -555,6 +555,68 @@ footer {
   font-size: 10px;
   line-height: 1.5;
 }
+.request-monitor {
+  margin: 14px 0 0 42px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(130, 108, 186, 0.3);
+}
+.request-monitor-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #d9d0f0;
+  font-size: 11px;
+}
+.request-monitor-heading span {
+  color: #9d91bd;
+  font-size: 10px;
+}
+.request-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.request-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid #5a4d78;
+  border-radius: 9px;
+  background: rgba(19, 16, 31, 0.54);
+}
+.request-entry-copy {
+  min-width: 0;
+}
+.request-entry-copy strong,
+.request-entry-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.request-entry-copy strong {
+  color: #eee9fb;
+  font-size: 11px;
+}
+.request-entry-copy small {
+  margin-top: 3px;
+  color: #9d91bd;
+  font:
+    9px Consolas,
+    monospace;
+}
+.request-cancel {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  font-size: 10px;
+}
+.request-empty {
+  margin: 8px 0 0;
+  color: #9d91bd;
+  font-size: 10px;
+}
 .client-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

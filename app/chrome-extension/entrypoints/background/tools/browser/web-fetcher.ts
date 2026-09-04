@@ -155,10 +155,14 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 
       // Get HTML content if requested
       if (htmlContent) {
-        const htmlResponse = await this.sendMessageToTab(tabId, {
-          action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_HTML_CONTENT,
-          selector: selector,
-        });
+        const htmlResponse = await this.sendMessageToTabWithRetry(
+          tabId,
+          {
+            action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_HTML_CONTENT,
+            selector: selector,
+          },
+          [WEB_FETCHER_SCRIPT],
+        );
 
         if (htmlResponse.success) {
           result.htmlContent = htmlResponse.htmlContent;
@@ -172,10 +176,14 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 
       // Get text content if requested (and htmlContent is not true)
       if (textContent) {
-        const textResponse = await this.sendMessageToTab(tabId, {
-          action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_TEXT_CONTENT,
-          selector: selector,
-        });
+        const textResponse = await this.sendMessageToTabWithRetry(
+          tabId,
+          {
+            action: TOOL_MESSAGE_TYPES.WEB_FETCHER_GET_TEXT_CONTENT,
+            selector: selector,
+          },
+          [WEB_FETCHER_SCRIPT],
+        );
 
         if (textResponse.success) {
           result.textContent = textResponse.textContent;
@@ -256,13 +264,17 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
       await this.injectContentScript(tab.id, ['inject-scripts/interactive-elements-helper.js']);
 
       // Send message to content script
-      const result = await this.sendMessageToTab(tab.id, {
-        action: TOOL_MESSAGE_TYPES.GET_INTERACTIVE_ELEMENTS,
-        textQuery,
-        selector,
-        includeCoordinates,
-        types,
-      });
+      const result = await this.sendMessageToTabWithRetry(
+        tab.id,
+        {
+          action: TOOL_MESSAGE_TYPES.GET_INTERACTIVE_ELEMENTS,
+          textQuery,
+          selector,
+          includeCoordinates,
+          types,
+        },
+        ['inject-scripts/interactive-elements-helper.js'],
+      );
 
       if (!result.success) {
         return createErrorResponse(result.error || 'Failed to get interactive elements');

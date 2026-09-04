@@ -236,10 +236,14 @@ class ReadPageTool extends BaseBrowserToolExecutor {
       // Fallback path: try get_interactive_elements once
       try {
         await this.injectContentScript(tab.id, ['inject-scripts/interactive-elements-helper.js']);
-        const fallback = await this.sendMessageToTab(tab.id, {
-          action: TOOL_MESSAGE_TYPES.GET_INTERACTIVE_ELEMENTS,
-          includeCoordinates: true,
-        });
+        const fallback = await this.sendMessageToTabWithRetry(
+          tab.id,
+          {
+            action: TOOL_MESSAGE_TYPES.GET_INTERACTIVE_ELEMENTS,
+            includeCoordinates: true,
+          },
+          ['inject-scripts/interactive-elements-helper.js'],
+        );
 
         if (fallback && fallback.success && Array.isArray(fallback.elements)) {
           const limited = fallback.elements.slice(0, 150);

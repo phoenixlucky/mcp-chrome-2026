@@ -26,17 +26,16 @@
 
 ---
 
-## 📢 v2.5.5 更新内容
+## 📢 v2.5.6 更新内容
 
-> **统一传输层 + 原生协议 V2 + 并发治理** — 连接更稳、通道更可靠。
+> **请求可观测、可中断，扩展断连自动恢复** — `/mcp-new` 卡请求更容易定位和处理。
 >
-> - 🛣️ **统一传输层** — STDIO / CLI 默认连接 `/mcp-new`（MCP 2026-07-28 无会话传输），失败自动回退兼容版 `/mcp`；deadline、取消、重试与错误映射全链路一致，不再依赖 `mcp-bridge.js`
-> - 🔐 **原生通道协议 V2 唯一化** — 断线后 pending / controller / queue 归零、写操作不自动重放；V1 输入以 `UNSUPPORTED_VERSION` 拒绝；单条 Native 消息上限 16 MiB
-> - 📦 **Artifact 数据面** — 大文件分片上传（`artifactId + seq + eof + sha256`）、原子落盘、TTL 与容量清理、敏感字段脱敏
-> - 🛰️ **事件通道** — localhost WebSocket：随机端口 + 一次性 Token、Origin / 扩展 ID 白名单（为高频事件与流式预留）
-> - 🛡️ **安全与可观测** — 扩展 ID / Origin 精确白名单、请求体上限（默认 8 MiB）、调试接口默认关闭；每请求 traceId 与分段耗时
-> - 🖥️ **桌面版与扩展** — popup 多传输入口切换、桌面版展示连接类型与无会话端点统计、会话 P95
-> - 🔧 版本统一为 v2.5.5
+> - 🛰️ **无会话请求监控** — 桌面版显示 `/mcp-new` 当前执行中的工具、请求 ID、耗时和客户端信息。
+> - ⏹️ **中断卡住的请求** — 可从桌面版直接按请求 ID 中断，并将取消信号传递到 MCP / Native Messaging / Chrome 扩展。
+> - 🔁 **扩展断连恢复** — `getHtmlContent`、`getInteractiveElements` 等内容脚本调用遇到连接断开时，会等待标签页就绪、重新注入并重试一次。
+> - 📦 **大响应修复** — Artifact 大响应不再被误判为失败，不会再出现 `Error calling tool: undefined`。
+> - 🛡️ **错误信息完整化** — Native 扩展返回异常响应时保留状态和具体原因，便于诊断。
+> - 🔧 所有发布包版本统一为 v2.5.6
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -269,7 +268,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.5.5-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.5.6-win-x64.exe",
       "args": ["--stdio"]
     }
   }

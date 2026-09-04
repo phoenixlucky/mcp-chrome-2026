@@ -3,6 +3,7 @@ import type { ToolProgressReporter, ToolResult } from '@/common/tool-handler';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 
 const PING_TIMEOUT_MS = 300;
+const CONTENT_MESSAGE_TIMEOUT_MS = 15_000;
 
 const NON_INJECTABLE_PROTOCOLS = new Set([
   'chrome-error:',
@@ -30,6 +31,14 @@ export function isExpectedTabError(error: unknown): boolean {
 export function isNavigationErrorPage(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /Frame with ID \d+ is showing error page/i.test(message);
+}
+
+/** Whether Chrome lost the content-script message receiver during navigation. */
+export function isContentScriptDisconnectedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Could not establish connection|Receiving end does not exist|message channel closed|asynchronous response by returning true/i.test(
+    message,
+  );
 }
 
 /**
@@ -154,19 +163,32 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
    */
   protected async sendMessageToTab(tabId: number, message: any, frameId?: number): Promise<any> {
     try {
-      const response =
-        typeof frameId === 'number'
-          ? await chrome.tabs.sendMessage(tabId, message, { frameId })
-          : await chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const response = await Promise.race([
+          typeof frameId === 'number'
+            ? chrome.tabs.sendMessage(tabId, message, { frameId })
+            : chrome.tabs.sendMessage(tabId, message, { frameId: 0 }),
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
+              () => reject(new Error(`Message action ${message?.action || 'unknown'} timed out`)),
+              CONTENT_MESSAGE_TIMEOUT_MS,
+            );
+          }),
+        ]);
 
-      if (response && response.error) {
-        throw new Error(String(response.error));
+        if (response && response.error) {
+          throw new Error(String(response.error));
+        }
+
+        return response;
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
-
-      return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(
+      const log = isContentScriptDisconnectedError(error) ? console.warn : console.error;
+      log(
         `Error sending message to tab ${tabId} for action ${message?.action || 'unknown'}: ${errorMessage}`,
       );
 
@@ -174,6 +196,38 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
         throw error;
       }
       throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Recover once when a page navigation destroys the injected content script.
+   * The retry is deliberately bounded so a genuinely unavailable tab fails
+   * instead of keeping the MCP request pending until its outer deadline.
+   */
+  protected async sendMessageToTabWithRetry(
+    tabId: number,
+    message: any,
+    files: string[],
+    frameId?: number,
+  ): Promise<any> {
+    try {
+      return await this.sendMessageToTab(tabId, message, frameId);
+    } catch (error) {
+      if (!isContentScriptDisconnectedError(error)) throw error;
+
+      console.warn(
+        `Content script disconnected in tab ${tabId}; waiting for navigation and retrying ${message?.action || 'unknown'}`,
+      );
+      await this.waitForTabReady(tabId, 5_000);
+      await this.injectContentScript(
+        tabId,
+        files,
+        false,
+        'ISOLATED',
+        false,
+        typeof frameId === 'number' ? [frameId] : undefined,
+      );
+      return this.sendMessageToTab(tabId, message, frameId);
     }
   }
 

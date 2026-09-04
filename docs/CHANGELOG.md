@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.5.6] - 2026-09-04
+
+### Fixed
+
+- **`/mcp-new` 大响应失败** — 修复 Artifact 响应缺少普通工具 `status` 字段而被误报为 `Error calling tool: undefined` 的问题。
+- **扩展内容脚本断连** — `getHtmlContent` / `getInteractiveElements` 遇到接收端不存在或消息通道关闭时，自动等待标签页就绪、重新注入并重试一次。
+
+### Added
+
+- **无会话请求监控与中断** — 桌面版展示 `/mcp-new` 活动请求及请求 ID、工具名、耗时和客户端信息，并支持按请求 ID 中断。
+- **错误响应兜底** — Native 扩展返回非成功响应时保留错误对象、消息或状态，避免丢失错误上下文。
+
+### Changed
+
+- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.5.6。
+
 ## [v2.5.5] - 2026-09-03
 
 ### Added
