@@ -184,6 +184,7 @@ const launchDates: Record<string, string> = {
   chrome_expand_section: '2026-07-31',
   chrome_scan_for_section: '2026-07-31',
   chrome_paginate_extract: '2026-07-31',
+  chrome_extract_review_summary: '2026-09-04',
   chrome_paste_text: '2026-08-10',
   chrome_post_to_x: '2026-08-10',
   chrome_proxy_diagnostics: '2026-08-03',
@@ -483,6 +484,7 @@ const reviewTools = new Set([
   'chrome_scan_for_section',
   'chrome_paginate_extract',
   'chrome_extract_records',
+  'chrome_extract_review_summary',
   'detect_empty_state',
   'merge_records',
 ]);

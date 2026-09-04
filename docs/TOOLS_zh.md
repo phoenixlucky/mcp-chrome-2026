@@ -1212,6 +1212,12 @@ await callTool('chrome_bookmark_add', {
 
 > 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
 
+### `chrome_extract_review_summary`
+
+提取商品详情页 Reviews 区域的商品 ID、评分和评论数。评论数明确为 0 时返回 empty，并标记为可终止结果，不应继续切换入口或重试；同时支持 /12345/product.html 路径和 productId 查询参数。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
 ### `detect_empty_state`
 
 根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。

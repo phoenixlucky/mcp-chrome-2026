@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   detectEmptyStateFromDom,
+  extractReviewSummaryFromDom,
   extractRecordsFromDom,
   hashCards,
   mergeRecords,
@@ -31,10 +32,40 @@ describe('review tool DOM helpers', () => {
   it('detects empty and content states from configured HTML', () => {
     document.body.innerHTML = '<p>Be the first to review</p><span class="count">0</span>';
     expect(
-      detectEmptyStateFromDom(document, '.review', ['Be the first to review'], '.count').state,
-    ).toBe('empty');
+      detectEmptyStateFromDom(document, '.review', ['Be the first to review'], '.count'),
+    ).toMatchObject({
+      state: 'empty',
+      terminal: true,
+    });
     document.body.innerHTML = '<article class="review">One</article>';
     expect(detectEmptyStateFromDom(document, '.review').state).toBe('has_content');
+  });
+
+  it('extracts a canonical product id and treats zero BBB reviews as a terminal result', () => {
+    document.body.innerHTML = `
+      <div class="review-summary">
+        <h3>Reviews</h3>
+        <div class="rating"><div class="cl-rating-sr">Average Rating: 0.0 Stars</div></div>
+        <span class="review-count">0</span>
+        <a href="https://www.bedbathandbeyond.com/write-review/create?productId=43420824">Write the first review</a>
+      </div>`;
+
+    expect(
+      extractReviewSummaryFromDom(
+        document,
+        'https://www.bedbathandbeyond.com/Home-Garden/raised-bed/43420824/product.html?option=91210608',
+      ),
+    ).toEqual({
+      found: true,
+      state: 'empty',
+      terminal: true,
+      title: 'Reviews',
+      rating: 0,
+      reviewCount: 0,
+      reviewLink: 'https://www.bedbathandbeyond.com/write-review/create?productId=43420824',
+      productId: '43420824',
+      productIdSource: 'path',
+    });
   });
 
   it('changes the card hash when pagination content changes', () => {

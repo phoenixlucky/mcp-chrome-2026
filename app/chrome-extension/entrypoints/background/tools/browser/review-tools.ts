@@ -4,6 +4,7 @@ import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { cdpSessionManager } from '@/utils/cdp-session-manager';
 import {
   detectEmptyStateFromDom,
+  extractReviewSummaryFromDom,
   extractRecordsFromDom,
   hashCards,
   mergeRecords,
@@ -204,6 +205,34 @@ class DetectEmptyStateTool extends ReviewTool {
       return json(
         {
           success: false,
+          state: 'loading_or_unknown',
+          reason: error instanceof Error ? error.message : 'failed',
+        },
+        true,
+      );
+    }
+  }
+}
+
+class ExtractReviewSummaryTool extends ReviewTool {
+  name = TOOL_NAMES.BROWSER.EXTRACT_REVIEW_SUMMARY;
+
+  async execute(args: Target): Promise<ToolResult> {
+    try {
+      const tabId = await this.tabId(args);
+      const root = args.frameSelector
+        ? `document.querySelector(${JSON.stringify(args.frameSelector)})?.contentDocument`
+        : 'document';
+      const output = await this.eval(
+        tabId,
+        `(${extractReviewSummaryFromDom.toString()})(${root}, location.href)`,
+      );
+      return json({ success: true, ...(output as object) });
+    } catch (error) {
+      return json(
+        {
+          success: false,
+          found: false,
           state: 'loading_or_unknown',
           reason: error instanceof Error ? error.message : 'failed',
         },
@@ -525,6 +554,7 @@ class PaginateExtractTool extends ReviewTool {
 export const findAndClickTool = new FindAndClickTool();
 export const extractRecordsTool = new ExtractRecordsTool();
 export const detectEmptyStateTool = new DetectEmptyStateTool();
+export const extractReviewSummaryTool = new ExtractReviewSummaryTool();
 export const mergeRecordsTool = new MergeRecordsTool();
 export const expandSectionTool = new ExpandSectionTool();
 export const scanForSectionTool = new ScanForSectionTool();

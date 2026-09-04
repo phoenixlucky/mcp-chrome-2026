@@ -1103,8 +1103,6 @@ When the MCP request includes `_meta.progressToken` and the client supports `not
 }
 ```
 
-
-
 ## 🔄 Schema Catalog Additions
 
 > This section is generated from the shared tool schema.
@@ -1148,6 +1146,12 @@ When the MCP request includes `_meta.progressToken` and the client supports `not
 ### `chrome_extract_records`
 
 从卡片中抽取调用方指定的原始字段，并按不区分大小写的文本规则排除记录。
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_review_summary`
+
+提取商品详情页 Reviews 区域的商品 ID、评分和评论数。评论数明确为 0 时返回 empty，并标记为可终止结果，不应继续切换入口或重试；同时支持 /12345/product.html 路径和 productId 查询参数。
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
@@ -1348,8 +1352,6 @@ Click a CSS-selected element, then wait for another selector to reach the reques
 Paste multi-paragraph text into a rich-text editor via a synthesized ClipboardEvent("paste") carrying a DataTransfer (built for Draft.js editors such as Zhihu and Medium). The editor receives the text through its native paste path, so every paragraph is kept, and no window focus or system clipboard is required. Use this instead of chrome_computer type (breaks with newlines), execCommand("insertText") (keeps only the last paragraph), or the Clipboard API (rejected without focus). After pasting, reload the page to verify the draft, then click the publish button.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
-
-
 
 ## 🔄 Schema Catalog Additions
 

@@ -67,6 +67,7 @@ export {
 } from './collector-tools';
 export {
   detectEmptyStateTool,
+  extractReviewSummaryTool,
   expandSectionTool,
   extractRecordsTool,
   findAndClickTool,

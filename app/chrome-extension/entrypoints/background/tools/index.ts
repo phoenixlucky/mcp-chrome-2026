@@ -158,6 +158,8 @@ function operationDetail(param: ToolCallParam): string {
       return `轮换代理并刷新页面${compact(args.reason) ? `：${compact(args.reason)}` : ''}`;
     case 'chrome_get_scroll_state':
       return '读取滚动状态';
+    case 'chrome_extract_review_summary':
+      return '提取商品评论摘要';
     default:
       return '';
   }
@@ -292,6 +294,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           chrome_get_tab_url: '读取地址',
           chrome_proxy_rotate: '轮换 IP',
           chrome_get_scroll_state: '读取滚动状态',
+          chrome_extract_review_summary: '提取评论摘要',
         };
         let target: Element | null = null;
         try {

@@ -74,6 +74,7 @@ const TOOL_NAMES = {
     SCAN_FOR_SECTION: 'chrome_scan_for_section',
     PAGINATE_EXTRACT: 'chrome_paginate_extract',
     EXTRACT_RECORDS: 'chrome_extract_records',
+    EXTRACT_REVIEW_SUMMARY: 'chrome_extract_review_summary',
     DETECT_EMPTY_STATE: 'detect_empty_state',
     MERGE_RECORDS: 'merge_records',
     COLLECT_VIRTUAL_LIST: 'collect_virtual_list',
@@ -327,8 +328,23 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.EXTRACT_REVIEW_SUMMARY,
+    description:
+      'Extract the product ID, rating, and review count from a product page Reviews section. An explicit review count of 0 is a valid terminal empty result and should not trigger fallback navigation or retries; supports /12345/product.html paths and productId query parameters.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: [],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.DETECT_EMPTY_STATE,
-    description: '根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。',
+    description:
+      'Classify a region as has_content, empty, or loading_or_unknown from selectors and text markers; an explicit zero review count returns empty with terminal=true, so no retry is needed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2784,8 +2800,10 @@ const EN_TOOL_DESCRIPTIONS: Record<string, string> = {
     'Extract the current page, click the requested next-page candidate, and continue only after the card HTML changes.',
   chrome_extract_records:
     'Extract caller-selected raw fields from cards and exclude records using case-insensitive text rules.',
+  chrome_extract_review_summary:
+    'Extract the product ID, rating, and review count from a product page Reviews section. A confirmed zero review count is a valid terminal result and must not trigger retries.',
   detect_empty_state:
-    'Classify a region as has_content, empty, or loading_or_unknown from selectors and text markers.',
+    'Classify a region as has_content, empty, or loading_or_unknown from selectors and text markers; confirmed zero counts are terminal empty results.',
   merge_records:
     'Merge records using caller-provided identity fields and source priority without reading or persisting browser state.',
   chrome_list_frames:

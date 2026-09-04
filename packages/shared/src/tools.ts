@@ -74,6 +74,7 @@ export const TOOL_NAMES = {
     SCAN_FOR_SECTION: 'chrome_scan_for_section',
     PAGINATE_EXTRACT: 'chrome_paginate_extract',
     EXTRACT_RECORDS: 'chrome_extract_records',
+    EXTRACT_REVIEW_SUMMARY: 'chrome_extract_review_summary',
     DETECT_EMPTY_STATE: 'detect_empty_state',
     MERGE_RECORDS: 'merge_records',
     COLLECT_VIRTUAL_LIST: 'collect_virtual_list',
@@ -326,8 +327,23 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.EXTRACT_REVIEW_SUMMARY,
+    description:
+      '提取商品详情页 Reviews 区域的商品 ID、评分和评论数。评论数明确为 0 时返回 empty，并标记为可终止结果，不应继续切换入口或重试；同时支持 /12345/product.html 路径和 productId 查询参数。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number' },
+        windowId: { type: 'number' },
+        frameSelector: { type: 'string' },
+      },
+      required: [],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.DETECT_EMPTY_STATE,
-    description: '根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。',
+    description:
+      '根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown；明确的 0 评论数会返回 empty 且 terminal=true，表示无需重试。',
     inputSchema: {
       type: 'object',
       properties: {
