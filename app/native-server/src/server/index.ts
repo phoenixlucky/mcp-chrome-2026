@@ -120,7 +120,28 @@ interface ActiveMcpRequest {
   cancelRequestedAt: string | null;
   cancel: () => boolean;
 }
+
+type McpRequestStatus = 'running' | 'success' | 'error' | 'cancelled';
+
+interface McpRequestRecord {
+  requestId: string;
+  method: string;
+  toolName: string | null;
+  jsonRpcId: string | number | null;
+  endpoint: McpEndpoint;
+  transport: McpTransportType;
+  sessionId: string | null;
+  clientInfo: McpClientInfo | null;
+  remoteAddress: string | null;
+  userAgent: string | null;
+  startedAt: string;
+  elapsedMs: number;
+  status: McpRequestStatus;
+  cancelRequestedAt: string | null;
+  error: string | null;
+}
 const SESSION_TTL_MS = 10 * 60_000;
+const RECENT_MCP_REQUEST_LIMIT = 20;
 
 function percentile(values: number[], ratio: number): number | null {
   if (!values.length) return null;
@@ -203,6 +224,7 @@ export class Server {
     errorCount: 0,
   };
   private readonly mcpRequests = new Map<string, ActiveMcpRequest>();
+  private readonly recentMcpRequests: McpRequestRecord[] = [];
   // Keep the old private name as an alias for compatibility with diagnostics
   // and tests written for the original /mcp-new-only monitor.
   private readonly statelessMcpRequests = this.mcpRequests;
@@ -406,6 +428,7 @@ export class Server {
             activeSessions: sessions.length,
             activeRequests: activeMcpRequests.length,
             requests: activeMcpRequests,
+            recentRequests: this.recentMcpRequests.slice(),
             reclaimedSessions: this.reclaimedSessions,
             streamableHttp: true,
             clients: [...this.transportsMap.entries()].map(([sessionId, session]) => ({
@@ -630,8 +653,62 @@ export class Server {
       userAgent: activeRequest.userAgent,
       startedAt: activeRequest.startedAt,
       elapsedMs: Math.max(0, Date.now() - new Date(activeRequest.startedAt).getTime()),
+      status: 'running' as const,
       cancelRequestedAt: activeRequest.cancelRequestedAt,
+      error: null,
     }));
+  }
+
+  private mcpRequestSnapshot(
+    activeRequest: ActiveMcpRequest,
+    status: McpRequestStatus,
+    error: string | null = null,
+  ): McpRequestRecord {
+    return {
+      requestId: activeRequest.requestId,
+      method: activeRequest.method,
+      toolName: activeRequest.toolName,
+      jsonRpcId: activeRequest.jsonRpcId,
+      endpoint: activeRequest.endpoint ?? '/mcp',
+      transport: activeRequest.transport ?? 'streamable-http',
+      sessionId: activeRequest.sessionId ?? null,
+      clientInfo: activeRequest.clientInfo,
+      remoteAddress: activeRequest.remoteAddress,
+      userAgent: activeRequest.userAgent,
+      startedAt: activeRequest.startedAt,
+      elapsedMs: Math.max(0, Date.now() - new Date(activeRequest.startedAt).getTime()),
+      status,
+      cancelRequestedAt: activeRequest.cancelRequestedAt,
+      error,
+    };
+  }
+
+  private finishMcpRequest(
+    activeRequest: ActiveMcpRequest,
+    status: Exclude<McpRequestStatus, 'running'>,
+    error: string | null = null,
+  ): void {
+    this.mcpRequests.delete(activeRequest.requestId);
+    const finalStatus = activeRequest.cancelRequestedAt ? 'cancelled' : status;
+
+    // Successful protocol housekeeping (initialize, tools/list and notifications)
+    // is intentionally omitted; the history is for useful tool/error diagnostics.
+    if (finalStatus !== 'success' || activeRequest.method === 'tools/call') {
+      this.recentMcpRequests.unshift(this.mcpRequestSnapshot(activeRequest, finalStatus, error));
+      if (this.recentMcpRequests.length > RECENT_MCP_REQUEST_LIMIT) {
+        this.recentMcpRequests.length = RECENT_MCP_REQUEST_LIMIT;
+      }
+    }
+  }
+
+  private statusForMcpError(
+    activeRequest: ActiveMcpRequest,
+    error: unknown,
+  ): Exclude<McpRequestStatus, 'running' | 'success'> {
+    const message = error instanceof Error ? error.message : String(error);
+    return activeRequest.cancelRequestedAt || /abort|cancel/i.test(message)
+      ? 'cancelled'
+      : 'error';
   }
 
   private async cleanupStaleSessions(): Promise<void> {
@@ -739,11 +816,21 @@ export class Server {
 
     // SSE messages endpoint
     this.fastify.post('/messages', async (req, reply) => {
+      const { sessionId } = req.query as { sessionId?: string };
+      const activeRequest = this.trackMcpRequest(req, reply, {
+        endpoint: '/sse',
+        transport: 'sse',
+        sessionId: sessionId || null,
+      });
+      let requestStatus: Exclude<McpRequestStatus, 'running'> = 'success';
+      let requestError: string | null = null;
+      let session: McpSession | undefined;
       try {
-        const { sessionId } = req.query as { sessionId?: string };
-        const session = this.transportsMap.get(sessionId || '');
+        session = this.transportsMap.get(sessionId || '');
         const transport = session?.transport as SSEServerTransport | undefined;
         if (!sessionId || !session || !transport) {
+          requestStatus = 'error';
+          requestError = 'No transport found for sessionId';
           reply.code(HTTP_STATUS.BAD_REQUEST).send('No transport found for sessionId');
           return;
         }
@@ -760,82 +847,94 @@ export class Server {
         try {
           await transport.handlePostMessage(req.raw, reply.raw, req.body);
         } catch (error) {
+          requestStatus = this.statusForMcpError(activeRequest, error);
+          requestError = error instanceof Error ? error.message : String(error);
           session.errorCount++;
-          session.lastError = error instanceof Error ? error.message : String(error);
+          session.lastError = requestError;
           throw error;
         } finally {
-          this.mcpRequests.delete(activeRequest.requestId);
           session.activeRequests--;
           this.recordRequestLatency(session, startedAt);
         }
       } catch (error) {
+        requestStatus = this.statusForMcpError(activeRequest, error);
+        requestError ??= error instanceof Error ? error.message : String(error);
         if (!reply.sent) {
           reply.code(HTTP_STATUS.INTERNAL_SERVER_ERROR).send(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
         }
+      } finally {
+        this.finishMcpRequest(activeRequest, requestStatus, requestError);
       }
     });
 
     // Existing stateful Streamable HTTP endpoint.
     this.fastify.post('/mcp', async (request, reply) => {
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
+      const activeRequest = this.trackMcpRequest(request, reply, {
+        endpoint: '/mcp',
+        transport: request.headers.origin === STDIO_MCP_ORIGIN ? 'stdio' : 'streamable-http',
+        sessionId: sessionId || null,
+      });
+      let requestStatus: Exclude<McpRequestStatus, 'running'> = 'success';
+      let requestError: string | null = null;
       let session = this.transportsMap.get(sessionId || '');
       let transport: StreamableHTTPServerTransport | undefined = session?.transport as
         StreamableHTTPServerTransport | undefined;
       const clientInfo = getMcpClientInfo(request.body);
 
-      if (transport) {
-        // Transport found, proceed
-      } else if (!sessionId && isInitializeRequest(request.body)) {
-        const newSessionId = randomUUID();
-        transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => newSessionId,
-          onsessioninitialized: (initializedSessionId) => {
-            if (transport && initializedSessionId === newSessionId) {
-              this.addSession(initializedSessionId, transport, {
-                // The stdio proxy marks its internal HTTP hop with this origin.
-                transportType:
-                  request.headers.origin === STDIO_MCP_ORIGIN ? 'stdio' : 'streamable-http',
-                endpoint: '/mcp',
-                clientInfo,
-                remoteAddress: request.ip,
-                userAgent: getHeaderValue(request.headers['user-agent']),
-              });
-            }
-          },
-        });
-
-        transport.onclose = () => {
-          if (transport?.sessionId && this.transportsMap.get(transport.sessionId)) {
-            this.transportsMap.delete(transport.sessionId);
-          }
-        };
-        await getMcpServer().connect(transport);
-      } else {
-        reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: ERROR_MESSAGES.INVALID_MCP_REQUEST });
-        return;
-      }
-
-      session = this.transportsMap.get(transport.sessionId || sessionId || '');
-      const trackedSession = Boolean(session);
-      if (session) {
-        session.clientInfo = clientInfo ?? session.clientInfo;
-        session.lastActivityAt = new Date();
-        session.activeRequests++;
-      }
       const startedAt = Date.now();
-      const activeRequest = this.trackMcpRequest(request, reply, {
-        endpoint: '/mcp',
-        transport:
-          session?.transportType ??
-          (request.headers.origin === STDIO_MCP_ORIGIN ? 'stdio' : 'streamable-http'),
-        sessionId: sessionId || transport.sessionId || null,
-      });
+      let trackedSession = false;
       try {
+        if (transport) {
+          // Transport found, proceed
+        } else if (!sessionId && isInitializeRequest(request.body)) {
+          const newSessionId = randomUUID();
+          transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => newSessionId,
+            onsessioninitialized: (initializedSessionId) => {
+              if (transport && initializedSessionId === newSessionId) {
+                this.addSession(initializedSessionId, transport, {
+                  // The stdio proxy marks its internal HTTP hop with this origin.
+                  transportType:
+                    request.headers.origin === STDIO_MCP_ORIGIN ? 'stdio' : 'streamable-http',
+                  endpoint: '/mcp',
+                  clientInfo,
+                  remoteAddress: request.ip,
+                  userAgent: getHeaderValue(request.headers['user-agent']),
+                });
+              }
+            },
+          });
+
+          transport.onclose = () => {
+            if (transport?.sessionId && this.transportsMap.get(transport.sessionId)) {
+              this.transportsMap.delete(transport.sessionId);
+            }
+          };
+          await getMcpServer().connect(transport);
+        } else {
+          requestStatus = 'error';
+          requestError = ERROR_MESSAGES.INVALID_MCP_REQUEST;
+          reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: requestError });
+          return;
+        }
+
+        session = this.transportsMap.get(transport.sessionId || sessionId || '');
+        trackedSession = Boolean(session);
+        if (session) {
+          session.clientInfo = clientInfo ?? session.clientInfo;
+          session.lastActivityAt = new Date();
+          session.activeRequests++;
+          activeRequest.transport = session.transportType;
+          activeRequest.sessionId = sessionId || transport.sessionId || null;
+        }
         await transport.handleRequest(request.raw, reply.raw, request.body);
       } catch (error) {
+        requestStatus = this.statusForMcpError(activeRequest, error);
+        requestError = error instanceof Error ? error.message : String(error);
         if (session) {
           session.errorCount++;
-          session.lastError = error instanceof Error ? error.message : String(error);
+          session.lastError = requestError;
         }
         if (!reply.sent) {
           reply
@@ -843,11 +942,11 @@ export class Server {
             .send({ error: ERROR_MESSAGES.MCP_REQUEST_PROCESSING_ERROR });
         }
       } finally {
-        this.mcpRequests.delete(activeRequest.requestId);
         if (trackedSession && session) session.activeRequests--;
         const currentSession =
-          session ?? this.transportsMap.get(transport.sessionId || sessionId || '');
+          session ?? this.transportsMap.get(transport?.sessionId || sessionId || '');
         if (currentSession) this.recordRequestLatency(currentSession, startedAt);
+        this.finishMcpRequest(activeRequest, requestStatus, requestError);
       }
     });
 
@@ -911,6 +1010,8 @@ export class Server {
         endpoint: '/mcp-new',
         transport: 'streamable-http',
       });
+      let requestStatus: Exclude<McpRequestStatus, 'running'> = 'success';
+      let requestError: string | null = null;
       const stats = this.statelessMcpStats;
       stats.activeRequests++;
       stats.requestCount++;
@@ -921,10 +1022,12 @@ export class Server {
       try {
         await this.modernMcpNodeHandler(request.raw, reply.raw, request.body);
       } catch (error) {
+        requestStatus = this.statusForMcpError(activeRequest, error);
+        requestError = error instanceof Error ? error.message : String(error);
         stats.errorCount++;
         throw error;
       } finally {
-        this.mcpRequests.delete(activeRequest.requestId);
+        this.finishMcpRequest(activeRequest, requestStatus, requestError);
         stats.activeRequests--;
         stats.lastRequestLatencyMs = Math.max(0, Date.now() - startedAt);
       }

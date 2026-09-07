@@ -60,6 +60,12 @@ export function isContentScriptDisconnectedError(error: unknown): boolean {
   );
 }
 
+/** Whether the content script rejected an ambiguous selector supplied by the caller. */
+export function isExpectedSelectorError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /selector .* matched multiple elements|locator matched multiple/i.test(message);
+}
+
 /**
  * Base class for browser tool executors
  */
@@ -207,7 +213,12 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const log = isContentScriptDisconnectedError(error) ? console.warn : console.error;
+      const log =
+        isContentScriptDisconnectedError(error) ||
+        isExpectedTabError(error) ||
+        isExpectedSelectorError(error)
+          ? console.warn
+          : console.error;
       log(
         `Error sending message to tab ${tabId} for action ${message?.action || 'unknown'}: ${errorMessage}`,
       );

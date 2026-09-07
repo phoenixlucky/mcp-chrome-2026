@@ -3,7 +3,7 @@
   "description": "a chrome extension to use your own chrome as a mcp server",
   "author": "hangye",
   "private": true,
-  "version": "2.6.7",
+  "version": "2.6.9",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -36,14 +36,14 @@
     "gifenc": "^1.0.3",
     "hnswlib-wasm-static": "0.8.5",
     "markstream-vue": "0.0.3-beta.5",
-    "vue": "^3.5.13",
+    "vue": "^3.5.42",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.1.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/chrome": "^0.0.318",
-    "@wxt-dev/module-vue": "^1.0.2",
+    "@wxt-dev/module-vue": "^1.0.3",
     "dotenv": "^17.4.2",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.0.0",

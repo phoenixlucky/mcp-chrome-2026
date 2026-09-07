@@ -4,6 +4,12 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      smoke_url:
+        description: 'Running MCP endpoint exposed by the connected Chrome extension'
+        required: true
+        default: 'http://127.0.0.1:12306/mcp'
+        type: string
 
 permissions:
   contents: read
@@ -33,3 +39,22 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           include-hidden-files: true
+
+  chrome-smoke:
+    name: Chrome smoke acceptance
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    # This acceptance job intentionally runs on a Windows machine prepared with
+    # Chrome, the unpacked extension, and the registered native host. The normal
+    # Linux PR job remains independent from this machine-specific check.
+    runs-on: [self-hosted, windows]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify acceptance environment
+        shell: pwsh
+        run: |
+          Write-Host 'Chrome smoke requires a running native server and a connected unpacked extension.'
+          Write-Host 'The runner must be prepared with the host registration before dispatching this job.'
+      - name: Run Chrome smoke test
+        run: node scripts/chrome-smoke.mjs
+        env:
+          CHROME_MCP_SMOKE_URL: ${{ inputs.smoke_url }}

@@ -53,9 +53,16 @@ class BlockImagesTool extends BaseBrowserToolExecutor {
       return createErrorResponse('Parameter [action] is required and must be one of: start, stop');
     }
 
+    const explicitTabId = typeof args.tabId === 'number' ? args.tabId : undefined;
     const tab =
-      (typeof args.tabId === 'number' ? await this.tryGetTab(args.tabId) : null) ??
-      (await this.getActiveTabInWindow());
+      explicitTabId !== undefined
+        ? await this.tryGetTab(explicitTabId)
+        : await this.getActiveTabInWindow();
+    if (explicitTabId !== undefined && !tab) {
+      return createErrorResponse(
+        `Target tab ${explicitTabId} not found; refresh the tab list and retry with a live tabId`,
+      );
+    }
     if (!tab?.id) return createErrorResponse('Target tab not found');
     if (!/^https?:/i.test(tab.url || '')) {
       return createErrorResponse(

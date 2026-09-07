@@ -1,6 +1,6 @@
 {
   "name": "@ethanwilkins/mcp-chrome-bridge-2026",
-  "version": "2.6.7",
+  "version": "2.6.9",
   "description": "Chrome Native-Messaging host (Node)",
   "main": "dist/index.js",
   "bin": {
@@ -13,7 +13,8 @@
     "prebuild": "pnpm --filter @ethanwilkins/chrome-mcp-shared-2026 build",
     "build": "ts-node src/scripts/build.ts",
     "prepack": "npm run build",
-    "test": "jest",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage",
     "test:watch": "jest --watch",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.6.9] - 2026-09-07
+
+### Fixed
+
+- **页面持续加载时等待卡住** — `chrome_wait` 的 CDP 等待现在支持本地 deadline、取消和 debugger 会话释放。
+- **失效 tabId 误复用** — 显式 tab 已关闭时，`chrome_block_images` 返回明确错误，不再切换到当前活动 tab。
+- **同 tab 请求排队阻塞** — 写操作队列支持 deadline 和取消，避免后续请求被卡死操作长期占用。
+- **多匹配 selector 诊断** — 将调用方 selector 不唯一识别为预期输入错误，提示细化 selector。
+
+### Changed
+
+- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.9。
+
 ## [v2.6.7] - 2026-09-04
 
 ### Added

@@ -34,7 +34,11 @@ describe('服务器测试', () => {
     expect(response.body.packages).toEqual({
       'mcp-chrome-bridge-2026': response.body.server.version,
     });
-    expect(response.body.mcp).toMatchObject({ activeSessions: 0, streamableHttp: true });
+    expect(response.body.mcp).toMatchObject({
+      activeSessions: 0,
+      streamableHttp: true,
+      recentRequests: expect.any(Array),
+    });
     expect(response.body.tools.count).toBeGreaterThan(0);
     expect(response.body.toolAdmission).toMatchObject({
       active: 0,
@@ -173,6 +177,9 @@ describe('服务器测试', () => {
         lastRequestLatencyMs: expect.any(Number),
         clientInfo: { name: 'desktop-test-client', version: '1.2.3' },
       });
+      expect(status.body.mcp.recentRequests).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ method: 'tools/list' })]),
+      );
     } finally {
       Server.serviceEnabled = false;
     }
@@ -206,6 +213,9 @@ describe('服务器测试', () => {
           jsonRpcId: 42,
         }),
       ]);
+      expect(status.body.mcp.requests).toEqual([
+        expect.objectContaining({ requestId: 'request-under-test', status: 'running' }),
+      ]);
 
       await supertest(Server.getInstance().server)
         .post('/__chrome_mcp_bridge/mcp-new/requests/request-under-test/cancel')
@@ -214,6 +224,107 @@ describe('服务器测试', () => {
       expect(cancelCalls).toBe(1);
     } finally {
       server.statelessMcpRequests.delete('request-under-test');
+    }
+  });
+
+  test('MCP 请求完成后应进入最近历史并保留 20 条', () => {
+    const server = Server as any;
+    const previousHistory = [...server.recentMcpRequests];
+    const previousActive = new Map(server.mcpRequests);
+    const makeRequest = (requestId: string, method = 'tools/call') => ({
+      requestId,
+      method,
+      toolName: method === 'tools/call' ? 'chrome_wait' : null,
+      jsonRpcId: 1,
+      endpoint: requestId.startsWith('new-') ? '/mcp-new' : '/mcp',
+      transport: requestId.startsWith('stdio-') ? 'stdio' : 'streamable-http',
+      sessionId: null,
+      clientInfo: null,
+      remoteAddress: '127.0.0.1',
+      userAgent: 'test',
+      startedAt: new Date().toISOString(),
+      cancelRequestedAt: null,
+      cancel: () => true,
+    });
+
+    try {
+      server.recentMcpRequests.length = 0;
+      server.mcpRequests.clear();
+
+      const housekeeping = makeRequest('housekeeping', 'tools/list');
+      server.mcpRequests.set(housekeeping.requestId, housekeeping);
+      server.finishMcpRequest(housekeeping, 'success');
+      expect(server.recentMcpRequests).toHaveLength(0);
+
+      const failedProtocolRequest = makeRequest('failed-protocol', 'tools/list');
+      server.mcpRequests.set(failedProtocolRequest.requestId, failedProtocolRequest);
+      server.finishMcpRequest(failedProtocolRequest, 'error', 'invalid request');
+
+      const cancelledRequest = makeRequest('stdio-cancelled');
+      server.mcpRequests.set(cancelledRequest.requestId, cancelledRequest);
+      server.finishMcpRequest(cancelledRequest, 'cancelled');
+
+      expect(server.recentMcpRequests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            requestId: 'failed-protocol',
+            endpoint: '/mcp',
+            transport: 'streamable-http',
+            status: 'error',
+            error: 'invalid request',
+          }),
+          expect.objectContaining({ requestId: 'stdio-cancelled', status: 'cancelled' }),
+        ]),
+      );
+
+      for (let index = 0; index < 22; index++) {
+        const request = makeRequest(`new-${index}`);
+        server.mcpRequests.set(request.requestId, request);
+        server.finishMcpRequest(request, 'success');
+      }
+
+      expect(server.recentMcpRequests).toHaveLength(20);
+      expect(server.recentMcpRequests[0]).toMatchObject({
+        requestId: 'new-21',
+        endpoint: '/mcp-new',
+        status: 'success',
+      });
+      expect(server.recentMcpRequests.at(-1)).toMatchObject({
+        requestId: 'new-2',
+        endpoint: '/mcp-new',
+        status: 'success',
+      });
+      expect(server.recentMcpRequests).toEqual(
+        expect.not.arrayContaining([expect.objectContaining({ requestId: 'housekeeping' })]),
+      );
+    } finally {
+      server.recentMcpRequests.length = 0;
+      server.recentMcpRequests.push(...previousHistory);
+      server.mcpRequests.clear();
+      for (const [requestId, request] of previousActive) server.mcpRequests.set(requestId, request);
+    }
+  });
+
+  test('兼容版无效协议请求应记录为失败请求', async () => {
+    Server.serviceEnabled = true;
+    try {
+      const response = await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .send({ jsonrpc: '2.0', id: 99, method: 'tools/call', params: { name: 'chrome_wait' } })
+        .expect(400);
+
+      expect(response.body.error).toBe(ERROR_MESSAGES.INVALID_MCP_REQUEST);
+      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      expect(status.body.mcp.recentRequests[0]).toMatchObject({
+        method: 'tools/call',
+        endpoint: '/mcp',
+        transport: 'streamable-http',
+        status: 'error',
+        error: ERROR_MESSAGES.INVALID_MCP_REQUEST,
+      });
+    } finally {
+      Server.serviceEnabled = false;
     }
   });
 

@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import path from 'node:path';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import { randomUUID } from 'node:crypto';
 import {
   CODEX_AUTO_INSTRUCTIONS,
@@ -21,6 +23,10 @@ interface TodoListItem {
   index: number;
 }
 
+export interface CodexEngineDependencies {
+  spawn?: typeof spawn;
+}
+
 /**
  * CodexEngine integrates the Codex CLI as an AgentEngine implementation.
  *
@@ -37,9 +43,11 @@ export class CodexEngine implements AgentEngine {
   public readonly name = 'codex' as const;
   public readonly supportsMcp = false;
   private readonly toolBridge: AgentToolBridge;
+  private readonly spawnProcess: typeof spawn;
 
-  constructor(toolBridge?: AgentToolBridge) {
+  constructor(toolBridge?: AgentToolBridge, dependencies: CodexEngineDependencies = {}) {
     this.toolBridge = toolBridge ?? new AgentToolBridge();
+    this.spawnProcess = dependencies.spawn ?? spawn;
   }
 
   /**
@@ -163,7 +171,7 @@ export class CodexEngine implements AgentEngine {
 
     // Use explicit Promise wrapping to ensure child process errors are properly rejected.
     return new Promise<void>((resolve, reject) => {
-      const child = spawn(executable, args, {
+      const child = this.spawnProcess(executable, args, {
         cwd: repoPath,
         env: this.buildCodexEnv(),
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -193,7 +201,6 @@ export class CodexEngine implements AgentEngine {
       const cleanupTempFiles = async (): Promise<void> => {
         if (tempFiles.length === 0) return;
 
-        const fs = await import('node:fs/promises');
         for (const filePath of tempFiles) {
           try {
             await fs.unlink(filePath);
@@ -685,7 +692,6 @@ export class CodexEngine implements AgentEngine {
    */
   private async appendProjectContext(baseInstruction: string, repoPath: string): Promise<string> {
     try {
-      const fs = await import('node:fs/promises');
       const entries = await fs.readdir(repoPath, { withFileTypes: true });
       const visible = entries
         .filter((entry) => !entry.name.startsWith('.git') && entry.name !== 'AGENTS.md')
@@ -744,9 +750,6 @@ Work directly in the current directory. Do not create subdirectories unless spec
     mimeType: string;
     dataBase64: string;
   }): Promise<string> {
-    const os = await import('node:os');
-    const fs = await import('node:fs/promises');
-
     const tempDir = os.tmpdir();
     const ext = attachment.mimeType.split('/')[1] || 'bin';
     const sanitizedName = attachment.name.replace(/[^a-zA-Z0-9.-]/g, '_');

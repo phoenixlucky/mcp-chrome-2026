@@ -467,6 +467,8 @@ function serialByTab<T>(
   args: any,
   task: () => Promise<T>,
   onStart?: () => void,
+  signal?: AbortSignal,
+  deadlineAt?: number,
 ): Promise<T> {
   if (args.newWindow || (!WRITE_TOOL.test(name) && !name.startsWith('flow.'))) {
     onStart?.();
@@ -476,12 +478,13 @@ function serialByTab<T>(
     typeof args.profileId === 'string' && args.profileId.trim() ? args.profileId.trim() : 'default';
   const key = `${profileId}:tab:${typeof args.tabId === 'number' ? args.tabId : 'active'}`;
   const previous = tabQueues.get(key) || Promise.resolve();
-  const result = previous
-    .catch(() => undefined)
-    .then(() => {
-      onStart?.();
-      return task();
-    });
+  const queueDeadlineAt = deadlineAt ?? Date.now() + timeoutFor(name, args);
+  const result = waitForTabQueueTurn(previous, signal, queueDeadlineAt).then(() => {
+    if (signal?.aborted) throw new Error('Tool call cancelled while queued');
+    if (queueDeadlineAt <= Date.now()) throw new Error('Request deadline exceeded while queued');
+    onStart?.();
+    return task();
+  });
   const tail = result.then(
     () => undefined,
     () => undefined,
@@ -491,6 +494,45 @@ function serialByTab<T>(
     if (tabQueues.get(key) === tail) tabQueues.delete(key);
   });
   return result;
+}
+
+function waitForTabQueueTurn(
+  previous: Promise<void>,
+  signal?: AbortSignal,
+  deadlineAt?: number,
+): Promise<void> {
+  if (signal?.aborted) return Promise.reject(new Error('Tool call cancelled while queued'));
+  if (typeof deadlineAt === 'number' && deadlineAt <= Date.now())
+    return Promise.reject(new Error('Request deadline exceeded while queued'));
+
+  let timer: NodeJS.Timeout | undefined;
+  let onAbort: (() => void) | undefined;
+  let settled = false;
+
+  return new Promise<void>((resolve, reject) => {
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      if (signal && onAbort) signal.removeEventListener('abort', onAbort);
+      fn();
+    };
+
+    previous.then(
+      () => finish(resolve),
+      () => finish(resolve),
+    );
+
+    onAbort = () => finish(() => reject(new Error('Tool call cancelled while queued')));
+    signal?.addEventListener('abort', onAbort, { once: true });
+
+    if (typeof deadlineAt === 'number') {
+      timer = setTimeout(
+        () => finish(() => reject(new Error('Request deadline exceeded while queued'))),
+        Math.max(1, deadlineAt - Date.now()),
+      );
+    }
+  });
 }
 
 async function resolveWriteTab(args: any, signal?: AbortSignal, deadlineAt?: number): Promise<any> {
@@ -703,8 +745,13 @@ export const handleToolCall = async (
     if (profileId !== 'default') {
       const { profileId: _profileId, ...profileArgs } = args;
       activity.profileId = profileId;
-      const response = await serialByTab(name, args, () =>
-        browserProfileManager.callTool(profileId, name, profileArgs, signal),
+      const response = await serialByTab(
+        name,
+        args,
+        () => browserProfileManager.callTool(profileId, name, profileArgs, signal),
+        undefined,
+        signal,
+        deadlineAt,
       );
       activity.outcome = response.isError ? 'error' : 'success';
       return response;
@@ -758,6 +805,8 @@ export const handleToolCall = async (
             activity.queueMs = Date.now() - queuedAt;
             activity.executionStartedAt = new Date().toISOString();
           },
+          signal,
+          deadlineAt,
         );
         if (proxyRes?.status === 'success') {
           activity.outcome = 'success';
@@ -817,6 +866,8 @@ export const handleToolCall = async (
         activity.queueMs = Date.now() - queuedAt;
         activity.executionStartedAt = new Date().toISOString();
       },
+      signal,
+      deadlineAt,
     );
     if (response?.status === 'success') {
       activity.outcome = 'success';

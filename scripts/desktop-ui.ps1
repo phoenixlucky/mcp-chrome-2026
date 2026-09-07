@@ -1,6 +1,6 @@
 ﻿param(
   [int]$Port = 12306,
-  [string]$Version = '2.6.7',
+  [string]$Version = '2.6.9',
   [string]$ExtensionId = 'djclnaepokchbblcnepfempfdhejjdml',
   [string]$HostName = 'com.chromemcp.nativehost',
   [string]$LogPath = '',

@@ -45,7 +45,9 @@ type McpRequest = {
   userAgent: string | null;
   startedAt: string;
   elapsedMs: number;
+  status: 'running' | 'success' | 'error' | 'cancelled';
   cancelRequestedAt: string | null;
+  error: string | null;
 };
 
 type StatelessMcpStatus = {
@@ -109,6 +111,10 @@ const activeMcpRequests = computed<McpRequest[]>(() => {
   const value = state.data?.mcp?.requests;
   return Array.isArray(value) ? (value as McpRequest[]) : [];
 });
+const recentMcpRequests = computed<McpRequest[]>(() => {
+  const value = state.data?.mcp?.recentRequests;
+  return Array.isArray(value) ? (value as McpRequest[]) : [];
+});
 const showClients = ref(false);
 const cancellingRequestId = ref<string | null>(null);
 
@@ -150,6 +156,20 @@ function requestTransportLabel(request: McpRequest) {
   if (request.transport === 'sse' || request.endpoint === '/sse') return 'SSE';
   if (request.endpoint === '/mcp-new') return 'Streamable HTTP（尝鲜版）';
   return 'Streamable HTTP（兼容版）';
+}
+
+function requestStatusLabel(status: McpRequest['status']) {
+  if (status === 'success') return '成功';
+  if (status === 'cancelled') return '已取消';
+  if (status === 'error') return '失败';
+  return '执行中';
+}
+
+function requestStatusClass(status: McpRequest['status']) {
+  if (status === 'success') return 'request-status-success';
+  if (status === 'cancelled') return 'request-status-cancelled';
+  if (status === 'error') return 'request-status-error';
+  return 'request-status-running';
 }
 
 function endpointLabel(client: McpClient) {
@@ -299,7 +319,7 @@ async function cancelMcpRequest(request: McpRequest) {
 onMounted(async () => {
   removeTrayListener = isTauri ? await listen('tray-health-check', () => refresh(true)) : undefined;
   await startBridge();
-  timer = window.setInterval(() => refresh(), 3000);
+  timer = window.setInterval(() => refresh(), 1000);
 });
 
 onUnmounted(() => {
@@ -476,7 +496,7 @@ onUnmounted(() => {
     <section class="details panel">
       <div class="detail-head"
         ><span class="section-kicker">DIAGNOSTICS</span
-        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.6.7</span></div
+        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.6.9</span></div
       >
       <p>{{ state.message }}</p>
       <code>Native Messaging：com.chromemcp.nativehost</code>
@@ -563,7 +583,7 @@ onUnmounted(() => {
 
         <div class="request-monitor global-request-monitor">
           <div class="request-monitor-heading">
-            <strong>活动请求</strong>
+            <strong>活动请求 · 当前仍在执行</strong>
             <span>{{ activeMcpRequests.length }} 个</span>
           </div>
           <div v-if="activeMcpRequests.length" class="request-list">
@@ -595,6 +615,39 @@ onUnmounted(() => {
             </article>
           </div>
           <p v-else class="request-empty">当前没有执行中的 MCP 请求。</p>
+        </div>
+
+        <div class="request-monitor global-request-monitor recent-request-monitor">
+          <div class="request-monitor-heading">
+            <strong>最近请求 · 已完成的调用记录</strong>
+            <span>{{ recentMcpRequests.length }} 条</span>
+          </div>
+          <div v-if="recentMcpRequests.length" class="request-list">
+            <article
+              v-for="request in recentMcpRequests"
+              :key="request.requestId"
+              class="request-entry"
+            >
+              <div class="request-entry-copy">
+                <strong>{{ request.toolName || request.method }}</strong>
+                <small>
+                  {{ requestTransportLabel(request) }} · {{ request.endpoint || 'MCP' }} ·
+                  {{ formatElapsed(request.elapsedMs) }}
+                </small>
+                <small>
+                  {{ formatActivity(request.startedAt) }} ·
+                  <span :class="requestStatusClass(request.status)">
+                    {{ requestStatusLabel(request.status) }}
+                  </span>
+                  <span v-if="request.error"> · {{ request.error }}</span>
+                </small>
+              </div>
+              <span class="request-status" :class="requestStatusClass(request.status)">
+                {{ requestStatusLabel(request.status) }}
+              </span>
+            </article>
+          </div>
+          <p v-else class="request-empty">暂无已完成的工具调用或失败请求。</p>
         </div>
 
         <div v-if="clients.length" class="client-list">

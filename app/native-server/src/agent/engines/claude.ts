@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import type { AgentEngine, EngineExecutionContext, EngineInitOptions } from './types';
 import type { AgentMessage, RealtimeEvent } from '../types';
 import { detectCcr, validateCcrConfig } from '../ccr-detector';
@@ -42,6 +44,15 @@ const TOOL_NAME_ACTION_MAP: Record<string, ToolAction> = {
   plan_write: 'Generated',
 };
 
+type ClaudeQuery = (args: {
+  prompt: string;
+  options?: Record<string, unknown>;
+}) => AsyncIterable<any>;
+
+export interface ClaudeEngineDependencies {
+  loadQuery?: () => Promise<ClaudeQuery>;
+}
+
 /**
  * ClaudeEngine integrates the Claude Agent SDK as an AgentEngine implementation.
  *
@@ -56,6 +67,22 @@ export class ClaudeEngine implements AgentEngine {
    * Maximum number of stderr lines to keep in memory.
    */
   private static readonly MAX_STDERR_LINES = 200;
+
+  private readonly loadQuery: () => Promise<ClaudeQuery>;
+
+  constructor(dependencies: ClaudeEngineDependencies = {}) {
+    this.loadQuery =
+      dependencies.loadQuery ??
+      (async () => {
+        // Dynamic import to avoid hard dependency - install @anthropic-ai/claude-agent-sdk to use this engine
+        const sdkModuleName = '@anthropic-ai/claude-agent-sdk';
+        const sdk = await (Function(
+          'moduleName',
+          'return import(moduleName)',
+        )(sdkModuleName) as Promise<{ query: ClaudeQuery }>);
+        return sdk.query;
+      });
+  }
 
   async initializeAndRun(options: EngineInitOptions, ctx: EngineExecutionContext): Promise<void> {
     const {
@@ -87,19 +114,10 @@ export class ClaudeEngine implements AgentEngine {
       throw new Error('ClaudeEngine: instruction must not be empty');
     }
 
-    // Dynamically import the Claude Agent SDK
     // Images are passed via temp file paths appended to the prompt string
-    let query: (args: { prompt: string; options?: Record<string, unknown> }) => AsyncIterable<any>;
+    let query: ClaudeQuery;
     try {
-      // Dynamic import to avoid hard dependency - install @anthropic-ai/claude-agent-sdk to use this engine
-      // Use string variable to bypass TypeScript module resolution
-      const sdkModuleName = '@anthropic-ai/claude-agent-sdk';
-
-      const sdk = await (Function(
-        'moduleName',
-        'return import(moduleName)',
-      )(sdkModuleName) as Promise<any>);
-      query = sdk.query;
+      query = await this.loadQuery();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(
@@ -368,7 +386,6 @@ export class ClaudeEngine implements AgentEngine {
       if (tempFiles.length === 0) return;
 
       try {
-        const fs = await import('node:fs/promises');
         for (const filePath of tempFiles) {
           try {
             await fs.unlink(filePath);
@@ -1567,9 +1584,6 @@ export class ClaudeEngine implements AgentEngine {
     mimeType: string;
     dataBase64: string;
   }): Promise<string> {
-    const os = await import('node:os');
-    const fs = await import('node:fs/promises');
-
     const tempDir = os.tmpdir();
     const ext = attachment.mimeType.split('/')[1] || 'bin';
     const sanitizedName = attachment.name.replace(/[^a-zA-Z0-9.-]/g, '_');

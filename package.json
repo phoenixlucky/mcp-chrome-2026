@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridge-monorepo-2026",
-  "version": "2.6.7",
+  "version": "2.6.9",
   "private": true,
   "packageManager": "pnpm@11.25.0+sha512.5cde925b4f075f725eb71fbae18a42ffe784524789f19b61c731cb8721ec28aaee160e01a8d5af4fedb2a42cdbf300efe23db356b0d4a17b4d63e11f8ab7c956",
   "engines": {
@@ -29,17 +29,19 @@
     "check:versions": "node scripts/check-versions.mjs",
     "sync:tool-docs": "node scripts/sync-tool-docs.mjs",
     "test:chrome-smoke": "node scripts/chrome-smoke.mjs",
-    "test:phase8": "pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 test -- --runInBand",
+    "test:coverage": "pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 test:coverage",
+    "test:phase8": "pnpm run check:phase8",
     "check:phase8": "pnpm run build:native && node scripts/phase8-gates.mjs",
     "lint:fix": "pnpm -r lint:fix",
     "format": "pnpm -r format",
     "clean:dist": "pnpm -r exec rm -rf dist .turbo",
     "clean:modules": "pnpm -r exec rm -rf node_modules && rm -rf node_modules",
     "clean": "npm run clean:dist && npm run clean:modules",
-    "typecheck": "pnpm run typecheck:shared && pnpm run build:shared && pnpm run typecheck:native && pnpm run typecheck:extension",
+    "typecheck": "pnpm run typecheck:shared && pnpm run build:shared && pnpm run typecheck:native && pnpm run typecheck:extension && pnpm run typecheck:desktop",
     "typecheck:shared": "pnpm exec tsc --noEmit -p packages/shared/tsconfig.json",
     "typecheck:native": "pnpm exec tsc --noEmit -p app/native-server/tsconfig.json",
     "typecheck:extension": "pnpm --filter @ethanwilkins/chrome-mcp-server-2026 run typecheck",
+    "typecheck:desktop": "pnpm --filter @ethanwilkins/chrome-mcp-desktop-2026 run typecheck",
     "prepare": "husky"
   },
   "devDependencies": {

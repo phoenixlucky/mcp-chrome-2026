@@ -30,6 +30,13 @@ const MAX_TIMEOUT_MS = 120_000;
 const MIN_POLL_INTERVAL_MS = 50;
 const CDP_SESSION_KEY = 'wait';
 
+class WaitCancelledError extends Error {
+  constructor() {
+    super('Wait cancelled');
+    this.name = 'WaitCancelledError';
+  }
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -128,27 +135,34 @@ class WaitTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.WAIT;
 
   async execute(args: WaitToolParams, signal?: AbortSignal): Promise<ToolResult> {
-    const timeout = Math.min(
-      typeof args.timeout === 'number' ? args.timeout : DEFAULT_TIMEOUT_MS,
-      MAX_TIMEOUT_MS,
+    const requestedTimeout =
+      typeof args.timeout === 'number' && Number.isFinite(args.timeout)
+        ? args.timeout
+        : DEFAULT_TIMEOUT_MS;
+    const timeout = Math.max(0, Math.min(requestedTimeout, MAX_TIMEOUT_MS));
+    const requestedPollInterval =
+      typeof args.pollInterval === 'number' && Number.isFinite(args.pollInterval)
+        ? args.pollInterval
+        : DEFAULT_POLL_INTERVAL_MS;
+    const pollInterval = Math.max(requestedPollInterval, MIN_POLL_INTERVAL_MS);
+    const stableForMs = Math.max(
+      0,
+      typeof args.stableForMs === 'number' && Number.isFinite(args.stableForMs)
+        ? args.stableForMs
+        : 0,
     );
-    const pollInterval = Math.max(
-      typeof args.pollInterval === 'number' ? args.pollInterval : DEFAULT_POLL_INTERVAL_MS,
-      MIN_POLL_INTERVAL_MS,
-    );
-    const stableForMs = Math.max(0, typeof args.stableForMs === 'number' ? args.stableForMs : 0);
 
     try {
       // 1. Resolve target tab
       let tabId: number;
 
-      if (args.tabId) {
+      if (typeof args.tabId === 'number') {
         const tab = await this.tryGetTab(args.tabId);
         if (!tab) {
           return createErrorResponse(`Tab ${args.tabId} not found`);
         }
         tabId = args.tabId;
-      } else if (args.windowId) {
+      } else if (typeof args.windowId === 'number') {
         const tab = await this.getActiveTabInWindow(args.windowId);
         if (!tab || !tab.id) {
           return createErrorResponse(`No active tab found in window ${args.windowId}`);
@@ -159,7 +173,7 @@ class WaitTool extends BaseBrowserToolExecutor {
         tabId = tab.id!;
       }
 
-      if (args.event) return this.waitForEvent(tabId, args, timeout, signal);
+      if (args.event) return await this.waitForEvent(tabId, args, timeout, signal);
 
       // 2. Build condition expression
       const conditionExpr = buildConditionExpression(args);
@@ -179,14 +193,25 @@ class WaitTool extends BaseBrowserToolExecutor {
         const elapsed = Date.now() - startedAt;
         const remaining = timeout - elapsed;
 
-        const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
-          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-            expression: `(() => { try { return ${conditionExpr}; } catch(e) { return '__ERROR__:' + (e.message || String(e)); } })()`,
-            returnByValue: true,
-            awaitPromise: true,
-            timeout: Math.min(remaining, 5000),
-          });
-        });
+        const response = await this.runCdpCommand(
+          tabId,
+          Math.min(Math.max(remaining, 1), 5000),
+          signal,
+          () =>
+            cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
+              return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+                expression: `(() => { try { return ${conditionExpr}; } catch(e) { return '__ERROR__:' + (e.message || String(e)); } })()`,
+                returnByValue: true,
+                awaitPromise: true,
+                timeout: Math.min(Math.max(remaining, 1), 5000),
+              });
+            }),
+        );
+
+        if (!response) {
+          lastError = 'Runtime.evaluate timed out';
+          continue;
+        }
 
         if (response?.exceptionDetails) {
           lastError = response.exceptionDetails.text || 'Unknown evaluation error';
@@ -265,19 +290,33 @@ class WaitTool extends BaseBrowserToolExecutor {
     const startedAt = Date.now();
     if (args.event === 'mutation') {
       const selector = args.observeSelector || args.selector || 'body';
-      const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, () =>
-        cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-          expression: `new Promise(resolve => {
-            const root = document.querySelector(${JSON.stringify(selector)});
-            if (!root) return resolve({ found: false, reason: 'observe target not found' });
-            const observer = new MutationObserver(records => { observer.disconnect(); resolve({ found: true, mutations: records.length }); });
-            observer.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
-            setTimeout(() => { observer.disconnect(); resolve({ found: false, timeout: true }); }, ${timeout});
-          })`,
-          awaitPromise: true,
-          returnByValue: true,
-        }),
+      const response = await this.runCdpCommand(tabId, Math.max(1, timeout + 1000), signal, () =>
+        cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, () =>
+          cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: `new Promise(resolve => {
+                const root = document.querySelector(${JSON.stringify(selector)});
+                if (!root) return resolve({ found: false, reason: 'observe target not found' });
+                const observer = new MutationObserver(records => { observer.disconnect(); resolve({ found: true, mutations: records.length }); });
+                observer.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
+                setTimeout(() => { observer.disconnect(); resolve({ found: false, timeout: true }); }, ${timeout});
+              })`,
+            awaitPromise: true,
+            returnByValue: true,
+            timeout: Math.max(1, timeout + 1000),
+          }),
+        ),
       );
+      if (!response) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ found: false, timeout: true }),
+            },
+          ],
+          isError: false,
+        };
+      }
       return {
         content: [
           {
@@ -297,8 +336,27 @@ class WaitTool extends BaseBrowserToolExecutor {
       (!args.urlPattern || url.includes(args.urlPattern)) &&
       (args.statusCode === undefined || status === args.statusCode);
     try {
-      await cdpSessionManager.attach(tabId, CDP_SESSION_KEY);
-      await cdpSessionManager.sendCommand(tabId, 'Network.enable');
+      const ready = await this.runCdpCommand(
+        tabId,
+        Math.max(1, timeout + 1000),
+        signal,
+        async () => {
+          await cdpSessionManager.attach(tabId, CDP_SESSION_KEY);
+          await cdpSessionManager.sendCommand(tabId, 'Network.enable');
+          return true;
+        },
+      );
+      if (!ready) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ found: false, timeout: true, event: 'network' }),
+            },
+          ],
+          isError: false,
+        };
+      }
       const result = await new Promise<Record<string, unknown>>((resolve) => {
         const matched = new Map<string, { url: string; status?: number }>();
         const finish = (value: Record<string, unknown>) => {
@@ -307,8 +365,14 @@ class WaitTool extends BaseBrowserToolExecutor {
           signal?.removeEventListener('abort', abort);
           resolve(value);
         };
-        const abort = () => finish({ found: false, cancelled: true });
-        const timer = setTimeout(() => finish({ found: false, timeout: true }), timeout);
+        const abort = () => {
+          void cdpSessionManager.abortOwner(tabId, CDP_SESSION_KEY);
+          finish({ found: false, cancelled: true });
+        };
+        const timer = setTimeout(() => {
+          void cdpSessionManager.abortOwner(tabId, CDP_SESSION_KEY);
+          finish({ found: false, timeout: true });
+        }, timeout);
         const listener = (source: chrome.debugger.Debuggee, method: string, params?: any) => {
           if (source.tabId !== tabId) return;
           if (method === 'Network.responseReceived') {
@@ -367,6 +431,65 @@ class WaitTool extends BaseBrowserToolExecutor {
   }
 
   /**
+   * CDP can keep Runtime.evaluate pending while a page is loading or its
+   * renderer is unhealthy. Race the command with the MCP cancellation/deadline
+   * and force-release this tool's debugger owner so later calls are not stuck
+   * behind the same tab lock.
+   */
+  private async runCdpCommand<T>(
+    tabId: number,
+    timeoutMs: number,
+    signal: AbortSignal | undefined,
+    operation: () => Promise<T>,
+  ): Promise<T | undefined> {
+    if (signal?.aborted) throw new WaitCancelledError();
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+    let onAbort: (() => void) | undefined;
+    const releaseOwner = () => {
+      void cdpSessionManager.abortOwner(tabId, CDP_SESSION_KEY);
+    };
+
+    const pending = operation();
+    try {
+      return await new Promise<T | undefined>((resolve, reject) => {
+        const finish = (fn: () => void) => {
+          if (settled) return;
+          settled = true;
+          if (timer) clearTimeout(timer);
+          if (signal && onAbort) signal.removeEventListener('abort', onAbort);
+          fn();
+        };
+
+        pending.then(
+          (value) => finish(() => resolve(value)),
+          (error) => finish(() => reject(error)),
+        );
+
+        timer = setTimeout(
+          () => {
+            releaseOwner();
+            finish(() => resolve(undefined));
+          },
+          Math.max(1, timeoutMs),
+        );
+
+        onAbort = () => {
+          releaseOwner();
+          finish(() => reject(new WaitCancelledError()));
+        };
+        signal?.addEventListener('abort', onAbort, { once: true });
+      });
+    } catch (error) {
+      if (error instanceof WaitCancelledError || signal?.aborted) {
+        throw new WaitCancelledError();
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Get metadata about the matched element for the response.
    */
   private async getMatchMetadata(
@@ -377,9 +500,10 @@ class WaitTool extends BaseBrowserToolExecutor {
     if (!selector) return {};
 
     try {
-      const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
-        return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-          expression: `(() => {
+      const response = await this.runCdpCommand(tabId, 2_500, undefined, () =>
+        cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
+          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            expression: `(() => {
               const frame = ${frameSelector ? `document.querySelector(${JSON.stringify(frameSelector)})` : 'null'};
               const doc = frame ? frame.contentDocument : document;
               if (!doc) return JSON.stringify({ count: 0, error: 'Iframe is cross-origin or unavailable' });
@@ -397,11 +521,12 @@ class WaitTool extends BaseBrowserToolExecutor {
                 rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
               });
             })()`,
-          returnByValue: true,
-          awaitPromise: true,
-          timeout: 2000,
-        });
-      });
+            returnByValue: true,
+            awaitPromise: true,
+            timeout: 2000,
+          });
+        }),
+      );
 
       if (response?.result?.value && typeof response.result.value === 'string') {
         return JSON.parse(response.result.value);

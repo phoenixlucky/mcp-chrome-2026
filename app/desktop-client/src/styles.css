@@ -567,6 +567,10 @@ footer {
   border-radius: 13px;
   background: rgba(34, 26, 55, 0.42);
 }
+.recent-request-monitor {
+  border-color: #3f5877;
+  background: rgba(25, 35, 53, 0.42);
+}
 .request-monitor-heading {
   display: flex;
   justify-content: space-between;
@@ -618,6 +622,23 @@ footer {
   flex: 0 0 auto;
   padding: 6px 9px;
   font-size: 10px;
+}
+.request-status {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+}
+.request-status-success {
+  color: #4ecd91 !important;
+}
+.request-status-running {
+  color: #9fc5ff !important;
+}
+.request-status-cancelled {
+  color: #f6be4b !important;
+}
+.request-status-error {
+  color: #f46b6e !important;
 }
 .request-empty {
   margin: 8px 0 0;
