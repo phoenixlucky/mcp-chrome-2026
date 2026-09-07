@@ -17,7 +17,7 @@
 
 ### 环境要求
 
-- **Node.js 24+** 和 **pnpm 11**
+- **Node.js 24+** 和 **pnpm 12**
 - **Chrome/Chromium** 浏览器用于测试
 - **Git** 版本控制
 - **Rust 和 wasm-pack**（发布/WASM 构建必需）

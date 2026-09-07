@@ -17,7 +17,7 @@ We welcome contributions in many forms:
 
 ### Prerequisites
 
-- **Node.js 24+** and **pnpm 11**
+- **Node.js 24+** and **pnpm 12**
 - **Chrome/Chromium** browser for testing
 - **Git** for version control
 - **Rust and wasm-pack** (required for release/WASM builds)
