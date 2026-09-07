@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { NativeProtocolError } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { isMcpToolTimeout, toMcpToolTimeout } from './errors.js';
 
 export interface UnifiedMcpClientOptions {
   url?: string;
@@ -61,6 +62,7 @@ function withDeadline(
 }
 
 function mapTransportError(error: unknown): NativeProtocolError {
+  if (isMcpToolTimeout(error)) return toMcpToolTimeout(error);
   if (error instanceof NativeProtocolError) return error;
   const message = error instanceof Error ? error.message : String(error);
   if (/abort|cancel/i.test(message)) return new NativeProtocolError('CANCELED', message);

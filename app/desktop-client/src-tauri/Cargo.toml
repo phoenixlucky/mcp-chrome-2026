@@ -1,6 +1,6 @@
 [package]
 name = "chrome-mcp-desktop"
-version = "2.6.9"
+version = "2.6.10"
 description = "Chrome MCP Bridge desktop client"
 authors = ["Ethan Wilkins"]
 edition = "2024"

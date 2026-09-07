@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { promises as fs, existsSync, realpathSync, readFileSync, lstatSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,7 +10,8 @@ const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json')
 const version = packageJson.version;
 const skipBuild = process.argv.includes('--skip-build');
 const releaseDir = path.join(root, 'releases');
-const stageDir = path.join(tmpdir(), `chrome-mcp-bridge-stage-${version}-${process.pid}`);
+const stageRoot = process.env.MCP_WINDOWS_STAGE_DIR || path.join(root, '.windows-stage');
+const stageDir = path.join(stageRoot, `chrome-mcp-bridge-stage-${version}-${process.pid}`);
 const payloadDir = path.join(stageDir, 'payload');
 const bundleZip = path.join(stageDir, `chrome-mcp-bundle-${version}.zip`);
 const seaConfigPath = path.join(stageDir, 'sea-config.json');
@@ -45,6 +45,26 @@ function canRun(command, args = ['--version']) {
   }
 }
 
+async function compressBundle() {
+  const powershellArgs = [
+    '-NoProfile',
+    '-Command',
+    `Import-Module Microsoft.PowerShell.Archive; Compress-Archive -Path '${payloadDir.replaceAll("'", "''")}\\*' -DestinationPath '${bundleZip.replaceAll("'", "''")}' -CompressionLevel Optimal`,
+  ];
+
+  if (canRun('tar.exe')) {
+    try {
+      run('tar.exe', ['-a', '-c', '-f', bundleZip, '-C', payloadDir, '.']);
+      return;
+    } catch (error) {
+      console.warn(`tar.exe 压缩失败，回退到 PowerShell Compress-Archive：${error.message}`);
+      await fs.rm(bundleZip, { force: true });
+    }
+  }
+
+  run('powershell.exe', powershellArgs);
+}
+
 function extensionIdFromManifest(manifestPath) {
   const manifest = JSON.parse(requireFile(manifestPath));
   if (typeof manifest.key !== 'string') return 'djclnaepokchbblcnepfempfdhejjdml';
@@ -68,7 +88,7 @@ async function copyPackageFiles(source, destination) {
     if (
       entry.name.startsWith('.') ||
       /^(README|LICENSE|CHANGELOG|eslint|prettier|tsconfig|vitest|jest|rollup|webpack|babel)(\.|$)/i.test(entry.name) ||
-      /\.(map|d\.ts)$/i.test(entry.name)
+      /\.(map|d\.ts|md)$/i.test(entry.name)
     ) continue;
     const sourcePath = path.join(source, entry.name);
     const destinationPath = path.join(destination, entry.name);
@@ -232,15 +252,7 @@ async function main() {
   );
 
   console.log('Compressing embedded runtime...');
-  if (canRun('tar.exe')) {
-    run('tar.exe', ['-a', '-c', '-f', bundleZip, '-C', payloadDir, '.']);
-  } else {
-    run('powershell.exe', [
-      '-NoProfile',
-      '-Command',
-      `Import-Module Microsoft.PowerShell.Archive; Compress-Archive -Path '${payloadDir.replaceAll("'", "''")}\\*' -DestinationPath '${bundleZip.replaceAll("'", "''")}' -CompressionLevel Optimal`,
-    ]);
-  }
+  await compressBundle();
 
   const launcherSource = path.join(root, 'scripts', 'sea-launcher.cjs');
   const launcherPath = path.join(stageDir, 'sea-launcher.cjs');

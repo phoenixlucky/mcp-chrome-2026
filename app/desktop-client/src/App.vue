@@ -116,6 +116,7 @@ const recentMcpRequests = computed<McpRequest[]>(() => {
   return Array.isArray(value) ? (value as McpRequest[]) : [];
 });
 const showClients = ref(false);
+const showRecentMcpRequests = ref(true);
 const cancellingRequestId = ref<string | null>(null);
 
 watch(showClients, (open) => {
@@ -496,7 +497,7 @@ onUnmounted(() => {
     <section class="details panel">
       <div class="detail-head"
         ><span class="section-kicker">DIAGNOSTICS</span
-        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.6.9</span></div
+        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.6.10</span></div
       >
       <p>{{ state.message }}</p>
       <code>Native Messaging：com.chromemcp.nativehost</code>
@@ -619,35 +620,51 @@ onUnmounted(() => {
 
         <div class="request-monitor global-request-monitor recent-request-monitor">
           <div class="request-monitor-heading">
-            <strong>最近请求 · 已完成的调用记录</strong>
+            <button
+              class="request-monitor-toggle"
+              type="button"
+              :aria-expanded="showRecentMcpRequests"
+              aria-controls="recent-mcp-request-list"
+              @click="showRecentMcpRequests = !showRecentMcpRequests"
+            >
+              <span
+                class="request-monitor-chevron"
+                :class="{ 'is-collapsed': !showRecentMcpRequests }"
+                aria-hidden="true"
+                >⌄</span
+              >
+              <strong>最近请求 · 已完成的调用记录</strong>
+            </button>
             <span>{{ recentMcpRequests.length }} 条</span>
           </div>
-          <div v-if="recentMcpRequests.length" class="request-list">
-            <article
-              v-for="request in recentMcpRequests"
-              :key="request.requestId"
-              class="request-entry"
-            >
-              <div class="request-entry-copy">
-                <strong>{{ request.toolName || request.method }}</strong>
-                <small>
-                  {{ requestTransportLabel(request) }} · {{ request.endpoint || 'MCP' }} ·
-                  {{ formatElapsed(request.elapsedMs) }}
-                </small>
-                <small>
-                  {{ formatActivity(request.startedAt) }} ·
-                  <span :class="requestStatusClass(request.status)">
-                    {{ requestStatusLabel(request.status) }}
-                  </span>
-                  <span v-if="request.error"> · {{ request.error }}</span>
-                </small>
-              </div>
-              <span class="request-status" :class="requestStatusClass(request.status)">
-                {{ requestStatusLabel(request.status) }}
-              </span>
-            </article>
+          <div id="recent-mcp-request-list" v-show="showRecentMcpRequests">
+            <div v-if="recentMcpRequests.length" class="request-list recent-request-list">
+              <article
+                v-for="request in recentMcpRequests"
+                :key="request.requestId"
+                class="request-entry"
+              >
+                <div class="request-entry-copy">
+                  <strong>{{ request.toolName || request.method }}</strong>
+                  <small>
+                    {{ requestTransportLabel(request) }} · {{ request.endpoint || 'MCP' }} ·
+                    {{ formatElapsed(request.elapsedMs) }}
+                  </small>
+                  <small>
+                    {{ formatActivity(request.startedAt) }} ·
+                    <span :class="requestStatusClass(request.status)">
+                      {{ requestStatusLabel(request.status) }}
+                    </span>
+                    <span v-if="request.error"> · {{ request.error }}</span>
+                  </small>
+                </div>
+                <span class="request-status" :class="requestStatusClass(request.status)">
+                  {{ requestStatusLabel(request.status) }}
+                </span>
+              </article>
+            </div>
+            <p v-else class="request-empty">暂无已完成的工具调用或失败请求。</p>
           </div>
-          <p v-else class="request-empty">暂无已完成的工具调用或失败请求。</p>
         </div>
 
         <div v-if="clients.length" class="client-list">

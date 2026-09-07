@@ -17,7 +17,7 @@ describe('navigateHandler', () => {
     expect(result).toEqual({ status: 'success' });
     expect(handleCallTool).toHaveBeenCalledWith({
       name: 'chrome_navigate',
-      args: { url: 'https://linkfox.ai/usercenter/orderList', tabId: 17 },
+      args: { url: 'https://linkfox.ai/usercenter/orderList', tabId: 17, waitForReady: false },
     });
   });
 });

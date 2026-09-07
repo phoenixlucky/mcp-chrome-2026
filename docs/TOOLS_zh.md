@@ -79,6 +79,8 @@
 - `newWindow` (布尔值，可选)：创建新窗口（默认：false）
 - `width` (数字，可选)：视口宽度（像素，默认：1280）
 - `height` (数字，可选)：视口高度（像素，默认：720）
+- `waitForReady` (布尔值，可选)：是否等待标签页加载完成后返回（默认：false；慢页面建议保持 false，随后使用 URL/HTML 轮询）
+- `waitTimeoutMs` (数字，可选)：当 `waitForReady` 为 true 时的最大等待时间（毫秒，默认：15000，最大：30000）
 
 **示例**：
 

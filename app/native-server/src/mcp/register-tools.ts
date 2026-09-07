@@ -20,6 +20,7 @@ import {
   filterToolsByPermission,
   getToolPermissionPolicy,
 } from './permission-policy.js';
+import { McpToolTimeout, isMcpToolTimeout, toMcpToolTimeout } from './errors.js';
 
 interface ToolActivity {
   requestId: string;
@@ -890,13 +891,15 @@ export const handleToolCall = async (
       isError: true,
     };
   } catch (error: any) {
-    const code = error instanceof NativeProtocolError ? error.code : undefined;
-    if (code === 'DEADLINE_EXCEEDED' || /deadline exceeded/i.test(error?.message || '')) {
+    const normalizedError = isMcpToolTimeout(error) ? toMcpToolTimeout(error) : error;
+    const code = normalizedError instanceof NativeProtocolError ? normalizedError.code : undefined;
+    if (normalizedError instanceof McpToolTimeout || code === 'DEADLINE_EXCEEDED') {
       queueTimeoutCount += 1;
     }
     activity.outcome =
-      code === 'CANCELED' || /cancel/i.test(error?.message || '') ? 'cancelled' : 'error';
-    const errorMessage = error instanceof Error ? error.message : String(error);
+      code === 'CANCELED' || /cancel/i.test(normalizedError?.message || '') ? 'cancelled' : 'error';
+    const errorMessage =
+      normalizedError instanceof Error ? normalizedError.message : String(normalizedError);
     activity.error = code ? `${code}: ${errorMessage}` : errorMessage;
     return {
       content: [

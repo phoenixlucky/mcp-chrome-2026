@@ -81,6 +81,8 @@ Navigate to a URL with optional viewport control.
 - `background` (boolean, optional): Do not activate the tab or focus the window (default: true; set `false` for foreground interaction)
 - `width` (number, optional): Viewport width in pixels (default: 1280)
 - `height` (number, optional): Viewport height in pixels (default: 720)
+- `waitForReady` (boolean, optional): Wait for the tab to finish loading before returning (default: false; for slow pages, poll the URL/HTML afterwards)
+- `waitTimeoutMs` (number, optional): Maximum wait in milliseconds when `waitForReady` is true (default: 15000, maximum: 30000)
 
 **Example**:
 

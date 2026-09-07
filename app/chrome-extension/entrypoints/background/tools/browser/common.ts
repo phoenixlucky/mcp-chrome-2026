@@ -24,13 +24,15 @@ interface NavigateToolParams {
   waitTimeoutMs?: number; // maximum wait for the tab to report complete
 }
 
-function getNavigationWaitOptions(args: NavigateToolParams) {
+export function getNavigationWaitOptions(args: NavigateToolParams) {
   const requestedTimeout =
     typeof args.waitTimeoutMs === 'number' && Number.isFinite(args.waitTimeoutMs)
       ? args.waitTimeoutMs
       : PAGE_READY_TIMEOUT_MS;
   return {
-    waitForReady: args.waitForReady !== false,
+    // Navigation is request/response by default. Slow pages can keep Chrome's
+    // status at "loading" indefinitely while the DOM is already usable.
+    waitForReady: args.waitForReady === true,
     waitTimeoutMs: Math.min(MAX_PAGE_READY_TIMEOUT_MS, Math.max(0, requestedTimeout)),
   };
 }

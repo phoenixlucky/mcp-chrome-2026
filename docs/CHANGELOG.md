@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.6.10] - 2026-09-07
+
+### Added
+
+- **最近请求记录折叠与滚动** — 桌面版已完成调用记录支持折叠，并在记录较多时独立滚动。
+
+### Fixed
+
+- **慢页面导航不再阻塞** — `chrome_navigate` 默认不等待页面完全 ready，超时错误统一转换为 `McpToolTimeout`，后续 URL/HTML 轮询可以继续执行。
+
+### Changed
+
+- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.10。
+
 ## [v2.6.9] - 2026-09-07
 
 ### Fixed

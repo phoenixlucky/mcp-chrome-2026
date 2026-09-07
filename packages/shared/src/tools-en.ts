@@ -1176,7 +1176,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         waitForReady: {
           type: 'boolean',
           description:
-            'Wait for the tab to finish loading before returning. Defaults to true; set to false for a fast return when the caller will wait or read the page separately.',
+            'Wait for the tab to finish loading before returning. Defaults to false; set to true when the caller requires the complete loading state.',
         },
         waitTimeoutMs: {
           type: 'number',

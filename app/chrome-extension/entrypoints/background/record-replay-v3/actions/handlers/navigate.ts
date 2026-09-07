@@ -39,7 +39,7 @@ export const navigateHandler: ActionHandler<'navigate'> = {
     if (action.params.refresh) {
       const result = await handleCallTool({
         name: TOOL_NAMES.BROWSER.NAVIGATE,
-        args: { refresh: true, tabId },
+        args: { refresh: true, tabId, waitForReady: false },
       });
 
       if ((result as { isError?: boolean })?.isError) {
@@ -64,7 +64,7 @@ export const navigateHandler: ActionHandler<'navigate'> = {
 
     const result = await handleCallTool({
       name: TOOL_NAMES.BROWSER.NAVIGATE,
-      args: { url, tabId },
+      args: { url, tabId, waitForReady: false },
     });
 
     if ((result as { isError?: boolean })?.isError) {

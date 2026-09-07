@@ -1134,7 +1134,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         waitForReady: {
           type: 'boolean',
           description:
-            '是否等待标签页加载完成后再返回。默认为 true；设为 false 可快速返回，适合后续自行等待或读取页面的场景。',
+            '是否等待标签页加载完成后再返回。默认为 false；设为 true 时等待 complete，适合后续严格依赖页面完成态的场景。',
         },
         waitTimeoutMs: {
           type: 'number',
