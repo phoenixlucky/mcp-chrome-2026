@@ -27,7 +27,7 @@
 
 ---
 
-## 📢 v2.6.10 更新内容
+## 📢 v2.6.11 更新内容
 
 > **请求可观测、可中断，超时可配置** — 所有 MCP 入口的卡请求更容易定位和处理。
 >
@@ -39,7 +39,7 @@
 > - 📦 **大响应修复** — Artifact 大响应不再被误判为失败，不会再出现 `Error calling tool: undefined`。
 > - ⏱️ **超时手动配置** — 页面消息超时默认 30 秒，可在扩展设置中配置 5–300 秒；工具执行窗口同步放宽。
 > - 🛡️ **错误信息完整化** — Native 扩展返回异常响应时保留状态和具体原因，便于诊断。
-> - 🔧 所有发布包版本统一为 v2.6.10
+> - 🔧 所有发布包版本统一为 v2.6.11
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -272,7 +272,7 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.6.10-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.6.11-win-x64.exe",
       "args": ["--stdio"]
     }
   }

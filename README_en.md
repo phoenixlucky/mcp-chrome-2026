@@ -26,7 +26,7 @@
 
 ---
 
-## 📢 What's New in v2.6.10
+## 📢 What's New in v2.6.11
 
 > **Request observability, cancellation, and configurable timeouts** — Easier to diagnose and recover stuck MCP calls across all endpoints.
 >
@@ -38,7 +38,7 @@
 > - 📦 **Large-response fix** — Artifact responses are no longer misclassified as failures, eliminating `Error calling tool: undefined`.
 > - ⏱️ **Configurable timeouts** — Page-message timeout defaults to 30 seconds and can be configured from 5 to 300 seconds; tool execution windows are also more tolerant.
 > - 🛡️ **Complete error reporting** — Preserve status and details when the extension returns an unsuccessful response.
-> - 🔧 All release packages bumped to v2.6.10
+> - 🔧 All release packages bumped to v2.6.11
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

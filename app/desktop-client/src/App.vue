@@ -497,7 +497,7 @@ onUnmounted(() => {
     <section class="details panel">
       <div class="detail-head"
         ><span class="section-kicker">DIAGNOSTICS</span
-        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.6.10</span></div
+        ><span>通信协议 V{{ protocolVersion }} · 应用 v2.6.11</span></div
       >
       <p>{{ state.message }}</p>
       <code>Native Messaging：com.chromemcp.nativehost</code>
