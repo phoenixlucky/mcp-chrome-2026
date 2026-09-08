@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { sanitizeText } from '@/utils/output-sanitizer';
+import { sanitizeAndLimitOutput, sanitizeText } from '@/utils/output-sanitizer';
 
 describe('output sanitizer query strings', () => {
   it('keeps ordinary text with spaced equals signs and ampersands', () => {
@@ -30,5 +30,30 @@ describe('output sanitizer query strings', () => {
       '[BLOCKED: Cookie/query string data]',
     );
     expect(sanitizeText('SID=secret; theme=dark').text).toBe('[BLOCKED: Cookie/query string data]');
+  });
+});
+
+describe('output sanitizer object keys', () => {
+  it('keeps author fields instead of matching the auth marker', () => {
+    const sanitized = sanitizeAndLimitOutput({
+      question_author: 'Cath,',
+      answer_author: 'Cath,',
+    });
+
+    expect(sanitized.text).toBe('{"question_author":"Cath,","answer_author":"Cath,"}');
+    expect(sanitized.redacted).toBe(false);
+  });
+
+  it('still redacts standalone and compound sensitive keys', () => {
+    const sanitized = sanitizeAndLimitOutput({
+      authorization: 'Bearer secret',
+      accessToken: 'secret',
+      user_auth: 'secret',
+    });
+
+    expect(sanitized.text).toBe(
+      '{"authorization":"<redacted>","accessToken":"<redacted>","user_auth":"<redacted>"}',
+    );
+    expect(sanitized.redacted).toBe(true);
   });
 });

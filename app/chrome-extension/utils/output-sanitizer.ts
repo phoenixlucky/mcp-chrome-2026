@@ -248,7 +248,20 @@ function sanitizeValue(
 
 function isSensitiveKey(key: string): boolean {
   const normalized = normalizeKey(key);
-  return SENSITIVE_KEY_MARKERS.some((marker) => normalized.includes(marker));
+  if (SENSITIVE_KEY_MARKERS.some((marker) => normalized === marker)) return true;
+
+  // Match standalone key components as well as camelCase compounds. A substring
+  // check makes innocent keys such as `question_author` match the `auth` marker
+  // because `author` starts with `auth`.
+  const components = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((component) => component.toLowerCase());
+
+  return components.some((component) =>
+    SENSITIVE_KEY_MARKERS.some((marker) => marker === component),
+  );
 }
 
 function normalizeKey(key: string): string {
