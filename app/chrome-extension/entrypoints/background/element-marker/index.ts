@@ -216,13 +216,19 @@ export function initElementMarkerListeners() {
             // 2) Resolve selector -> ref/center via helper (same as tools)
             let ensured: any;
             try {
+              const isCompositeSelector = selectorType === 'css' && selector.includes('|>');
               ensured = await chrome.tabs.sendMessage(
                 tabId,
                 {
-                  action: 'ensureRefForSelector',
+                  // locateElement scrolls the matched element into view before
+                  // returning its center. The legacy ensureRefForSelector path
+                  // only returned the old center and caused coordinate misses.
+                  action: isCompositeSelector ? 'ensureRefForSelector' : 'locateElement',
                   selector,
-                  isXPath: selectorType === 'xpath',
+                  ...(isCompositeSelector ? { isXPath: selectorType === 'xpath' } : {}),
                   allowMultiple: !!req.listMode,
+                  scrollIntoView: true,
+                  highlight: false,
                 } as any,
                 { frameId: 0 },
               );
@@ -270,22 +276,31 @@ export function initElementMarkerListeners() {
               });
             }
 
+            // A center point becomes stale when the page scrolls, reflows, or
+            // the marker panel changes the viewport. Let the DOM tools resolve
+            // normal selectors themselves so they can scroll and re-check the
+            // current element immediately before dispatching the action.
+            const isCompositeSelector = selectorType === 'css' && selector.includes('|>');
+            const locatorTarget = isCompositeSelector
+              ? { coordinates: coords }
+              : { selector, selectorType };
+
             // 3) Dispatch to appropriate tool for end-to-end validation
             try {
               switch (action) {
                 case 'hover': {
                   const r = await computerTool.execute({
                     action: 'hover',
-                    coordinates: coords,
+                    ...locatorTarget,
                     tabId,
-                  });
+                  } as any);
                   const error = r.isError ? extractToolError(r) : undefined;
                   base.tool = { name: 'computer.hover', ok: !r.isError, error };
                   break;
                 }
                 case 'left_click': {
                   const r = await clickTool.execute({
-                    coordinates: coords,
+                    ...locatorTarget,
                     tabId,
                     waitForNavigation: !!req.waitForNavigation,
                     timeout: Number.isFinite(req.timeoutMs as any)
@@ -300,7 +315,7 @@ export function initElementMarkerListeners() {
                 }
                 case 'double_click': {
                   const r = await clickTool.execute({
-                    coordinates: coords,
+                    ...locatorTarget,
                     tabId,
                     double: true,
                     waitForNavigation: !!req.waitForNavigation,
@@ -316,7 +331,7 @@ export function initElementMarkerListeners() {
                 }
                 case 'right_click': {
                   const r = await clickTool.execute({
-                    coordinates: coords,
+                    ...locatorTarget,
                     tabId,
                     waitForNavigation: !!req.waitForNavigation,
                     timeout: Number.isFinite(req.timeoutMs as any)
@@ -349,7 +364,7 @@ export function initElementMarkerListeners() {
                 case 'type_text': {
                   const text = String(req.text || '');
                   const focus = await clickTool.execute({
-                    coordinates: coords,
+                    ...locatorTarget,
                     tabId,
                     waitForNavigation: false,
                     timeout: 2000,
@@ -374,7 +389,7 @@ export function initElementMarkerListeners() {
                 case 'press_keys': {
                   const keys = String(req.keys || '');
                   const focus = await clickTool.execute({
-                    coordinates: coords,
+                    ...locatorTarget,
                     tabId,
                     waitForNavigation: false,
                     timeout: 2000,

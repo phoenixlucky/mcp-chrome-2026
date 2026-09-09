@@ -1,3 +1,4 @@
+/* global CSS, Element, HTMLFrameElement, HTMLIFrameElement, MouseEvent, Node, ShadowRoot, XPathResult, cancelAnimationFrame, chrome, document, location, requestAnimationFrame, window */
 
 (function () {
   if (window.__ELEMENT_MARKER_INSTALLED__) return;
@@ -73,14 +74,15 @@
 
       .em-panel {
         position: relative;
-        width: min(760px, calc(100vw - 48px));
-        max-height: calc(100vh - 48px);
+        width: min(520px, calc(100vw - 24px));
+        max-height: calc(100vh - 24px);
         overflow-y: auto;
         background: #ffffff;
-        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 14px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 20px;
+        padding: 14px;
         transition: opacity 150ms ease;
       }
 
@@ -90,13 +92,13 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         user-select: none;
       }
 
       .em-title {
-        font-size: 20px;
-        font-weight: 500;
+        font-size: 16px;
+        font-weight: 650;
         color: #262626;
       }
 
@@ -107,8 +109,8 @@
       }
 
       .em-icon-btn {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -133,8 +135,8 @@
       /* Controls Row */
       .em-controls {
         display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 8px;
       }
 
       .em-select-wrapper {
@@ -144,13 +146,13 @@
 
       .em-select {
         width: 100%;
-        height: 44px;
-        padding: 0 40px 0 16px;
+        height: 38px;
+        padding: 0 34px 0 12px;
         background: #f5f5f5;
         color: #262626;
-        font-size: 15px;
+        font-size: 13px;
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         appearance: none;
         cursor: pointer;
         outline: none;
@@ -161,7 +163,7 @@
       .em-select-wrapper::after {
         content: '';
         position: absolute;
-        right: 16px;
+        right: 12px;
         top: 50%;
         transform: translateY(-50%);
         width: 0;
@@ -173,14 +175,14 @@
       }
 
       .em-square-btn {
-        width: 44px;
-        height: 44px;
+        width: 38px;
+        height: 38px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: #f5f5f5;
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         cursor: pointer;
         transition: background 150ms ease;
         padding: 0;
@@ -198,6 +200,11 @@
         color: #ffffff;
       }
 
+      /* Validation is now part of the main form; keep the old tab toggle out of the toolbar. */
+      #__em_toggle_tab {
+        display: none;
+      }
+
       .em-square-btn svg {
         width: 18px;
         height: 18px;
@@ -209,12 +216,12 @@
       .em-selector-display {
         display: flex;
         align-items: center;
-        gap: 10px;
-        height: 44px;
-        padding: 0 12px 0 16px;
+        gap: 8px;
+        height: 40px;
+        padding: 0 8px 0 12px;
         background: #f5f5f5;
-        border-radius: 10px;
-        margin-bottom: 16px;
+        border-radius: 8px;
+        margin-bottom: 10px;
       }
 
       .em-selector-display svg {
@@ -227,7 +234,7 @@
 
       .em-selector-text {
         flex: 1;
-        font-size: 14px;
+        font-size: 13px;
         color: #525252;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -238,6 +245,47 @@
       .em-selector-nav {
         display: flex;
         gap: 2px;
+      }
+
+      .em-behavior-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 28px;
+        margin: -3px 0 9px;
+        padding: 0 2px;
+      }
+
+      .em-behavior-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        color: #525252;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .em-behavior-label span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .em-behavior-label input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        flex-shrink: 0;
+        accent-color: #2563eb;
+        cursor: pointer;
+      }
+
+      .em-behavior-hint {
+        flex-shrink: 0;
+        color: #a3a3a3;
+        font-size: 11px;
       }
 
       .em-nav-btn {
@@ -272,11 +320,51 @@
         padding: 2px;
         background: #f5f5f5;
         border-radius: 8px;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
+      }
+
+      /* Marking and validation share one compact flow instead of separate tabs. */
+      .em-tabs {
+        display: none;
+      }
+
+      .em-verify-content {
+        display: block !important;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      .em-verify-content > .em-settings {
+        gap: 8px;
+      }
+
+      .em-verify-title {
+        margin-bottom: 8px;
+        color: #525252;
+      }
+
+      .em-verify-content > .em-settings > .em-settings-group:first-child {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+      }
+
+      .em-verify-content > .em-settings > .em-settings-group:first-child .em-settings-label {
+        color: #525252;
+      }
+
+      .em-verify-content .em-actions {
+        margin-top: 8px !important;
+      }
+
+      .em-verify-content #__em_execution_history {
+        margin-top: 10px !important;
       }
 
       .em-tab {
-        padding: 6px 16px;
+        padding: 5px 13px;
         font-size: 12px;
         font-weight: 500;
         color: #737373;
@@ -305,11 +393,11 @@
       .em-annotation-layout {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
+        gap: 12px;
       }
 
       .em-annotation-layout .em-section-title {
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       }
 
       @media (max-width: 700px) {
@@ -321,6 +409,12 @@
         .em-annotation-layout {
           grid-template-columns: 1fr;
           gap: 16px;
+        }
+      }
+
+      @media (max-width: 360px) {
+        .em-checkbox-group {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -336,22 +430,22 @@
       }
 
       .em-section-title {
-        font-size: 13px;
+        font-size: 12px;
         color: #737373;
-        margin-bottom: 16px;
+        margin-bottom: 8px;
         font-weight: 400;
       }
 
       .em-attributes {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 8px;
       }
 
       .em-attribute {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
       }
 
       .em-attribute-label {
@@ -365,14 +459,14 @@
         align-items: center;
         gap: 10px;
         min-width: 0;
-        min-height: 44px;
-        padding: 0 12px 0 16px;
+        min-height: 36px;
+        padding: 0 10px 0 12px;
         background: #f5f5f5;
-        border-radius: 10px;
+        border-radius: 8px;
       }
 
       .em-attribute-value.editable {
-        padding: 0 16px;
+        padding: 0 12px;
       }
 
       .em-attribute-value svg {
@@ -421,7 +515,7 @@
         font-family: inherit;
         outline: none;
         padding: 0;
-        height: 44px;
+        height: 36px;
       }
 
       .em-input::placeholder {
@@ -432,56 +526,87 @@
       .em-settings {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
       }
 
       .em-settings-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
 
       .em-settings-label {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 500;
         color: #737373;
       }
 
       .em-checkbox-group {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
       }
 
       .em-checkbox-label {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 14px;
+        gap: 6px;
+        min-width: 0;
+        min-height: 29px;
+        padding: 4px 6px;
+        border: 1px solid #f0f0f0;
+        border-radius: 7px;
+        font-size: 12px;
         color: #404040;
         cursor: pointer;
       }
 
+      .em-checkbox-label:hover {
+        background: #fafafa;
+        border-color: #e5e5e5;
+      }
+
+      .em-checkbox-label span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .em-checkbox-label em {
+        display: inline-block;
+        margin-left: 2px;
+        padding: 1px 3px;
+        border-radius: 3px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 9px;
+        font-style: normal;
+        line-height: 1.2;
+        vertical-align: 1px;
+      }
+
       .em-checkbox-label input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         cursor: pointer;
         margin: 0;
+        flex-shrink: 0;
       }
 
       /* Action Buttons */
       .em-actions {
         display: flex;
         gap: 8px;
-        margin-top: 20px;
+        margin-top: 12px;
       }
 
       .em-btn {
         flex: 1;
-        height: 40px;
+        height: 36px;
         border: none;
         border-radius: 8px;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         transition: all 150ms ease;
@@ -539,7 +664,7 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        padding: 16px;
+        padding: 14px;
         background: #ffffff;
         border-radius: 10px;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
@@ -593,10 +718,12 @@
 
       /* Footer */
       .em-footer {
-        font-size: 12px;
+        font-size: 11px;
         color: #a3a3a3;
         text-align: center;
-        margin-top: 16px;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #f5f5f5;
       }
 
       .em-footer kbd {
@@ -611,10 +738,10 @@
 
       /* Status */
       .em-status {
-        font-size: 13px;
-        padding: 10px 12px;
+        font-size: 12px;
+        padding: 8px 10px;
         border-radius: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -643,27 +770,27 @@
       .em-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 8px;
       }
 
       .em-field {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
       }
 
       .em-field-label {
-        font-size: 12px;
+        font-size: 11px;
         color: #a3a3a3;
       }
 
       .em-field-input {
-        height: 40px;
-        padding: 0 12px;
+        height: 36px;
+        padding: 0 10px;
         background: #f5f5f5;
         border: none;
-        border-radius: 8px;
-        font-size: 14px;
+        border-radius: 7px;
+        font-size: 13px;
         color: #404040;
         font-family: inherit;
         outline: none;
@@ -749,12 +876,12 @@
               <option value="xpath">XPath 定位</option>
             </select>
           </div>
-          <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素">
+          <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素" aria-label="列表模式" aria-pressed="false">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <button class="em-square-btn" id="__em_toggle_box" title="框选定位 - 拖动框选页面区域">
+          <button class="em-square-btn" id="__em_toggle_box" title="框选定位 - 拖动框选页面区域" aria-label="框选定位" aria-pressed="false">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5h4m8 0h4v4M4 15v4h4m8 0h4v-4M8 8h8v8H8z"/>
             </svg>
@@ -787,7 +914,15 @@
           </div>
         </div>
 
-        <!-- Tabs -->
+        <div class="em-behavior-row" title="关闭后只记录元素，不会触发网站的点击逻辑">
+          <label class="em-behavior-label">
+            <input type="checkbox" id="__em_replay_click" />
+            <span>标记后触发页面点击</span>
+          </label>
+          <span class="em-behavior-hint">用于打开弹窗/下拉</span>
+        </div>
+
+        <!-- Tabs are kept in the template for compatibility; the unified form hides them. -->
         <div class="em-tabs">
           <button class="em-tab active" data-tab="attributes">标记</button>
           <button class="em-tab" data-tab="execute">验证</button>
@@ -796,7 +931,7 @@
         <!-- Status -->
         <div class="em-status idle" id="__em_status"></div>
 
-        <!-- Content: Attributes Tab -->
+        <!-- Annotation content -->
         <div class="em-content" id="__em_tab_attributes">
           <div class="em-annotation-layout">
             <section>
@@ -826,23 +961,23 @@
                 <div class="em-checkbox-group">
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_testid" checked />
-                  <span>优先使用测试标识（推荐）</span>
+                  <span>测试标识 <em>推荐</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_aria" checked />
-                  <span>优先使用无障碍标签（推荐）</span>
+                  <span>无障碍标签 <em>推荐</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_text" />
-                    <span>优先使用可见文本（XPath）</span>
+                    <span>可见文本（XPath）</span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_id" checked />
-                  <span>优先使用 ID（推荐）</span>
+                  <span>ID <em>推荐</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_attr" checked />
-                  <span>优先使用稳定属性（推荐）</span>
+                  <span>稳定属性 <em>推荐</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_class" />
@@ -855,18 +990,13 @@
           </div>
 
           <div class="em-actions">
-            <button class="em-btn em-btn-primary" id="__em_verify">验证定位</button>
-          </div>
-
-          <div class="em-actions">
-            <button class="em-btn em-btn-success" id="__em_save">保存标记</button>
-            <button class="em-btn em-btn-ghost" id="__em_export">导出定位</button>
-            <button class="em-btn em-btn-ghost" id="__em_cancel">取消</button>
+            <button class="em-btn em-btn-primary" id="__em_verify">检查匹配</button>
           </div>
         </div>
 
-        <!-- Content: Execute Tab -->
-        <div class="em-content" id="__em_tab_execute" style="display: none;">
+        <!-- Validation content is visible together with annotation content. -->
+        <div class="em-content em-verify-content" id="__em_tab_execute" style="display: block;">
+          <h3 class="em-section-title em-verify-title">执行验证</h3>
           <div class="em-settings">
             <div class="em-settings-group">
               <div class="em-settings-label">验证动作</div>
@@ -963,6 +1093,12 @@
           </div>
         </div>
 
+        <div class="em-actions em-save-actions">
+          <button class="em-btn em-btn-success" id="__em_save">保存标记</button>
+          <button class="em-btn em-btn-ghost" id="__em_export">导出定位</button>
+          <button class="em-btn em-btn-ghost" id="__em_cancel">取消</button>
+        </div>
+
         <!-- Footer -->
         <div class="em-footer">
           点击元素，或按 <kbd>空格</kbd> 标记；框选按钮可拖动定位
@@ -995,8 +1131,8 @@
       hostElement.id = '__element_marker_overlay';
       Object.assign(hostElement.style, {
         position: 'fixed',
-        top: '24px',
-        right: '24px',
+        top: '12px',
+        right: '12px',
         zIndex: String(CONFIG.Z_INDEX.OVERLAY),
         pointerEvents: 'none',
       });
@@ -1049,6 +1185,7 @@
       selectorType: CONFIG.DEFAULTS.SELECTOR_TYPE,
       listMode: CONFIG.DEFAULTS.LIST_MODE,
       boxSelect: false,
+      replaySiteClick: false,
       prefs: { ...CONFIG.DEFAULTS.PREFS },
       activeTab: 'attributes',
       validation: {
@@ -1135,11 +1272,15 @@
       } else {
         btn.classList.remove('active');
       }
+      btn.setAttribute('aria-pressed', String(state.listMode));
     }
 
     function updateBoxSelectUI() {
       const btn = PanelHost.getShadow()?.getElementById('__em_toggle_box');
-      if (btn) btn.classList.toggle('active', state.boxSelect);
+      if (btn) {
+        btn.classList.toggle('active', state.boxSelect);
+        btn.setAttribute('aria-pressed', String(state.boxSelect));
+      }
     }
 
     function updateTabUI() {
@@ -1816,6 +1957,7 @@
     boxSelectionStart: null,
     boxSelectionOverlay: null,
     suppressClick: false,
+    replayingClick: false,
   };
 
   function clearBoxSelectionOverlay() {
@@ -2010,6 +2152,18 @@
   }
 
   /**
+   * Other page pickers also listen for clicks while collecting element info.
+   * Their listener may be registered on document, after this script's window
+   * capture listener. Do not consume the event when one of them is active.
+   */
+  function isExternalPickerActive() {
+    return Boolean(
+      document.getElementById('__rr_picker_host__') ||
+      document.getElementById('__mcp_element_picker_host__'),
+    );
+  }
+
+  /**
    * Check if a node belongs to the element marker overlay (panel host or its shadow DOM)
    * This is used to filter out overlay elements from query results to prevent self-highlighting
    *
@@ -2098,6 +2252,13 @@
    */
   function processMouseMove(ev) {
     if (!STATE.active || STATE.boxSelectionStart) return;
+
+    if (isExternalPickerActive()) {
+      STATE.hoverEl = null;
+      STATE.lastHoverTarget = null;
+      clearHighlighter();
+      return;
+    }
 
     const rawTarget = ev?.target;
     if (!(rawTarget instanceof Element)) {
@@ -2224,8 +2385,54 @@
   // Event Handlers
   // ============================================================================
 
+  /**
+   * Re-run the page click after the marker has captured the element.
+   *
+   * The marker intentionally consumes the user's native click so links and
+   * buttons do not fire while selecting. A second, tagged click preserves the
+   * site's own delegated handlers (dropdowns, dialogs, etc.) without making the
+   * marker select the same element again.
+   */
+  function replayPageClick(target, sourceEvent) {
+    if (!(target instanceof Element) || STATE.replayingClick || isOverlayElement(target)) return;
+
+    STATE.replayingClick = true;
+    try {
+      const replay = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        view: window,
+        detail: Number(sourceEvent?.detail) || 1,
+        screenX: Number(sourceEvent?.screenX) || 0,
+        screenY: Number(sourceEvent?.screenY) || 0,
+        clientX: Number(sourceEvent?.clientX) || 0,
+        clientY: Number(sourceEvent?.clientY) || 0,
+        ctrlKey: !!sourceEvent?.ctrlKey,
+        altKey: !!sourceEvent?.altKey,
+        shiftKey: !!sourceEvent?.shiftKey,
+        metaKey: !!sourceEvent?.metaKey,
+      });
+      Object.defineProperty(replay, '__elementMarkerReplay', { value: true });
+      target.dispatchEvent(replay);
+    } catch (error) {
+      // Some host objects do not accept a constructed MouseEvent; fall back to
+      // the native HTMLElement.click() path while the guard is still active.
+      try {
+        target.click?.();
+      } catch {}
+    } finally {
+      STATE.replayingClick = false;
+    }
+  }
+
   function onClick(ev) {
     if (!STATE.active) return;
+
+    if (ev?.__elementMarkerReplay || STATE.replayingClick) return;
+
+    // If another picker owns the page, let its listener receive the native click.
+    if (isExternalPickerActive()) return;
 
     if (STATE.suppressClick) {
       ev.preventDefault();
@@ -2274,11 +2481,13 @@
           { type: 'em_click', innerSel: sel, name: getElementName(target), selectorType },
           '*',
         );
+        if (StateStore.get('replaySiteClick')) replayPageClick(target, ev);
       } catch {}
       return;
     }
 
     setSelection(target);
+    if (StateStore.get('replaySiteClick')) replayPageClick(target, ev);
   }
 
   function getBoxSelectionRect(start, event) {
@@ -2317,6 +2526,7 @@
 
   function onBoxSelectionStart(event) {
     if (!STATE.active || !StateStore.get('boxSelect') || event.button !== 0) return;
+    if (isExternalPickerActive()) return;
     if (isInsidePanel(event.target)) return;
 
     event.preventDefault();
@@ -2355,6 +2565,8 @@
 
   function onKeyDown(e) {
     if (!STATE.active) return;
+
+    if (isExternalPickerActive()) return;
 
     const codeDialog = STATE.box?.querySelector('#__em_code_dialog');
     if (codeDialog?.classList.contains('open') && e.key === 'Escape') {
@@ -2454,7 +2666,12 @@
   async function verifyHighlightOnly() {
     try {
       const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
-      if (!selector) return;
+      if (!selector || selector === '-') {
+        StateStore.set({
+          validation: { status: 'failure', message: '请先点击页面元素，再检查匹配' },
+        });
+        return;
+      }
 
       StateStore.set({
         validation: { status: 'running', message: '正在验证定位…' },
@@ -2531,7 +2748,12 @@
   async function verifySelectorNow() {
     try {
       const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
-      if (!selector) return;
+      if (!selector || selector === '-') {
+        StateStore.set({
+          validation: { status: 'failure', message: '请先选择元素，再执行验证' },
+        });
+        return;
+      }
 
       StateStore.set({
         validation: { status: 'running', message: '正在执行验证…' },
@@ -2781,7 +3003,12 @@
   async function copySelectorNow() {
     try {
       const sel = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
-      if (!sel) return;
+      if (!sel || sel === '-') {
+        StateStore.set({
+          validation: { status: 'failure', message: '还没有可复制的定位' },
+        });
+        return;
+      }
 
       try {
         await navigator.clipboard.writeText(sel);
@@ -2822,7 +3049,7 @@
   function getMarkerData() {
     const name = STATE.box?.querySelector('#__em_name')?.value?.trim();
     const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
-    if (!selector) return null;
+    if (!selector || selector === '-') return null;
 
     const selectorType = StateStore.get('selectorType');
     const listMode = StateStore.get('listMode');
@@ -2843,7 +3070,12 @@
 
   function exportMarker() {
     const marker = getMarkerData();
-    if (!marker) return;
+    if (!marker) {
+      StateStore.set({
+        validation: { status: 'failure', message: '请先选择元素，再导出定位' },
+      });
+      return;
+    }
 
     const dialog = STATE.box?.querySelector('#__em_code_dialog');
     if (!dialog) return;
@@ -2903,7 +3135,12 @@
   async function save() {
     try {
       const marker = getMarkerData();
-      if (!marker) return;
+      if (!marker) {
+        StateStore.set({
+          validation: { status: 'failure', message: '请先选择元素，再保存标记' },
+        });
+        return;
+      }
       const response = await chrome.runtime.sendMessage({
         type: 'element_marker_save',
         marker,
@@ -3014,6 +3251,11 @@
     // Copy
     host.querySelector('#__em_copy')?.addEventListener('click', copySelectorNow);
     host.querySelector('#__em_copy_selector')?.addEventListener('click', copySelectorNow);
+
+    // Decide whether selecting an element should also replay the page click.
+    host.querySelector('#__em_replay_click')?.addEventListener('change', (e) => {
+      StateStore.set({ replaySiteClick: !!e.target.checked });
+    });
 
     // Action change handler - show/hide action-specific options
     host.querySelector('#__em_action')?.addEventListener('change', (e) => {
@@ -3182,6 +3424,9 @@
     const typeSelect = host.querySelector('#__em_selector_type');
     if (typeSelect) typeSelect.value = state.selectorType;
 
+    const replayClick = host.querySelector('#__em_replay_click');
+    if (replayClick) replayClick.checked = state.replaySiteClick;
+
     // Initialize list mode button state
     const listModeBtn = host.querySelector('#__em_toggle_list');
     if (listModeBtn) {
@@ -3190,9 +3435,14 @@
       } else {
         listModeBtn.classList.remove('active');
       }
+      listModeBtn.setAttribute('aria-pressed', String(state.listMode));
     }
 
-    host.querySelector('#__em_toggle_box')?.classList.toggle('active', state.boxSelect);
+    const boxModeBtn = host.querySelector('#__em_toggle_box');
+    if (boxModeBtn) {
+      boxModeBtn.classList.toggle('active', state.boxSelect);
+      boxModeBtn.setAttribute('aria-pressed', String(state.boxSelect));
+    }
 
     const prefId = host.querySelector('#__em_pref_id');
     const prefTestId = host.querySelector('#__em_pref_testid');
