@@ -33,6 +33,7 @@ import {
 } from 'lucide-vue-next';
 
 const PORT = 12306;
+const APP_VERSION = __APP_VERSION__;
 const isTauri = Boolean((window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 
 type BridgeResponse = {
@@ -144,6 +145,8 @@ const errorTerminalFilter = ref('all');
 const errorCategoryFilter = ref<string | null>(null);
 const isExportingErrorDiagnostics = ref(false);
 const isClearingErrorDiagnostics = ref(false);
+const isRefreshingErrorDiagnostics = ref(false);
+let errorDiagnosticsRequestVersion = 0;
 
 const errorTerminalOptions = computed(() => errorDiagnostics.value?.terminals ?? []);
 const selectedTerminalLogs = computed(() => {
@@ -365,7 +368,10 @@ async function localRequest(path: string, method = 'GET'): Promise<BridgeRespons
   }
 
   try {
-    const response = await fetch(`http://127.0.0.1:${PORT}${path}`, { method });
+    const response = await fetch(`http://127.0.0.1:${PORT}${path}`, {
+      method,
+      cache: 'no-store',
+    });
     const data = await response.json().catch(() => undefined);
     return { ok: response.ok, status: response.status, data, error: data?.message };
   } catch (error) {
@@ -373,15 +379,27 @@ async function localRequest(path: string, method = 'GET'): Promise<BridgeRespons
   }
 }
 
-async function refreshErrorDiagnostics() {
-  const response = await localRequest('/__chrome_mcp_bridge/error-diagnostics');
-  if (!response.ok || !response.data) {
-    errorDiagnostics.value = null;
-    errorDiagnosticsMessage.value = response.error || '错误诊断服务尚未连接';
-    return;
+async function refreshErrorDiagnostics(force = false) {
+  if ((!force && isClearingErrorDiagnostics.value) || isRefreshingErrorDiagnostics.value) return;
+  const requestVersion = ++errorDiagnosticsRequestVersion;
+  isRefreshingErrorDiagnostics.value = true;
+  try {
+    const response = await localRequest('/__chrome_mcp_bridge/error-diagnostics');
+    // A slower request started before clear/refresh must not overwrite the
+    // newer view with stale diagnostics.
+    if (requestVersion !== errorDiagnosticsRequestVersion) return;
+    if (!response.ok || !response.data) {
+      errorDiagnostics.value = null;
+      errorDiagnosticsMessage.value = response.error || '错误诊断服务尚未连接';
+      return;
+    }
+    errorDiagnostics.value = response.data as ErrorDiagnostics;
+    errorDiagnosticsMessage.value = '错误日志已更新';
+  } finally {
+    if (requestVersion === errorDiagnosticsRequestVersion) {
+      isRefreshingErrorDiagnostics.value = false;
+    }
   }
-  errorDiagnostics.value = response.data as ErrorDiagnostics;
-  errorDiagnosticsMessage.value = '错误日志已更新';
 }
 
 function errorLogText() {
@@ -432,6 +450,10 @@ async function clearErrorDiagnostics() {
   if (!window.confirm(`确定清除${targetLabel}的错误日志吗？此操作不可恢复。`)) return;
 
   isClearingErrorDiagnostics.value = true;
+  // Invalidate an in-flight poll before sending the clear request. Its result
+  // may finish later, but it can no longer repopulate the cleared view.
+  ++errorDiagnosticsRequestVersion;
+  isRefreshingErrorDiagnostics.value = false;
   try {
     const terminalId = errorTerminalFilter.value;
     const path =
@@ -447,7 +469,20 @@ async function clearErrorDiagnostics() {
       return;
     }
     errorCategoryFilter.value = null;
-    await refreshErrorDiagnostics();
+    if (errorDiagnostics.value) {
+      errorDiagnostics.value = {
+        ...errorDiagnostics.value,
+        generatedAt: new Date().toISOString(),
+        terminals: errorDiagnostics.value.terminals.map((terminal) =>
+          terminalId === 'all' || terminal.terminalId === terminalId
+            ? { ...terminal, logs: [], error: undefined }
+            : terminal,
+        ),
+        errors: [],
+      };
+    }
+    errorDiagnosticsMessage.value = '错误日志已清除';
+    await refreshErrorDiagnostics(true);
   } finally {
     isClearingErrorDiagnostics.value = false;
   }
@@ -538,7 +573,7 @@ onMounted(async () => {
   await startBridge();
   await refreshErrorDiagnostics();
   timer = window.setInterval(() => refresh(), 1000);
-  errorTimer = window.setInterval(() => refreshErrorDiagnostics(), 5000);
+  errorTimer = window.setInterval(() => refreshErrorDiagnostics(), 1000);
 });
 
 onUnmounted(() => {
@@ -570,7 +605,7 @@ onUnmounted(() => {
         >
       </nav>
       <div class="sidebar-footer"
-        ><span>Chrome MCP Bridge</span><span>v2.7.0</span
+        ><span>Chrome MCP Bridge</span><span>v{{ APP_VERSION }}</span
         ><small>Build a more open AI browser.</small></div
       >
     </aside>
@@ -731,8 +766,14 @@ onUnmounted(() => {
             <p class="card-subtitle">统计每个终端的插件错误，并保留原始日志供排查。</p>
           </div>
           <div class="error-diagnostics-actions">
-            <button class="button secondary" type="button" @click="refreshErrorDiagnostics"
-              ><RefreshCw :size="14" />刷新</button
+            <button
+              class="button secondary"
+              type="button"
+              :disabled="isRefreshingErrorDiagnostics || isClearingErrorDiagnostics"
+              @click="refreshErrorDiagnostics()"
+              ><RefreshCw :size="14" />{{
+                isRefreshingErrorDiagnostics ? '刷新中…' : '刷新'
+              }}</button
             >
             <button
               class="button primary"
@@ -879,7 +920,7 @@ onUnmounted(() => {
       <section class="details panel" id="diagnostics">
         <div class="detail-head"
           ><span class="section-kicker"><Activity :size="13" /> DIAGNOSTICS</span
-          ><span>通信协议 V{{ protocolVersion }} · 应用 v2.7.0</span></div
+          ><span>通信协议 V{{ protocolVersion }} · 应用 v{{ APP_VERSION }}</span></div
         >
         <p>{{ state.message }}</p>
         <code>Native Messaging：com.chromemcp.nativehost</code>

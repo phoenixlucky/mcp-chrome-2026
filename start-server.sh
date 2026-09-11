@@ -20,12 +20,14 @@ node_major="$(node -p "process.versions.node.split('.')[0]")"
 [ "$node_major" -ge 24 ] || fail "Node.js 24 or newer is required (found $(node -v)). Run 'nvm use 24' and retry."
 command -v corepack >/dev/null || fail "Corepack is required; reinstall Node.js 24 or newer."
 
+version="$(node -p "require('./package.json').version")"
+
 pnpm() {
   corepack pnpm "$@"
 }
 
 echo "========================================"
-echo "  Chrome MCP Server v2.7.0"
+echo "  Chrome MCP Server v$version"
 echo "========================================"
 echo
 

@@ -1393,7 +1393,7 @@ export function createLayoutControl(options: LayoutControlOptions): DesignContro
   if (gridField.kind === 'grid-dimensions') {
     disposer.listen(gridField.previewButton, 'click', (e: MouseEvent) => {
       e.preventDefault();
-      setGridPopoverOpen(gridField, gridField.popover.hidden);
+      setGridPopoverOpen(gridField, gridField.popover.hidden === true);
       if (!gridField.popover.hidden) {
         gridField.colsContainer.input.focus();
         gridField.colsContainer.input.select();

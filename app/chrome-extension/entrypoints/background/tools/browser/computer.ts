@@ -298,6 +298,52 @@ class ComputerTool extends BaseBrowserToolExecutor {
     return mapping[action] || null;
   }
 
+  /**
+   * Resolve an element target, scroll it into view, and return its current
+   * viewport center. Coordinates resolved before scrolling are stale for any
+   * element outside the viewport.
+   */
+  private async locateInteractionTarget(
+    tabId: number,
+    target: Pick<ComputerParams, 'ref' | 'selector' | 'selectorType' | 'frameId'>,
+  ): Promise<{ center: Coordinates; resolvedBy?: string }> {
+    if (!target.ref && !target.selector) {
+      throw new Error('Provide ref or selector for element interaction');
+    }
+
+    await this.injectContentScript(
+      tabId,
+      ['inject-scripts/accessibility-tree-helper.js'],
+      false,
+      'ISOLATED',
+      false,
+      typeof target.frameId === 'number' ? [target.frameId] : undefined,
+    );
+    const located = await this.sendMessageToTab(
+      tabId,
+      {
+        action: 'locateElement',
+        ref: target.ref,
+        selector: target.selector,
+        selectorType: target.selectorType || 'css',
+        scrollIntoView: true,
+        highlight: false,
+      },
+      target.frameId,
+    );
+
+    if (
+      !located?.success ||
+      !located.center ||
+      !Number.isFinite(located.center.x) ||
+      !Number.isFinite(located.center.y)
+    ) {
+      throw new Error(located?.error || 'Element not found');
+    }
+
+    return { center: located.center, resolvedBy: located.resolvedBy };
+  }
+
   private async executeAction(params: ComputerParams, tab: chrome.tabs.Tab): Promise<ToolResult> {
     if (typeof tab.id !== 'number') {
       return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
@@ -363,68 +409,24 @@ class ComputerTool extends BaseBrowserToolExecutor {
         // Resolve target point from ref | selector | coordinates
         let coord: Coordinates | undefined = undefined;
         let resolvedBy: 'ref' | 'selector' | 'coordinates' | undefined;
+        let resolutionError: string | undefined;
 
         try {
-          if (params.ref) {
-            await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
-            // Scroll element into view first to ensure it's visible
-            try {
-              await this.sendMessageToTab(tab.id, { action: 'focusByRef', ref: params.ref });
-            } catch {
-              // Best effort - continue even if scroll fails
-            }
-            // Re-resolve coordinates after scroll
-            const resolved = await this.sendMessageToTab(tab.id, {
-              action: TOOL_MESSAGE_TYPES.RESOLVE_REF,
-              ref: params.ref,
-            });
-            if (resolved && resolved.success) {
-              coord = project({ x: resolved.center.x, y: resolved.center.y });
-              resolvedBy = 'ref';
-            }
-          } else if (params.selector) {
-            await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
-            const selectorType = params.selectorType || 'css';
-            const ensured = await this.sendMessageToTab(tab.id, {
-              action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
-              selector: params.selector,
-              isXPath: selectorType === 'xpath',
-            });
-            if (ensured && ensured.success) {
-              // Scroll element into view first to ensure it's visible
-              const resolvedRef = typeof ensured.ref === 'string' ? ensured.ref : undefined;
-              if (resolvedRef) {
-                try {
-                  await this.sendMessageToTab(tab.id, { action: 'focusByRef', ref: resolvedRef });
-                } catch {
-                  // Best effort - continue even if scroll fails
-                }
-                // Re-resolve coordinates after scroll
-                const reResolved = await this.sendMessageToTab(tab.id, {
-                  action: TOOL_MESSAGE_TYPES.RESOLVE_REF,
-                  ref: resolvedRef,
-                });
-                if (reResolved && reResolved.success) {
-                  coord = project({ x: reResolved.center.x, y: reResolved.center.y });
-                } else {
-                  coord = project({ x: ensured.center.x, y: ensured.center.y });
-                }
-              } else {
-                coord = project({ x: ensured.center.x, y: ensured.center.y });
-              }
-              resolvedBy = 'selector';
-            }
+          if (params.ref || params.selector) {
+            const located = await this.locateInteractionTarget(tab.id, params);
+            coord = project(located.center);
+            resolvedBy = params.ref ? 'ref' : 'selector';
           } else if (params.coordinates) {
             coord = project(params.coordinates);
             resolvedBy = 'coordinates';
           }
         } catch (e) {
-          // fall through to error handling below
+          resolutionError = e instanceof Error ? e.message : String(e);
         }
 
         if (!coord)
           return createErrorResponse(
-            'Provide ref or selector or coordinates for hover, or failed to resolve target',
+            resolutionError || 'Provide ref or selector or coordinates for hover',
           );
         {
           const stale = ((): any => {
@@ -637,42 +639,19 @@ class ComputerTool extends BaseBrowserToolExecutor {
             'Provide ref, selector, or coordinates for double/triple click',
           );
         let coord = params.coordinates ? project(params.coordinates)! : (undefined as any);
-        // If ref is provided, resolve center via accessibility helper
-        if (params.ref) {
+        let resolutionError: string | undefined;
+        if (params.ref || params.selector) {
           try {
-            await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
-            const resolved = await this.sendMessageToTab(tab.id, {
-              action: TOOL_MESSAGE_TYPES.RESOLVE_REF,
-              ref: params.ref,
-            });
-            if (resolved && resolved.success) {
-              coord = project({ x: resolved.center.x, y: resolved.center.y })!;
-            }
+            const located = await this.locateInteractionTarget(tab.id, params);
+            coord = project(located.center)!;
           } catch (e) {
-            // ignore and use provided coordinates
-          }
-        } else if (params.selector) {
-          // Support selector-based click
-          try {
-            await this.injectContentScript(tab.id, ['inject-scripts/accessibility-tree-helper.js']);
-            const selectorType = params.selectorType || 'css';
-            const ensured = await this.sendMessageToTab(
-              tab.id,
-              {
-                action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
-                selector: params.selector,
-                isXPath: selectorType === 'xpath',
-              },
-              params.frameId,
-            );
-            if (ensured && ensured.success) {
-              coord = project({ x: ensured.center.x, y: ensured.center.y })!;
-            }
-          } catch (e) {
-            // ignore
+            resolutionError = e instanceof Error ? e.message : String(e);
           }
         }
-        if (!coord) return createErrorResponse('Failed to resolve coordinates from ref/selector');
+        if (!coord)
+          return createErrorResponse(
+            resolutionError || 'Failed to resolve coordinates from ref/selector',
+          );
         {
           const stale = ((): any => {
             if (!params.coordinates) return null;
@@ -1352,11 +1331,8 @@ class ComputerTool extends BaseBrowserToolExecutor {
       if (keyboardAction && typeof currentTab.id === 'number') {
         await CDPHelper.attach(currentTab.id);
         try {
-          const response = await CDPHelper.send(
-            currentTab.id,
-            'Runtime.evaluate',
-            {
-              expression: `(() => {
+          const response = await CDPHelper.send(currentTab.id, 'Runtime.evaluate', {
+            expression: `(() => {
                 const el = document.activeElement;
                 if (!el) return null;
                 const type = el.getAttribute('type') || '';
@@ -1372,10 +1348,9 @@ class ComputerTool extends BaseBrowserToolExecutor {
                   valuePreview: type === 'password' ? null : (typeof el.value === 'string' ? el.value.slice(0, 120) : null),
                 };
               })()`,
-              returnByValue: true,
-              awaitPromise: false,
-            },
-          );
+            returnByValue: true,
+            awaitPromise: false,
+          });
           focus = response?.result?.value || null;
         } finally {
           await CDPHelper.detach(currentTab.id);

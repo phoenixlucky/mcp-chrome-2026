@@ -815,7 +815,7 @@ export class SemanticSimilarityEngine {
   private isWorkerSupported(): boolean {
     try {
       // Check if in Service Worker environment (background script)
-      if (typeof importScripts === 'function') {
+      if (typeof (globalThis as { importScripts?: unknown }).importScripts === 'function') {
         return false;
       }
 

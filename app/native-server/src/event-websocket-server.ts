@@ -48,7 +48,7 @@ export class LocalEventWebSocketServer {
     response.writeHead(404).end();
   });
   private socket: net.Socket | null = null;
-  private buffer = Buffer.alloc(0);
+  private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
   private token = '';
   private tokenExpiresAt = 0;
   private tokenUsed = false;

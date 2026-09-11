@@ -118,6 +118,29 @@ describe('interaction helpers', () => {
     expect(input.value).toBe('private');
   });
 
+  it('scrolls a ref into view before DOM hover fallback', async () => {
+    const button = document.createElement('button');
+    setRect(button);
+    button.dispatchEvent = vi.fn(() => true);
+    document.body.append(button);
+    (window as any).__claudeElementMap.ref_hover = { deref: () => button };
+    vi.stubGlobal('MouseEvent', class {});
+
+    const handler = loadInjectedHelper(
+      'accessibility-tree-helper.js',
+      '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__',
+    );
+
+    await expect(
+      callHelper(handler, { action: 'dispatchHoverForRef', ref: 'ref_hover' }),
+    ).resolves.toMatchObject({ success: true });
+    expect(button.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'instant',
+      block: 'center',
+      inline: 'center',
+    });
+  });
+
   it('waits for dynamic inputs and matches value properties when the value attribute is absent', async () => {
     const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
 

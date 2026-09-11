@@ -495,7 +495,10 @@
       if (!(el instanceof Element) || el.id.startsWith('__rr_') || !isVisible(el)) continue;
       const role = el.getAttribute('role') || '';
       const className = el.getAttribute('class') || '';
-      const text = String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+      const text = String(el.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 200);
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
       const item = {
@@ -503,7 +506,8 @@
         role: role || null,
         className,
         text,
-        isModal: role === 'dialog' || role === 'alertdialog' || el.getAttribute('aria-modal') === 'true',
+        isModal:
+          role === 'dialog' || role === 'alertdialog' || el.getAttribute('aria-modal') === 'true',
         zIndex: style.zIndex || null,
         rect: {
           x: rect.x,
@@ -516,7 +520,12 @@
           left: rect.left,
         },
       };
-      if (role === 'dialog' || role === 'alertdialog' || el.getAttribute('aria-modal') === 'true' || /dialog|modal/i.test(`${el.id} ${className}`)) {
+      if (
+        role === 'dialog' ||
+        role === 'alertdialog' ||
+        el.getAttribute('aria-modal') === 'true' ||
+        /dialog|modal/i.test(`${el.id} ${className}`)
+      ) {
         dialogs.push(item);
       } else {
         overlays.push(item);
@@ -741,6 +750,15 @@
     if (!ref) return { success: false, error: 'ref is required' };
     const el = resolveRef(ref);
     if (el) {
+      // DOM hover is also used when CDP is unavailable. Keep it consistent
+      // with the CDP path: scroll before calculating the hover coordinates.
+      try {
+        el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+      } catch (_) {
+        try {
+          el.scrollIntoView({ block: 'center', inline: 'center' });
+        } catch (_) {}
+      }
       dispatchHoverEvents(el);
       return { success: true, target: summarizeElement(el) };
     }
@@ -1505,6 +1523,19 @@
                 }, BRIDGE_TIMEOUT_MS);
 
                 window.addEventListener('message', listener, true);
+                if (request.scrollIntoView !== false) {
+                  try {
+                    frameEl.scrollIntoView({
+                      behavior: 'instant',
+                      block: 'center',
+                      inline: 'center',
+                    });
+                  } catch (_) {
+                    try {
+                      frameEl.scrollIntoView({ block: 'center', inline: 'center' });
+                    } catch (_) {}
+                  }
+                }
                 cw.postMessage(
                   {
                     type: 'rr-bridge-ensure-ref',
@@ -1514,6 +1545,7 @@
                     isXPath: !!request.isXPath,
                     tagName: String(request.tagName || ''),
                     allowMultiple: !!request.allowMultiple,
+                    scrollIntoView: request.scrollIntoView !== false,
                   },
                   '*',
                 );
@@ -2215,6 +2247,15 @@
             if (!el || !(el instanceof Element)) {
               respond({ success: false, error: 'Element not found in child frame' });
               return;
+            }
+            if (data.scrollIntoView !== false) {
+              try {
+                el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+              } catch (_) {
+                try {
+                  el.scrollIntoView({ block: 'center', inline: 'center' });
+                } catch (_) {}
+              }
             }
             if (!window.__claudeElementMap) window.__claudeElementMap = {};
             if (!window.__claudeRefCounter) window.__claudeRefCounter = 0;

@@ -225,7 +225,7 @@ export function initElementMarkerListeners() {
                   // only returned the old center and caused coordinate misses.
                   action: isCompositeSelector ? 'ensureRefForSelector' : 'locateElement',
                   selector,
-                  ...(isCompositeSelector ? { isXPath: selectorType === 'xpath' } : {}),
+                  ...(isCompositeSelector ? { isXPath: false } : {}),
                   allowMultiple: !!req.listMode,
                   scrollIntoView: true,
                   highlight: false,

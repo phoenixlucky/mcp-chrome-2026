@@ -538,8 +538,10 @@ async function testProxyConnection(sessionId?: string): Promise<{ ip: string; co
   } catch (error) {
     const detail = String(error instanceof Error ? error.message : error);
     if (!/failed to fetch/i.test(detail)) throw error;
-    if (lastProxyNetworkError?.url.includes('ip.oxylabs.io')) {
-      throw new Error(`代理连接失败：${lastProxyNetworkError.error}`);
+    const networkError = lastProxyNetworkError as
+      { url: string; type: string; error: string; at: number } | undefined;
+    if (networkError?.url.includes('ip.oxylabs.io')) {
+      throw new Error(`代理连接失败：${networkError.error}`);
     }
     if (lastProxyAuth && !lastProxyAuth.matched) {
       throw new Error(

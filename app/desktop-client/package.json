@@ -1,7 +1,7 @@
 {
   "name": "@ethanwilkins/chrome-mcp-desktop-2026",
   "private": true,
-  "version": "2.7.0",
+  "version": "2.7.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
@@ -18,8 +18,8 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
     "@vitejs/plugin-vue": "^6.0.8",
-    "typescript": "^5.8.3",
-    "vite": "^5.4.0",
-    "vue-tsc": "^2.2.8"
+    "typescript": "6.0.2",
+    "vite": "^8.3.0",
+    "vue-tsc": "^3.3.11"
   }
 }

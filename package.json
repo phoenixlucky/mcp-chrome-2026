@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridge-monorepo-2026",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "private": true,
   "packageManager": "pnpm@12.3.4+sha512.961aa41fb077da3a04a441d9f8e15ebc0c96da8ef710b2eb67bf9ee7cb0610eabd48f1fd85f51cffe73846785fa0f87c56a3a872a1d893f8446741b5cce45457",
   "engines": {
@@ -27,6 +27,7 @@
     "lint": "pnpm -r lint",
     "check:tool-docs": "node scripts/check-tool-docs.mjs",
     "check:versions": "node scripts/check-versions.mjs",
+    "sync:version": "node scripts/sync-versions.mjs",
     "sync:tool-docs": "node scripts/sync-tool-docs.mjs",
     "test:chrome-smoke": "node scripts/chrome-smoke.mjs",
     "test:coverage": "pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 test:coverage",
@@ -50,14 +51,15 @@
     "@eslint/js": "^9.25.1",
     "@typescript-eslint/eslint-plugin": "^8.32.0",
     "@typescript-eslint/parser": "^8.32.0",
+    "@typescript/native": "npm:@ethanwilkins/typescript-native@7.0.3",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-vue": "^10.0.0",
     "globals": "^16.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.1",
-    "prettier": "^3.5.3",
-    "typescript": "^5.8.3",
+    "prettier": "^3.9.6",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "^8.32.0",
     "vue-eslint-parser": "^10.1.3"
   },

@@ -4,7 +4,8 @@ title Chrome MCP Server - Launcher
 cd /d "%~dp0"
 
 echo ========================================
-echo   Chrome MCP Server v2.7.0
+for /f %%i in ('node -p "require('./package.json').version"') do set APP_VERSION=%%i
+echo   Chrome MCP Server v!APP_VERSION!
 echo ========================================
 echo.
 

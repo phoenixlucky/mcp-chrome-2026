@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock MutationObserver
 let mockObserverCallback: MutationCallback | null = null;
-let mockObserverDisconnect: ReturnType<typeof vi.fn>;
+let mockObserverDisconnect: (() => void) | undefined;
 
 class MockMutationObserver {
   callback: MutationCallback;

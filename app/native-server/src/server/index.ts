@@ -492,31 +492,41 @@ export class Server {
       }> = [];
       const errors: string[] = [];
 
-      if (this.nativeHost?.isExtensionConnected()) {
-        try {
-          const response = await this.nativeHost.sendRequestToExtensionAndWait(
-            { name: 'chrome_error_logs', args: {} },
-            NativeMessageType.CALL_TOOL,
-            5_000,
-          );
-          const value = response?.data?.content?.find((item: any) => item?.type === 'text')?.text;
-          const parsed = typeof value === 'string' ? JSON.parse(value) : {};
-          terminals.push({
-            terminalId: 'default',
-            name: '当前 Chrome',
-            status: 'running',
-            logs: Array.isArray(parsed?.logs) ? parsed.logs : [],
-          });
-        } catch (error) {
-          errors.push(
-            `当前 Chrome 错误日志读取失败：${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      } else {
-        errors.push('当前 Chrome 扩展未连接');
-      }
-
-      for (const terminal of await browserProfileManager.errorLogs()) terminals.push(terminal);
+      const [currentChrome, profileTerminals] = await Promise.all([
+        (async () => {
+          if (!this.nativeHost?.isExtensionConnected()) {
+            return { terminal: null, error: '当前 Chrome 扩展未连接' };
+          }
+          try {
+            const response = await this.nativeHost.sendRequestToExtensionAndWait(
+              { name: 'chrome_error_logs', args: {} },
+              NativeMessageType.CALL_TOOL,
+              5_000,
+            );
+            const value = response?.data?.content?.find((item: any) => item?.type === 'text')?.text;
+            const parsed = typeof value === 'string' ? JSON.parse(value) : {};
+            return {
+              terminal: {
+                terminalId: 'default',
+                name: '当前 Chrome',
+                status: 'running',
+                logs: Array.isArray(parsed?.logs) ? parsed.logs : [],
+              },
+              error: null,
+            };
+          } catch (error) {
+            return {
+              terminal: null,
+              error: `当前 Chrome 错误日志读取失败：${error instanceof Error ? error.message : String(error)}`,
+            };
+          }
+        })(),
+        browserProfileManager.errorLogs(),
+      ]);
+      if (currentChrome.terminal) terminals.push(currentChrome.terminal);
+      if (currentChrome.error) errors.push(currentChrome.error);
+      terminals.push(...profileTerminals);
+      reply.header('Cache-Control', 'no-store, no-cache, must-revalidate');
       return reply.status(HTTP_STATUS.OK).send({
         generatedAt: new Date().toISOString(),
         terminals,
