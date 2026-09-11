@@ -66,6 +66,7 @@ export const TOOL_NAMES = {
     TASK_CONTEXT: 'chrome_task_context',
     SCOPED_ACTION: 'chrome_scoped_action',
     DIAGNOSTIC_SNAPSHOT: 'chrome_diagnostic_snapshot',
+    ERROR_LOGS: 'chrome_error_logs',
     PROXY_DIAGNOSTICS: 'chrome_proxy_diagnostics',
     PROXY_ROTATE: 'chrome_proxy_rotate',
     LIST_FRAMES: 'chrome_list_frames',
@@ -396,6 +397,21 @@ export const TOOL_SCHEMAS: Tool[] = [
         consoleLimit: {
           type: 'number',
           description: '最大控制台条目数（默认 100，上限 500）。',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.ERROR_LOGS,
+    description: '读取或清除浏览器插件保留的原始错误日志，供桌面端错误诊断使用。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['read', 'clear'],
+          description: '读取日志（read）或清除日志（clear）。默认为 read。',
         },
       },
       required: [],

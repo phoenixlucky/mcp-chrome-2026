@@ -148,6 +148,30 @@ fn get_status(state: State<'_, BridgeState>) -> BridgeResponse {
 }
 
 #[tauri::command]
+fn get_error_diagnostics(state: State<'_, BridgeState>) -> BridgeResponse {
+    request_json(state.port, "GET", "/__chrome_mcp_bridge/error-diagnostics")
+}
+
+#[tauri::command]
+fn clear_error_diagnostics(terminal_id: String, state: State<'_, BridgeState>) -> BridgeResponse {
+    if terminal_id != "all"
+        && terminal_id != "default"
+        && (terminal_id.is_empty()
+            || !terminal_id
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_'))
+    {
+        return error_response("无效的错误日志终端 ID");
+    }
+    let path = if terminal_id == "all" {
+        "/__chrome_mcp_bridge/error-diagnostics/clear".to_string()
+    } else {
+        format!("/__chrome_mcp_bridge/error-diagnostics/clear?terminalId={terminal_id}")
+    };
+    request_json(state.port, "POST", &path)
+}
+
+#[tauri::command]
 fn health_check(state: State<'_, BridgeState>) -> BridgeResponse {
     request_json(state.port, "GET", "/status?probe=1")
 }
@@ -239,6 +263,8 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             get_status,
+            get_error_diagnostics,
+            clear_error_diagnostics,
             health_check,
             control_service,
             cancel_mcp_request,

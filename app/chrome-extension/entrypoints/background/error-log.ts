@@ -48,7 +48,7 @@ export async function readPluginErrorLogs(): Promise<PluginErrorLog[]> {
   return Array.isArray(stored[ERROR_LOG_KEY]) ? stored[ERROR_LOG_KEY] : [];
 }
 
-async function clearPluginErrorLogs(): Promise<void> {
+export async function clearPluginErrorLogs(): Promise<void> {
   await writeQueue;
   await chrome.storage.local.remove(ERROR_LOG_KEY);
 }

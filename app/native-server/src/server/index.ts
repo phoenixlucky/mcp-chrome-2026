@@ -322,6 +322,8 @@ export class Server {
       const isMcpRoute = ['/mcp', '/mcp-new', '/sse', '/messages'].includes(pathname);
       const isProtectedLocalRoute =
         pathname === '/status' ||
+        pathname === '/__chrome_mcp_bridge/error-diagnostics' ||
+        pathname === '/__chrome_mcp_bridge/error-diagnostics/clear' ||
         pathname === '/ask-extension' ||
         pathname.startsWith('/artifacts/') ||
         pathname === '/__chrome_mcp_bridge/start' ||
@@ -477,6 +479,88 @@ export class Server {
           browserProfiles: await browserProfileManager.summary(),
           recentToolCalls: getRecentToolCalls(),
           ...(probe ? { probe } : {}),
+        });
+      },
+    );
+    this.fastify.get('/__chrome_mcp_bridge/error-diagnostics', async (_request, reply) => {
+      const terminals: Array<{
+        terminalId: string;
+        name: string;
+        status: string;
+        logs: unknown[];
+        error?: string;
+      }> = [];
+      const errors: string[] = [];
+
+      if (this.nativeHost?.isExtensionConnected()) {
+        try {
+          const response = await this.nativeHost.sendRequestToExtensionAndWait(
+            { name: 'chrome_error_logs', args: {} },
+            NativeMessageType.CALL_TOOL,
+            5_000,
+          );
+          const value = response?.data?.content?.find((item: any) => item?.type === 'text')?.text;
+          const parsed = typeof value === 'string' ? JSON.parse(value) : {};
+          terminals.push({
+            terminalId: 'default',
+            name: '当前 Chrome',
+            status: 'running',
+            logs: Array.isArray(parsed?.logs) ? parsed.logs : [],
+          });
+        } catch (error) {
+          errors.push(
+            `当前 Chrome 错误日志读取失败：${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      } else {
+        errors.push('当前 Chrome 扩展未连接');
+      }
+
+      for (const terminal of await browserProfileManager.errorLogs()) terminals.push(terminal);
+      return reply.status(HTTP_STATUS.OK).send({
+        generatedAt: new Date().toISOString(),
+        terminals,
+        errors,
+      });
+    });
+
+    this.fastify.post(
+      '/__chrome_mcp_bridge/error-diagnostics/clear',
+      async (
+        request: FastifyRequest<{ Querystring: { terminalId?: string } }>,
+        reply: FastifyReply,
+      ) => {
+        const terminalId = request.query.terminalId?.trim() || 'all';
+        const errors: string[] = [];
+        if (terminalId === 'all' || terminalId === 'default') {
+          if (this.nativeHost?.isExtensionConnected()) {
+            try {
+              const response = await this.nativeHost.sendRequestToExtensionAndWait(
+                { name: 'chrome_error_logs', args: { action: 'clear' } },
+                NativeMessageType.CALL_TOOL,
+                5_000,
+              );
+              if (response?.status !== 'success' || response.data?.isError) {
+                throw new Error('扩展返回了清除失败结果');
+              }
+            } catch (error) {
+              errors.push(
+                `当前 Chrome 错误日志清除失败：${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          } else if (terminalId === 'default') {
+            errors.push('当前 Chrome 扩展未连接');
+          }
+        }
+        if (terminalId === 'all') {
+          errors.push(...(await browserProfileManager.clearErrorLogs()));
+        } else if (terminalId !== 'default') {
+          errors.push(...(await browserProfileManager.clearErrorLogs(terminalId)));
+        }
+        return reply.status(errors.length ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.OK).send({
+          success: errors.length === 0,
+          terminalId,
+          errors,
         });
       },
     );
@@ -706,9 +790,7 @@ export class Server {
     error: unknown,
   ): Exclude<McpRequestStatus, 'running' | 'success'> {
     const message = error instanceof Error ? error.message : String(error);
-    return activeRequest.cancelRequestedAt || /abort|cancel/i.test(message)
-      ? 'cancelled'
-      : 'error';
+    return activeRequest.cancelRequestedAt || /abort|cancel/i.test(message) ? 'cancelled' : 'error';
   }
 
   private async cleanupStaleSessions(): Promise<void> {

@@ -66,6 +66,7 @@ const TOOL_NAMES = {
     TASK_CONTEXT: 'chrome_task_context',
     SCOPED_ACTION: 'chrome_scoped_action',
     DIAGNOSTIC_SNAPSHOT: 'chrome_diagnostic_snapshot',
+    ERROR_LOGS: 'chrome_error_logs',
     PROXY_DIAGNOSTICS: 'chrome_proxy_diagnostics',
     PROXY_ROTATE: 'chrome_proxy_rotate',
     LIST_FRAMES: 'chrome_list_frames',
@@ -397,6 +398,22 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         consoleLimit: {
           type: 'number',
           description: 'Maximum console entries (default 100, cap 500).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.ERROR_LOGS,
+    description:
+      'Read or clear the raw error logs retained by the browser extension for desktop diagnostics.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['read', 'clear'],
+          description: 'Read logs (read) or clear logs (clear). Defaults to read.',
         },
       },
       required: [],
@@ -2810,6 +2827,8 @@ const EN_TOOL_DESCRIPTIONS: Record<string, string> = {
     'List frames in a tab so scoped actions can target same-origin or cross-origin iframes by frameId.',
   chrome_diagnostic_snapshot:
     'Return a diagnostic snapshot containing a viewport screenshot, DOM snapshot, console buffer, and network-capture summary.',
+  chrome_error_logs:
+    'Read the raw error logs retained by the browser extension for desktop error diagnostics.',
   chrome_proxy_diagnostics:
     'Read proxy configuration and Chrome takeover state; action=test also verifies the proxy exit IP without returning credentials.',
   chrome_proxy_rotate:

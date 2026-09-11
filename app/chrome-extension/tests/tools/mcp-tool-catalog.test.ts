@@ -13,6 +13,7 @@ describe('MCP tool catalog', () => {
         'chrome_cookie_set',
         'chrome_cookie_delete',
         'chrome_proxy_diagnostics',
+        'chrome_error_logs',
         'chrome_proxy_rotate',
         'collect_virtual_list',
         'collect_virtual_lists',

@@ -55,6 +55,14 @@ export interface BrowserProfileDiagnostics {
   errors: string[];
 }
 
+export interface BrowserProfileErrorLogs {
+  terminalId: string;
+  name: string;
+  status: BrowserProfileStatus['status'];
+  logs: unknown[];
+  error?: string;
+}
+
 interface RunningProfile {
   child: ChildProcess;
   cdpPort: number;
@@ -514,6 +522,70 @@ export class BrowserProfileManager {
     if (!server) errors.push('Profile MCP status endpoint is unavailable');
     if (!cdp) errors.push('Chrome DevTools Protocol endpoint is unavailable');
     return { profile: status, cdp, server, proxy, errors };
+  }
+
+  async errorLogs(): Promise<BrowserProfileErrorLogs[]> {
+    const profiles = await this.load();
+    const results: BrowserProfileErrorLogs[] = [];
+    for (const profile of profiles) {
+      const status = this.status(profile);
+      const active = this.running.get(profile.id);
+      if (!active?.mcpReady || !active.mcpPort) {
+        results.push({
+          terminalId: profile.id,
+          name: profile.name,
+          status: status.status,
+          logs: [],
+        });
+        continue;
+      }
+      try {
+        active.connection ||= new ProfileMcpConnection(active.mcpPort);
+        const value = parseToolJson(await active.connection.callTool('chrome_error_logs', {})) as {
+          logs?: unknown;
+        };
+        results.push({
+          terminalId: profile.id,
+          name: profile.name,
+          status: status.status,
+          logs: Array.isArray(value?.logs) ? value.logs : [],
+        });
+      } catch (error) {
+        results.push({
+          terminalId: profile.id,
+          name: profile.name,
+          status: status.status,
+          logs: [],
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return results;
+  }
+
+  async clearErrorLogs(profileId?: string): Promise<string[]> {
+    const profiles = await this.load();
+    const targets = profileId ? profiles.filter((profile) => profile.id === profileId) : profiles;
+    if (profileId && targets.length === 0) return [`终端不存在：${profileId}`];
+
+    const errors: string[] = [];
+    for (const profile of targets) {
+      const active = this.running.get(profile.id);
+      if (!active?.mcpReady || !active.mcpPort) {
+        if (profileId) errors.push(`终端未运行或扩展未连接：${profile.name}`);
+        continue;
+      }
+      try {
+        active.connection ||= new ProfileMcpConnection(active.mcpPort);
+        const result = await active.connection.callTool('chrome_error_logs', { action: 'clear' });
+        if (result.isError) throw new Error('插件返回了清除失败结果');
+      } catch (error) {
+        errors.push(
+          `${profile.name} 错误日志清除失败：${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    return errors;
   }
 
   private async waitForCdp(port: number, timeoutMs = 10_000): Promise<boolean> {

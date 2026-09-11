@@ -44,6 +44,7 @@ const rotatingTabs = new Set<number>();
 const rotationTimes = new Map<string, number[]>();
 let sessionIdsByScope: Record<string, string> = {};
 let lastProxyAuth: { host: string; port: number; matched: boolean; at: number } | undefined;
+let lastProxyNetworkError: { url: string; type: string; error: string; at: number } | undefined;
 // A manual rotation needs to probe the same sticky session as the active page.
 // The probe itself always targets Oxylabs' location endpoint, so temporarily
 // override the session used for that endpoint while the request is in flight.
@@ -53,6 +54,20 @@ const AUTO_ROTATION_WINDOW_MS = 60 * 60_000;
 const EXPLICIT_ROTATION_WINDOW_MS = 60_000;
 const MAX_EXPLICIT_ROTATIONS_PER_WINDOW = 3;
 const DEFAULT_SESSION_TIME_MINUTES = 5;
+
+/**
+ * Proxy failures must go through console.error because error-log.ts persists
+ * console.error entries in chrome.storage.local. Do not log the proxy config:
+ * it contains credentials.
+ */
+function logProxyError(context: string, error?: unknown): void {
+  if (error === undefined) {
+    console.error(`[住宅代理] ${context}`);
+    return;
+  }
+  const detail = error instanceof Error ? error : new Error(String(error));
+  console.error(`[住宅代理] ${context}`, detail);
+}
 
 function applyCountryCode(username: string, countryCode: string): string {
   if (!countryCode) return username;
@@ -481,6 +496,7 @@ export async function getProxyDiagnostics(
       mode: settings.value?.mode,
       levelOfControl: settings.levelOfControl,
     },
+    ...(lastProxyNetworkError ? { lastProxyNetworkError } : {}),
   };
   if (!testConnection) return diagnostics;
 
@@ -494,6 +510,7 @@ export async function getProxyDiagnostics(
       elapsedMs: Date.now() - startedAt,
       error: String(error instanceof Error ? error.message : error),
     };
+    logProxyError('代理诊断测试失败', error);
   }
   if ((diagnostics.connection as { ok: boolean }).ok)
     (diagnostics.connection as { elapsedMs: number }).elapsedMs = Date.now() - startedAt;
@@ -504,6 +521,7 @@ export async function getProxyDiagnostics(
 async function testProxyConnection(sessionId?: string): Promise<{ ip: string; country?: string }> {
   if (!config.enabled) throw new Error('请先启用并保存代理');
   const previousProbeSessionId = proxyProbeSessionId;
+  lastProxyNetworkError = undefined;
   proxyProbeSessionId = sessionId;
   try {
     const response = await fetch('https://ip.oxylabs.io/location', {
@@ -517,6 +535,25 @@ async function testProxyConnection(sessionId?: string): Promise<{ ip: string; co
       ip: result.ip,
       ...(typeof result.country === 'string' ? { country: result.country } : {}),
     };
+  } catch (error) {
+    const detail = String(error instanceof Error ? error.message : error);
+    if (!/failed to fetch/i.test(detail)) throw error;
+    if (lastProxyNetworkError?.url.includes('ip.oxylabs.io')) {
+      throw new Error(`代理连接失败：${lastProxyNetworkError.error}`);
+    }
+    if (lastProxyAuth && !lastProxyAuth.matched) {
+      throw new Error(
+        `代理认证未命中：Chrome 收到 ${lastProxyAuth.host}:${lastProxyAuth.port} 的认证请求，但当前代理地址不匹配`,
+      );
+    }
+    if (lastProxyAuth?.matched) {
+      throw new Error(
+        `代理隧道建立失败：认证请求已命中 ${config.host}:${config.port}，请检查代理账号、密码和端口`,
+      );
+    }
+    throw new Error(
+      `代理连接失败：Chrome 无法连接 ${config.host}:${config.port}，请检查代理地址、端口和网络`,
+    );
   } finally {
     proxyProbeSessionId = previousProbeSessionId;
   }
@@ -534,6 +571,7 @@ async function runProxyTest(): Promise<ProxyTestResult> {
     return saved;
   } catch (error) {
     const detail = String(error instanceof Error ? error.message : error);
+    logProxyError('代理测试失败', error);
     const saved: ProxyTestResult = {
       success: false,
       error: /timed out/i.test(detail)
@@ -602,8 +640,9 @@ export function initProxyManager(): void {
       }
       if (config.enabled) await applyProxyConfig(config);
     })
-    .catch(() => {
+    .catch((error) => {
       // Keep the browser's existing proxy settings untouched when saved config is invalid.
+      logProxyError('加载代理配置失败', error);
       config = DEFAULT_CONFIG;
     });
 
@@ -618,6 +657,10 @@ export function initProxyManager(): void {
           matched,
           at: Date.now(),
         };
+        if (config.enabled && !matched)
+          logProxyError(
+            `代理认证地址不匹配：${details.challenger.host}:${details.challenger.port}`,
+          );
       }
       if (matched) {
         callback({
@@ -641,17 +684,34 @@ export function initProxyManager(): void {
   chrome.webRequest.onCompleted.addListener(
     (details) => {
       if (details.type === 'main_frame' && shouldRotatePage(details.statusCode)) {
-        void rotateAndReload(details.tabId, undefined, false, details.url).catch(console.warn);
+        if (config.enabled && isProxyScopedUrl(details.url))
+          logProxyError(`代理页面响应异常：HTTP ${details.statusCode}`);
+        void rotateAndReload(details.tabId, undefined, false, details.url).catch((error) =>
+          logProxyError('自动轮换代理失败', error),
+        );
       }
     },
     { urls: ['<all_urls>'], types: ['main_frame'] },
   );
   chrome.webRequest.onErrorOccurred.addListener(
     (details) => {
-      if (details.type === 'main_frame' && shouldRotateNetworkError(details.error))
-        void rotateAndReload(details.tabId, details.error, false, details.url).catch(console.warn);
+      if (config.enabled && details.error && isProxyScopedUrl(details.url)) {
+        lastProxyNetworkError = {
+          url: details.url,
+          type: details.type,
+          error: details.error,
+          at: Date.now(),
+        };
+        logProxyError(`代理请求失败：${details.error}`, new Error(details.url));
+      }
+      if (details.type === 'main_frame') {
+        if (shouldRotateNetworkError(details.error))
+          void rotateAndReload(details.tabId, details.error, false, details.url).catch((error) =>
+            logProxyError('网络错误后的自动轮换代理失败', error),
+          );
+      }
     },
-    { urls: ['<all_urls>'], types: ['main_frame'] },
+    { urls: ['<all_urls>'] },
   );
   chrome.webNavigation.onCompleted.addListener((details) => {
     if (details.frameId === 0) void detectPageErrorAndRotate(details.tabId);
@@ -666,7 +726,10 @@ export function initProxyManager(): void {
     if (message?.type === 'proxy_configure') {
       saveProxyConfig(message.config)
         .then((saved) => sendResponse({ success: true, config: saved }))
-        .catch((error) => sendResponse({ success: false, error: String(error.message ?? error) }));
+        .catch((error) => {
+          logProxyError('保存代理配置失败', error);
+          sendResponse({ success: false, error: String(error.message ?? error) });
+        });
       return true;
     }
     if (message?.type === 'proxy_rotate_current') {
@@ -680,11 +743,22 @@ export function initProxyManager(): void {
           return rotateProxyForTab(tab.id, String(message.reason || '用户手动切换 IP'));
         })
         .then((result) => sendResponse({ success: true, result }))
-        .catch((error) => sendResponse({ success: false, error: String(error.message ?? error) }));
+        .catch((error) => {
+          logProxyError('手动轮换代理失败', error);
+          sendResponse({ success: false, error: String(error.message ?? error) });
+        });
       return true;
     }
     if (message?.type === 'proxy_test') {
-      runProxyTest().then(sendResponse).catch(console.warn);
+      runProxyTest()
+        .then(sendResponse)
+        .catch((error) => {
+          logProxyError('代理测试消息处理失败', error);
+          sendResponse({
+            success: false,
+            error: String(error instanceof Error ? error.message : error),
+          });
+        });
       return true;
     }
   });

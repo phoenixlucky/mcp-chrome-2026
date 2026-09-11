@@ -415,6 +415,7 @@ export const handleCallTool = async (
   }
 
   let pausedTemporaryTabId: number | null = null;
+  const isBackgroundOnlyTool = param.name === 'chrome_error_logs';
   try {
     if (signal?.aborted) return createErrorResponse('Tool call cancelled');
     const urlError = await checkExpectedUrl(param);
@@ -434,15 +435,15 @@ export const handleCallTool = async (
         pausedTemporaryTabId = targetTabId;
       }
     }
-    await showOperation(param, '执行中');
+    if (!isBackgroundOnlyTool) await showOperation(param, '执行中');
     const actionPolicy = resolveActionPolicy(param.name, args);
     const result = await runWithActionPolicy<ToolResult>(actionPolicy, signal, () =>
       reportProgress ? tool.execute(args, signal, reportProgress) : tool.execute(args, signal),
     );
-    void showOperation(param, result.isError ? '失败' : '完成');
+    if (!isBackgroundOnlyTool) void showOperation(param, result.isError ? '失败' : '完成');
     return result;
   } catch (error) {
-    void showOperation(param, '失败');
+    if (!isBackgroundOnlyTool) void showOperation(param, '失败');
     console.error(`Tool execution failed for ${param.name}:`, error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.TOOL_EXECUTION_FAILED,

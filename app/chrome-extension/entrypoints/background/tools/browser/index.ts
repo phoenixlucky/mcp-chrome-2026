@@ -55,6 +55,7 @@ export { clickAndWaitTool } from './click-and-wait';
 export { taskContextTool } from './task-context';
 export { scopedActionTool } from './scoped-action';
 export { diagnosticSnapshotTool } from './diagnostic-snapshot';
+export { errorLogsTool } from './error-logs';
 export { proxyDiagnosticsTool } from './proxy-diagnostics';
 export { proxyRotateTool } from './proxy-rotate';
 export { listFramesTool } from './list-frames';
