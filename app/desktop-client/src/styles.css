@@ -651,6 +651,7 @@ h2 {
 
 .error-diagnostics-card,
 .transport-card {
+  min-width: 0;
   min-height: 0;
   margin-top: 15px;
 }
@@ -666,6 +667,7 @@ h2 {
 .error-diagnostics-body {
   display: grid;
   gap: 13px;
+  min-width: 0;
 }
 .error-diagnostics-toolbar {
   display: flex;
@@ -752,6 +754,7 @@ h2 {
   line-height: 1.5;
 }
 .error-log-details {
+  min-width: 0;
   border: 1px solid rgba(124, 157, 198, 0.15);
   border-radius: 10px;
   background: rgba(8, 17, 29, 0.35);
@@ -763,6 +766,7 @@ h2 {
   font-size: 10px;
 }
 .error-log-details pre {
+  min-width: 0;
   max-height: 220px;
   margin: 0;
   padding: 0 13px 13px;
@@ -772,6 +776,8 @@ h2 {
     10px/1.6 Consolas,
     monospace;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .error-diagnostics-empty {
   margin: 0;
