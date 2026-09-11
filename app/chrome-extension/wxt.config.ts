@@ -161,7 +161,10 @@ export default defineConfig({
           },
           {
             src: '_locales/**/*',
-            dest: '_locales',
+            // The source glob already contains the `_locales/` directory.
+            // Copying into `_locales` would produce `_locales/_locales/...`,
+            // which Chrome cannot use for extension localization.
+            dest: '.',
           },
         ],
         // Use writeBundle so outDir exists for dev and prod
