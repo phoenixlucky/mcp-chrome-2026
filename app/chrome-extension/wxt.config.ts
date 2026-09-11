@@ -153,11 +153,11 @@ export default defineConfig({
         targets: [
           {
             src: 'inject-scripts/*.js',
-            dest: 'inject-scripts',
+            dest: '.',
           },
           {
             src: ['workers/*'],
-            dest: 'workers',
+            dest: '.',
           },
           {
             src: '_locales/**/*',
