@@ -26,9 +26,35 @@ const MAX_MAX_OUTPUT_BYTES = 200_000;
 
 class ReadPageTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.READ_PAGE;
+  private readonly inFlightReads = new Map<string, Promise<ToolResult>>();
 
-  // Execute read page
+  // Merge only identical in-flight reads. A TTL cache would risk returning a
+  // stale DOM immediately after a click or fill, so this optimization is safe
+  // without needing invalidation hooks in every mutating tool.
   async execute(args: ReadPageParams): Promise<ToolResult> {
+    const tabId = Number(args?.tabId);
+    if (!Number.isInteger(tabId) || tabId < 0) return this.executeUncached(args);
+
+    const key = JSON.stringify([
+      tabId,
+      args?.windowId,
+      args?.url || '',
+      args?.filter || 'all',
+      args?.depth ?? null,
+      args?.refId || '',
+      args?.maxOutputBytes ?? null,
+    ]);
+    const existing = this.inFlightReads.get(key);
+    if (existing) return existing;
+
+    const pending = this.executeUncached(args).finally(() => {
+      if (this.inFlightReads.get(key) === pending) this.inFlightReads.delete(key);
+    });
+    this.inFlightReads.set(key, pending);
+    return pending;
+  }
+
+  private async executeUncached(args: ReadPageParams): Promise<ToolResult> {
     const { filter, depth, refId, url } = args || {};
     const requestedMaxOutputBytes = Number(args?.maxOutputBytes);
     const maxOutputBytes =

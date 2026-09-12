@@ -54,13 +54,26 @@ set "NEEDS_BRIDGE_BUILD="
 if defined BUILD_BRIDGE set "NEEDS_BRIDGE_BUILD=1"
 if defined BUILD_DESKTOP if not exist "%~dp0app\desktop-client\bridge\chrome-mcp-bridge.exe" set "NEEDS_BRIDGE_BUILD=1"
 
-echo Checking locked dependencies...
-call %PNPM_CMD% install --frozen-lockfile
-if errorlevel 1 (
-  echo.
-  echo Dependency installation failed. Check pnpm and network settings.
-  pause
-  exit /b 1
+set "NEEDS_DEP_INSTALL="
+if not exist "%~dp0node_modules\.modules.yaml" set "NEEDS_DEP_INSTALL=1"
+if not exist "%~dp0node_modules\.pnpm\lock.yaml" set "NEEDS_DEP_INSTALL=1"
+if not exist "%~dp0packages\shared\node_modules\.bin\tsup.cmd" set "NEEDS_DEP_INSTALL=1"
+if defined BUILD_BRIDGE if not exist "%~dp0app\native-server\node_modules\.bin\ts-node.cmd" set "NEEDS_DEP_INSTALL=1"
+if defined BUILD_EXTENSION if not exist "%~dp0app\chrome-extension\node_modules\.bin\wxt.cmd" set "NEEDS_DEP_INSTALL=1"
+if defined BUILD_DESKTOP if not exist "%~dp0app\desktop-client\node_modules\.bin\tauri.cmd" set "NEEDS_DEP_INSTALL=1"
+
+if defined NEEDS_DEP_INSTALL (
+  echo Checking locked dependencies...
+  call %PNPM_CMD% install --frozen-lockfile
+  if errorlevel 1 (
+    echo.
+    echo Dependency installation failed because Windows could not update node_modules.
+    echo Close project dev servers and retry this script. If the files remain locked, restart Windows.
+    pause
+    exit /b 1
+  )
+) else (
+  echo Dependencies already linked; skipping pnpm install.
 )
 
 call %PNPM_CMD% run check:versions

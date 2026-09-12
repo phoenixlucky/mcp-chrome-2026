@@ -144,6 +144,12 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
       }
       if (!element && !coordinates) {
         const matches = querySelectorAllByType(selector, selectorType);
+        if (matches.length > 1) {
+          return {
+            error: `Selector "${selector}" matched multiple elements. Please refine it or use an element ref.`,
+            matchCount: matches.length,
+          };
+        }
         element = await waitForVisibleElement(selector, timeout, selectorType);
         if (!element) {
           return {

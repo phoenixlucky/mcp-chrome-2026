@@ -9,6 +9,8 @@
  * - Engine listing
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../../constant';
 import { AgentStreamManager } from '../../agent/stream-manager';
 import { AgentChatService } from '../../agent/chat-service';
@@ -1224,7 +1226,9 @@ export function registerAgentRoutes(fastify: FastifyInstance, options: AgentRout
 
       try {
         // Validate and get file
-        const buffer = await attachmentService.readAttachment(projectId, filename);
+        const filePath = attachmentService.getAttachmentPath(projectId, filename);
+        const fileStats = await stat(filePath);
+        if (!fileStats.isFile()) throw new Error('Attachment not found');
 
         // Determine content type from filename extension
         const ext = filename.split('.').pop()?.toLowerCase();
@@ -1247,8 +1251,8 @@ export function registerAgentRoutes(fastify: FastifyInstance, options: AgentRout
 
         reply
           .header('Content-Type', contentType)
-          .header('Cache-Control', 'public, max-age=31536000, immutable')
-          .send(buffer);
+          .header('Cache-Control', 'private, no-store')
+          .send(createReadStream(filePath));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
 

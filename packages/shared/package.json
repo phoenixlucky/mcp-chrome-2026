@@ -1,7 +1,7 @@
 {
   "name": "@ethanwilkins/chrome-mcp-shared-2026",
   "private": true,
-  "version": "2.7.1",
+  "version": "2.7.2",
   "author": "hangye",
   "main": "dist/index.js",
   "module": "./dist/index.mjs",
@@ -19,7 +19,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --clean && tsc --emitDeclarationOnly",
+    "build": "tsup src/index.ts --format cjs,esm --clean && pnpm --workspace-root exec tsc --emitDeclarationOnly -p packages/shared/tsconfig.json",
     "dev": "tsup src/index.ts --format cjs,esm --watch",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

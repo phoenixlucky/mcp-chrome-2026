@@ -33,7 +33,7 @@ export class ContentIndexer {
 
   constructor(options?: IndexingOptions) {
     this.options = {
-      autoIndex: true,
+      autoIndex: false,
       maxChunksPerPage: 50,
       skipDuplicates: true,
       ...options,
@@ -190,9 +190,14 @@ export class ContentIndexer {
         );
       }
 
-      for (const chunk of chunksToIndex) {
+      const embeddings = await this.semanticEngine.getEmbeddingsBatch(
+        chunksToIndex.map((chunk) => chunk.text),
+      );
+
+      for (const [index, chunk] of chunksToIndex.entries()) {
         try {
-          const embedding = await this.semanticEngine.getEmbedding(chunk.text);
+          const embedding = embeddings[index];
+          if (!embedding) throw new Error(`Missing embedding for chunk ${chunk.index}`);
           const label = await this.vectorDatabase.addDocument(
             tabId,
             tab.url!,
@@ -583,10 +588,7 @@ export class ContentIndexer {
         };
       } else {
         const error = response?.error || response?.selectorError || '页面没有可提取的文本';
-        console.error(
-          `ContentIndexer: Failed to extract content from tab ${tabId}:`,
-          error,
-        );
+        console.error(`ContentIndexer: Failed to extract content from tab ${tabId}:`, error);
         return null;
       }
     } catch (error) {

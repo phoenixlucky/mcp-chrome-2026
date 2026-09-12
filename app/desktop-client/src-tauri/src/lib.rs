@@ -57,8 +57,13 @@ fn request_json(port: u16, method: &str, path: &str) -> BridgeResponse {
         Err(error) => return error_response(format!("本地服务未连接：{error}")),
     };
     let _ = stream.set_read_timeout(Some(Duration::from_secs(4)));
+    let authorization = env::var("CHROME_MCP_API_KEY")
+        .ok()
+        .filter(|key| !key.trim().is_empty())
+        .map(|key| format!("Authorization: Bearer {key}\r\n"))
+        .unwrap_or_default();
     let request = format!(
-        "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+        "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nOrigin: http://127.0.0.1:1420\r\n{authorization}Connection: close\r\nContent-Length: 0\r\n\r\n"
     );
     if let Err(error) = stream.write_all(request.as_bytes()) {
         return error_response(format!("发送本地请求失败：{error}"));
@@ -203,6 +208,30 @@ fn cancel_mcp_request(request_id: String, state: State<'_, BridgeState>) -> Brid
 }
 
 #[tauri::command]
+fn get_runtime(state: State<'_, BridgeState>) -> BridgeResponse {
+    request_json(state.port, "GET", "/__chrome_mcp_bridge/runtime")
+}
+
+#[tauri::command]
+fn control_runtime(task_id: String, action: String, state: State<'_, BridgeState>) -> BridgeResponse {
+    if task_id.is_empty()
+        || !task_id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_')
+    {
+        return error_response("无效的运行时任务 ID");
+    }
+    if !matches!(action.as_str(), "cancel" | "pause" | "resume" | "focus") {
+        return error_response("不支持的运行时操作");
+    }
+    request_json(
+        state.port,
+        "POST",
+        &format!("/__chrome_mcp_bridge/runtime/{task_id}/{action}"),
+    )
+}
+
+#[tauri::command]
 fn start_bridge(app: AppHandle, state: State<'_, BridgeState>) -> Result<String, String> {
     if request_json(state.port, "GET", "/ping").ok {
         return Ok("attached".into());
@@ -268,6 +297,8 @@ pub fn run() {
             health_check,
             control_service,
             cancel_mcp_request,
+            get_runtime,
+            control_runtime,
             start_bridge,
             open_log
         ])

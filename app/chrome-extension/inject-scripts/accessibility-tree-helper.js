@@ -1016,7 +1016,7 @@
     }
   }
 
-  function locatorElementMetadata(el, ref, matchCount) {
+  function locatorElementMetadata(el, ref, matchCount, confidence = 0.5) {
     const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
     const role = inferRole(el);
     const label = inferLabel(el);
@@ -1050,6 +1050,7 @@
       visible: elementIsVisibleForLocator(el),
       interactive: isInteractive(el),
       disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true',
+      confidence: Math.max(0, Math.min(1, Number(confidence) || 0)),
       fingerprint: `${String(el.tagName || '').toLowerCase()}|id=${id}|role=${role}|testId=${testId}`,
       matchCount,
     };
@@ -1466,6 +1467,7 @@
           let el = null;
           let matchCount = 0;
           let resolvedBy = '';
+          let confidence = 0.5;
           let matchedSelector = selector || undefined;
           let matchedSelectorType = selector ? selectorType : undefined;
 
@@ -1480,6 +1482,7 @@
             }
             matchCount = 1;
             resolvedBy = 'ref';
+            confidence = 1;
           } else if (selector) {
             const result =
               selectorType === 'xpath'
@@ -1504,6 +1507,7 @@
             }
             el = result.element;
             resolvedBy = selectorType === 'xpath' ? 'xpath' : 'css';
+            confidence = matchCount === 1 ? 0.9 : 0.7;
           } else {
             const candidates = [];
             for (const candidate of collectLocatorElements()) {
@@ -1570,6 +1574,7 @@
               return true;
             }
             el = candidates[0].element;
+            confidence = Math.min(1, candidates[0].score / 125);
             resolvedBy = textQuery
               ? 'text'
               : roleQuery
@@ -1606,7 +1611,7 @@
               resolvedBy,
               matchedSelector,
               matchedSelectorType,
-              ...locatorElementMetadata(el, refId, matchCount),
+              ...locatorElementMetadata(el, refId, matchCount, confidence),
             });
           };
           // Scrolling can trigger sticky headers, lazy rendering and a

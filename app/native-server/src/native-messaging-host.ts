@@ -400,6 +400,7 @@ export class NativeMessagingHost {
         );
         return;
       }
+      this.associatedServer?.observeNativeResponse(pending.method, message.result);
       pending.resolve(
         artifactId && this.artifactStore.get(artifactId)
           ? {
@@ -636,7 +637,7 @@ export class NativeMessagingHost {
       });
 
       // Send message with requestId to Chrome
-      this.sendMessage({
+      void this.writeNativeMessage({
         version: NATIVE_PROTOCOL_VERSION,
         type: 'request',
         requestId,
@@ -644,12 +645,39 @@ export class NativeMessagingHost {
         method,
         deadlineAt,
         params: messagePayload,
+      }).catch((error: unknown) => {
+        const pending = this.pendingRequests.get(requestId);
+        if (!pending || pending.settled) return;
+
+        clearTimeout(pending.timeoutId);
+        pending.settled = true;
+        this.pendingRequests.delete(requestId);
+        const writeError = error instanceof Error ? error : new Error(String(error));
+        const reason = pending.sideEffect
+          ? new NativeProtocolError(
+              'EXECUTION_UNKNOWN',
+              'Side-effect execution state is unknown after native message send failure',
+            )
+          : writeError;
+        this.lastError = writeError.message;
+        structuredLog('native.request_send_error', {
+          requestId,
+          traceId,
+          method,
+          error: writeError.message,
+        });
+        pending.reject(reason);
       });
     });
   }
 
   private isSideEffectRequest(method: string, payload: any): boolean {
-    if (method === 'rr.runFlow' || method === 'file.operation') return true;
+    if (
+      method === 'rr.runFlow' ||
+      method === 'file.operation' ||
+      /^rr_v3\.(cancel|pause|resume)Run$/.test(method)
+    )
+      return true;
     if (method !== 'browser.callTool') return false;
     const name = typeof payload?.name === 'string' ? payload.name : '';
     return /(?:click|submit|delete|download|upload|create|close|navigate|fill|select|keyboard|paste|bookmark|storage_(?:set|delete)|dialog|userscript|proxy|record|rotate|post_to)/i.test(
@@ -766,34 +794,35 @@ export class NativeMessagingHost {
   /**
    * Send message to Chrome extension
    */
-  public sendMessage(message: any): void {
-    if (this.standaloneMode) return;
+  private writeNativeMessage(message: any): Promise<void> {
+    if (this.standaloneMode) return Promise.resolve();
 
+    let frame: Buffer;
     try {
       const messageString = JSON.stringify(message);
       const messageBuffer = Buffer.from(messageString);
       if (messageBuffer.length > MAX_NATIVE_MESSAGE_SIZE_BYTES) {
-        this.lastError = `Native output exceeds ${MAX_NATIVE_MESSAGE_SIZE_BYTES} bytes`;
-        structuredLog('native.output_rejected', { size: messageBuffer.length });
-        return;
+        throw new Error(`Native output exceeds ${MAX_NATIVE_MESSAGE_SIZE_BYTES} bytes`);
       }
       const headerBuffer = Buffer.alloc(4);
       headerBuffer.writeUInt32LE(messageBuffer.length, 0);
-      // Ensure atomic write
-      stdout.write(Buffer.concat([headerBuffer, messageBuffer]), (err) => {
-        if (err) {
-          // Consider how to handle write failure, may affect request completion
-        } else {
-          // Message sent successfully, no action needed
-        }
-      });
-    } catch (error: any) {
+      frame = Buffer.concat([headerBuffer, messageBuffer]);
+    } catch (error: unknown) {
       this.lastError = error instanceof Error ? error.message : String(error);
       structuredLog('native.send_error', { error: this.lastError });
-      // Catch JSON.stringify or Buffer operation errors
-      // If preparation stage fails, associated request may never be sent
-      // Need to consider whether to reject corresponding Promise (if called within sendRequestToExtensionAndWait)
+      return Promise.reject(error instanceof Error ? error : new Error(this.lastError));
     }
+
+    return new Promise((resolve, reject) => {
+      stdout.write(frame, (error) => (error ? reject(error) : resolve()));
+    });
+  }
+
+  public sendMessage(message: any): void {
+    void this.writeNativeMessage(message).catch((error: unknown) => {
+      this.lastError = error instanceof Error ? error.message : String(error);
+      structuredLog('native.send_error', { error: this.lastError });
+    });
   }
 
   /**

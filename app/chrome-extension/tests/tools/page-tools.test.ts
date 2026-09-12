@@ -7,6 +7,7 @@ import {
   storageGetTool,
   storageSetTool,
 } from '@/entrypoints/background/tools/browser/page-tools';
+import { readPageTool } from '@/entrypoints/background/tools/browser/read-page';
 
 const chromeApi = globalThis.chrome as any;
 
@@ -125,5 +126,35 @@ describe('page tools', () => {
       storageArea: 'sessionStorage',
       items: { token: 'abc' },
     });
+  });
+
+  it('merges identical in-flight read_page calls for an explicit tab', async () => {
+    const inject = vi
+      .spyOn(readPageTool as any, 'injectContentScript')
+      .mockResolvedValue(undefined);
+    const send = vi
+      .spyOn(readPageTool as any, 'sendMessageToTabWithRetry')
+      .mockImplementation(async (...args: any[]) => {
+        const message = args[1] as { action?: string };
+        if (message.action === 'waitForPageSettled') return { success: true };
+        return {
+          success: true,
+          pageContent: Array.from({ length: 10 }, (_, index) => `- button ${index}`).join('\n'),
+          refMap: [{ ref: 'ref_1' }, { ref: 'ref_2' }, { ref: 'ref_3' }],
+          stats: { processed: 3, included: 3, durationMs: 1 },
+          dialogs: [],
+          overlays: [],
+          viewport: { width: 100, height: 100, dpr: 1 },
+        };
+      });
+
+    const [first, second] = await Promise.all([
+      readPageTool.execute({ tabId: 7 }),
+      readPageTool.execute({ tabId: 7 }),
+    ]);
+
+    expect(first).toEqual(second);
+    expect(inject).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 });

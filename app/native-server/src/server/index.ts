@@ -48,6 +48,7 @@ import {
 import { NativeMessageType } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { browserProfileManager } from '../browser-profile-manager.js';
 import { createReadStream } from 'node:fs';
+import { RuntimeRegistry } from '../runtime-registry';
 
 // ============================================================
 // Types
@@ -234,6 +235,7 @@ export class Server {
   private takeoverRequested = false;
   private agentStreamManager: AgentStreamManager;
   private agentChatService: AgentChatService;
+  private readonly runtimeRegistry = new RuntimeRegistry();
   /** Streamable HTTP（尝鲜版）：MCP 2026-07-28, stateless and strict. */
   private readonly modernMcpHandler = createMcpHandler(() => getModernMcpServer(), {
     legacy: 'reject',
@@ -255,6 +257,7 @@ export class Server {
     this.agentChatService = new AgentChatService({
       engines: [new CodexEngine(), new ClaudeEngine(), new DeepSeekEngine()],
       streamManager: this.agentStreamManager,
+      runtimeRegistry: this.runtimeRegistry,
     });
     this.setupPlugins();
     this.setupMcpAuth();
@@ -325,12 +328,17 @@ export class Server {
         pathname === '/__chrome_mcp_bridge/error-diagnostics' ||
         pathname === '/__chrome_mcp_bridge/error-diagnostics/clear' ||
         pathname === '/ask-extension' ||
+        pathname === '/agent' ||
+        pathname.startsWith('/agent/') ||
         pathname.startsWith('/artifacts/') ||
         pathname === '/__chrome_mcp_bridge/start' ||
         pathname === '/__chrome_mcp_bridge/stop' ||
         pathname.startsWith('/__chrome_mcp_bridge/requests/') ||
         pathname.startsWith('/__chrome_mcp_bridge/mcp-new/requests/');
-      if (!isMcpRoute && !isProtectedLocalRoute) return;
+      const isRuntimeRoute =
+        pathname === '/__chrome_mcp_bridge/runtime' ||
+        pathname.startsWith('/__chrome_mcp_bridge/runtime/');
+      if (!isMcpRoute && !isProtectedLocalRoute && !isRuntimeRoute) return;
 
       const expectedKey = process.env[MCP_API_KEY_ENV]?.trim();
       const origin = request.headers.origin;
@@ -338,18 +346,6 @@ export class Server {
         reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
         return;
       }
-      if (isMcpRoute && !origin && !expectedKey) {
-        reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
-        return;
-      }
-      // Browsers do not send Authorization on CORS preflight requests; the
-      // actual MCP request is authenticated below.
-      if (request.method === 'OPTIONS') return;
-
-      const authorization = request.headers.authorization;
-      const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
-      const providedKey = bearer ?? request.headers['x-api-key'];
-      if (expectedKey && providedKey === expectedKey) return;
       const artifactId =
         isProtectedLocalRoute && pathname.startsWith('/artifacts/')
           ? pathname.slice('/artifacts/'.length)
@@ -361,6 +357,19 @@ export class Server {
         this.nativeHost?.getArtifactStore().consumeDownloadToken(artifactId, artifactToken),
       );
       if (artifactTokenAccepted) return;
+
+      if ((isMcpRoute || isProtectedLocalRoute || isRuntimeRoute) && !origin && !expectedKey) {
+        reply.status(HTTP_STATUS.FORBIDDEN).send({ error: ERROR_MESSAGES.ORIGIN_NOT_ALLOWED });
+        return;
+      }
+      // Browsers do not send Authorization on CORS preflight requests; the
+      // actual MCP request is authenticated below.
+      if (request.method === 'OPTIONS') return;
+
+      const authorization = request.headers.authorization;
+      const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+      const providedKey = bearer ?? request.headers['x-api-key'];
+      if (expectedKey && providedKey === expectedKey) return;
       if (expectedKey || artifactId) {
         reply.status(HTTP_STATUS.UNAUTHORIZED).send({ error: ERROR_MESSAGES.UNAUTHORIZED });
         return;
@@ -534,6 +543,123 @@ export class Server {
       });
     });
 
+    this.fastify.get('/__chrome_mcp_bridge/runtime', async (_request, reply) => {
+      await this.syncWorkflowTasks();
+      const tasks = this.runtimeRegistry.list();
+      return reply.status(HTTP_STATUS.OK).send({
+        generatedAt: new Date().toISOString(),
+        tasks,
+        activeCount: tasks.filter((task) =>
+          ['running', 'waiting', 'paused', 'cancelling'].includes(task.summary.status),
+        ).length,
+      });
+    });
+
+    const controlRuntimeTask = async (
+      request: FastifyRequest,
+      reply: FastifyReply,
+      action: string,
+    ) => {
+      const { taskId } = request.params as { taskId?: string };
+      const id = taskId?.trim();
+      const task = id ? this.runtimeRegistry.get(id) : null;
+      if (!id || !task) {
+        return reply.status(HTTP_STATUS.NOT_FOUND).send({ error: '任务不存在或已过期。' });
+      }
+      if (['success', 'error', 'cancelled', 'unknown'].includes(task.summary.status)) {
+        return action === 'cancel'
+          ? reply.status(HTTP_STATUS.OK).send({ taskId: id, status: task.summary.status })
+          : reply
+              .status(HTTP_STATUS.CONFLICT)
+              .send({ error: '任务已经结束，无法执行此操作。', taskId: id });
+      }
+      if (action === 'pause' && !task.summary.pausable) {
+        return reply.status(HTTP_STATUS.CONFLICT).send({ error: '当前任务不可暂停。', taskId: id });
+      }
+      if (action === 'resume' && task.summary.status !== 'paused') {
+        return reply
+          .status(HTTP_STATUS.CONFLICT)
+          .send({ error: '当前任务不在暂停状态。', taskId: id });
+      }
+      try {
+        if (action === 'cancel') {
+          if (task.summary.kind === 'mcp') this.mcpRequests.get(id)?.cancel();
+          else if (task.summary.kind === 'agent') this.agentChatService.cancelExecution(id);
+          else if (this.nativeHost?.isExtensionConnected()) {
+            await this.nativeHost.sendRequestToExtensionAndWait(
+              { runId: id, reason: 'Cancelled from desktop runtime control' },
+              'rr_v3.cancelRun',
+              5_000,
+            );
+          } else {
+            return reply
+              .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
+              .send({ error: 'Chrome 扩展未连接。' });
+          }
+          this.runtimeRegistry.update(id, 'cancelling', 'cancel_requested');
+        } else if (action === 'pause' || action === 'resume') {
+          if (task.summary.kind === 'agent') {
+            const changed =
+              action === 'pause'
+                ? this.agentChatService.pauseExecution(id)
+                : this.agentChatService.resumeExecution(id);
+            if (!changed)
+              return reply
+                .status(HTTP_STATUS.CONFLICT)
+                .send({ error: 'Agent 执行已结束。', taskId: id });
+          } else {
+            if (!this.nativeHost?.isExtensionConnected()) {
+              return reply
+                .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
+                .send({ error: 'Chrome 扩展未连接。' });
+            }
+            await this.nativeHost.sendRequestToExtensionAndWait(
+              { runId: id },
+              action === 'pause' ? 'rr_v3.pauseRun' : 'rr_v3.resumeRun',
+              5_000,
+            );
+            this.runtimeRegistry.update(
+              id,
+              action === 'pause' ? 'paused' : 'running',
+              action === 'pause' ? 'paused' : 'resumed',
+            );
+          }
+        } else if (action === 'focus') {
+          if (typeof task.summary.tabId !== 'number') {
+            return reply
+              .status(HTTP_STATUS.CONFLICT)
+              .send({ error: '任务没有可聚焦的标签页。', taskId: id });
+          }
+          if (!this.nativeHost?.isExtensionConnected()) {
+            return reply
+              .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
+              .send({ error: 'Chrome 扩展未连接。' });
+          }
+          await this.nativeHost.sendRequestToExtensionAndWait(
+            { name: 'chrome_switch_tab', args: { tabId: task.summary.tabId } },
+            NativeMessageType.CALL_TOOL,
+            5_000,
+          );
+        } else {
+          return reply.status(HTTP_STATUS.BAD_REQUEST).send({ error: '不支持的运行时操作。' });
+        }
+        return reply.status(HTTP_STATUS.OK).send({
+          taskId: id,
+          status: this.runtimeRegistry.get(id)?.summary.status ?? 'unknown',
+        });
+      } catch (error) {
+        return reply.status(HTTP_STATUS.BAD_REQUEST).send({
+          taskId: id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+    for (const action of ['cancel', 'pause', 'resume', 'focus']) {
+      this.fastify.post(`/__chrome_mcp_bridge/runtime/:taskId/${action}`, (request, reply) =>
+        controlRuntimeTask(request, reply, action),
+      );
+    }
+
     this.fastify.post(
       '/__chrome_mcp_bridge/error-diagnostics/clear',
       async (
@@ -658,6 +784,73 @@ export class Server {
     });
   }
 
+  public observeNativeResponse(method: string, result: unknown): void {
+    if (method !== 'rr.runFlow' || !result || typeof result !== 'object') return;
+    const envelope = result as { data?: { content?: Array<{ type?: string; text?: string }> } };
+    const text = envelope.data?.content?.find((item) => item.type === 'text')?.text;
+    if (!text) return;
+    try {
+      const run = JSON.parse(text) as { id?: unknown; flowId?: unknown; tabId?: unknown };
+      if (typeof run.id !== 'string') return;
+      this.runtimeRegistry.start({
+        taskId: run.id,
+        kind: 'workflow',
+        label: typeof run.flowId === 'string' ? `Workflow · ${run.flowId}` : 'Workflow',
+        tabId: typeof run.tabId === 'number' ? run.tabId : null,
+        cancelable: true,
+        pausable: true,
+      });
+    } catch {
+      // A malformed extension result must not affect the original MCP call.
+    }
+  }
+
+  private async syncWorkflowTasks(): Promise<void> {
+    if (!this.nativeHost?.isExtensionConnected()) return;
+    for (const record of this.runtimeRegistry.active('workflow')) {
+      try {
+        const response = await this.nativeHost.sendRequestToExtensionAndWait(
+          { runId: record.summary.taskId },
+          'rr_v3.getRun',
+          2_000,
+        );
+        const run = response?.data as
+          | {
+              status?: string;
+              currentNodeId?: string;
+              tabId?: number;
+              error?: { message?: string };
+            }
+          | undefined;
+        if (!run) continue;
+        const status =
+          run.status === 'succeeded'
+            ? 'success'
+            : run.status === 'failed'
+              ? 'error'
+              : run.status === 'canceled'
+                ? 'cancelled'
+                : run.status === 'paused'
+                  ? 'paused'
+                  : run.status === 'queued'
+                    ? 'waiting'
+                    : 'running';
+        this.runtimeRegistry.update(record.summary.taskId, status, undefined, {
+          toolName: run.currentNodeId ?? null,
+          tabId: typeof run.tabId === 'number' ? run.tabId : record.summary.tabId,
+          errorMessage: run.error?.message ?? null,
+        });
+        if (status === 'success' || status === 'error' || status === 'cancelled') {
+          this.runtimeRegistry.finish(record.summary.taskId, status, run.error?.message);
+        }
+      } catch {
+        this.runtimeRegistry.update(record.summary.taskId, 'unknown', 'error', {
+          message: 'Chrome 扩展暂时无法报告 Workflow 状态',
+        });
+      }
+    }
+  }
+
   private addSession(
     sessionId: string,
     transport: McpTransport,
@@ -730,6 +923,17 @@ export class Server {
       },
     };
     this.mcpRequests.set(activeRequest.requestId, activeRequest);
+    this.runtimeRegistry.start({
+      taskId: activeRequest.requestId,
+      kind: 'mcp',
+      label: activeRequest.toolName || activeRequest.method,
+      clientName: activeRequest.clientInfo?.name,
+      sessionId: activeRequest.sessionId,
+      toolName: activeRequest.toolName,
+      origin: request.headers.origin,
+      cancelable: true,
+      pausable: false,
+    });
     return activeRequest;
   }
 
@@ -784,6 +988,11 @@ export class Server {
   ): void {
     this.mcpRequests.delete(activeRequest.requestId);
     const finalStatus = activeRequest.cancelRequestedAt ? 'cancelled' : status;
+    this.runtimeRegistry.finish(
+      activeRequest.requestId,
+      finalStatus === 'success' ? 'success' : finalStatus === 'cancelled' ? 'cancelled' : 'error',
+      error ?? undefined,
+    );
 
     // Successful protocol housekeeping (initialize, tools/list and notifications)
     // is intentionally omitted; the history is for useful tool/error diagnostics.
@@ -931,11 +1140,6 @@ export class Server {
         session.clientInfo = getMcpClientInfo(req.body) ?? session.clientInfo;
         session.activeRequests++;
         const startedAt = Date.now();
-        const activeRequest = this.trackMcpRequest(req, reply, {
-          endpoint: '/sse',
-          transport: 'sse',
-          sessionId,
-        });
         try {
           await transport.handlePostMessage(req.raw, reply.raw, req.body);
         } catch (error) {

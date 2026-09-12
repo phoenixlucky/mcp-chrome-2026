@@ -20,11 +20,13 @@ import {
   type AgentSession,
 } from './session-service';
 import { attachmentService, type SavedAttachment } from './attachment-service';
+import { RuntimeRegistry } from '../runtime-registry';
 
 export interface AgentChatServiceOptions {
   engines: AgentEngine[];
   streamManager: AgentStreamManager;
   defaultEngineName?: EngineName;
+  runtimeRegistry?: RuntimeRegistry;
 }
 
 /**
@@ -37,14 +39,17 @@ export class AgentChatService {
   private readonly engines = new Map<EngineName, AgentEngine>();
   private readonly streamManager: AgentStreamManager;
   private readonly defaultEngineName: EngineName;
+  private readonly runtimeRegistry?: RuntimeRegistry;
 
   /**
    * Registry of currently running executions, keyed by requestId.
    */
   private readonly runningExecutions = new Map<string, RunningExecution>();
+  private readonly pausedExecutions = new Set<string>();
 
   constructor(options: AgentChatServiceOptions) {
     this.streamManager = options.streamManager;
+    this.runtimeRegistry = options.runtimeRegistry;
 
     for (const engine of options.engines) {
       this.engines.set(engine.name, engine);
@@ -357,6 +362,15 @@ export class AgentChatService {
       abortController,
       startedAt: new Date(),
     });
+    this.runtimeRegistry?.start({
+      taskId: requestId,
+      kind: 'agent',
+      label: `Agent · ${engineName}`,
+      clientName: engineName,
+      sessionId,
+      cancelable: true,
+      pausable: true,
+    });
 
     // Fire-and-forget execution to keep HTTP handler fast.
     void this.runEngine(engine, engineOptions, ctx, sessionId, requestId, abortController);
@@ -376,6 +390,8 @@ export class AgentChatService {
 
     // Abort the execution
     execution.abortController.abort();
+    this.pausedExecutions.delete(requestId);
+    this.runtimeRegistry?.update(requestId, 'cancelling', 'cancel_requested');
 
     // Emit cancelled status
     this.streamManager.publish({
@@ -394,6 +410,22 @@ export class AgentChatService {
     return true;
   }
 
+  pauseExecution(requestId: string): boolean {
+    if (!this.runningExecutions.has(requestId)) return false;
+    this.pausedExecutions.add(requestId);
+    this.runtimeRegistry?.update(requestId, 'paused', 'paused', {
+      message: '已请求暂停，将在当前 Agent 工具边界后生效',
+    });
+    return true;
+  }
+
+  resumeExecution(requestId: string): boolean {
+    if (!this.runningExecutions.has(requestId)) return false;
+    this.pausedExecutions.delete(requestId);
+    this.runtimeRegistry?.update(requestId, 'running', 'resumed');
+    return true;
+  }
+
   /**
    * Cancel all running executions for a session.
    * Returns the number of executions cancelled.
@@ -404,6 +436,7 @@ export class AgentChatService {
       if (execution.sessionId === sessionId) {
         execution.abortController.abort();
         this.runningExecutions.delete(requestId);
+        this.runtimeRegistry?.finish(requestId, 'cancelled');
         cancelled++;
       }
     }
@@ -461,6 +494,11 @@ export class AgentChatService {
           requestId,
         },
       });
+      this.runtimeRegistry?.update(
+        requestId,
+        this.pausedExecutions.has(requestId) ? 'paused' : 'running',
+        this.pausedExecutions.has(requestId) ? undefined : 'started',
+      );
 
       // Pass abort signal to engine
       const optionsWithSignal: EngineInitOptions = {
@@ -480,6 +518,7 @@ export class AgentChatService {
             requestId,
           },
         });
+        this.runtimeRegistry?.finish(requestId, 'success');
       }
     } catch (error) {
       // Check if this was an abort error
@@ -495,6 +534,7 @@ export class AgentChatService {
         error: message,
         data: { sessionId, requestId },
       });
+      this.runtimeRegistry?.finish(requestId, 'error', message);
 
       this.streamManager.publish({
         type: 'status',
@@ -508,6 +548,8 @@ export class AgentChatService {
     } finally {
       // Always remove from running executions when done
       this.runningExecutions.delete(requestId);
+      this.pausedExecutions.delete(requestId);
+      if (abortController.signal.aborted) this.runtimeRegistry?.finish(requestId, 'cancelled');
     }
   }
 

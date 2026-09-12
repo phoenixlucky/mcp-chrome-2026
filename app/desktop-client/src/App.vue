@@ -12,6 +12,7 @@ import {
   CircleAlert,
   ClipboardList,
   Copy,
+  Crosshair,
   FileText,
   Globe2,
   Home,
@@ -20,6 +21,8 @@ import {
   MessageSquare,
   Network,
   PlugZap,
+  Pause,
+  Play,
   RefreshCw,
   RadioTower,
   SearchCheck,
@@ -41,6 +44,48 @@ type BridgeResponse = {
   status: number;
   data?: Record<string, any>;
   error?: string;
+};
+
+type RuntimeTask = {
+  summary: {
+    taskId: string;
+    kind: 'mcp' | 'agent' | 'workflow';
+    label: string;
+    clientName?: string | null;
+    sessionId?: string | null;
+    toolName?: string | null;
+    tabId?: number | null;
+    profileId?: string | null;
+    origin?: string | null;
+    startedAt: string;
+    updatedAt: string;
+    elapsedMs: number;
+    status:
+      | 'running'
+      | 'waiting'
+      | 'paused'
+      | 'cancelling'
+      | 'success'
+      | 'error'
+      | 'cancelled'
+      | 'unknown';
+    cancelable: boolean;
+    pausable: boolean;
+    errorCategory?: string | null;
+    errorMessage?: string | null;
+  };
+  events: Array<{
+    type: string;
+    at: string;
+    status: RuntimeTask['summary']['status'];
+    elapsedMs?: number;
+    message?: string | null;
+  }>;
+};
+
+type RuntimeResponse = {
+  tasks: RuntimeTask[];
+  activeCount: number;
 };
 
 type McpClient = {
@@ -140,6 +185,10 @@ let timer: number | undefined;
 let errorTimer: number | undefined;
 let removeTrayListener: UnlistenFn | undefined;
 const errorDiagnostics = ref<ErrorDiagnostics | null>(null);
+const runtime = ref<RuntimeResponse | null>(null);
+const runtimeFilter = ref<'all' | RuntimeTask['summary']['status']>('all');
+const selectedRuntimeTaskId = ref<string | null>(null);
+const runtimeActionTaskId = ref<string | null>(null);
 const errorDiagnosticsMessage = ref('尚未读取错误日志');
 const errorTerminalFilter = ref('all');
 const errorCategoryFilter = ref<string | null>(null);
@@ -186,6 +235,20 @@ const errorTotal = computed(() => visibleErrorLogs.value.length);
 const selectedErrorCategoryLabel = computed(() =>
   errorCategoryFilter.value ? ERROR_CATEGORY_LABELS[errorCategoryFilter.value] : '',
 );
+
+const runtimeTasks = computed(() => runtime.value?.tasks ?? []);
+const visibleRuntimeTasks = computed(() =>
+  runtimeTasks.value.filter(
+    (task) => runtimeFilter.value === 'all' || task.summary.status === runtimeFilter.value,
+  ),
+);
+const selectedRuntimeTask = computed(
+  () =>
+    runtimeTasks.value.find((task) => task.summary.taskId === selectedRuntimeTaskId.value) ??
+    visibleRuntimeTasks.value[0] ??
+    null,
+);
+const runtimeActiveCount = computed(() => runtime.value?.activeCount ?? 0);
 
 function classifyErrorMessage(message: string) {
   if (/住宅代理|代理(?:请求|测试|认证|配置|轮换)|proxy|tunnel/i.test(message)) return 'proxy_error';
@@ -343,6 +406,43 @@ function formatElapsed(value: number | undefined) {
   return `${(value / 1000).toFixed(1)} s`;
 }
 
+function runtimeKindLabel(kind: RuntimeTask['summary']['kind']) {
+  return kind === 'agent' ? 'Agent' : kind === 'workflow' ? 'Workflow' : 'MCP';
+}
+
+function runtimeStatusLabel(status: RuntimeTask['summary']['status']) {
+  const labels: Record<RuntimeTask['summary']['status'], string> = {
+    running: '运行中',
+    waiting: '等待 Chrome',
+    paused: '已暂停',
+    cancelling: '取消中',
+    success: '成功',
+    error: '失败',
+    cancelled: '已取消',
+    unknown: '状态未知',
+  };
+  return labels[status];
+}
+
+function runtimeStatusTone(status: RuntimeTask['summary']['status']) {
+  if (status === 'success') return 'tone-success';
+  if (status === 'error' || status === 'unknown') return 'tone-danger';
+  if (
+    status === 'paused' ||
+    status === 'waiting' ||
+    status === 'cancelling' ||
+    status === 'cancelled'
+  )
+    return 'tone-warning';
+  return 'tone-info';
+}
+
+function runtimeElapsed(task: RuntimeTask) {
+  if (['success', 'error', 'cancelled', 'unknown'].includes(task.summary.status))
+    return formatElapsed(task.summary.elapsedMs);
+  return formatElapsed(Math.max(0, Date.now() - new Date(task.summary.startedAt).getTime()));
+}
+
 function shortRequestId(requestId: string) {
   return requestId ? `…${requestId.slice(-8)}` : '—';
 }
@@ -362,6 +462,14 @@ async function localRequest(path: string, method = 'GET'): Promise<BridgeRespons
     if (path === '/__chrome_mcp_bridge/error-diagnostics')
       return invoke<BridgeResponse>('get_error_diagnostics');
     if (path === '/status?probe=1') return invoke<BridgeResponse>('health_check');
+    if (path === '/__chrome_mcp_bridge/runtime') return invoke<BridgeResponse>('get_runtime');
+    if (path.startsWith('/__chrome_mcp_bridge/runtime/')) {
+      const parts = path.split('/');
+      return invoke<BridgeResponse>('control_runtime', {
+        taskId: decodeURIComponent(parts[parts.length - 2] || ''),
+        action: parts[parts.length - 1] || '',
+      });
+    }
     return invoke<BridgeResponse>('control_service', {
       action: path.endsWith('/start') ? 'start' : 'stop',
     });
@@ -376,6 +484,39 @@ async function localRequest(path: string, method = 'GET'): Promise<BridgeRespons
     return { ok: response.ok, status: response.status, data, error: data?.message };
   } catch (error) {
     return { ok: false, status: 0, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function refreshRuntime() {
+  const response = await localRequest('/__chrome_mcp_bridge/runtime');
+  if (response.ok && response.data) {
+    runtime.value = response.data as RuntimeResponse;
+    if (!selectedRuntimeTask.value && visibleRuntimeTasks.value.length) {
+      selectedRuntimeTaskId.value = visibleRuntimeTasks.value[0].summary.taskId;
+    }
+  } else if (response.status === 401 || response.status === 403) {
+    state.message = response.error || '运行控制未通过本地认证';
+  }
+}
+
+async function controlRuntimeTask(
+  task: RuntimeTask,
+  action: 'cancel' | 'pause' | 'resume' | 'focus',
+) {
+  if (runtimeActionTaskId.value) return;
+  runtimeActionTaskId.value = task.summary.taskId;
+  try {
+    const path = `/__chrome_mcp_bridge/runtime/${encodeURIComponent(task.summary.taskId)}/${action}`;
+    const response = await localRequest(path, 'POST');
+    state.message = response.ok
+      ? action === 'focus'
+        ? '已聚焦浏览器标签页'
+        : `${runtimeStatusLabel((response.data?.status as RuntimeTask['summary']['status']) || task.summary.status)} · 控制已发送`
+      : response.error || '运行时操作失败';
+    await refreshRuntime();
+    await refresh();
+  } finally {
+    runtimeActionTaskId.value = null;
   }
 }
 
@@ -502,6 +643,7 @@ async function refresh(probe = false) {
     }
 
     state.data = response.data;
+    await refreshRuntime();
     const running = Boolean(response.data.server?.serviceRunning);
     const connected = Boolean(response.data.nativeHost?.connected);
     state.phase = running && connected ? 'running' : running ? 'waiting' : 'stopped';
@@ -572,6 +714,7 @@ onMounted(async () => {
   removeTrayListener = isTauri ? await listen('tray-health-check', () => refresh(true)) : undefined;
   await startBridge();
   await refreshErrorDiagnostics();
+  await refreshRuntime();
   timer = window.setInterval(() => refresh(), 1000);
   errorTimer = window.setInterval(() => refreshErrorDiagnostics(), 1000);
 });
@@ -594,6 +737,9 @@ onUnmounted(() => {
       </div>
       <nav class="sidebar-nav" aria-label="主导航">
         <a class="nav-item active" href="#overview"><Home class="nav-icon" :size="19" />概览</a>
+        <a class="nav-item" href="#runtime-control"
+          ><Activity class="nav-icon" :size="19" />运行控制</a
+        >
         <a class="nav-item" href="#connections"
           ><MessageSquare class="nav-icon" :size="19" />MCP 会话</a
         >
@@ -679,6 +825,160 @@ onUnmounted(() => {
           <strong>{{ toolCount }}</strong>
           <small>浏览器控制能力</small>
         </article>
+      </section>
+
+      <section class="runtime-control panel" id="runtime-control">
+        <div class="card-heading">
+          <div>
+            <span class="section-kicker">RUNTIME CONTROL</span>
+            <div class="heading-title"><Activity :size="20" /><h2>实时运行控制</h2></div>
+            <p class="card-subtitle">统一查看 MCP、Agent 和 Workflow；桌面端不展示敏感参数。</p>
+          </div>
+          <div class="runtime-summary">
+            <span class="live-pill"
+              ><span class="pulse"></span>{{ runtimeActiveCount }} 个运行中</span
+            >
+            <button class="button secondary" type="button" @click="refreshRuntime"
+              ><RefreshCw :size="14" />刷新</button
+            >
+          </div>
+        </div>
+        <div class="runtime-toolbar">
+          <label
+            >筛选
+            <select v-model="runtimeFilter">
+              <option value="all">全部状态</option>
+              <option value="running">运行中</option>
+              <option value="waiting">等待 Chrome</option>
+              <option value="paused">已暂停</option>
+              <option value="success">成功</option>
+              <option value="error">失败</option>
+              <option value="cancelled">已取消</option>
+              <option value="unknown">状态未知</option>
+            </select></label
+          >
+          <span class="runtime-security-note"><LockKeyhole :size="13" />仅显示脱敏摘要</span>
+        </div>
+        <div class="runtime-layout">
+          <div class="runtime-task-list">
+            <button
+              v-for="task in visibleRuntimeTasks"
+              :key="task.summary.taskId"
+              class="runtime-task-card"
+              :class="{ selected: selectedRuntimeTask?.summary.taskId === task.summary.taskId }"
+              type="button"
+              @click="selectedRuntimeTaskId = task.summary.taskId"
+            >
+              <div class="runtime-task-top">
+                <span class="runtime-kind">{{ runtimeKindLabel(task.summary.kind) }}</span>
+                <span class="runtime-status" :class="runtimeStatusTone(task.summary.status)">
+                  {{ runtimeStatusLabel(task.summary.status) }}
+                </span>
+              </div>
+              <strong>{{ task.summary.label }}</strong>
+              <small
+                >{{ task.summary.toolName || '等待下一步' }} · {{ runtimeElapsed(task) }}</small
+              >
+              <small
+                >{{ task.summary.origin || '域名未报告' }} · Tab
+                {{ task.summary.tabId ?? '—' }}</small
+              >
+            </button>
+            <p v-if="!visibleRuntimeTasks.length" class="runtime-empty"
+              >当前没有符合筛选条件的任务。</p
+            >
+          </div>
+          <article v-if="selectedRuntimeTask" class="runtime-detail">
+            <div class="runtime-detail-head">
+              <div
+                ><span class="runtime-kind">{{
+                  runtimeKindLabel(selectedRuntimeTask.summary.kind)
+                }}</span
+                ><h3>{{ selectedRuntimeTask.summary.label }}</h3></div
+              >
+              <span
+                class="runtime-status"
+                :class="runtimeStatusTone(selectedRuntimeTask.summary.status)"
+                >{{ runtimeStatusLabel(selectedRuntimeTask.summary.status) }}</span
+              >
+            </div>
+            <dl class="runtime-info-list">
+              <div
+                ><dt>当前工具 / 步骤</dt
+                ><dd>{{ selectedRuntimeTask.summary.toolName || '—' }}</dd></div
+              >
+              <div
+                ><dt>Profile</dt
+                ><dd>{{ selectedRuntimeTask.summary.profileId || '当前 Chrome' }}</dd></div
+              >
+              <div
+                ><dt>标签页 / 域名</dt
+                ><dd
+                  >Tab {{ selectedRuntimeTask.summary.tabId ?? '—' }} ·
+                  {{ selectedRuntimeTask.summary.origin || '—' }}</dd
+                ></div
+              >
+              <div
+                ><dt>运行时间</dt><dd>{{ runtimeElapsed(selectedRuntimeTask) }}</dd></div
+              >
+            </dl>
+            <p v-if="selectedRuntimeTask.summary.errorMessage" class="runtime-error">{{
+              selectedRuntimeTask.summary.errorMessage
+            }}</p>
+            <div class="runtime-actions">
+              <button
+                class="button danger"
+                type="button"
+                :disabled="!selectedRuntimeTask.summary.cancelable || Boolean(runtimeActionTaskId)"
+                @click="controlRuntimeTask(selectedRuntimeTask, 'cancel')"
+                ><CircleAlert :size="14" />取消</button
+              >
+              <button
+                v-if="selectedRuntimeTask.summary.status !== 'paused'"
+                class="button secondary"
+                type="button"
+                :disabled="!selectedRuntimeTask.summary.pausable || Boolean(runtimeActionTaskId)"
+                @click="controlRuntimeTask(selectedRuntimeTask, 'pause')"
+                ><Pause :size="14" />暂停</button
+              >
+              <button
+                v-else
+                class="button secondary"
+                type="button"
+                :disabled="Boolean(runtimeActionTaskId)"
+                @click="controlRuntimeTask(selectedRuntimeTask, 'resume')"
+                ><Play :size="14" />继续</button
+              >
+              <button
+                class="button secondary"
+                type="button"
+                :disabled="
+                  selectedRuntimeTask.summary.tabId == null || Boolean(runtimeActionTaskId)
+                "
+                @click="controlRuntimeTask(selectedRuntimeTask, 'focus')"
+                ><Crosshair :size="14" />聚焦标签页</button
+              >
+              <button
+                class="button secondary"
+                type="button"
+                @click="copyValue(selectedRuntimeTask.summary.taskId)"
+                ><Copy :size="14" />复制 ID</button
+              >
+            </div>
+            <details class="runtime-events"
+              ><summary>时间线（{{ selectedRuntimeTask.events.length }}）</summary
+              ><div
+                v-for="event in selectedRuntimeTask.events"
+                :key="`${event.at}-${event.type}`"
+                class="runtime-event"
+                ><span>{{ formatActivity(event.at) }}</span
+                ><b>{{ event.type }}</b
+                ><small>{{ event.message || runtimeStatusLabel(event.status) }}</small></div
+              ></details
+            >
+          </article>
+          <p v-else class="runtime-detail runtime-empty">选择一个任务查看详情。</p>
+        </div>
       </section>
 
       <section class="two-column" id="connections">

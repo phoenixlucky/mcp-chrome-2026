@@ -27,7 +27,10 @@ describe('服务器测试', () => {
   });
 
   test('GET /status 应返回可诊断状态', async () => {
-    const response = await supertest(Server.getInstance().server).get('/status').expect(200);
+    const response = await supertest(Server.getInstance().server)
+      .get('/status')
+      .set('Origin', 'http://127.0.0.1:1420')
+      .expect(200);
 
     expect(response.body.server.version).toEqual(expect.any(String));
     expect(response.body.server.protocolVersion).toBe(2);
@@ -82,7 +85,10 @@ describe('服务器测试', () => {
 
       sessionId = response.headers['mcp-session-id'];
       expect(sessionId).toEqual(expect.any(String));
-      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      const status = await supertest(Server.getInstance().server)
+        .get('/status')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
       expect(status.body.mcp.clients).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ sessionId, transport: 'streamable-http', endpoint: '/mcp' }),
@@ -120,7 +126,10 @@ describe('服务器测试', () => {
         .expect(200);
 
       sessionId = response.headers['mcp-session-id'];
-      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      const status = await supertest(Server.getInstance().server)
+        .get('/status')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
       expect(status.body.mcp.clients).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ sessionId, transport: 'stdio', endpoint: '/mcp' }),
@@ -167,7 +176,10 @@ describe('服务器测试', () => {
       expect(response.body.jsonrpc).toBe('2.0');
       expect(response.body.result.tools.length).toBeGreaterThan(0);
 
-      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      const status = await supertest(Server.getInstance().server)
+        .get('/status')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
       expect(status.body.mcp.activeSessions).toBe(0);
       expect(status.body.mcp.stateless).toMatchObject({
         endpoint: '/mcp-new',
@@ -204,7 +216,10 @@ describe('服务器测试', () => {
       },
     });
     try {
-      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      const status = await supertest(Server.getInstance().server)
+        .get('/status')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
       expect(status.body.mcp.stateless.requests).toEqual([
         expect.objectContaining({
           requestId: 'request-under-test',
@@ -219,6 +234,7 @@ describe('服务器测试', () => {
 
       await supertest(Server.getInstance().server)
         .post('/__chrome_mcp_bridge/mcp-new/requests/request-under-test/cancel')
+        .set('Origin', 'http://127.0.0.1:1420')
         .expect(202)
         .expect({ status: 'cancel_requested', requestId: 'request-under-test' });
       expect(cancelCalls).toBe(1);
@@ -315,7 +331,10 @@ describe('服务器测试', () => {
         .expect(400);
 
       expect(response.body.error).toBe(ERROR_MESSAGES.INVALID_MCP_REQUEST);
-      const status = await supertest(Server.getInstance().server).get('/status').expect(200);
+      const status = await supertest(Server.getInstance().server)
+        .get('/status')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
       expect(status.body.mcp.recentRequests[0]).toMatchObject({
         method: 'tools/call',
         endpoint: '/mcp',
@@ -382,6 +401,68 @@ describe('服务器测试', () => {
         .send({});
       expect(response.status).not.toBe(401);
       expect(response.status).not.toBe(403);
+    } finally {
+      if (previousKey === undefined) delete process.env[MCP_API_KEY_ENV];
+      else process.env[MCP_API_KEY_ENV] = previousKey;
+    }
+  });
+
+  test('Agent 私有接口统一遵守 Origin 和 API Key 认证', async () => {
+    const previousKey = process.env[MCP_API_KEY_ENV];
+    delete process.env[MCP_API_KEY_ENV];
+    try {
+      await supertest(Server.getInstance().server)
+        .get('/agent/engines')
+        .expect(403)
+        .expect((response) => {
+          expect(response.body.error).toBe(ERROR_MESSAGES.ORIGIN_NOT_ALLOWED);
+        });
+
+      await supertest(Server.getInstance().server)
+        .get('/agent/engines')
+        .set('Origin', 'https://evil.example')
+        .expect(403)
+        .expect((response) => {
+          expect(response.body.error).toBe(ERROR_MESSAGES.ORIGIN_NOT_ALLOWED);
+        });
+
+      await supertest(Server.getInstance().server)
+        .get('/agent/engines')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
+
+      process.env[MCP_API_KEY_ENV] = 'agent-test-key';
+      await supertest(Server.getInstance().server).get('/agent/engines').expect(401);
+      await supertest(Server.getInstance().server)
+        .get('/agent/engines')
+        .set('x-api-key', 'agent-test-key')
+        .expect(200);
+      await supertest(Server.getInstance().server)
+        .get('/agent/engines')
+        .set('Authorization', 'Bearer agent-test-key')
+        .expect(200);
+    } finally {
+      if (previousKey === undefined) delete process.env[MCP_API_KEY_ENV];
+      else process.env[MCP_API_KEY_ENV] = previousKey;
+    }
+  });
+
+  test('运行时控制接口受保护并返回脱敏任务列表', async () => {
+    const previousKey = process.env[MCP_API_KEY_ENV];
+    delete process.env[MCP_API_KEY_ENV];
+    try {
+      await supertest(Server.getInstance().server).get('/__chrome_mcp_bridge/runtime').expect(403);
+      const response = await supertest(Server.getInstance().server)
+        .get('/__chrome_mcp_bridge/runtime')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(200);
+      expect(response.body).toEqual(
+        expect.objectContaining({ tasks: expect.any(Array), activeCount: expect.any(Number) }),
+      );
+      await supertest(Server.getInstance().server)
+        .post('/__chrome_mcp_bridge/runtime/missing-task/cancel')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .expect(404);
     } finally {
       if (previousKey === undefined) delete process.env[MCP_API_KEY_ENV];
       else process.env[MCP_API_KEY_ENV] = previousKey;

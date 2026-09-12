@@ -492,6 +492,186 @@ h1 {
   opacity: 0.7;
 }
 
+.runtime-control {
+  margin-top: 15px;
+  padding: 20px;
+}
+.runtime-summary,
+.runtime-toolbar,
+.runtime-actions,
+.runtime-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.runtime-summary {
+  align-self: flex-start;
+  margin-left: auto;
+}
+.runtime-toolbar {
+  justify-content: space-between;
+  margin: 15px 0 12px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.runtime-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.runtime-toolbar select {
+  padding: 7px 10px;
+  border: 1px solid rgba(124, 157, 198, 0.25);
+  border-radius: 8px;
+  color: #dceaff;
+  background: #12243b;
+  font-size: 11px;
+}
+.runtime-security-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #78cdb8;
+}
+.runtime-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.3fr);
+  gap: 12px;
+  min-height: 210px;
+}
+.runtime-task-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  max-height: 390px;
+  overflow: auto;
+}
+.runtime-task-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(124, 157, 198, 0.16);
+  border-radius: 11px;
+  color: #e6effb;
+  text-align: left;
+  background: rgba(9, 19, 34, 0.43);
+  cursor: pointer;
+}
+.runtime-task-card:hover,
+.runtime-task-card.selected {
+  border-color: rgba(109, 174, 255, 0.62);
+  background: rgba(25, 64, 103, 0.55);
+}
+.runtime-task-card strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.runtime-task-card small,
+.runtime-event small {
+  overflow: hidden;
+  color: #8195b3;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.runtime-task-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.runtime-kind {
+  color: #bbd7ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.runtime-status {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.runtime-detail {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid rgba(124, 157, 198, 0.16);
+  border-radius: 11px;
+  background: rgba(8, 17, 29, 0.36);
+}
+.runtime-detail-head {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.runtime-detail-head h3 {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+.runtime-info-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+.runtime-info-list div {
+  min-width: 0;
+}
+.runtime-info-list dt {
+  margin-bottom: 4px;
+  color: #7186a2;
+  font-size: 10px;
+}
+.runtime-info-list dd {
+  overflow: hidden;
+  margin: 0;
+  color: #dce8f7;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.runtime-actions {
+  flex-wrap: wrap;
+}
+.runtime-actions .button {
+  height: 32px;
+  padding: 0 10px;
+}
+.runtime-error {
+  margin: 0 0 12px;
+  color: #ffb8bd;
+  font-size: 11px;
+}
+.runtime-events {
+  margin-top: 15px;
+  border-top: 1px solid rgba(124, 157, 198, 0.15);
+}
+.runtime-events summary {
+  padding: 11px 0 7px;
+  color: #a9bad4;
+  cursor: pointer;
+  font-size: 10px;
+}
+.runtime-event {
+  display: grid;
+  grid-template-columns: 110px 110px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(124, 157, 198, 0.08);
+  font-size: 10px;
+}
+.runtime-event span {
+  color: #7186a2;
+}
+.runtime-empty {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  margin: 0;
+  color: #7186a2;
+  font-size: 11px;
+}
 .two-column {
   display: grid;
   grid-template-columns: 1.08fr 0.92fr;
@@ -1325,12 +1505,23 @@ footer {
     bottom: 19px;
   }
   .metrics,
+  .runtime-layout,
   .two-column,
   .transport-grid {
     grid-template-columns: 1fr;
   }
   .error-category-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .runtime-summary {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+  .runtime-event {
+    grid-template-columns: 1fr 1fr;
+  }
+  .runtime-event small {
+    grid-column: 1 / -1;
   }
   .detail-head {
     flex-direction: column;

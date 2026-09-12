@@ -1192,6 +1192,17 @@ export class RpcServer {
     runner.cancel(reason);
     return { ok: true, runId };
   }
+
+  /** Native host bridge for the desktop runtime control center. */
+  async controlRun(
+    method: 'rr_v3.cancelRun' | 'rr_v3.pauseRun' | 'rr_v3.resumeRun',
+    runId: RunId,
+  ): Promise<JsonValue> {
+    const params = { runId } as JsonObject;
+    if (method === 'rr_v3.cancelRun') return this.handleCancelRun(params);
+    if (method === 'rr_v3.pauseRun') return this.handlePauseRun(params);
+    return this.handleResumeRun(params);
+  }
 }
 
 /**

@@ -14,7 +14,7 @@ import {
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { NATIVE_HOST, STORAGE_KEYS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/common/constants';
 import { handleCallTool } from './tools';
-import { enqueueFlow, getFlow, listFlows } from './record-replay-v3/public-api';
+import { controlRun, enqueueFlow, getFlow, getRun, listFlows } from './record-replay-v3/public-api';
 import { acquireKeepalive } from './keepalive-manager';
 
 const LOG_PREFIX = '[NativeHost]';
@@ -475,6 +475,20 @@ async function handleProtocolRequest(message: NativeRequest): Promise<void> {
           status: 'success',
           data: { content: [{ type: 'text', text: JSON.stringify(run) }], isError: false },
         };
+        break;
+      }
+      case 'rr_v3.getRun': {
+        const runId = (message.params as any)?.runId;
+        if (typeof runId !== 'string' || !runId) throw new Error('runId is required');
+        result = { status: 'success', data: await getRun(runId) };
+        break;
+      }
+      case 'rr_v3.cancelRun':
+      case 'rr_v3.pauseRun':
+      case 'rr_v3.resumeRun': {
+        const runId = (message.params as any)?.runId;
+        if (typeof runId !== 'string' || !runId) throw new Error('runId is required');
+        result = { status: 'success', data: await controlRun(message.method, runId) };
         break;
       }
       default:

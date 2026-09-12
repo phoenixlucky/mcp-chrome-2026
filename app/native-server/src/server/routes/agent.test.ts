@@ -1,10 +1,14 @@
 import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { registerAgentRoutes } from './agent';
 import { AgentStreamManager } from '../../agent/stream-manager';
 import * as projectService from '../../agent/project-service';
 import * as sessionService from '../../agent/session-service';
 import * as messageService from '../../agent/message-service';
+import * as attachmentServiceModule from '../../agent/attachment-service';
 
 jest.mock('../../agent/project-service', () => ({
   createProjectDirectory: jest.fn(),
@@ -61,6 +65,7 @@ const createSession = jest.mocked(sessionService.createSession);
 const getSession = jest.mocked(sessionService.getSession);
 const updateSession = jest.mocked(sessionService.updateSession);
 const deleteMessagesBySessionId = jest.mocked(messageService.deleteMessagesBySessionId);
+const getAttachmentPath = jest.mocked(attachmentServiceModule.attachmentService.getAttachmentPath);
 
 const project = {
   id: 'project-1',
@@ -209,7 +214,11 @@ describe('agent route integration', () => {
       payload: { instruction: 'hello', projectId: 'project-1' },
     });
     expect(act.statusCode).toBe(200);
-    expect(act.json()).toEqual({ requestId: 'request-1', sessionId: 'session-1', status: 'accepted' });
+    expect(act.json()).toEqual({
+      requestId: 'request-1',
+      sessionId: 'session-1',
+      status: 'accepted',
+    });
 
     const cancelled = await app.inject({
       method: 'DELETE',
@@ -249,5 +258,25 @@ describe('agent route integration', () => {
     expect(badAct.json()).toEqual({ error: 'projectId is required' });
 
     await app.close();
+  });
+
+  test('streams attachments with private no-store caching', async () => {
+    const { app } = createApp();
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-mcp-route-'));
+    const filePath = path.join(dataDir, 'attachment.png');
+    await fs.writeFile(filePath, 'payload');
+    getAttachmentPath.mockReturnValue(filePath);
+
+    await app.ready();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent/attachments/project-1/attachment.png',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+
+    await app.close();
+    await fs.rm(dataDir, { recursive: true, force: true });
   });
 });

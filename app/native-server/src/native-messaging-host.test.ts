@@ -40,6 +40,7 @@ describe('NativeMessagingHost lifecycle', () => {
     jest.useFakeTimers();
     const host = createHost();
     (host as any).connected = true;
+    jest.spyOn(host as any, 'writeNativeMessage').mockResolvedValue(undefined);
     const sendMessage = jest.spyOn(host, 'sendMessage').mockImplementation(() => undefined);
 
     const pending = host.sendRequestToExtensionAndWait(
@@ -59,6 +60,7 @@ describe('NativeMessagingHost lifecycle', () => {
   test('fails pending requests on disconnect and leaves no controllers', async () => {
     const host = createHost();
     (host as any).connected = true;
+    jest.spyOn(host as any, 'writeNativeMessage').mockResolvedValue(undefined);
     jest.spyOn(host, 'sendMessage').mockImplementation(() => undefined);
     const pending = host.sendRequestToExtensionAndWait({}, 'call_tool', 30_000);
     const exit = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
@@ -74,6 +76,7 @@ describe('NativeMessagingHost lifecycle', () => {
   test('resolves consecutive requests after reconnect without losing correlation', async () => {
     const host = createHost();
     (host as any).connected = true;
+    jest.spyOn(host as any, 'writeNativeMessage').mockResolvedValue(undefined);
     jest.spyOn(host, 'sendMessage').mockImplementation(() => undefined);
     const promises = Array.from({ length: 32 }, (_, index) =>
       host.sendRequestToExtensionAndWait({ index }, 'process_data', 30_000),
@@ -127,6 +130,43 @@ describe('NativeMessagingHost lifecycle', () => {
 
     expect(write).not.toHaveBeenCalled();
     expect(host.getStatus().lastError).toMatch(/exceeds/);
+    write.mockRestore();
+  });
+
+  test('rejects a pending request immediately when serialization fails', async () => {
+    const host = createHost();
+    (host as any).connected = true;
+
+    const pending = host.sendRequestToExtensionAndWait(
+      { value: BigInt(1) },
+      'process_data',
+      30_000,
+    );
+
+    await expect(pending).rejects.toThrow(/BigInt|serialize|JSON/i);
+    expect(host.getStatus().pendingRequests).toBe(0);
+  });
+
+  test('rejects side-effect requests as execution-unknown when the native write fails', async () => {
+    const host = createHost();
+    (host as any).connected = true;
+    const write = jest.spyOn(process.stdout, 'write').mockImplementation(((
+      _chunk: any,
+      callback: any,
+    ) => {
+      callback(new Error('pipe closed'));
+      return true;
+    }) as any);
+
+    const pending = host.sendRequestToExtensionAndWait(
+      { name: 'chrome_click_element', arguments: {} },
+      'call_tool',
+      30_000,
+    );
+
+    await expect(pending).rejects.toMatchObject({ code: 'EXECUTION_UNKNOWN' });
+    expect(host.getStatus().pendingRequests).toBe(0);
+    expect(host.getStatus().lastError).toContain('pipe closed');
     write.mockRestore();
   });
 });

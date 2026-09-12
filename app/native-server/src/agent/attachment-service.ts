@@ -71,6 +71,14 @@ export interface CleanupResult {
 // ============================================================
 
 const ATTACHMENTS_DIR_NAME = 'attachments';
+const DEFAULT_MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024;
+const DEFAULT_MAX_ATTACHMENT_DIR_SIZE = 512 * 1024 * 1024;
+const DEFAULT_ATTACHMENT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function envBytes(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
 
 /** Allowed MIME types for image attachments */
 const ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
@@ -108,7 +116,8 @@ function buildAttachmentFilename(params: {
 }): string {
   const ext = mimeTypeToExt(params.mimeType);
   const uuid = randomUUID().slice(0, 8);
-  return `${params.messageId}-${params.index}-${uuid}.${ext}`;
+  const safeMessageId = params.messageId.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64) || 'message';
+  return `${safeMessageId}-${params.index}-${uuid}.${ext}`;
 }
 
 /**
@@ -140,6 +149,23 @@ function isValidProjectId(projectId: string): boolean {
 // ============================================================
 
 export class AttachmentService {
+  private readonly maxAttachmentSize = envBytes(
+    'CHROME_MCP_MAX_ATTACHMENT_SIZE_BYTES',
+    DEFAULT_MAX_ATTACHMENT_SIZE,
+  );
+  private readonly maxDirectorySize = envBytes(
+    'CHROME_MCP_MAX_ATTACHMENT_DIR_SIZE_BYTES',
+    DEFAULT_MAX_ATTACHMENT_DIR_SIZE,
+  );
+  private readonly ttlMs = envBytes('CHROME_MCP_ATTACHMENT_TTL_MS', DEFAULT_ATTACHMENT_TTL_MS);
+  private readonly cleanupTimer: ReturnType<typeof setInterval>;
+
+  constructor() {
+    void this.cleanupExpired();
+    this.cleanupTimer = setInterval(() => void this.cleanupExpired(), 15 * 60_000);
+    this.cleanupTimer.unref();
+  }
+
   /**
    * Get the root directory for all attachments.
    */
@@ -210,8 +236,19 @@ export class AttachmentService {
     const absolutePath = path.join(projectDir, filename);
 
     // Decode base64 and get size
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(attachment.dataBase64)) {
+      throw new Error('Invalid attachment data');
+    }
     const buffer = Buffer.from(attachment.dataBase64, 'base64');
     const sizeBytes = buffer.length;
+    if (sizeBytes > this.maxAttachmentSize) {
+      throw new Error('Attachment exceeds the configured size limit');
+    }
+
+    const currentStats = await this.getAttachmentStats();
+    if (currentStats.totalBytes + sizeBytes > this.maxDirectorySize) {
+      throw new Error('Attachment directory exceeds the configured size limit');
+    }
 
     // Create directory and write file
     await fs.mkdir(projectDir, { recursive: true });
@@ -453,6 +490,47 @@ export class AttachmentService {
   async readAttachment(projectId: string, filename: string): Promise<Buffer> {
     const filePath = this.getAttachmentPath(projectId, filename);
     return fs.readFile(filePath);
+  }
+
+  private async cleanupExpired(): Promise<void> {
+    const rootDir = this.getAttachmentsRootDir();
+    const cutoff = Date.now() - this.ttlMs;
+    let projects: Array<import('node:fs').Dirent>;
+
+    try {
+      projects = await fs.readdir(rootDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    await Promise.all(
+      projects
+        .filter((entry) => entry.isDirectory() && isValidProjectId(entry.name))
+        .map(async (project) => {
+          const projectDir = path.join(rootDir, project.name);
+          let files: string[];
+          try {
+            files = await fs.readdir(projectDir);
+          } catch {
+            return;
+          }
+          await Promise.all(
+            files.map(async (file) => {
+              try {
+                const filePath = this.getAttachmentPath(project.name, file);
+                const stats = await fs.stat(filePath);
+                if (stats.isFile() && stats.mtimeMs < cutoff) await fs.unlink(filePath);
+              } catch {
+                // Best-effort cleanup only.
+              }
+            }),
+          );
+        }),
+    );
+  }
+
+  dispose(): void {
+    clearInterval(this.cleanupTimer);
   }
 }
 

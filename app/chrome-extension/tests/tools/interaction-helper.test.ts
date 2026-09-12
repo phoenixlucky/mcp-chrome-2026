@@ -299,6 +299,28 @@ describe('interaction helpers', () => {
     });
   });
 
+  it('rejects an ambiguous click selector instead of clicking the first match', async () => {
+    const first = document.createElement('button');
+    const second = document.createElement('button');
+    setRect(first);
+    setRect(second);
+    document.body.append(first, second);
+
+    const elementFromPoint = mockElementFromPoint(first);
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        selector: 'button',
+      }),
+    ).resolves.toMatchObject({
+      error: 'Selector "button" matched multiple elements. Please refine it or use an element ref.',
+      matchCount: 2,
+    });
+    expect(elementFromPoint).not.toHaveBeenCalled();
+  });
+
   it("accepts legacy text locators such as button('Start discussion')", async () => {
     const button = document.createElement('button');
     button.textContent = 'Start discussion';

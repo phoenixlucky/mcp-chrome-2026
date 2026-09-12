@@ -22,3 +22,14 @@ export async function enqueueFlow(flowId: string, args?: JsonObject) {
     { flowId: flowId as FlowId, ...(args ? { args } : {}) },
   );
 }
+
+export async function getRun(runId: string) {
+  return (await runtime()).storage.runs.get(runId as any);
+}
+
+export async function controlRun(
+  method: 'rr_v3.cancelRun' | 'rr_v3.pauseRun' | 'rr_v3.resumeRun',
+  runId: string,
+) {
+  return (await runtime()).rpcServer.controlRun(method, runId as any);
+}
