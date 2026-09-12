@@ -26,7 +26,7 @@
 
 ---
 
-## 📢 What's New in v2.7.3
+## 📢 What's New in v2.7.4
 
 > **Stronger page collection and review workflows** — Better support for multi-page content, comment threads, and long lists.
 >
@@ -35,7 +35,7 @@
 > - 📊 **Stronger long-list collection** — Virtual-list, paginated, and multi-tab collection workflows expose independent state, progress snapshots, and diagnostics.
 > - 🧭 **Improved review tools** — Page review summaries and expandable sections support finer stop conditions and bounded clicks.
 > - 🖥️ **Desktop assistant and runtime improvements** — Better attachment handling, runtime registration, and desktop interaction stability.
-> - 🔧 All release packages bumped to v2.7.3
+> - 🔧 All release packages bumped to v2.7.4
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 

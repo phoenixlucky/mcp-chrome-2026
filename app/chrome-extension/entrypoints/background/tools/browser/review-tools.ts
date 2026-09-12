@@ -15,6 +15,43 @@ type Candidate = { selector?: string; text?: string; role?: string; type?: 'css'
 type Target = { tabId?: number; windowId?: number; frameSelector?: string };
 const TIMEOUT = 10_000;
 
+type RuntimeExceptionDetails = {
+  text?: string;
+  url?: string;
+  lineNumber?: number;
+  columnNumber?: number;
+  exception?: { description?: string; value?: unknown };
+  stackTrace?: {
+    description?: string;
+    callFrames?: Array<{
+      functionName?: string;
+      url?: string;
+      lineNumber?: number;
+      columnNumber?: number;
+    }>;
+  };
+};
+
+function evaluationError(details: RuntimeExceptionDetails): string {
+  const description =
+    details.exception?.description ||
+    (typeof details.exception?.value === 'string' ? details.exception.value : undefined) ||
+    details.text ||
+    'page_evaluation_failed';
+  const stack =
+    details.stackTrace?.description ||
+    details.stackTrace?.callFrames
+      ?.map((frame) => {
+        const location = frame.url
+          ? `${frame.url}:${(frame.lineNumber ?? 0) + 1}:${(frame.columnNumber ?? 0) + 1}`
+          : `:${(frame.lineNumber ?? 0) + 1}:${(frame.columnNumber ?? 0) + 1}`;
+        return `    at ${frame.functionName || '<anonymous>'} (${location})`;
+      })
+      .join('\n');
+  if (!stack || description.includes(stack)) return description;
+  return `${description}\n${stack}`;
+}
+
 function json(value: unknown, isError = false): ToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(value) }], isError };
 }
@@ -35,7 +72,7 @@ abstract class ReviewTool extends BaseBrowserToolExecutor {
       }),
     );
     if (response?.exceptionDetails)
-      throw new Error(response.exceptionDetails.text || 'page_evaluation_failed');
+      throw new Error(evaluationError(response.exceptionDetails as RuntimeExceptionDetails));
     return response?.result?.value;
   }
 }
@@ -65,7 +102,7 @@ class FindAndClickTool extends ReviewTool {
       const tabId = await this.tabId(args);
       const result = await this.eval(
         tabId,
-        `(() => {
+        `(async () => {
         const candidates = ${JSON.stringify(args.candidates)};
         const base = ${args.frameSelector ? `document.querySelector(${JSON.stringify(args.frameSelector)})?.contentDocument` : 'document'};
         const scope = ${args.scopeSelector ? `base?.querySelector(${JSON.stringify(args.scopeSelector)})` : 'base'};

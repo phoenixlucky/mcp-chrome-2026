@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.7.4] - 2026-09-13
+
+### Added
+
+- **页面递归采集与线程提取** — 新增 `chrome_crawl_links` 和 `chrome_extract_thread`，支持深度/节点限制、重试、滚动加载、嵌套过滤和条件停止。
+
+### Fixed
+
+- **审查工具错误信息** — 保留页面执行异常的描述与堆栈，便于定位 `find_and_click` 和 `expand_section` 失败原因。
+- **版本同步** — 根包、子包、WASM、桌面 Tauri/Cargo 配置统一为 v2.7.4。
+
 ## [v2.6.11] - 2026-09-08
 
 ### Fixed
