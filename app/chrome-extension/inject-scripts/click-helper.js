@@ -58,7 +58,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           // ignore
         }
 
-        if (!target || !(target instanceof Element)) {
+        if (!target || !(target instanceof Element) || !isElementRenderable(target)) {
           // A ref can expire after React re-renders. If the caller also sent
           // a selector, resolve the current element instead of failing early.
           if (selector) ref = null;
@@ -70,11 +70,12 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         } else {
           element = target;
           element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
-          await new Promise((resolve) => setTimeout(resolve, 80));
+          await waitForLayoutStability(element);
 
           const rect = element.getBoundingClientRect();
-          clickX = rect.left + rect.width / 2;
-          clickY = rect.top + rect.height / 2;
+          const point = getClickPoint(element);
+          clickX = point.x;
+          clickY = point.y;
           elementInfo = {
             tagName: element.tagName,
             id: element.id,
@@ -83,6 +84,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
             href: element.href || null,
             type: element.type || null,
             isVisible: true,
+            isHitTestVisible: point.hitTestVisible,
             rect: {
               x: rect.x,
               y: rect.y,
@@ -180,7 +182,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
 
         // First sroll so that the element is in view, then check visibility.
         element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await waitForLayoutStability(element);
         elementInfo.isVisible = isElementVisible(element);
         elementInfo.isHitTestVisible = isElementHitTestVisible(element);
         if (!isElementActionable(element)) {
@@ -190,9 +192,10 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           };
         }
 
-        const updatedRect = element.getBoundingClientRect();
-        clickX = updatedRect.left + updatedRect.width / 2;
-        clickY = updatedRect.top + updatedRect.height / 2;
+        const point = getClickPoint(element);
+        clickX = point.x;
+        clickY = point.y;
+        elementInfo.isHitTestVisible = point.hitTestVisible;
       }
 
       const disabledTarget =
@@ -430,6 +433,61 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     const centerY = rect.top + rect.height / 2;
     const elementAtPoint = document.elementFromPoint(centerX, centerY);
     return !!elementAtPoint && (element === elementAtPoint || element.contains(elementAtPoint));
+  }
+
+  function isElementRenderable(element) {
+    if (!element || !element.isConnected) return false;
+    const style = window.getComputedStyle(element);
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      style.visibility === 'collapse' ||
+      style.contentVisibility === 'hidden'
+    )
+      return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function waitForLayoutFrame() {
+    return new Promise((resolve) => {
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => resolve());
+      } else {
+        setTimeout(resolve, 16);
+      }
+    });
+  }
+
+  async function waitForLayoutStability(element) {
+    await waitForLayoutFrame();
+    await waitForLayoutFrame();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return element && element.isConnected;
+  }
+
+  function getClickPoint(element) {
+    const rect = element.getBoundingClientRect();
+    const insetX = Math.min(Math.max(rect.width * 0.2, 2), 24);
+    const insetY = Math.min(Math.max(rect.height * 0.2, 2), 24);
+    const candidates = [
+      [rect.left + rect.width / 2, rect.top + rect.height / 2],
+      [rect.left + insetX, rect.top + insetY],
+      [rect.right - insetX, rect.top + insetY],
+      [rect.left + insetX, rect.bottom - insetY],
+      [rect.right - insetX, rect.bottom - insetY],
+    ];
+    for (const [x, y] of candidates) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit && (hit === element || element.contains(hit))) {
+        return { x, y, hitTestVisible: true };
+      }
+    }
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      hitTestVisible: isElementHitTestVisible(element),
+    };
   }
 
   /**

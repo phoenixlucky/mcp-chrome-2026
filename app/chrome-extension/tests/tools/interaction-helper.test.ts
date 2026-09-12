@@ -141,6 +141,66 @@ describe('interaction helpers', () => {
     });
   });
 
+  it('recovers a ref after a framework replaces the original node', async () => {
+    const original = document.createElement('button');
+    original.id = 'replaceable';
+    setRect(original);
+    document.body.append(original);
+
+    const handler = loadInjectedHelper(
+      'accessibility-tree-helper.js',
+      '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__',
+    );
+    const ensured = await callHelper(handler, {
+      action: 'ensureRefForSelector',
+      selector: '#replaceable',
+      scrollIntoView: false,
+    });
+    expect(ensured.success).toBe(true);
+
+    original.remove();
+    const replacement = document.createElement('button');
+    replacement.id = 'replaceable';
+    setRect(replacement);
+    document.body.append(replacement);
+    mockElementFromPoint(replacement);
+
+    await expect(
+      callHelper(handler, {
+        action: 'locateElement',
+        ref: ensured.ref,
+        scrollIntoView: false,
+        highlight: false,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      ref: ensured.ref,
+      selector: '#replaceable',
+    });
+  });
+
+  it('ignores hidden selector clones and locates the visible match', async () => {
+    const hidden = document.createElement('button');
+    hidden.style.display = 'none';
+    document.body.append(hidden);
+    const visible = document.createElement('button');
+    setRect(visible);
+    document.body.append(visible);
+
+    const handler = loadInjectedHelper(
+      'accessibility-tree-helper.js',
+      '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__',
+    );
+    await expect(
+      callHelper(handler, {
+        action: 'locateElement',
+        selector: 'button',
+        scrollIntoView: false,
+        highlight: false,
+      }),
+    ).resolves.toMatchObject({ success: true, matchCount: 1 });
+  });
+
   it('waits for dynamic inputs and matches value properties when the value attribute is absent', async () => {
     const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
 

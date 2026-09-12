@@ -15,7 +15,22 @@
 
   // Keep a weak map from ref id to elements
   if (!window.__claudeElementMap) window.__claudeElementMap = {};
+  // Keep recovery hints separately from the WeakRef. Framework re-renders can
+  // detach the node while the ref is still in the caller's context.
+  if (!window.__claudeElementMeta) window.__claudeElementMeta = {};
   if (!window.__claudeRefCounter) window.__claudeRefCounter = 0;
+
+  function cssEscape(value) {
+    try {
+      if (window.CSS && typeof window.CSS.escape === 'function') {
+        return window.CSS.escape(String(value));
+      }
+    } catch (_) {}
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, (character) => {
+      const code = character.codePointAt(0);
+      return `\\${code ? code.toString(16) : '20'} `;
+    });
+  }
 
   /**
    * Infer ARIA-like role from element
@@ -133,10 +148,125 @@
    * @param {Element} el
    */
   function isVisible(el) {
+    if (!el || !el.isConnected) return false;
     const cs = window.getComputedStyle(/** @type {HTMLElement} */ (el));
-    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return false;
-    const he = /** @type {HTMLElement} */ (el);
-    return he.offsetWidth > 0 && he.offsetHeight > 0;
+    if (
+      cs.display === 'none' ||
+      cs.visibility === 'hidden' ||
+      cs.visibility === 'collapse' ||
+      cs.contentVisibility === 'hidden' ||
+      Number.parseFloat(cs.opacity || '1') <= 0
+    )
+      return false;
+    // display: contents has no own box but its interactive descendants are
+    // real targets. Do not discard the subtree at this level.
+    if (cs.display === 'contents') return true;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function waitForLayoutFrame() {
+    return new Promise((resolve) => {
+      const raf = window.requestAnimationFrame;
+      if (typeof raf === 'function') raf(() => resolve());
+      else setTimeout(resolve, 16);
+    });
+  }
+
+  async function settleElementAfterScroll(el) {
+    // One frame lets scrollIntoView run; the second lets sticky headers,
+    // virtual lists and framework layout effects settle before coordinates are
+    // read. The small timeout also covers browsers without rAF in tests.
+    await waitForLayoutFrame();
+    await waitForLayoutFrame();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return !!(el && el.isConnected);
+  }
+
+  function waitForPageSettled(timeoutMs = 700, quietMs = 90) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      let quietTimer = null;
+      let hardTimer = null;
+      let observer = null;
+      let domReady = document.readyState !== 'loading';
+      const finish = () => {
+        if (!domReady) return;
+        if (quietTimer) clearTimeout(quietTimer);
+        if (hardTimer) clearTimeout(hardTimer);
+        observer?.disconnect();
+        resolve();
+      };
+      const schedule = () => {
+        if (!domReady) return;
+        if (quietTimer) clearTimeout(quietTimer);
+        quietTimer = setTimeout(finish, quietMs);
+      };
+      try {
+        const root = document.documentElement || document;
+        if (typeof MutationObserver === 'function') {
+          observer = new MutationObserver(schedule);
+          observer.observe(root, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            characterData: true,
+          });
+        }
+      } catch (_) {}
+      hardTimer = setTimeout(finish, Math.max(quietMs, timeoutMs));
+      if (document.readyState === 'loading') {
+        document.addEventListener(
+          'DOMContentLoaded',
+          () => {
+            domReady = true;
+            schedule();
+          },
+          { once: true },
+        );
+      }
+      // Always yield at least one render turn, even on a static document.
+      waitForLayoutFrame().then(schedule);
+      if (Date.now() - started > timeoutMs) finish();
+    });
+  }
+
+  function isHitForElement(el, hit) {
+    if (!el || !hit) return false;
+    if (el === hit || el.contains(hit)) return true;
+    // elementFromPoint on a shadow tree may return the host rather than the
+    // inner control.
+    try {
+      const root = el.getRootNode && el.getRootNode();
+      return !!(root && root.host && (hit === root.host || root.host.contains(hit)));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getActionPoint(el) {
+    const rect = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    if (!rect || rect.width <= 0 || rect.height <= 0) return null;
+    const insetX = Math.min(Math.max(rect.width * 0.2, 2), 24);
+    const insetY = Math.min(Math.max(rect.height * 0.2, 2), 24);
+    const points = [
+      [rect.left + rect.width / 2, rect.top + rect.height / 2],
+      [rect.left + insetX, rect.top + insetY],
+      [rect.right - insetX, rect.top + insetY],
+      [rect.left + insetX, rect.bottom - insetY],
+      [rect.right - insetX, rect.bottom - insetY],
+    ];
+    for (const [x, y] of points) {
+      if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
+      try {
+        if (isHitForElement(el, document.elementFromPoint(x, y))) {
+          return { x: Math.round(x), y: Math.round(y), hitTestVisible: true };
+        }
+      } catch (_) {}
+    }
+    const x = Math.min(Math.max(rect.left + rect.width / 2, 0), window.innerWidth);
+    const y = Math.min(Math.max(rect.top + rect.height / 2, 0), window.innerHeight);
+    return { x: Math.round(x), y: Math.round(y), hitTestVisible: false };
   }
 
   /**
@@ -314,6 +444,11 @@
 
     const recordMatch = (el) => {
       if (!(el instanceof Element) || seen.has(el)) return false;
+      // A stale hidden clone is common in React/Vue pages (for example a
+      // desktop and mobile copy rendered together). Only visible matches are
+      // candidates for an interaction; otherwise the first hidden clone can
+      // make a valid selector look ambiguous or target the wrong node.
+      if (!elementIsVisibleForLocator(el)) return false;
       seen.add(el);
       matchCount++;
       if (!firstMatch) firstMatch = el;
@@ -438,14 +573,16 @@
           XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
           null,
         );
-        const totalMatches = snapshot.snapshotLength;
-        // Cap at 2 for performance (2 means "2 or more")
-        const matchCount = Math.min(totalMatches, 2);
-        const firstMatch =
-          totalMatches > 0 && snapshot.snapshotItem(0) instanceof Element
-            ? /** @type {Element} */ (snapshot.snapshotItem(0))
-            : null;
-        return { element: firstMatch, matchCount };
+        let firstMatch = null;
+        let matchCount = 0;
+        for (let i = 0; i < snapshot.snapshotLength; i++) {
+          const candidate = snapshot.snapshotItem(i);
+          if (!(candidate instanceof Element) || !elementIsVisibleForLocator(candidate)) continue;
+          if (!firstMatch) firstMatch = /** @type {Element} */ (candidate);
+          matchCount++;
+          if (matchCount >= 2) break;
+        }
+        return { element: firstMatch, matchCount: Math.min(matchCount, 2) };
       }
     } catch (e) {
       return {
@@ -543,13 +680,13 @@
   function generateSelector(el) {
     if (!(el instanceof Element)) return '';
     if (/** @type {HTMLElement} */ (el).id) {
-      const idSel = `#${CSS.escape(/** @type {HTMLElement} */ (el).id)}`;
+      const idSel = `#${cssEscape(/** @type {HTMLElement} */ (el).id)}`;
       if (document.querySelectorAll(idSel).length === 1) return idSel;
     }
     for (const attr of ['data-testid', 'data-cy', 'name']) {
       const attrValue = el.getAttribute(attr);
       if (attrValue) {
-        const s = `[${attr}="${CSS.escape(attrValue)}"]`;
+        const s = `[${attr}="${cssEscape(attrValue)}"]`;
         if (document.querySelectorAll(s).length === 1) return s;
       }
     }
@@ -602,6 +739,7 @@
         refId = `ref_${++window.__claudeRefCounter}`;
         window.__claudeElementMap[refId] = new WeakRef(el);
       }
+      rememberRef(refId, el);
       const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
       const cx = Math.round(rect.left + rect.width / 2);
       const cy = Math.round(rect.top + rect.height / 2);
@@ -759,16 +897,55 @@
           el.scrollIntoView({ block: 'center', inline: 'center' });
         } catch (_) {}
       }
+      await settleElementAfterScroll(el);
       dispatchHoverEvents(el);
-      return { success: true, target: summarizeElement(el) };
+      return { success: true, target: summarizeElement(el), point: getActionPoint(el) };
     }
     return await forwardHoverRefToChildren(ref);
   }
 
-  function resolveRef(ref) {
+  function rememberRef(refId, el, selector, selectorType = 'css') {
+    if (!refId || !el || !(el instanceof Element)) return;
+    if (!window.__claudeElementMeta) window.__claudeElementMeta = {};
+    const current = window.__claudeElementMeta[refId] || {};
+    window.__claudeElementMeta[refId] = {
+      ...current,
+      selector: selector || current.selector || generateSelector(el),
+      selectorType: selectorType || current.selectorType || 'css',
+      tagName: String(el.tagName || '').toLowerCase(),
+      role: inferRole(el),
+      text: String(el.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 160),
+    };
+  }
+
+  function resolveRef(ref, recoveryHint) {
     const map = window.__claudeElementMap || {};
     const weak = map[ref];
-    return weak && typeof weak.deref === 'function' ? weak.deref() : null;
+    const current = weak && typeof weak.deref === 'function' ? weak.deref() : null;
+    if (current && current instanceof Element && current.isConnected) {
+      rememberRef(ref, current);
+      return current;
+    }
+
+    const meta = (window.__claudeElementMeta || {})[ref] || {};
+    const selector = String(recoveryHint?.selector || meta.selector || '').trim();
+    const selectorType =
+      recoveryHint?.selectorType === 'xpath' || meta.selectorType === 'xpath' ? 'xpath' : 'css';
+    if (!selector) return null;
+    const result =
+      selectorType === 'xpath'
+        ? queryXPathWithUniquenessCheck(selector, true)
+        : querySelectorWithUniquenessCheck(selector, true);
+    const recovered = !result.error ? result.element : null;
+    if (recovered && recovered instanceof Element) {
+      map[ref] = new WeakRef(recovered);
+      rememberRef(ref, recovered, selector, selectorType);
+      return recovered;
+    }
+    return null;
   }
 
   function ensureRefForElement(el) {
@@ -777,10 +954,14 @@
     if (!window.__claudeRefCounter) window.__claudeRefCounter = 0;
     for (const k in window.__claudeElementMap) {
       const weak = window.__claudeElementMap[k];
-      if (weak && typeof weak.deref === 'function' && weak.deref() === el) return k;
+      if (weak && typeof weak.deref === 'function' && weak.deref() === el) {
+        rememberRef(k, el);
+        return k;
+      }
     }
     const refId = `ref_${++window.__claudeRefCounter}`;
     window.__claudeElementMap[refId] = new WeakRef(el);
+    rememberRef(refId, el);
     return refId;
   }
 
@@ -819,8 +1000,15 @@
     if (!el || !el.isConnected) return false;
     try {
       const style = window.getComputedStyle(/** @type {HTMLElement} */ (el));
-      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0')
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        style.visibility === 'collapse' ||
+        style.contentVisibility === 'hidden' ||
+        Number.parseFloat(style.opacity || '1') <= 0
+      )
         return false;
+      if (style.display === 'contents') return false;
       const rect = /** @type {HTMLElement} */ (el).getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
     } catch (_) {
@@ -858,6 +1046,7 @@
         x: Math.round(rect.left + rect.width / 2),
         y: Math.round(rect.top + rect.height / 2),
       },
+      point: getActionPoint(el),
       visible: elementIsVisibleForLocator(el),
       interactive: isInteractive(el),
       disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true',
@@ -893,11 +1082,8 @@
   }
 
   function dispatchHoverEvents(el) {
-    const rect = el.getBoundingClientRect();
-    const center = {
-      x: Math.round(rect.left + rect.width / 2),
-      y: Math.round(rect.top + rect.height / 2),
-    };
+    const point = getActionPoint(el);
+    const center = point || { x: 0, y: 0 };
     ['mousemove', 'mouseover', 'mouseenter'].forEach((type) => {
       el.dispatchEvent(
         new MouseEvent(type, {
@@ -1089,17 +1275,17 @@
                 (c) => c && /^[a-zA-Z0-9_-]+$/.test(c),
               );
               for (const cls of classes) {
-                const sel = `.${CSS.escape(cls)}`;
+                const sel = `.${cssEscape(cls)}`;
                 if (document.querySelectorAll(sel).length === 1) return sel;
               }
               const tag = node.tagName ? node.tagName.toLowerCase() : '';
               for (const cls of classes) {
-                const sel = `${tag}.${CSS.escape(cls)}`;
+                const sel = `${tag}.${cssEscape(cls)}`;
                 if (document.querySelectorAll(sel).length === 1) return sel;
               }
               for (let i = 0; i < Math.min(classes.length, 3); i++) {
                 for (let j = i + 1; j < Math.min(classes.length, 3); j++) {
-                  const sel = `.${CSS.escape(classes[i])}.${CSS.escape(classes[j])}`;
+                  const sel = `.${cssEscape(classes[i])}.${cssEscape(classes[j])}`;
                   if (document.querySelectorAll(sel).length === 1) return sel;
                 }
               }
@@ -1110,7 +1296,7 @@
             const cands = [];
             // css by id / class / short path
             if (el.id) {
-              const idSel = `#${CSS.escape(el.id)}`;
+              const idSel = `#${cssEscape(el.id)}`;
               if (document.querySelectorAll(idSel).length === 1)
                 cands.push({ type: 'css', value: idSel });
             }
@@ -1120,7 +1306,7 @@
             for (const attr of ['data-testid', 'data-cy', 'name']) {
               const val = el.getAttribute(attr);
               if (val) {
-                const s = `[${attr}="${CSS.escape(val)}"]`;
+                const s = `[${attr}="${cssEscape(val)}"]`;
                 if (document.querySelectorAll(s).length === 1)
                   cands.push({ type: 'attr', value: s });
               }
@@ -1194,6 +1380,7 @@
                 refId = `ref_${++window.__claudeRefCounter}`;
                 window.__claudeElementMap[refId] = new WeakRef(el);
               }
+              rememberRef(refId, el);
             } catch {}
             const cands = computeCandidates(el);
             cleanup();
@@ -1225,6 +1412,15 @@
           sendResponse({ success: false, error: String(e && e.message ? e.message : e) });
           return true;
         }
+      }
+      if (request && request.action === 'waitForPageSettled') {
+        waitForPageSettled(
+          Number.isFinite(Number(request.timeoutMs)) ? Number(request.timeoutMs) : 700,
+          Number.isFinite(Number(request.quietMs)) ? Number(request.quietMs) : 90,
+        )
+          .then(() => sendResponse({ success: true, readyState: document.readyState }))
+          .catch((error) => sendResponse({ success: false, error: String(error) }));
+        return true;
       }
       if (request && request.action === 'generateAccessibilityTree') {
         const result = __generateAccessibilityTree(request.filter || null, {
@@ -1274,7 +1470,10 @@
           let matchedSelectorType = selector ? selectorType : undefined;
 
           if (ref) {
-            el = resolveRef(ref);
+            el = resolveRef(ref, {
+              selector: selector || undefined,
+              selectorType,
+            });
             if (!el || !(el instanceof Element)) {
               sendResponse({ success: false, error: `ref "${ref}" not found or expired` });
               return true;
@@ -1400,15 +1599,21 @@
             sendResponse({ success: false, error: 'Failed to create element ref' });
             return true;
           }
-          if (request.highlight !== false) highlightLocatorElement(el);
-
-          sendResponse({
-            success: true,
-            resolvedBy,
-            matchedSelector,
-            matchedSelectorType,
-            ...locatorElementMetadata(el, refId, matchCount),
-          });
+          const respondWithLocatedElement = () => {
+            if (request.highlight !== false) highlightLocatorElement(el);
+            sendResponse({
+              success: true,
+              resolvedBy,
+              matchedSelector,
+              matchedSelectorType,
+              ...locatorElementMetadata(el, refId, matchCount),
+            });
+          };
+          // Scrolling can trigger sticky headers, lazy rendering and a
+          // framework commit. Report coordinates only after that layout pass.
+          settleElementAfterScroll(el)
+            .then(respondWithLocatedElement)
+            .catch(respondWithLocatedElement);
           return true;
         } catch (e) {
           sendResponse({ success: false, error: String(e && e.message ? e.message : e) });
@@ -1699,6 +1904,7 @@
             refId = `ref_${++window.__claudeRefCounter}`;
             window.__claudeElementMap[refId] = new WeakRef(el);
           }
+          rememberRef(refId, el, sel, isXPath ? 'xpath' : 'css');
           if (request.highlight) {
             const highlightId = '__rr_picker_validation_highlight__';
             document.getElementById(highlightId)?.remove();
@@ -1903,7 +2109,7 @@
           form.onsubmit = (e) => {
             e.preventDefault();
             for (const v of vars) {
-              const el = form.querySelector(`input[name="${CSS.escape(String(v.key))}"]`);
+              const el = form.querySelector(`input[name="${cssEscape(String(v.key))}"]`);
               if (el) values[v.key] = /** @type {HTMLInputElement} */ (el).value;
             }
             cleanup();
@@ -1918,9 +2124,10 @@
       if (request && request.action === 'resolveRef') {
         const ref = request.ref;
         try {
-          const map = window.__claudeElementMap;
-          const weak = map && map[ref];
-          const el = weak && typeof weak.deref === 'function' ? weak.deref() : null;
+          const el = resolveRef(ref, {
+            selector: String(request.selector || '').trim() || undefined,
+            selectorType: request.selectorType,
+          });
           if (!el || !(el instanceof Element)) {
             sendResponse({ success: false, error: `ref "${ref}" not found or expired` });
             return true;
@@ -1933,12 +2140,14 @@
               x: Math.round(rect.left + rect.width / 2),
               y: Math.round(rect.top + rect.height / 2),
             },
-            selector: (function () {
+            point: getActionPoint(el),
+            selector: (window.__claudeElementMeta || {})[ref]?.selector || generateSelector(el),
+            legacySelector: (function () {
               // Simple selector generation inline to avoid duplication
               const generateSelector = function (node) {
                 if (!(node instanceof Element)) return '';
                 if (node.id) {
-                  const idSel = `#${CSS.escape(node.id)}`;
+                  const idSel = `#${cssEscape(node.id)}`;
                   if (document.querySelectorAll(idSel).length === 1) return idSel;
                 }
                 // prefer unique class selectors if available
@@ -1947,17 +2156,17 @@
                     (c) => c && /^[a-zA-Z0-9_-]+$/.test(c),
                   );
                   for (const cls of classes) {
-                    const sel = `.${CSS.escape(cls)}`;
+                    const sel = `.${cssEscape(cls)}`;
                     if (document.querySelectorAll(sel).length === 1) return sel;
                   }
                   const tag = node.tagName ? node.tagName.toLowerCase() : '';
                   for (const cls of classes) {
-                    const sel = `${tag}.${CSS.escape(cls)}`;
+                    const sel = `${tag}.${cssEscape(cls)}`;
                     if (document.querySelectorAll(sel).length === 1) return sel;
                   }
                   for (let i = 0; i < Math.min(classes.length, 3); i++) {
                     for (let j = i + 1; j < Math.min(classes.length, 3); j++) {
-                      const sel = `.${CSS.escape(classes[i])}.${CSS.escape(classes[j])}`;
+                      const sel = `.${cssEscape(classes[i])}.${cssEscape(classes[j])}`;
                       if (document.querySelectorAll(sel).length === 1) return sel;
                     }
                   }
@@ -1965,7 +2174,7 @@
                 for (const attr of ['data-testid', 'data-cy', 'name']) {
                   const val = node.getAttribute(attr);
                   if (val) {
-                    const s = `[${attr}="${CSS.escape(val)}"]`;
+                    const s = `[${attr}="${cssEscape(val)}"]`;
                     if (document.querySelectorAll(s).length === 1) return s;
                   }
                 }
@@ -2047,19 +2256,7 @@
           const ref = String(request.ref || '');
           const selector = String(request.selector || '').trim();
           const selectorType = request.selectorType === 'xpath' ? 'xpath' : 'css';
-          const map = window.__claudeElementMap || {};
-          const weak = map[ref];
-          let el = weak && typeof weak.deref === 'function' ? weak.deref() : null;
-          // Ref handles point to concrete DOM nodes and can become stale after
-          // a framework re-render. If the caller supplied a selector, recover
-          // the current node before reporting the ref as expired.
-          if ((!el || !(el instanceof Element)) && selector) {
-            const result =
-              selectorType === 'xpath'
-                ? queryXPathWithUniquenessCheck(selector, true)
-                : querySelectorWithUniquenessCheck(selector, true);
-            if (!result.error && result.element) el = result.element;
-          }
+          const el = resolveRef(ref, { selector: selector || undefined, selectorType });
           if (!el || !(el instanceof Element)) {
             sendResponse({ success: false, error: `ref "${ref}" not found or expired` });
             return true;
@@ -2071,10 +2268,14 @@
               inline: 'nearest',
             });
           } catch {}
-          try {
-            /** @type {HTMLElement} */ (el).focus && /** @type {HTMLElement} */ (el).focus();
-          } catch {}
-          sendResponse({ success: true });
+          settleElementAfterScroll(el)
+            .then(() => {
+              try {
+                /** @type {HTMLElement} */ (el).focus && /** @type {HTMLElement} */ (el).focus();
+              } catch {}
+              sendResponse({ success: true, point: getActionPoint(el) });
+            })
+            .catch(() => sendResponse({ success: true, point: getActionPoint(el) }));
           return true;
         } catch (e) {
           sendResponse({ success: false, error: String(e && e.message ? e.message : e) });
@@ -2271,6 +2472,7 @@
               refId = `ref_${++window.__claudeRefCounter}`;
               window.__claudeElementMap[refId] = new WeakRef(el);
             }
+            rememberRef(refId, el, sel, isXPath ? 'xpath' : 'css');
             const rect = el.getBoundingClientRect();
             respond({
               success: true,

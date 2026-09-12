@@ -68,6 +68,11 @@ class ReadPageTool extends BaseBrowserToolExecutor {
         await chrome.tabs.update(tab.id, { url });
         tab = await this.waitForTabReady(tab.id);
       }
+      // An active tab can still be in the middle of a navigation even when no
+      // URL was supplied. Do not capture the half-built DOM in that window.
+      if (tab.status === 'loading' && typeof tab.id === 'number') {
+        tab = await this.waitForTabReady(tab.id);
+      }
       if (typeof tab.id !== 'number')
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
 
@@ -85,13 +90,78 @@ class ReadPageTool extends BaseBrowserToolExecutor {
         true,
       );
 
-      // Ask content script to generate accessibility tree
-      const resp = await this.sendMessageToTab(tab.id, {
-        action: TOOL_MESSAGE_TYPES.GENERATE_ACCESSIBILITY_TREE,
-        filter: filter || null,
-        depth: requestedDepth,
-        refId: focusRefId || undefined,
-      });
+      const helperFiles = ['inject-scripts/accessibility-tree-helper.js'];
+      // Ask every reachable frame for its own tree. `allFrames: true` only
+      // injects the helper; tabs.sendMessage still addresses one frame, so a
+      // top-frame-only request silently loses embedded forms and buttons.
+      const discoveredFrames =
+        !focusRefId && typeof chrome.webNavigation?.getAllFrames === 'function'
+          ? await chrome.webNavigation.getAllFrames({ tabId: tab.id }).catch(() => [])
+          : [];
+      const frameIds = Array.from(
+        new Set((discoveredFrames?.map((frame) => frame.frameId) || []).concat([0])),
+      ).sort((a, b) => a - b);
+      const frameResults = await Promise.all(
+        frameIds.map(async (frameId) => {
+          try {
+            await this.sendMessageToTabWithRetry(
+              tab.id!,
+              { action: 'waitForPageSettled', timeoutMs: 700, quietMs: 90 },
+              helperFiles,
+              frameId,
+            );
+            const response = await this.sendMessageToTabWithRetry(
+              tab.id!,
+              {
+                action: TOOL_MESSAGE_TYPES.GENERATE_ACCESSIBILITY_TREE,
+                filter: filter || null,
+                depth: requestedDepth,
+                refId: focusRefId || undefined,
+              },
+              helperFiles,
+              frameId,
+            );
+            return { frameId, response };
+          } catch (error) {
+            return { frameId, response: { success: false, error: String(error) } };
+          }
+        }),
+      );
+
+      const mainFrame = frameResults.find((item) => item.frameId === 0);
+      const successfulFrames = frameResults.filter((item) => item.response?.success === true);
+      const primary = mainFrame?.response || successfulFrames[0]?.response || {};
+      const frameRefMaps = successfulFrames.flatMap(({ frameId, response }) =>
+        (Array.isArray(response.refMap) ? response.refMap : []).map((item: any) => ({
+          ...item,
+          frameId,
+        })),
+      );
+      const frameContent = successfulFrames
+        .filter(({ response }) => typeof response.pageContent === 'string' && response.pageContent)
+        .map(({ frameId, response }) =>
+          frameId === 0 ? response.pageContent : `[frameId=${frameId}]\n${response.pageContent}`,
+        );
+      const resp = {
+        ...primary,
+        success: successfulFrames.length > 0,
+        pageContent: frameContent.join('\n'),
+        refMap: frameRefMaps,
+        stats: successfulFrames.reduce(
+          (total, { response }) => ({
+            processed: total.processed + Number(response.stats?.processed || 0),
+            included: total.included + Number(response.stats?.included || 0),
+            durationMs: Math.max(total.durationMs, Number(response.stats?.durationMs || 0)),
+          }),
+          { processed: 0, included: 0, durationMs: 0 },
+        ),
+        dialogs: successfulFrames.flatMap(({ response }) =>
+          Array.isArray(response.dialogs) ? response.dialogs : [],
+        ),
+        overlays: successfulFrames.flatMap(({ response }) =>
+          Array.isArray(response.overlays) ? response.overlays : [],
+        ),
+      };
 
       // Evaluate tree result and decide whether to fallback
       const treeOk = resp && resp.success === true;

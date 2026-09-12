@@ -332,16 +332,12 @@ class ComputerTool extends BaseBrowserToolExecutor {
       target.frameId,
     );
 
-    if (
-      !located?.success ||
-      !located.center ||
-      !Number.isFinite(located.center.x) ||
-      !Number.isFinite(located.center.y)
-    ) {
+    const point = located?.point || located?.center;
+    if (!located?.success || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
       throw new Error(located?.error || 'Element not found');
     }
 
-    return { center: located.center, resolvedBy: located.resolvedBy };
+    return { center: { x: point.x, y: point.y }, resolvedBy: located.resolvedBy };
   }
 
   private async executeAction(params: ComputerParams, tab: chrome.tabs.Tab): Promise<ToolResult> {
