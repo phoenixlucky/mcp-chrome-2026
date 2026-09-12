@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Bridge AI agents with your Chrome browser</b><br />
-  A Model Context Protocol server that exposes 76 browser capabilities to AI assistants
+  A Model Context Protocol server that exposes 80 browser capabilities to AI assistants
 </p>
 
 <p align="center">
@@ -26,19 +26,16 @@
 
 ---
 
-## 📢 What's New in v2.6.11
+## 📢 What's New in v2.7.3
 
-> **Request observability, cancellation, and configurable timeouts** — Easier to diagnose and recover stuck MCP calls across all endpoints.
+> **Stronger page collection and review workflows** — Better support for multi-page content, comment threads, and long lists.
 >
-> - 🚦 **Slow navigation can proceed** — `chrome_navigate` no longer blocks follow-up operations while a page keeps loading; URL/HTML polling continues afterward.
-> - 📋 **Easier request-history browsing** — “Recent Requests · Completed Calls” can now be collapsed and independently scrolled.
-> - 🛰️ **All-entry request monitor** — The desktop client shows active `/mcp`, `/mcp-new`, `/sse`, and STDIO tools, request IDs, elapsed time, and client information.
-> - ⏹️ **Cancel stuck requests** — Cancel a request from the desktop client by request ID and propagate cancellation through MCP, Native Messaging, and the Chrome extension.
-> - 🔁 **Extension reconnect recovery** — Content-script calls retry once after waiting for the tab and reinjecting the content script when the channel is disconnected.
-> - 📦 **Large-response fix** — Artifact responses are no longer misclassified as failures, eliminating `Error calling tool: undefined`.
-> - ⏱️ **Configurable timeouts** — Page-message timeout defaults to 30 seconds and can be configured from 5 to 300 seconds; tool execution windows are also more tolerant.
-> - 🛡️ **Complete error reporting** — Preserve status and details when the extension returns an unsuccessful response.
-> - 🔧 All release packages bumped to v2.6.11
+> - 🕸️ **Recursive page crawling** — `chrome_crawl_links` supports same-origin limits, depth/node caps, retries, field extraction, and partial failure results.
+> - 💬 **Comment and reply extraction** — `chrome_extract_thread` supports scroll loading, nested-item filtering, field mapping, and stop conditions.
+> - 📊 **Stronger long-list collection** — Virtual-list, paginated, and multi-tab collection workflows expose independent state, progress snapshots, and diagnostics.
+> - 🧭 **Improved review tools** — Page review summaries and expandable sections support finer stop conditions and bounded clicks.
+> - 🖥️ **Desktop assistant and runtime improvements** — Better attachment handling, runtime registration, and desktop interaction stability.
+> - 🔧 All release packages bumped to v2.7.3
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -92,7 +89,7 @@
 |                                                                                           |                                                                               |                                                                                 |                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **🤖 AI-Native Control**<br/>Claude / Cursor / VS Code<br/>operates your browser directly | **🔐 Zero Setup**<br/>Reuses your Chrome<br/>sessions & cookies instantly     | **🛡️ Fully Local**<br/>All processing on-device<br/>no data leaves your machine | **🚄 Streamable HTTP**<br/>Real-time streaming<br/>Modern MCP transport      |
-| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 76 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
+| **🧠 Semantic Search**<br/>Vector DB + local embeddings<br/>cross-tab content discovery   | **⚡ SIMD Acceleration**<br/>WASM-optimized engine<br/>4-8× faster vector ops | **📊 80 Tools**<br/>Navigation / forms<br/>bookmarks / history / network        | **🔄 Cross-Tab Ops**<br/>Multi-tab & multi-window<br/>seamless orchestration |
 
 ---
 
@@ -329,7 +326,7 @@ It checks the Native Host extension connection and browser probe, creates a real
 
 ### ✅ Done
 
-- **76 MCP Tools** — Full browser API coverage, including public `chrome_userscript`
+- **80 MCP Tools** — Full browser API coverage, including public `chrome_userscript`, page collection, and thread extraction tools
 - **Streamable HTTP (compatibility / early access) + SSE + STDIO** — All transports retained
 - **Smart Assistant** — Claude / Codex / DeepSeek
 - **Semantic Search** — Vector DB + local embeddings
@@ -355,13 +352,15 @@ It checks the Native Host extension connection and browser probe, creates a real
 
 ### 🆕 New Tools
 
-| Tool                                    | Description                                                                                    |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `chrome_create_tab`                     | Create new tab — supports url, windowId, active/background, pinned                             |
-| `chrome_hover`                          | Hover element — trigger hover state via CSS/XPath selector for dropdowns / tooltips / submenus |
-| `chrome_print_to_pdf`                   | Print to PDF — uses CDP Page.printToPDF, supports page/custom paper sizes                      |
-| `chrome_get_element_info`               | Element info query — get attributes, computed styles, bounding rect for a selector             |
-| `chrome_storage_get` / `set` / `delete` | Storage management — read/write localStorage / sessionStorage                                  |
+| Tool                                    | Description                                                                                         |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `chrome_crawl_links`                    | Recursively visit page links with depth/node limits, same-origin filtering, retries, and extraction |
+| `chrome_extract_thread`                 | Extract comments or replies with scroll loading, nested-item filtering, and stop conditions         |
+| `chrome_create_tab`                     | Create new tab — supports url, windowId, active/background, pinned                                  |
+| `chrome_hover`                          | Hover element — trigger hover state via CSS/XPath selector for dropdowns / tooltips / submenus      |
+| `chrome_print_to_pdf`                   | Print to PDF — uses CDP Page.printToPDF, supports page/custom paper sizes                           |
+| `chrome_get_element_info`               | Element info query — get attributes, computed styles, bounding rect for a selector                  |
+| `chrome_storage_get` / `set` / `delete` | Storage management — read/write localStorage / sessionStorage                                       |
 
 The PDF tool returns Base64 PDF data by default; pass `savePdf: true` to also save it to Chrome downloads. Storage tools operate on the target page's `localStorage` or `sessionStorage`, not extension storage.
 
