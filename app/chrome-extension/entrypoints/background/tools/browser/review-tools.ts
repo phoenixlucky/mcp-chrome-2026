@@ -272,59 +272,102 @@ class ExpandSectionTool extends ReviewTool {
   name = TOOL_NAMES.BROWSER.EXPAND_SECTION;
   async execute(
     args: Target & {
-      trigger: { candidates: Candidate[]; scopeSelector?: string };
+      trigger?: { candidates: Candidate[]; scopeSelector?: string };
+      triggers?: Candidate[];
       expandedAttribute?: string;
       contentSelector: string;
       waitTimeout?: number;
+      maxClicks?: number;
+      repeat?: boolean;
+      waitFor?: { type?: 'selector' | 'text' | 'timeout'; value?: string; timeoutMs?: number };
     },
   ): Promise<ToolResult> {
+    if (!args.contentSelector || (!args.trigger?.candidates?.length && !args.triggers?.length))
+      return json({ success: false, reason: 'invalid_parameters' }, true);
     try {
       const tabId = await this.tabId(args);
       const attribute = args.expandedAttribute || 'aria-expanded';
-      const expanded = await this.eval(
-        tabId,
-        `(() => { const root=${args.trigger.scopeSelector ? `document.querySelector(${JSON.stringify(args.trigger.scopeSelector)})` : 'document'}; const c=${JSON.stringify(args.trigger.candidates)}; for(const x of c){const e=x.selector?root?.querySelector(x.selector):null;if(e)return e.getAttribute(${JSON.stringify(attribute)})==='true';} return false; })()`,
+      const candidates = args.triggers?.length ? args.triggers : args.trigger!.candidates;
+      const scopeSelector = args.trigger?.scopeSelector;
+      const maxClicks = Math.min(
+        100,
+        Math.max(1, Math.floor(args.maxClicks ?? (args.repeat ? 50 : 1))),
       );
-      if (expanded)
-        return json({
-          success: true,
-          alreadyExpanded: true,
-          clicked: false,
-          contentFound: true,
-          changed: false,
+      const clickedMarker = `__mcpExpandClicked_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      let clicks = 0;
+      let alreadyExpanded = false;
+      let contentFound = false;
+      let reason: string | undefined;
+      const triggerState = async () =>
+        (await this.eval(
+          tabId,
+          `(() => { const root=${scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'}; const candidates=${JSON.stringify(candidates)}; const marker=${JSON.stringify(clickedMarker)}; const visible=e=>{if(!e||!e.isConnected)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0}; let matched=false, pending=false, expanded=false; for(const c of candidates){if(c.text){pending=true;matched=true;continue} let matches=[];try{matches=c.selector?Array.from(root?.querySelectorAll(c.selector)||[]):[]}catch(_){matches=[]} if(matches.length)matched=true; if(matches.some(e=>visible(e)&&e.getAttribute(${JSON.stringify(attribute)})!=='true'&&!e[marker]))pending=true; if(matches.length&&matches.every(e=>e.getAttribute(${JSON.stringify(attribute)})==='true'||e[marker]))expanded=true;} return { matched, pending, expanded }; })()`,
+        )) as { matched: boolean; pending: boolean; expanded: boolean };
+      const waitFor = async () => {
+        const config = args.waitFor;
+        const type = config?.type || 'selector';
+        const value = config?.value || args.contentSelector;
+        const timeout = Math.min(
+          30_000,
+          Math.max(0, config?.timeoutMs ?? args.waitTimeout ?? TIMEOUT),
+        );
+        if (type === 'timeout') {
+          await new Promise((resolve) => setTimeout(resolve, timeout));
+          return true;
+        }
+        const started = Date.now();
+        while (Date.now() - started <= timeout) {
+          const found = await this.eval(
+            tabId,
+            `(() => { const text=(document.body?.innerText||'').toLocaleLowerCase(); return ${type === 'text' ? `text.includes(${JSON.stringify(String(value).toLocaleLowerCase())})` : `document.querySelector(${JSON.stringify(value)}) !== null`}; })()`,
+          );
+          if (found) return true;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return false;
+      };
+      for (let index = 0; index < maxClicks; index += 1) {
+        const state = await triggerState();
+        if (!state.matched) {
+          reason = 'not_found';
+          break;
+        }
+        if (!state.pending) {
+          alreadyExpanded = clicks === 0 && state.expanded;
+          break;
+        }
+        const click = await findAndClickTool.execute({
+          ...args,
+          ...(args.trigger || {}),
+          candidates,
+          waitSelector: undefined,
+          waitFor: undefined,
+          waitTimeout: args.waitTimeout,
         });
-      const click = await findAndClickTool.execute({
-        ...args,
-        ...args.trigger,
-        waitSelector: args.contentSelector,
-        waitTimeout: args.waitTimeout,
-      });
-      const payload = JSON.parse((click.content[0] as any).text);
-      if (payload.success)
-        return json({
-          success: true,
-          alreadyExpanded: false,
-          clicked: true,
-          contentFound: true,
-          changed: true,
-        });
-      const retry = await findAndClickTool.execute({
-        ...args,
-        ...args.trigger,
-        waitSelector: args.contentSelector,
-        waitTimeout: args.waitTimeout,
-      });
-      const retryPayload = JSON.parse((retry.content[0] as any).text);
+        const payload = JSON.parse((click.content[0] as any).text);
+        if (!payload.success) {
+          reason = payload.reason || 'not_found';
+          break;
+        }
+        clicks += 1;
+        await this.eval(
+          tabId,
+          `(() => { const root=${scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'}; const candidates=${JSON.stringify(candidates)}; const c=candidates[${Number(payload.matchedCandidate) || 0}]; if(!c)return false; const visible=e=>{if(!e||!e.isConnected)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0}; let matches=[];try{matches=c.selector?Array.from(root?.querySelectorAll(c.selector)||[]):Array.from(root?.querySelectorAll('*')||[]).filter(e=>c.text&&(e.textContent||'').toLocaleLowerCase().includes(String(c.text).toLocaleLowerCase()))}catch(_){matches=[]} const e=matches.find(visible); if(e)e[${JSON.stringify(clickedMarker)}]=true; return Boolean(e); })()`,
+        );
+        contentFound = await waitFor();
+        if (!args.repeat && !args.maxClicks) break;
+      }
       return json(
         {
-          success: retryPayload.success,
-          alreadyExpanded: false,
-          clicked: Boolean(retryPayload.clicked),
-          contentFound: Boolean(retryPayload.waitResult?.found),
-          changed: Boolean(retryPayload.waitResult?.found),
-          reason: retryPayload.reason,
+          success: clicks > 0 || alreadyExpanded,
+          alreadyExpanded,
+          clicked: clicks > 0,
+          clickCount: clicks,
+          contentFound,
+          changed: clicks > 0,
+          reason: reason || (clicks >= maxClicks ? 'max_clicks' : undefined),
         },
-        !retryPayload.success,
+        clicks === 0 && !alreadyExpanded,
       );
     } catch (error) {
       return json(

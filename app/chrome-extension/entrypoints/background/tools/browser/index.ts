@@ -63,6 +63,8 @@ export {
   captureDebugBundleTool,
   collectVirtualListTool,
   collectVirtualListsTool,
+  crawlLinksTool,
+  extractThreadTool,
   resumeTabTaskTool,
   waitExtractResponseTool,
 } from './collector-tools';

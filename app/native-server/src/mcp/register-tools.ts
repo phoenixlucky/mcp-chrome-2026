@@ -82,7 +82,7 @@ const RECENT_TAB_DEFAULT_TOOLS = new Set([
   'chrome_storage_delete',
 ]);
 const LONG_TOOL =
-  /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|select_all_items)/;
+  /(?:performance|trace|record|download|upload|proxy_diagnostics|collect_virtual_list|crawl_links|extract_thread|select_all_items)/;
 const tabQueues = new Map<string, Promise<void>>();
 const MIN_TOOL_TRANSPORT_TIMEOUT_MS = 20_000;
 const DEFAULT_TOOL_TRANSPORT_TIMEOUT_MS = 120_000;

@@ -85,6 +85,8 @@ const TOOL_NAMES = {
     RESUME_TAB_TASK: 'resume_tab_task',
     PROFILE: 'chrome_profile',
     BATCH: 'chrome_batch',
+    CRAWL_LINKS: 'chrome_crawl_links',
+    EXTRACT_THREAD: 'chrome_extract_thread',
   },
 };
 
@@ -135,6 +137,55 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.CRAWL_LINKS,
+    description:
+      'Recursively visit discovered page links with depth and node limits, returning successful pages and partial failures.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        startUrls: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'URLs to use as crawl entry points.',
+        },
+        linkSelector: {
+          type: 'string',
+          description: 'CSS selector used to discover links on each page.',
+        },
+        maxDepth: { type: 'number', description: 'Maximum crawl depth; entry pages are depth 0.' },
+        maxNodes: { type: 'number', description: 'Maximum number of page nodes to visit.' },
+        sameOriginOnly: {
+          type: 'boolean',
+          description: 'Only follow links sharing an origin with an entry URL.',
+        },
+        dedupeBy: {
+          type: 'string',
+          enum: ['url'],
+          description: 'Deduplication key; currently supports url.',
+        },
+        extract: {
+          type: 'object',
+          description: 'Optional page field extraction configuration.',
+          properties: {
+            selector: {
+              type: 'string',
+              description: 'CSS selector defining the extraction scope.',
+            },
+            fields: { type: 'array', items: { type: 'object' }, description: 'Field definitions.' },
+          },
+        },
+        retries: { type: 'number', description: 'Retries after a page navigation failure.' },
+        retryDelayMs: { type: 'number', description: 'Milliseconds to wait before retrying.' },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: {
+          type: 'number',
+          description: 'Window used to resolve the active tab when tabId is omitted.',
+        },
+      },
+      required: ['startUrls', 'linkSelector'],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.COLLECT_VIRTUAL_LIST,
     description: '从动态或虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。',
     inputSchema: {
@@ -152,12 +203,77 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
         scroll: { type: 'object' },
+        stopWhen: {
+          type: 'object',
+          description:
+            'General stop condition: textMatch, selector, stable, networkIdle, networkComplete, or jsCondition.',
+          properties: {
+            type: {
+              type: 'string',
+              enum: [
+                'textMatch',
+                'selector',
+                'stable',
+                'networkIdle',
+                'networkComplete',
+                'jsCondition',
+              ],
+            },
+            pattern: { type: 'string' },
+            selector: { type: 'string' },
+            urlPattern: { type: 'string' },
+            condition: { type: 'string' },
+            stableRounds: { type: 'number' },
+          },
+        },
         state: { type: 'object' },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
       },
       required: ['cardSelector', 'fields', 'identityFields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.EXTRACT_THREAD,
+    description:
+      'Extract replies or comments from a root content area with scrolling, nested-item exclusion, and match-based stopping.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootSelector: { type: 'string', description: 'CSS selector for the root content area.' },
+        itemSelector: {
+          type: 'string',
+          description: 'CSS selector for each reply or comment item.',
+        },
+        excludeSelector: {
+          type: 'string',
+          description: 'CSS selector identifying the root post or other items to exclude.',
+        },
+        includeNested: {
+          type: 'boolean',
+          description: 'Whether to keep items nested inside another item; defaults to false.',
+        },
+        fields: {
+          type: 'object',
+          description: 'Map of field names to selectors within each item.',
+        },
+        limit: { type: 'number', description: 'Maximum number of replies or comments to return.' },
+        scroll: { type: 'boolean', description: 'Whether to scroll to load more items.' },
+        maxScrolls: { type: 'number', description: 'Maximum number of scrolls.' },
+        waitMs: { type: 'number', description: 'Milliseconds to wait after each scroll.' },
+        stopWhen: {
+          type: 'object',
+          description: 'Stop after matching text or finding a selector.',
+        },
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: {
+          type: 'number',
+          description: 'Window used to resolve the active tab when tabId is omitted.',
+        },
+        frameSelector: { type: 'string', description: 'Optional same-origin iframe CSS selector.' },
+      },
+      required: ['rootSelector', 'itemSelector', 'fields'],
     },
   },
   {
@@ -180,6 +296,29 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
         scroll: { type: 'object' },
+        stopWhen: {
+          type: 'object',
+          description:
+            'General stop condition: textMatch, selector, stable, networkIdle, networkComplete, or jsCondition.',
+          properties: {
+            type: {
+              type: 'string',
+              enum: [
+                'textMatch',
+                'selector',
+                'stable',
+                'networkIdle',
+                'networkComplete',
+                'jsCondition',
+              ],
+            },
+            pattern: { type: 'string' },
+            selector: { type: 'string' },
+            urlPattern: { type: 'string' },
+            condition: { type: 'string' },
+            stableRounds: { type: 'number' },
+          },
+        },
         maxConcurrency: { type: 'number' },
         failFast: { type: 'boolean' },
       },
@@ -260,14 +399,31 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
       type: 'object',
       properties: {
         trigger: { type: 'object' },
+        triggers: {
+          type: 'array',
+          items: { type: 'object' },
+          description: 'Optional multiple CSS trigger candidates.',
+        },
         expandedAttribute: { type: 'string' },
         contentSelector: { type: 'string' },
         waitTimeout: { type: 'number' },
+        maxClicks: {
+          type: 'number',
+          description: 'Maximum clicks; defaults to 1 for backward compatibility.',
+        },
+        repeat: {
+          type: 'boolean',
+          description: 'Repeat clicks until no expandable trigger remains.',
+        },
+        waitFor: {
+          type: 'object',
+          description: 'Per-click wait condition: selector, text, or timeout.',
+        },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
       },
-      required: ['trigger', 'contentSelector'],
+      required: ['contentSelector'],
     },
   },
   {

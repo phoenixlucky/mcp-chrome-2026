@@ -194,6 +194,8 @@ const launchDates: Record<string, string> = {
   merge_records: '2026-07-31',
   collect_virtual_list: '2026-07-31',
   collect_virtual_lists: '2026-08-10',
+  chrome_crawl_links: '2026-09-13',
+  chrome_extract_thread: '2026-09-13',
   wait_extract_response: '2026-07-31',
   capture_debug_bundle: '2026-07-31',
   resume_tab_task: '2026-07-31',
@@ -202,6 +204,8 @@ const launchDates: Record<string, string> = {
 const zhDescriptions: Record<string, string> = {
   search_tabs_content: '使用语义相似度搜索用户明确选定标签页中的可读内容；标签页会按需建立索引。',
   collect_virtual_list: '从动态或虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。',
+  chrome_crawl_links: '按深度和节点上限递归采集页面链接，支持同源过滤、去重、失败重试和部分结果。',
+  chrome_extract_thread: '从主内容区域提取回复或评论，支持排除主帖、滚动加载和命中条件停止。',
   wait_extract_response: '执行导航或点击后等待指定 JSON 响应，并按调用方提供的 JSONPath 抽取记录。',
   capture_debug_bundle: '将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。',
   resume_tab_task:
@@ -485,6 +489,7 @@ const reviewTools = new Set([
   'chrome_paginate_extract',
   'chrome_extract_records',
   'chrome_extract_review_summary',
+  'chrome_extract_thread',
   'detect_empty_state',
   'merge_records',
 ]);
@@ -502,6 +507,8 @@ const scrapingTools = new Set([
   'chrome_diagnostic_snapshot',
   'chrome_list_frames',
   'collect_virtual_list',
+  'collect_virtual_lists',
+  'chrome_crawl_links',
   'wait_extract_response',
   'resume_tab_task',
 ]);

@@ -1057,6 +1057,7 @@ Collect and deduplicate records from a dynamic or virtualized list while scrolli
 - `batchSize` (number, optional): Records per batch (default: 25 when batching is enabled)
 - `returnProgress` (boolean, optional): Include per-step progress snapshots in the final response
 - `progressEverySteps` (number, optional): Store one progress snapshot every N scroll steps
+- `stopWhen` (object, optional): Stop on `textMatch`, `selector`, `stable`, `networkIdle`, `networkComplete`, or a `jsCondition` expression; results collected so far are returned
 - `tabId` or `windowId` (number, optional): Select the target tab; `windowId` selects its active tab
 
 **Example**:
@@ -1129,7 +1130,7 @@ When the MCP request includes `_meta.progressToken` and the client supports `not
 
 ### `chrome_expand_section`
 
-展开通用的折叠区域，并等待指定的内容选择器出现。
+Expand a collapsible section and wait for its content selector; supports multiple triggers, repeated clicks, a click limit, and per-click wait conditions.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
@@ -1367,6 +1368,28 @@ Manage browser userscripts: create, inspect, enable, disable, update, remove, ex
 
 - `action` (string, required): `create`, `list`, `get`, `enable`, `disable`, `update`, `remove`, `send_command`, or `export`
 - `args` (object, optional): Action-specific values such as `script`, `id`, `matches`, `world`, `mode`, `payload`, and `tabId`
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `chrome_crawl_links`
+
+Recursively visit discovered page links with depth and node limits, returning successful pages and partial failures.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_thread`
+
+Extract replies or comments from a root content area with scrolling, nested-item exclusion, and match-based stopping.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_error_logs`
+
+Read or clear the raw error logs retained by the browser extension for desktop diagnostics.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 

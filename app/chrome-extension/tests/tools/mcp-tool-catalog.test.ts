@@ -17,6 +17,8 @@ describe('MCP tool catalog', () => {
         'chrome_proxy_rotate',
         'collect_virtual_list',
         'collect_virtual_lists',
+        'chrome_crawl_links',
+        'chrome_extract_thread',
         'chrome_select_all_items',
         'chrome_create_tab',
         'chrome_hover',
@@ -29,6 +31,8 @@ describe('MCP tool catalog', () => {
     );
     expect(search?.inputSchema.required).toEqual(expect.arrayContaining(['query', 'tabIds']));
     const collector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_list');
+    const crawlLinks = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_crawl_links');
+    const extractThread = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_extract_thread');
     const batchCollector = TOOL_SCHEMAS.find((tool) => tool.name === 'collect_virtual_lists');
     const selectAll = TOOL_SCHEMAS.find((tool) => tool.name === 'chrome_select_all_items');
     const waitResponse = TOOL_SCHEMAS.find((tool) => tool.name === 'wait_extract_response');
@@ -46,6 +50,15 @@ describe('MCP tool catalog', () => {
         returnBatches: expect.any(Object),
         returnProgress: expect.any(Object),
       }),
+    );
+    expect(crawlLinks?.inputSchema.required).toEqual(
+      expect.arrayContaining(['startUrls', 'linkSelector']),
+    );
+    expect(extractThread?.inputSchema.required).toEqual(
+      expect.arrayContaining(['rootSelector', 'itemSelector', 'fields']),
+    );
+    expect(collector?.inputSchema.properties).toEqual(
+      expect.objectContaining({ stopWhen: expect.any(Object) }),
     );
     expect(batchCollector?.inputSchema.required).toEqual(
       expect.arrayContaining(['targets', 'cardSelector', 'fields', 'identityFields']),

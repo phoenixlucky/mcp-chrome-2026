@@ -85,6 +85,8 @@ export const TOOL_NAMES = {
     RESUME_TAB_TASK: 'resume_tab_task',
     PROFILE: 'chrome_profile',
     BATCH: 'chrome_batch',
+    CRAWL_LINKS: 'chrome_crawl_links',
+    EXTRACT_THREAD: 'chrome_extract_thread',
   },
 };
 
@@ -134,6 +136,34 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.CRAWL_LINKS,
+    description: '按深度和节点上限递归访问页面链接，并返回已成功提取的页面及失败的部分结果。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        startUrls: { type: 'array', items: { type: 'string' }, description: '递归入口 URL 列表。' },
+        linkSelector: { type: 'string', description: '每页用于发现链接的 CSS 选择器。' },
+        maxDepth: { type: 'number', description: '最大递归深度，入口页为 0。' },
+        maxNodes: { type: 'number', description: '最多访问的页面节点数。' },
+        sameOriginOnly: { type: 'boolean', description: '是否只跟随入口 URL 的同源链接。' },
+        dedupeBy: { type: 'string', enum: ['url'], description: '去重方式；当前支持 url。' },
+        extract: {
+          type: 'object',
+          description: '可选的页面字段提取配置。',
+          properties: {
+            selector: { type: 'string', description: '字段提取范围的 CSS 选择器。' },
+            fields: { type: 'array', items: { type: 'object' }, description: '字段定义列表。' },
+          },
+        },
+        retries: { type: 'number', description: '单页导航失败后的重试次数。' },
+        retryDelayMs: { type: 'number', description: '重试前等待的毫秒数。' },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前活动标签页。' },
+        windowId: { type: 'number', description: '省略 tabId 时用于选择活动标签页的窗口 ID。' },
+      },
+      required: ['startUrls', 'linkSelector'],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.COLLECT_VIRTUAL_LIST,
     description: '从动态或虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。',
     inputSchema: {
@@ -151,12 +181,61 @@ export const TOOL_SCHEMAS: Tool[] = [
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
         scroll: { type: 'object' },
+        stopWhen: {
+          type: 'object',
+          description:
+            '通用停止条件：textMatch、selector、stable、networkIdle、networkComplete 或 jsCondition。',
+          properties: {
+            type: {
+              type: 'string',
+              enum: [
+                'textMatch',
+                'selector',
+                'stable',
+                'networkIdle',
+                'networkComplete',
+                'jsCondition',
+              ],
+            },
+            pattern: { type: 'string' },
+            selector: { type: 'string' },
+            urlPattern: { type: 'string' },
+            condition: { type: 'string' },
+            stableRounds: { type: 'number' },
+          },
+        },
         state: { type: 'object' },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
       },
       required: ['cardSelector', 'fields', 'identityFields'],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.EXTRACT_THREAD,
+    description: '从主内容区域提取回复或评论，支持滚动加载、嵌套条目排除和匹配文本停止。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootSelector: { type: 'string', description: '主内容区域的 CSS 选择器。' },
+        itemSelector: { type: 'string', description: '回复或评论条目的 CSS 选择器。' },
+        excludeSelector: { type: 'string', description: '匹配主帖或其他应排除条目的 CSS 选择器。' },
+        includeNested: {
+          type: 'boolean',
+          description: '是否保留嵌套在另一个条目内的子条目；默认 false。',
+        },
+        fields: { type: 'object', description: '字段名到条目内 CSS 选择器的映射。' },
+        limit: { type: 'number', description: '最多返回的回复或评论数量。' },
+        scroll: { type: 'boolean', description: '是否滚动页面以加载更多条目。' },
+        maxScrolls: { type: 'number', description: '最大滚动次数。' },
+        waitMs: { type: 'number', description: '每次滚动后的等待毫秒数。' },
+        stopWhen: { type: 'object', description: '匹配到文本或选择器后停止。' },
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前活动标签页。' },
+        windowId: { type: 'number', description: '省略 tabId 时用于选择活动标签页的窗口 ID。' },
+        frameSelector: { type: 'string', description: '可选的同源 iframe CSS 选择器。' },
+      },
+      required: ['rootSelector', 'itemSelector', 'fields'],
     },
   },
   {
@@ -179,6 +258,29 @@ export const TOOL_SCHEMAS: Tool[] = [
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
         scroll: { type: 'object' },
+        stopWhen: {
+          type: 'object',
+          description:
+            '通用停止条件：textMatch、selector、stable、networkIdle、networkComplete 或 jsCondition。',
+          properties: {
+            type: {
+              type: 'string',
+              enum: [
+                'textMatch',
+                'selector',
+                'stable',
+                'networkIdle',
+                'networkComplete',
+                'jsCondition',
+              ],
+            },
+            pattern: { type: 'string' },
+            selector: { type: 'string' },
+            urlPattern: { type: 'string' },
+            condition: { type: 'string' },
+            stableRounds: { type: 'number' },
+          },
+        },
         maxConcurrency: { type: 'number' },
         failFast: { type: 'boolean' },
       },
@@ -259,14 +361,25 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {
         trigger: { type: 'object' },
+        triggers: {
+          type: 'array',
+          items: { type: 'object' },
+          description: '可选的多个 CSS 触发器候选项。',
+        },
         expandedAttribute: { type: 'string' },
         contentSelector: { type: 'string' },
         waitTimeout: { type: 'number' },
+        maxClicks: { type: 'number', description: '最多点击次数；默认保持兼容性为 1。' },
+        repeat: { type: 'boolean', description: '是否重复点击直到没有更多可展开元素。' },
+        waitFor: {
+          type: 'object',
+          description: '每次点击后的等待条件：selector、text 或 timeout。',
+        },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
       },
-      required: ['trigger', 'contentSelector'],
+      required: ['contentSelector'],
     },
   },
   {

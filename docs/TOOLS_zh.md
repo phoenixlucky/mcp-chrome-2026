@@ -1079,6 +1079,7 @@
 - `state`（可选）：传入上一次返回的 `state`，从 `scrollY` 和 `seenIds` 继续采集
 - `returnBatches`、`batchSize`（可选）：返回分批结果
 - `returnProgress`、`progressEverySteps`（可选）：返回滚动进度快照
+- `stopWhen`（可选）：支持 `textMatch`、`selector`、`stable`、`networkIdle`、`networkComplete` 和 `jsCondition`，并返回停止前已采集的部分结果
 - `tabId` 或 `windowId`（可选）：指定目标标签页；`windowId` 会选择该窗口的活动标签页
 
 ### `collect_virtual_lists`（上线时间：2026-08-10）
@@ -1192,7 +1193,7 @@ await callTool('chrome_bookmark_add', {
 
 ### `chrome_expand_section`
 
-展开通用的折叠区域，并等待指定的内容选择器出现。
+展开通用的折叠区域，并等待指定的内容选择器出现；支持多个触发器、重复点击、点击上限和每次点击后的等待条件。
 
 > 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
 
@@ -1430,5 +1431,27 @@ await callTool('chrome_bookmark_add', {
 
 - `action`（字符串，必需）：`create`、`list`、`get`、`enable`、`disable`、`update`、`remove`、`send_command` 或 `export`
 - `args`（对象，可选）：操作参数，例如 `script`、`id`、`matches`、`world`、`mode`、`payload` 和 `tabId`
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+## 🔄 Schema Catalog 补充
+
+> 该部分由共享工具 schema 自动生成。
+
+### `chrome_crawl_links`
+
+按深度和节点上限递归访问页面链接，并返回已成功提取的页面及失败的部分结果。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_extract_thread`
+
+从主内容区域提取回复或评论，支持滚动加载、嵌套条目排除和匹配文本停止。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+### `chrome_error_logs`
+
+读取或清除浏览器插件保留的原始错误日志，供桌面端错误诊断使用。
 
 > 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。

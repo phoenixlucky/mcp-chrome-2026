@@ -19,6 +19,7 @@ export interface ToolAccessDecision {
 /** Tools that can change browser state, execute code, send content, or manage profiles. */
 export const HIGH_RISK_TOOLS = new Set([
   'chrome_batch',
+  'chrome_crawl_links',
   'chrome_bookmark_add',
   'chrome_bookmark_delete',
   'chrome_click_element',
@@ -27,6 +28,7 @@ export const HIGH_RISK_TOOLS = new Set([
   'chrome_cookie_delete',
   'chrome_cookie_set',
   'chrome_fill_or_select',
+  'chrome_expand_section',
   'chrome_handle_dialog',
   'chrome_javascript',
   'chrome_keyboard',

@@ -28,6 +28,15 @@ type CollectionScroll = {
   anchorSelector?: string;
 };
 
+type CollectionStopWhen = {
+  type: 'textMatch' | 'selector' | 'stable' | 'networkIdle' | 'networkComplete' | 'jsCondition';
+  pattern?: string;
+  selector?: string;
+  urlPattern?: string;
+  condition?: string;
+  stableRounds?: number;
+};
+
 type CollectionState = {
   seenIds?: string[];
   scrollY?: number;
@@ -48,6 +57,7 @@ type CollectionArgs = Target & {
   containerSelector?: string;
   anchorSelector?: string;
   scroll?: CollectionScroll;
+  stopWhen?: CollectionStopWhen;
   state?: CollectionState;
 };
 
@@ -150,6 +160,7 @@ class CollectVirtualListTool extends CollectorTool {
   ): Promise<ToolResult> {
     if (!args.cardSelector || !args.fields?.length || !args.identityFields?.length)
       return result({ success: false, reason: 'invalid_parameters', items: [] }, true);
+    const partialItems: Record<string, unknown>[] = [];
     try {
       const tab = await this.resolveTab(args);
       const tabId = tab.id!;
@@ -173,7 +184,7 @@ class CollectVirtualListTool extends CollectorTool {
       const prelude = framePrelude(args.frameSelector);
       const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
       const seen = new Set(args.state?.seenIds || []);
-      const items: Record<string, unknown>[] = [];
+      const items = partialItems;
       const batches: Record<string, unknown>[][] = [];
       let pendingBatch: Record<string, unknown>[] = [];
       const progress: Record<string, unknown>[] = [];
@@ -182,6 +193,9 @@ class CollectVirtualListTool extends CollectorTool {
       let steps = 0;
       let missingIdentityCount = 0;
       const startedAt = Date.now();
+      let stableSignature = '';
+      let stableRounds = 0;
+      const stopWhen = args.stopWhen;
 
       const snapshot = async (): Promise<ScrollSnapshot> =>
         (await this.evaluate(
@@ -306,6 +320,64 @@ class CollectVirtualListTool extends CollectorTool {
         }
         return added;
       };
+      const checkStop = async (current?: ScrollSnapshot): Promise<string | null> => {
+        if (!stopWhen?.type) return null;
+        if (stopWhen.type === 'textMatch') {
+          const pattern = String(stopWhen.pattern || '')
+            .trim()
+            .toLocaleLowerCase();
+          if (!pattern) return null;
+          const found = await this.evaluate(
+            tabId,
+            `(async () => ${prelude} String(doc.body?.innerText || doc.body?.textContent || '').toLocaleLowerCase().includes(${JSON.stringify(pattern)}))()`,
+          );
+          return found ? 'text_match' : null;
+        }
+        if (stopWhen.type === 'selector') {
+          if (!stopWhen.selector) return null;
+          const found = await this.evaluate(
+            tabId,
+            `(async () => ${prelude} !!doc.querySelector(${JSON.stringify(stopWhen.selector)}))()`,
+          );
+          return found ? 'selector_found' : null;
+        }
+        if (stopWhen.type === 'networkComplete') {
+          if (!stopWhen.urlPattern) return null;
+          const found = await this.evaluate(
+            tabId,
+            `(async () => ${prelude} performance.getEntriesByType('resource').some((entry) => String(entry.name || '').includes(${JSON.stringify(stopWhen.urlPattern)}) && Number(entry.responseEnd || 0) > 0))()`,
+          );
+          return found ? 'network_complete' : null;
+        }
+        if (stopWhen.type === 'jsCondition') {
+          if (!stopWhen.condition) return null;
+          const found = await this.evaluate(
+            tabId,
+            `(async () => { ${prelude} try { return Boolean((() => { const document = doc; const window = win; return (${stopWhen.condition}); })()); } catch (_) { return false; } })()`,
+          );
+          return found ? 'js_condition' : null;
+        }
+        const snapshotValue = current || (await snapshot());
+        if (!snapshotValue || (snapshotValue as any).success === false) return null;
+        const signature = JSON.stringify([
+          snapshotValue.top,
+          snapshotValue.max,
+          snapshotValue.scrollHeight,
+          snapshotValue.cardCount,
+          snapshotValue.cardSample,
+        ]);
+        if (!snapshotValue.busy && signature === stableSignature) stableRounds += 1;
+        else {
+          stableSignature = signature;
+          stableRounds = snapshotValue.busy ? 0 : 1;
+        }
+        const requiredRounds = clampInteger(stopWhen.stableRounds, 3, 1, 50);
+        return stableRounds >= requiredRounds
+          ? stopWhen.type === 'networkIdle'
+            ? 'network_idle'
+            : 'stable'
+          : null;
+      };
       const scan = async (direction: 1 | -1, maxSteps: number) => {
         for (let index = 0; index < maxSteps; index += 1) {
           if (Date.now() - startedAt >= maxDurationMs) return 'timeout';
@@ -314,6 +386,8 @@ class CollectVirtualListTool extends CollectorTool {
           if (items.length >= maxItems) return 'max_items';
           const before = await snapshot();
           if (!before || (before as any).success === false) return 'failed';
+          const stopReason = await checkStop(before);
+          if (stopReason) return `stop:${stopReason}`;
           scrollY = before.top;
           if ((direction > 0 && before.atBottom) || (direction < 0 && before.atTop)) return 'edge';
           await scrollBy(direction);
@@ -375,7 +449,10 @@ class CollectVirtualListTool extends CollectorTool {
           : null;
       if (pendingBatch.length > 0) batches.push(pendingBatch);
       const stopReason =
-        down === 'cancelled' || up === 'cancelled'
+        [down, up]
+          .find((value) => typeof value === 'string' && value.startsWith('stop:'))
+          ?.slice(5) ||
+        (down === 'cancelled' || up === 'cancelled'
           ? 'cancelled'
           : down === 'timeout' || up === 'timeout'
             ? 'timeout'
@@ -385,7 +462,7 @@ class CollectVirtualListTool extends CollectorTool {
                 ? 'max_items'
                 : down === 'edge' || up === 'edge'
                   ? 'end'
-                  : 'stalled';
+                  : 'stalled');
       return result({
         success: stopReason !== 'failed',
         items: items.slice(0, maxItems),
@@ -407,7 +484,12 @@ class CollectVirtualListTool extends CollectorTool {
       });
     } catch (error) {
       return result(
-        { success: false, reason: error instanceof Error ? error.message : 'failed', items: [] },
+        {
+          success: false,
+          reason: error instanceof Error ? error.message : 'failed',
+          items: partialItems.slice(0),
+          partial: partialItems.length > 0,
+        },
         true,
       );
     }
@@ -571,6 +653,394 @@ class CollectVirtualListsTool extends CollectorTool {
       },
       failed > 0 && results.every((item) => item?.success === false),
     );
+  }
+}
+
+type CrawlLinksArgs = Target & {
+  startUrls: string[];
+  linkSelector: string;
+  maxDepth?: number;
+  maxNodes?: number;
+  sameOriginOnly?: boolean;
+  dedupeBy?: 'url';
+  extract?: { selector?: string; fields?: Field[] };
+  retries?: number;
+  retryDelayMs?: number;
+  maxDurationMs?: number;
+  waitTimeoutMs?: number;
+};
+
+type CrawlQueueItem = { url: string; depth: number };
+
+function normalizeCrawlUrl(value: string, base?: string): string | null {
+  try {
+    const url = new URL(value, base);
+    if (!/^https?:$/.test(url.protocol)) return null;
+    url.hash = '';
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+class CrawlLinksTool extends CollectorTool {
+  name = TOOL_NAMES.BROWSER.CRAWL_LINKS;
+
+  private async waitForComplete(
+    tabId: number,
+    timeoutMs: number,
+    requireEvent = false,
+  ): Promise<void> {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab.status === 'complete' && !requireEvent) return;
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        if (error) reject(error);
+        else resolve();
+      };
+      const onUpdated = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+        if (updatedTabId === tabId && changeInfo.status === 'complete') finish();
+      };
+      const timer = setTimeout(() => finish(new Error('navigation_timeout')), timeoutMs);
+      chrome.tabs.onUpdated.addListener(onUpdated);
+      void chrome.tabs
+        .get(tabId)
+        .then((current) => {
+          if (current.status === 'complete') finish();
+        })
+        .catch(() => finish(new Error('target_tab_not_found')));
+    });
+  }
+
+  private async navigate(
+    tabId: number,
+    url: string,
+    timeoutMs: number,
+    reload = false,
+  ): Promise<string> {
+    const current = await chrome.tabs.get(tabId);
+    if (current.url !== url) {
+      const ready = this.waitForComplete(tabId, timeoutMs, true);
+      await chrome.tabs.update(tabId, { url });
+      await ready;
+    } else if (reload) {
+      const ready = this.waitForComplete(tabId, timeoutMs, true);
+      await chrome.tabs.reload(tabId);
+      await ready;
+    } else await this.waitForComplete(tabId, timeoutMs);
+    await sleep(50);
+    return (await chrome.tabs.get(tabId)).url || url;
+  }
+
+  async execute(
+    args: CrawlLinksArgs,
+    signal?: AbortSignal,
+    reportProgress?: ToolProgressReporter,
+  ): Promise<ToolResult> {
+    if (
+      !Array.isArray(args.startUrls) ||
+      args.startUrls.length === 0 ||
+      !args.linkSelector ||
+      (args.dedupeBy && args.dedupeBy !== 'url')
+    )
+      return result({ success: false, reason: 'invalid_parameters', pages: [], errors: [] }, true);
+
+    const pages: Record<string, unknown>[] = [];
+    const errors: Record<string, unknown>[] = [];
+    try {
+      const tab = await this.resolveTab(args);
+      const tabId = tab.id!;
+      const maxDepth = clampInteger(args.maxDepth, 5, 0, 50);
+      const maxNodes = clampInteger(args.maxNodes, 50, 1, 10_000);
+      const retries = clampInteger(args.retries, 1, 0, 5);
+      const retryDelayMs = clampInteger(args.retryDelayMs, 250, 0, 10_000);
+      const waitTimeoutMs = clampInteger(args.waitTimeoutMs, 20_000, 1_000, 60_000);
+      const maxDurationMs = clampInteger(args.maxDurationMs, 600_000, 1_000, 1_800_000);
+      const startedAt = Date.now();
+      const queue: CrawlQueueItem[] = [];
+      const scheduled = new Set<string>();
+      const origins = new Set<string>();
+      for (const input of args.startUrls) {
+        const url = normalizeCrawlUrl(input);
+        if (!url || scheduled.has(url)) continue;
+        scheduled.add(url);
+        queue.push({ url, depth: 0 });
+        origins.add(new URL(url).origin);
+      }
+      if (!queue.length)
+        return result({ success: false, reason: 'no_valid_start_urls', pages, errors }, true);
+
+      while (queue.length && pages.length + errors.length < maxNodes) {
+        if (signal?.aborted) break;
+        if (Date.now() - startedAt >= maxDurationMs) break;
+        const node = queue.shift()!;
+        let pageUrl = node.url;
+        let output: { links?: string[]; data?: Record<string, unknown> } | null = null;
+        let lastError = 'navigation_failed';
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+          try {
+            pageUrl = await this.navigate(tabId, node.url, waitTimeoutMs, attempt > 0);
+            output = (await this.evaluate(
+              tabId,
+              `(async () => {
+                ${framePrelude(args.frameSelector)}
+                const linkSelector = ${JSON.stringify(args.linkSelector)};
+                const links = Array.from(doc.querySelectorAll(linkSelector)).map((element) => element.href || element.getAttribute('href')).filter(Boolean);
+                const scope = ${args.extract?.selector ? `doc.querySelector(${JSON.stringify(args.extract.selector)}) || doc` : 'doc'};
+                const fields = ${JSON.stringify(args.extract?.fields || [])};
+                const data = {};
+                for (const field of fields) {
+                  const element = field.selector ? scope.querySelector(field.selector) : scope;
+                  if (!element) { data[field.name] = null; continue; }
+                  if (field.type === 'attribute') data[field.name] = field.attribute ? element.getAttribute(field.attribute) : null;
+                  else if (field.type === 'href') data[field.name] = element.href || element.getAttribute('href');
+                  else if (field.type === 'src') data[field.name] = element.src || element.getAttribute('src');
+                  else if (field.type === 'html') data[field.name] = element.innerHTML;
+                  else if (field.type === 'outerHtml') data[field.name] = element.outerHTML;
+                  else data[field.name] = (element.textContent || '').replace(/\\s+/g, ' ').trim();
+                }
+                return { links, data };
+              })()`,
+            )) as { links?: string[]; data?: Record<string, unknown> };
+            break;
+          } catch (error) {
+            lastError = error instanceof Error ? error.message : String(error);
+            if (attempt < retries) await sleep(retryDelayMs);
+          }
+        }
+        if (!output) {
+          errors.push({
+            url: node.url,
+            depth: node.depth,
+            reason: lastError,
+            attempts: retries + 1,
+          });
+          void reportProgress?.({
+            phase: 'page_failed',
+            completed: pages.length + errors.length,
+            url: node.url,
+            depth: node.depth,
+          });
+          continue;
+        }
+        const discovered: string[] = [];
+        for (const link of output.links || []) {
+          const normalized = normalizeCrawlUrl(link, pageUrl);
+          if (!normalized || scheduled.has(normalized)) continue;
+          if (args.sameOriginOnly && !origins.has(new URL(normalized).origin)) continue;
+          scheduled.add(normalized);
+          discovered.push(normalized);
+          if (node.depth < maxDepth) queue.push({ url: normalized, depth: node.depth + 1 });
+        }
+        pages.push({
+          url: pageUrl,
+          requestedUrl: node.url,
+          depth: node.depth,
+          links: discovered,
+          ...(args.extract ? { data: output.data || {} } : {}),
+        });
+        void reportProgress?.({
+          phase: 'page_complete',
+          completed: pages.length + errors.length,
+          total: maxNodes,
+          url: pageUrl,
+          depth: node.depth,
+          discovered: discovered.length,
+        });
+      }
+      const stopReason = signal?.aborted
+        ? 'cancelled'
+        : Date.now() - startedAt >= maxDurationMs
+          ? 'timeout'
+          : pages.length + errors.length >= maxNodes
+            ? 'max_nodes'
+            : 'exhausted';
+      return result(
+        {
+          success: pages.length > 0 && !signal?.aborted,
+          partial: errors.length > 0 || Boolean(queue.length),
+          stopReason,
+          pages,
+          errors,
+          queued: queue.length,
+          visited: pages.length + errors.length,
+          elapsedMs: Date.now() - startedAt,
+        },
+        pages.length === 0,
+      );
+    } catch (error) {
+      return result(
+        {
+          success: false,
+          partial: pages.length > 0,
+          reason: error instanceof Error ? error.message : 'failed',
+          pages,
+          errors,
+        },
+        pages.length === 0,
+      );
+    }
+  }
+}
+
+type ThreadFields = Record<
+  string,
+  string | { selector: string; type?: 'text' | 'href' | 'html' | 'attribute'; attribute?: string }
+>;
+
+type ExtractThreadArgs = Target & {
+  rootSelector: string;
+  itemSelector: string;
+  excludeSelector?: string;
+  includeNested?: boolean;
+  fields: ThreadFields;
+  limit?: number;
+  scroll?: boolean;
+  maxScrolls?: number;
+  waitMs?: number;
+  stopWhen?: { type?: 'textMatch' | 'selector'; pattern?: string; selector?: string };
+};
+
+class ExtractThreadTool extends CollectorTool {
+  name = TOOL_NAMES.BROWSER.EXTRACT_THREAD;
+
+  async execute(
+    args: ExtractThreadArgs,
+    signal?: AbortSignal,
+    reportProgress?: ToolProgressReporter,
+  ): Promise<ToolResult> {
+    if (!args.rootSelector || !args.itemSelector || !args.fields || typeof args.fields !== 'object')
+      return result({ success: false, reason: 'invalid_parameters', items: [] }, true);
+    const items: Record<string, unknown>[] = [];
+    try {
+      const tab = await this.resolveTab(args);
+      const tabId = tab.id!;
+      const limit = clampInteger(args.limit, 20, 1, 10_000);
+      const maxScrolls = clampInteger(args.maxScrolls, 20, 0, 500);
+      const waitMs = clampInteger(args.waitMs, 800, 50, 10_000);
+      const seen = new Set<string>();
+      let lastSignature = '';
+      let stableRounds = 0;
+      let stopReason = 'end';
+      for (let scroll = 0; scroll <= maxScrolls; scroll += 1) {
+        if (signal?.aborted) {
+          stopReason = 'cancelled';
+          break;
+        }
+        const output = (await this.evaluate(
+          tabId,
+          `(async () => {
+            ${framePrelude(args.frameSelector)}
+            const root = doc.querySelector(${JSON.stringify(args.rootSelector)});
+            if (!root) return { success: false, reason: 'root_not_found', items: [] };
+            const fields = ${JSON.stringify(args.fields)};
+            const excluded = ${JSON.stringify(args.excludeSelector || '')};
+            const includeNested = ${args.includeNested === true};
+            const records = Array.from(root.querySelectorAll(${JSON.stringify(args.itemSelector)})).filter((item) => {
+              if (!includeNested && item.parentElement?.closest(${JSON.stringify(args.itemSelector)})) return false;
+              if (!excluded) return true;
+              try { return !item.matches(excluded) && !item.querySelector(excluded); } catch (_) { return true; }
+            }).map((item) => {
+              const record = {};
+              for (const [name, definition] of Object.entries(fields)) {
+                const spec = typeof definition === 'string' ? { selector: definition, type: 'text' } : definition;
+                const element = spec.selector ? item.querySelector(spec.selector) : item;
+                if (!element) { record[name] = null; continue; }
+                if (spec.type === 'href') record[name] = element.href || element.getAttribute('href');
+                else if (spec.type === 'html') record[name] = element.innerHTML;
+                else if (spec.type === 'attribute') record[name] = spec.attribute ? element.getAttribute(spec.attribute) : null;
+                else record[name] = (element.textContent || '').replace(/\\s+/g, ' ').trim();
+              }
+              return { record, text: (item.textContent || '').replace(/\\s+/g, ' ').trim() };
+            });
+            const container = root.scrollHeight > root.clientHeight + 1 ? root : (doc.scrollingElement || doc.documentElement);
+            const top = container === doc.scrollingElement || container === doc.documentElement ? win.scrollY : container.scrollTop;
+            const max = container === doc.scrollingElement || container === doc.documentElement ? Math.max(0, doc.documentElement.scrollHeight - win.innerHeight) : Math.max(0, container.scrollHeight - container.clientHeight);
+            const text = records.map((entry) => entry.text).join('\\n');
+            const stop = ${JSON.stringify(args.stopWhen || null)};
+            const matched = stop?.type === 'textMatch' && stop.pattern ? text.toLocaleLowerCase().includes(String(stop.pattern).toLocaleLowerCase()) : stop?.type === 'selector' && stop.selector ? !!root.querySelector(stop.selector) : false;
+            return { success: true, records, matched, top, max, signature: JSON.stringify([top, max, records.length, text.slice(-1000)]) };
+          })()`,
+        )) as {
+          success?: boolean;
+          reason?: string;
+          records?: Array<{ record: Record<string, unknown>; text: string }>;
+          matched?: boolean;
+          top?: number;
+          max?: number;
+          signature?: string;
+        };
+        if (output?.success === false) throw new Error(output.reason || 'thread_root_not_found');
+        for (const entry of output?.records || []) {
+          const recordKey = String(
+            entry.record.url || entry.record.id || JSON.stringify(entry.record),
+          );
+          if (!seen.has(recordKey)) {
+            seen.add(recordKey);
+            items.push(entry.record);
+          }
+        }
+        if (output?.matched) {
+          stopReason = args.stopWhen?.type === 'selector' ? 'selector_found' : 'text_match';
+          break;
+        }
+        if (items.length >= limit) {
+          stopReason = 'max_items';
+          break;
+        }
+        if (!args.scroll || scroll >= maxScrolls) {
+          stopReason = args.scroll ? 'max_scrolls' : 'scroll_disabled';
+          break;
+        }
+        if (output?.signature === lastSignature) stableRounds += 1;
+        else {
+          lastSignature = output?.signature || '';
+          stableRounds = 0;
+        }
+        if (stableRounds >= 3 && (output?.top || 0) >= (output?.max || 0) - 1) {
+          stopReason = 'stable';
+          break;
+        }
+        if ((output?.top || 0) >= (output?.max || 0) - 1) {
+          await sleep(waitMs);
+          continue;
+        }
+        await this.evaluate(
+          tabId,
+          `(async () => { ${framePrelude(args.frameSelector)} const root = doc.querySelector(${JSON.stringify(args.rootSelector)}); const container = root && root.scrollHeight > root.clientHeight + 1 ? root : (doc.scrollingElement || doc.documentElement); if (container === doc.scrollingElement || container === doc.documentElement) win.scrollBy(0, Math.max(200, Math.floor(win.innerHeight * 0.8))); else container.scrollBy ? container.scrollBy({ top: Math.max(200, Math.floor(container.clientHeight * 0.8)), behavior: 'auto' }) : container.scrollTop += Math.max(200, Math.floor(container.clientHeight * 0.8)); return true; })()`,
+        );
+        await sleep(waitMs);
+        void reportProgress?.({
+          phase: 'scrolling',
+          completed: scroll + 1,
+          total: maxScrolls,
+          collected: items.length,
+          tabId,
+        });
+      }
+      return result({
+        success: stopReason !== 'cancelled',
+        items: items.slice(0, limit),
+        stopReason,
+        complete: ['end', 'stable', 'scroll_disabled'].includes(stopReason),
+        collected: items.length,
+      });
+    } catch (error) {
+      return result(
+        {
+          success: false,
+          partial: items.length > 0,
+          reason: error instanceof Error ? error.message : 'failed',
+          items,
+        },
+        true,
+      );
+    }
   }
 }
 
@@ -853,6 +1323,8 @@ class ResumeTabTaskTool extends CollectorTool {
 
 export const collectVirtualListTool = new CollectVirtualListTool();
 export const collectVirtualListsTool = new CollectVirtualListsTool();
+export const crawlLinksTool = new CrawlLinksTool();
+export const extractThreadTool = new ExtractThreadTool();
 export const waitExtractResponseTool = new WaitExtractResponseTool();
 export const captureDebugBundleTool = new CaptureDebugBundleTool();
 export const resumeTabTaskTool = new ResumeTabTaskTool();
