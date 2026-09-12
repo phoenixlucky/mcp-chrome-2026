@@ -1,5 +1,3 @@
-/* global CSS, Element, HTMLFrameElement, HTMLIFrameElement, MouseEvent, Node, ShadowRoot, XPathResult, cancelAnimationFrame, chrome, document, location, requestAnimationFrame, window */
-
 (function () {
   if (window.__ELEMENT_MARKER_INSTALLED__) return;
   window.__ELEMENT_MARKER_INSTALLED__ = true;

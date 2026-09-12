@@ -59,5 +59,16 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
+  {
+    files: ['app/chrome-extension/**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+        ...globals.browser,
+        chrome: 'readonly',
+      },
+    },
+  },
   eslintConfigPrettier,
 );
