@@ -3,6 +3,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
+import { ContentScriptMessageTimeoutError, createExecutionUnknownResponse } from '../base-browser';
 
 interface KeyboardToolParams {
   keys: string; // Required: string representing keys or key combinations to simulate (e.g., "Enter", "Ctrl+C")
@@ -52,11 +53,15 @@ class KeyboardTool extends BaseBrowserToolExecutor {
       if (selector && selectorType === 'xpath') {
         try {
           // First convert XPath to ref
-          const ensured = await this.sendMessageToTab(tab.id, {
-            action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
-            selector,
-            isXPath: true,
-          });
+          const ensured = await this.sendMessageToTabWithRetry(
+            tab.id,
+            {
+              action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
+              selector,
+              isXPath: true,
+            },
+            ['inject-scripts/accessibility-tree-helper.js'],
+          );
           if (!ensured || !ensured.success || !ensured.ref) {
             return createErrorResponse(
               `Failed to resolve XPath selector: ${ensured?.error || 'unknown error'}`,
@@ -64,10 +69,11 @@ class KeyboardTool extends BaseBrowserToolExecutor {
           }
           refForFocus = ensured.ref;
           // Try to resolve ref to CSS selector
-          const resolved = await this.sendMessageToTab(tab.id, {
-            action: TOOL_MESSAGE_TYPES.RESOLVE_REF,
-            ref: ensured.ref,
-          });
+          const resolved = await this.sendMessageToTabWithRetry(
+            tab.id,
+            { action: TOOL_MESSAGE_TYPES.RESOLVE_REF, ref: ensured.ref },
+            ['inject-scripts/accessibility-tree-helper.js'],
+          );
           if (resolved && resolved.success && resolved.selector) {
             finalSelector = resolved.selector;
             refForFocus = undefined; // Prefer CSS selector if available
@@ -82,10 +88,11 @@ class KeyboardTool extends BaseBrowserToolExecutor {
 
       // If we have a ref but no CSS selector, focus the element via helper
       if (refForFocus) {
-        const focusResult = await this.sendMessageToTab(tab.id, {
-          action: 'focusByRef',
-          ref: refForFocus,
-        });
+        const focusResult = await this.sendMessageToTabWithRetry(
+          tab.id,
+          { action: 'focusByRef', ref: refForFocus },
+          ['inject-scripts/accessibility-tree-helper.js'],
+        );
         if (focusResult && !focusResult.success) {
           return createErrorResponse(
             `Failed to focus element by ref: ${focusResult.error || 'unknown error'}`,
@@ -106,16 +113,24 @@ class KeyboardTool extends BaseBrowserToolExecutor {
       );
 
       // Send keyboard simulation message to content script
-      const result = await this.sendMessageToTab(
-        tab.id,
-        {
-          action: TOOL_MESSAGE_TYPES.SIMULATE_KEYBOARD,
-          keys,
-          selector: finalSelector,
-          delay,
-        },
-        args.frameId,
-      );
+      let result;
+      try {
+        result = await this.sendMessageToTab(
+          tab.id,
+          {
+            action: TOOL_MESSAGE_TYPES.SIMULATE_KEYBOARD,
+            keys,
+            selector: finalSelector,
+            delay,
+          },
+          args.frameId,
+        );
+      } catch (error) {
+        if (error instanceof ContentScriptMessageTimeoutError) {
+          return createExecutionUnknownResponse(tab.id, 'simulateKeyboard', error.timeoutMs, error);
+        }
+        throw error;
+      }
 
       if (result.error) {
         return createErrorResponse(result.error);

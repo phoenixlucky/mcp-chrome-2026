@@ -4,6 +4,7 @@ import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 import { listMarkersForUrl } from '@/entrypoints/background/element-marker/element-marker-storage';
+import { ContentScriptMessageTimeoutError, createExecutionUnknownResponse } from '../base-browser';
 
 interface Coordinates {
   x: number;
@@ -115,7 +116,7 @@ class ClickTool extends BaseBrowserToolExecutor {
           true,
           frameIdsFor(frameId),
         );
-        const located = await this.sendMessageToTab(
+        const located = await this.sendMessageToTabWithRetry(
           tab.id,
           {
             action: 'locateElement',
@@ -125,6 +126,7 @@ class ClickTool extends BaseBrowserToolExecutor {
             scrollIntoView: true,
             highlight: false,
           },
+          ['inject-scripts/accessibility-tree-helper.js'],
           frameId,
         );
         if (!located?.success || !located.ref) {
@@ -144,13 +146,14 @@ class ClickTool extends BaseBrowserToolExecutor {
           frameIdsFor(frameId),
         );
         try {
-          const resolved = await this.sendMessageToTab(
+          const resolved = await this.sendMessageToTabWithRetry(
             tab.id,
             {
               action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
               selector: finalSelector,
               isXPath: true,
             },
+            ['inject-scripts/accessibility-tree-helper.js'],
             frameId,
           );
           if (resolved && resolved.success && resolved.ref) {
@@ -182,9 +185,10 @@ class ClickTool extends BaseBrowserToolExecutor {
           false,
           frameIdsFor(frameId),
         );
-        const resolved = await this.sendMessageToTab(
+        const resolved = await this.sendMessageToTabWithRetry(
           tab.id,
           { action: TOOL_MESSAGE_TYPES.RESOLVE_REF, ref: finalRef },
+          ['inject-scripts/accessibility-tree-helper.js'],
           frameId,
         );
         if (resolved?.success && typeof resolved.selector === 'string') {
@@ -210,24 +214,32 @@ class ClickTool extends BaseBrowserToolExecutor {
       );
 
       // Send click message to content script
-      const result = await this.sendMessageToTab(
-        tab.id,
-        {
-          action: TOOL_MESSAGE_TYPES.CLICK_ELEMENT,
-          selector: finalSelector,
-          coordinates,
-          ref: finalRef,
-          waitForNavigation,
-          timeout,
-          selectorType: finalSelectorType,
-          double: args.double === true,
-          button,
-          bubbles,
-          cancelable,
-          modifiers,
-        },
-        frameId,
-      );
+      let result;
+      try {
+        result = await this.sendMessageToTab(
+          tab.id,
+          {
+            action: TOOL_MESSAGE_TYPES.CLICK_ELEMENT,
+            selector: finalSelector,
+            coordinates,
+            ref: finalRef,
+            waitForNavigation,
+            timeout,
+            selectorType: finalSelectorType,
+            double: args.double === true,
+            button,
+            bubbles,
+            cancelable,
+            modifiers,
+          },
+          frameId,
+        );
+      } catch (error) {
+        if (error instanceof ContentScriptMessageTimeoutError) {
+          return createExecutionUnknownResponse(tab.id, 'clickElement', error.timeoutMs, error);
+        }
+        throw error;
+      }
 
       if (!result || result.error || result.success === false) {
         return createErrorResponse(
@@ -339,7 +351,7 @@ class FillTool extends BaseBrowserToolExecutor {
           true,
           frameIdsFor(frameId),
         );
-        const located = await this.sendMessageToTab(
+        const located = await this.sendMessageToTabWithRetry(
           tab.id,
           {
             action: 'locateElement',
@@ -349,6 +361,7 @@ class FillTool extends BaseBrowserToolExecutor {
             scrollIntoView: true,
             highlight: false,
           },
+          ['inject-scripts/accessibility-tree-helper.js'],
           frameId,
         );
         if (!located?.success || !located.ref) {
@@ -368,13 +381,14 @@ class FillTool extends BaseBrowserToolExecutor {
           frameIdsFor(frameId),
         );
         try {
-          const resolved = await this.sendMessageToTab(
+          const resolved = await this.sendMessageToTabWithRetry(
             tab.id,
             {
               action: TOOL_MESSAGE_TYPES.ENSURE_REF_FOR_SELECTOR,
               selector: finalSelector,
               isXPath: true,
             },
+            ['inject-scripts/accessibility-tree-helper.js'],
             frameId,
           );
           if (resolved && resolved.success && resolved.ref) {
@@ -403,9 +417,10 @@ class FillTool extends BaseBrowserToolExecutor {
           false,
           frameIdsFor(frameId),
         );
-        const resolved = await this.sendMessageToTab(
+        const resolved = await this.sendMessageToTabWithRetry(
           tab.id,
           { action: TOOL_MESSAGE_TYPES.RESOLVE_REF, ref: finalRef },
+          ['inject-scripts/accessibility-tree-helper.js'],
           frameId,
         );
         if (resolved?.success && typeof resolved.selector === 'string') {
@@ -431,18 +446,26 @@ class FillTool extends BaseBrowserToolExecutor {
       );
 
       // Send fill message to content script
-      const result = await this.sendMessageToTab(
-        tab.id,
-        {
-          action: TOOL_MESSAGE_TYPES.FILL_ELEMENT,
-          selector: finalSelector,
-          selectorType: finalSelectorType,
-          ref: finalRef,
-          timeout,
-          value,
-        },
-        frameId,
-      );
+      let result;
+      try {
+        result = await this.sendMessageToTab(
+          tab.id,
+          {
+            action: TOOL_MESSAGE_TYPES.FILL_ELEMENT,
+            selector: finalSelector,
+            selectorType: finalSelectorType,
+            ref: finalRef,
+            timeout,
+            value,
+          },
+          frameId,
+        );
+      } catch (error) {
+        if (error instanceof ContentScriptMessageTimeoutError) {
+          return createExecutionUnknownResponse(tab.id, 'fillElement', error.timeoutMs, error);
+        }
+        throw error;
+      }
 
       if (result && result.error) {
         return createErrorResponse(result.error);

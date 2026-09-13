@@ -13,7 +13,11 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
-import { cdpSessionManager } from '@/utils/cdp-session-manager';
+import {
+  CdpCommandCancelledError,
+  CdpCommandTimeoutError,
+  cdpSessionManager,
+} from '@/utils/cdp-session-manager';
 
 // ============================================================================
 // Constants
@@ -125,6 +129,55 @@ function getPixelScrollPlan(params: ScrollToolParams): PixelScrollPlan {
 
 function isHumanMode(mode?: ScrollMode): boolean {
   return mode === 'human' || mode === 'humanFast' || mode === 'humanSlow';
+}
+
+function waitForScrollInterval(intervalMs: number, signal?: AbortSignal): Promise<void> {
+  if (intervalMs <= 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(new Error('Scroll cancelled'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, intervalMs);
+    if (!signal) return;
+    if (signal.aborted) onAbort();
+    else signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function formatScrollCdpError(error: unknown): string | null {
+  if (error instanceof CdpCommandTimeoutError) {
+    return JSON.stringify({
+      success: false,
+      error: {
+        kind: 'cdp_timeout',
+        type: 'timeout',
+        tabId: error.tabId,
+        method: error.method,
+        timeoutMs: error.timeoutMs,
+        executionState: 'unknown',
+        message: error.message,
+      },
+    });
+  }
+  if (error instanceof CdpCommandCancelledError) {
+    return JSON.stringify({
+      success: false,
+      error: {
+        kind: 'cancelled',
+        type: 'cancelled',
+        tabId: error.tabId,
+        method: error.method,
+        executionState: 'unknown',
+        message: error.message,
+      },
+    });
+  }
+  return null;
 }
 
 // ============================================================================
@@ -410,7 +463,7 @@ function buildHumanLazyLoadWaitExpression(): string {
 class ScrollTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.SCROLL;
 
-  async execute(args: ScrollToolParams): Promise<ToolResult> {
+  async execute(args: ScrollToolParams, signal?: AbortSignal): Promise<ToolResult> {
     try {
       // 1. Resolve target tab
       let tabId: number;
@@ -442,30 +495,33 @@ class ScrollTool extends BaseBrowserToolExecutor {
       const isPixelScroll =
         isHumanToBottom || (!args.toBottom && !args.toTop && !args.selector && !args.frameSelector);
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, async () => {
+        const sendCdp = <T = any>(method: string, params?: object) =>
+          cdpSessionManager.sendCommand<T>(tabId, method, params, {
+            timeoutMs: DEFAULT_TIMEOUT_MS,
+            signal,
+          });
+
         if (!isPixelScroll) {
-          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          return sendCdp('Runtime.evaluate', {
             expression: buildScrollExpression(args),
             returnByValue: true,
             awaitPromise: true,
-            timeout: DEFAULT_TIMEOUT_MS,
           });
         }
 
-        const targetResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+        const targetResponse = await sendCdp('Runtime.evaluate', {
           expression: buildWheelTargetExpression(args.containerSelector, args.anchorSelector),
           returnByValue: true,
           awaitPromise: true,
-          timeout: DEFAULT_TIMEOUT_MS,
         });
         const targetValue = targetResponse?.result?.value;
         const target = typeof targetValue === 'string' ? JSON.parse(targetValue) : null;
 
         if (!target?.success) {
-          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          return sendCdp('Runtime.evaluate', {
             expression: buildScrollExpression(args),
             returnByValue: true,
             awaitPromise: true,
-            timeout: DEFAULT_TIMEOUT_MS,
           });
         }
 
@@ -485,14 +541,13 @@ class ScrollTool extends BaseBrowserToolExecutor {
 
           // ponytail: settle once per paced round; per-step observers can exceed the MCP request budget.
           if (humanLazyLoad) {
-            await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            await sendCdp('Runtime.evaluate', {
               expression: buildHumanLazyLoadStartExpression(
                 args.containerSelector,
                 args.anchorSelector,
               ),
               returnByValue: true,
               awaitPromise: false,
-              timeout: DEFAULT_TIMEOUT_MS,
             });
           }
 
@@ -501,7 +556,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
             const progress = (i + 1) / humanToBottomPlan.steps;
             const eased = 1 - (1 - progress) ** 3;
             const factor = eased - previousEased;
-            await cdpSessionManager.sendCommand(tabId, 'Input.dispatchMouseEvent', {
+            await sendCdp('Input.dispatchMouseEvent', {
               type: 'mouseWheel',
               x: target.x,
               y: target.y,
@@ -510,36 +565,33 @@ class ScrollTool extends BaseBrowserToolExecutor {
             });
             previousEased = eased;
             if (i < humanToBottomPlan.steps - 1 && humanToBottomPlan.intervalMs > 0) {
-              await new Promise((resolve) => setTimeout(resolve, humanToBottomPlan.intervalMs));
+              await waitForScrollInterval(humanToBottomPlan.intervalMs, signal);
             }
           }
 
           if (humanLazyLoad) {
-            await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            await sendCdp('Runtime.evaluate', {
               expression: buildHumanLazyLoadWaitExpression(),
               returnByValue: true,
               awaitPromise: true,
-              timeout: DEFAULT_TIMEOUT_MS,
             });
           }
 
-          const afterResponse = await cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          const afterResponse = await sendCdp('Runtime.evaluate', {
             expression: buildScrollMeasurementExpression(
               args.containerSelector,
               args.anchorSelector,
             ),
             returnByValue: true,
             awaitPromise: true,
-            timeout: DEFAULT_TIMEOUT_MS,
           });
           const afterValue = afterResponse?.result?.value;
           after = typeof afterValue === 'string' ? JSON.parse(afterValue) : null;
           if (!after?.success) {
-            return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+            return sendCdp('Runtime.evaluate', {
               expression: buildScrollExpression(args),
               returnByValue: true,
               awaitPromise: true,
-              timeout: DEFAULT_TIMEOUT_MS,
             });
           }
 
@@ -562,11 +614,10 @@ class ScrollTool extends BaseBrowserToolExecutor {
         }
 
         if (!isHumanToBottom && !moved) {
-          return cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
+          return sendCdp('Runtime.evaluate', {
             expression: buildScrollExpression(args),
             returnByValue: true,
             awaitPromise: true,
-            timeout: DEFAULT_TIMEOUT_MS,
           });
         }
 
@@ -619,6 +670,8 @@ class ScrollTool extends BaseBrowserToolExecutor {
         isError: false,
       };
     } catch (error) {
+      const cdpError = formatScrollCdpError(error);
+      if (cdpError) return createErrorResponse(cdpError);
       const message = error instanceof Error ? error.message : String(error);
       return createErrorResponse(`Scroll failed: ${message}`);
     }

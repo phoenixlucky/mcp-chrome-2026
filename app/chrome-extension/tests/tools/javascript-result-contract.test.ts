@@ -1,9 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { sendCommand, abortOwner } = vi.hoisted(() => ({
-  sendCommand: vi.fn(),
-  abortOwner: vi.fn().mockResolvedValue(undefined),
-}));
+const { sendCommand, abortOwner, CdpCommandTimeoutError, CdpCommandCancelledError } = vi.hoisted(
+  () => {
+    class MockCdpCommandTimeoutError extends Error {
+      readonly tabId: number;
+      readonly method: string;
+      readonly timeoutMs: number;
+      readonly stateUnknown = true;
+
+      constructor(tabId: number, method: string, timeoutMs: number) {
+        super(`CDP command ${method} timed out after ${timeoutMs}ms on tab ${tabId}`);
+        this.name = 'CdpCommandTimeoutError';
+        this.tabId = tabId;
+        this.method = method;
+        this.timeoutMs = timeoutMs;
+      }
+    }
+
+    class MockCdpCommandCancelledError extends Error {}
+
+    return {
+      sendCommand: vi.fn(),
+      abortOwner: vi.fn().mockResolvedValue(undefined),
+      CdpCommandTimeoutError: MockCdpCommandTimeoutError,
+      CdpCommandCancelledError: MockCdpCommandCancelledError,
+    };
+  },
+);
 
 vi.mock('@/utils/cdp-session-manager', () => ({
   cdpSessionManager: {
@@ -11,6 +34,8 @@ vi.mock('@/utils/cdp-session-manager', () => ({
     sendCommand,
     abortOwner,
   },
+  CdpCommandTimeoutError,
+  CdpCommandCancelledError,
 }));
 
 import { javascriptTool } from '@/entrypoints/background/tools/browser/javascript';
@@ -29,6 +54,7 @@ function text(result: { content: Array<{ type: string; text?: string }> }) {
 
 describe('browser result contracts', () => {
   beforeEach(() => {
+    sendCommand.mockReset();
     (chrome.tabs.get as any).mockResolvedValue({ id: 12, url: 'https://example.com/page' });
   });
 
@@ -117,6 +143,22 @@ describe('browser result contracts', () => {
       atTop: false,
       atBottom: false,
       success: true,
+    });
+  });
+
+  it('returns structured CDP timeout details from chrome_scroll', async () => {
+    sendCommand.mockRejectedValue(new CdpCommandTimeoutError(12, 'Runtime.evaluate', 10_000));
+
+    const result = await scrollTool.execute({ tabId: 12, amount: 300 });
+    expect(JSON.parse(text(result))).toMatchObject({
+      success: false,
+      error: {
+        kind: 'cdp_timeout',
+        tabId: 12,
+        method: 'Runtime.evaluate',
+        timeoutMs: 10_000,
+        executionState: 'unknown',
+      },
     });
   });
 

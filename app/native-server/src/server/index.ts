@@ -914,14 +914,19 @@ export class Server {
       startedAt: new Date().toISOString(),
       cancelRequestedAt: null,
       cancel: () => {
-        if (reply.raw.writableEnded || reply.raw.destroyed) return false;
+        if (reply.raw.writableEnded || activeRequest.cancelRequestedAt) return false;
         activeRequest.cancelRequestedAt = new Date().toISOString();
         // Closing the HTTP response propagates to the MCP transport's
         // AbortSignal, which then cancels the browser tool execution.
-        reply.raw.destroy();
+        if (!reply.raw.destroyed) reply.raw.destroy();
         return true;
       },
     };
+    const cancelOnDisconnect = () => {
+      if (request.raw.aborted || !reply.raw.writableEnded) activeRequest.cancel();
+    };
+    request.raw.once('aborted', cancelOnDisconnect);
+    reply.raw.once('close', cancelOnDisconnect);
     this.mcpRequests.set(activeRequest.requestId, activeRequest);
     this.runtimeRegistry.start({
       taskId: activeRequest.requestId,

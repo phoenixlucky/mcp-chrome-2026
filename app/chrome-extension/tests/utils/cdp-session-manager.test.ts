@@ -6,6 +6,7 @@ describe('CDP session manager', () => {
     (chrome.debugger.getTargets as any).mockResolvedValue([]);
     (chrome.debugger.attach as any).mockResolvedValue(undefined);
     (chrome.debugger.detach as any).mockResolvedValue(undefined);
+    (chrome.debugger.sendCommand as any).mockReset().mockResolvedValue({});
   });
 
   afterEach(async () => {
@@ -13,6 +14,9 @@ describe('CDP session manager', () => {
     await cdpSessionManager.abortOwner(501, 'second');
     await cdpSessionManager.abortOwner(502, 'javascript');
     await cdpSessionManager.abortOwner(503, 'javascript');
+    await cdpSessionManager.abortOwner(504, 'scroll');
+    await cdpSessionManager.abortOwner(505, 'scroll');
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -64,5 +68,51 @@ describe('CDP session manager', () => {
 
     await cdpSessionManager.abortOwner(503, 'javascript');
     expect(chrome.debugger.detach).toHaveBeenCalledWith({ tabId: 503 });
+  });
+
+  it('times out a stuck command, detaches, and reattaches on the next call', async () => {
+    vi.useFakeTimers();
+    await cdpSessionManager.attach(504, 'scroll');
+    (chrome.debugger.sendCommand as any).mockImplementationOnce(() => new Promise(() => undefined));
+
+    const pending = cdpSessionManager.sendCommand(504, 'Runtime.evaluate', {}, { timeoutMs: 25 });
+    const assertion = expect(pending).rejects.toMatchObject({
+      name: 'CdpCommandTimeoutError',
+      tabId: 504,
+      method: 'Runtime.evaluate',
+      timeoutMs: 25,
+      stateUnknown: true,
+    });
+    await vi.advanceTimersByTimeAsync(25);
+    await assertion;
+    expect(chrome.debugger.detach).toHaveBeenCalledWith({ tabId: 504 });
+
+    (chrome.debugger.sendCommand as any).mockResolvedValueOnce({ ok: true });
+    await expect(
+      cdpSessionManager.sendCommand(504, 'Runtime.evaluate', {}, { timeoutMs: 25 }),
+    ).resolves.toEqual({ ok: true });
+    expect(chrome.debugger.attach).toHaveBeenCalledWith({ tabId: 504 }, '1.3');
+    vi.useRealTimers();
+  });
+
+  it('cancels a stuck command and cleans up its session', async () => {
+    await cdpSessionManager.attach(505, 'scroll');
+    (chrome.debugger.sendCommand as any).mockImplementationOnce(() => new Promise(() => undefined));
+    const controller = new AbortController();
+    const pending = cdpSessionManager.sendCommand(
+      505,
+      'Input.dispatchMouseEvent',
+      {},
+      { timeoutMs: 10_000, signal: controller.signal },
+    );
+
+    controller.abort(new Error('client disconnected'));
+    await expect(pending).rejects.toMatchObject({
+      name: 'CdpCommandCancelledError',
+      tabId: 505,
+      method: 'Input.dispatchMouseEvent',
+      stateUnknown: true,
+    });
+    expect(chrome.debugger.detach).toHaveBeenCalledWith({ tabId: 505 });
   });
 });

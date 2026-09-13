@@ -35,6 +35,7 @@ if (typeof globalThis.chrome === 'undefined') {
     tabs: {
       query: vi.fn().mockResolvedValue([]),
       get: vi.fn().mockResolvedValue(null),
+      sendMessage: vi.fn().mockResolvedValue(undefined),
       create: vi.fn().mockResolvedValue({ id: 1 }),
       update: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),

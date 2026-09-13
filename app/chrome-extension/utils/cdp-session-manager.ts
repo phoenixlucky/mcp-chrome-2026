@@ -1,5 +1,39 @@
 type OwnerTag = string;
 
+export interface CdpCommandOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
+export class CdpCommandTimeoutError extends Error {
+  readonly tabId: number;
+  readonly method: string;
+  readonly timeoutMs: number;
+  readonly stateUnknown = true;
+
+  constructor(tabId: number, method: string, timeoutMs: number) {
+    super(`CDP command ${method} timed out after ${timeoutMs}ms on tab ${tabId}`);
+    this.name = 'CdpCommandTimeoutError';
+    this.tabId = tabId;
+    this.method = method;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+export class CdpCommandCancelledError extends Error {
+  readonly tabId: number;
+  readonly method: string;
+  readonly stateUnknown = true;
+
+  constructor(tabId: number, method: string, reason?: unknown) {
+    super(`CDP command ${method} was cancelled on tab ${tabId}`);
+    this.name = 'CdpCommandCancelledError';
+    this.tabId = tabId;
+    this.method = method;
+    if (reason instanceof Error && reason.message) this.message += `: ${reason.message}`;
+  }
+}
+
 interface TabSessionState {
   refCount: number;
   owners: Map<OwnerTag, number>;
@@ -168,7 +202,12 @@ class CDPSessionManager {
    * Send a CDP command. Requires that this manager has attached to the tab.
    * If not attached by us, will attempt a one-shot attach around the call.
    */
-  async sendCommand<T = any>(tabId: number, method: string, params?: object): Promise<T> {
+  async sendCommand<T = any>(
+    tabId: number,
+    method: string,
+    params?: object,
+    options: CdpCommandOptions = {},
+  ): Promise<T> {
     return this.withTabLock(tabId, async () => {
       const send = async (owner: OwnerTag): Promise<T> => {
         const state = this.getState(tabId);
@@ -176,7 +215,50 @@ class CDPSessionManager {
 
         if (temporary) await this.attachUnsafe(tabId, owner);
         try {
-          return (await chrome.debugger.sendCommand({ tabId }, method, params)) as T;
+          if (options.signal?.aborted) {
+            await this.invalidateSession(tabId);
+            throw new CdpCommandCancelledError(tabId, method, options.signal.reason);
+          }
+          const command = chrome.debugger.sendCommand({ tabId }, method, params) as Promise<T>;
+          const racers: Promise<T>[] = [command];
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          let abortListener: (() => void) | undefined;
+          if (options.timeoutMs !== undefined) {
+            const timeoutMs = Math.max(1, Math.round(options.timeoutMs));
+            racers.push(
+              new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(
+                  () => reject(new CdpCommandTimeoutError(tabId, method, timeoutMs)),
+                  timeoutMs,
+                );
+              }),
+            );
+          }
+          if (options.signal) {
+            racers.push(
+              new Promise<never>((_, reject) => {
+                abortListener = () =>
+                  reject(new CdpCommandCancelledError(tabId, method, options.signal?.reason));
+                if (options.signal?.aborted) abortListener();
+                else options.signal?.addEventListener('abort', abortListener, { once: true });
+              }),
+            );
+          }
+
+          try {
+            return await Promise.race(racers);
+          } catch (error) {
+            if (
+              error instanceof CdpCommandTimeoutError ||
+              error instanceof CdpCommandCancelledError
+            ) {
+              await this.invalidateSession(tabId);
+            }
+            throw error;
+          } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (abortListener) options.signal?.removeEventListener('abort', abortListener);
+          }
         } finally {
           if (temporary) await this.detachUnsafe(tabId, owner);
         }
@@ -198,6 +280,20 @@ class CDPSessionManager {
         return send(`retry:${method}`);
       }
     });
+  }
+
+  private async invalidateSession(tabId: number): Promise<void> {
+    this.sessions.delete(tabId);
+    try {
+      await Promise.race([
+        chrome.debugger.detach({ tabId }),
+        new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+      ]);
+    } catch {
+      // Best-effort cleanup; the debugger may already have detached.
+    } finally {
+      this.sessions.delete(tabId);
+    }
   }
 }
 

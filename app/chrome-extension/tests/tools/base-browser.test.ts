@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BaseBrowserToolExecutor,
   isContentScriptDisconnectedError,
+  isContentScriptMessageTimeoutError,
   normalizeContentMessageTimeoutMs,
 } from '@/entrypoints/background/tools/base-browser';
 import type { ToolResult } from '@/common/tool-handler';
@@ -20,11 +21,21 @@ class TestBrowserTool extends BaseBrowserToolExecutor {
   inject(tabId: number, files: string[]) {
     return this.injectContentScript(tabId, files);
   }
+
+  send(tabId: number, message: any) {
+    return this.sendMessageToTab(tabId, message);
+  }
+
+  sendRead(tabId: number, message: any, files: string[]) {
+    return this.sendMessageToTabWithRetry(tabId, message, files);
+  }
 }
 
 describe('BaseBrowserToolExecutor target tab resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (chrome.tabs.sendMessage as any).mockReset().mockResolvedValue(undefined);
+    (chrome.webNavigation as any).getFrame = vi.fn().mockResolvedValue({ errorOccurred: false });
   });
 
   it('does not fall back to the active tab when an explicit tab is missing', async () => {
@@ -79,6 +90,42 @@ describe('BaseBrowserToolExecutor target tab resolution', () => {
       ),
     ).toBe(true);
     expect(isContentScriptDisconnectedError(new Error('Target tab 12 not found'))).toBe(false);
+    expect(
+      isContentScriptMessageTimeoutError(new Error('Message action getPageText timed out')),
+    ).toBe(true);
+  });
+
+  it('retries a read-only content-script timeout once', async () => {
+    const sendMessage = chrome.tabs.sendMessage as unknown as ReturnType<typeof vi.fn>;
+    const executeScript = vi.fn();
+    (chrome.tabs.get as any).mockResolvedValue({
+      id: 12,
+      url: 'https://example.com',
+      status: 'complete',
+    });
+    (chrome.scripting as any) = { executeScript };
+    sendMessage
+      .mockRejectedValueOnce(new Error('Message action getPageText timed out'))
+      .mockResolvedValueOnce({ status: 'pong' })
+      .mockResolvedValueOnce({ success: true, text: 'ok' });
+
+    const tool = new TestBrowserTool();
+    await expect(
+      tool.sendRead(12, { action: 'getPageText' }, ['inject-scripts/web-fetcher-helper.js']),
+    ).resolves.toMatchObject({ success: true, text: 'ok' });
+    expect(sendMessage).toHaveBeenCalledTimes(3);
+    expect(executeScript).not.toHaveBeenCalled();
+  });
+
+  it('does not retry a timed-out message through the base send path', async () => {
+    const sendMessage = chrome.tabs.sendMessage as unknown as ReturnType<typeof vi.fn>;
+    sendMessage.mockRejectedValue(new Error('Message action clickElement timed out'));
+    const tool = new TestBrowserTool();
+
+    await expect(tool.send(12, { action: 'clickElement' })).rejects.toThrow(
+      'Message action clickElement timed out',
+    );
+    expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 
   it('uses a 30-second default and clamps the configurable content timeout', () => {

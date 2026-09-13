@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.7.5] - 2026-09-13
+
+### Added
+
+- **内容脚本超时恢复与执行状态保护** — 内容脚本超时支持一次恢复重试；点击等副作用操作在超时后返回 `EXECUTION_UNKNOWN`，避免盲目重复执行。
+
+### Fixed
+
+- **浏览器交互取消与断连** — 改进点击、键盘、滚动、CDP 会话和 HTTP 请求断开时的取消与错误诊断。
+- **版本同步** — 根包、子包、WASM、桌面 Tauri/Cargo 配置统一为 v2.7.5。
+
 ## [v2.7.4] - 2026-09-13
 
 ### Added

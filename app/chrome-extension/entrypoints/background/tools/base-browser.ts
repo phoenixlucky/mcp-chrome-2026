@@ -1,5 +1,9 @@
 import { ToolExecutor } from '@/common/tool-handler';
-import type { ToolProgressReporter, ToolResult } from '@/common/tool-handler';
+import {
+  createErrorResponse,
+  type ToolProgressReporter,
+  type ToolResult,
+} from '@/common/tool-handler';
 import { TIMEOUTS, ERROR_MESSAGES, STORAGE_KEYS } from '@/common/constants';
 
 const PING_TIMEOUT_MS = 300;
@@ -13,6 +17,20 @@ export function normalizeContentMessageTimeoutMs(value: unknown): number {
     MAX_CONTENT_MESSAGE_TIMEOUT_MS,
     Math.max(MIN_CONTENT_MESSAGE_TIMEOUT_MS, Math.round(parsed)),
   );
+}
+
+export class ContentScriptMessageTimeoutError extends Error {
+  readonly tabId: number;
+  readonly action: string;
+  readonly timeoutMs: number;
+
+  constructor(tabId: number, action: string, timeoutMs: number) {
+    super(`Message action ${action} timed out after ${timeoutMs}ms`);
+    this.name = 'ContentScriptMessageTimeoutError';
+    this.tabId = tabId;
+    this.action = action;
+    this.timeoutMs = timeoutMs;
+  }
 }
 
 export async function getContentMessageTimeoutMs(): Promise<number> {
@@ -57,6 +75,36 @@ export function isContentScriptDisconnectedError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /Could not establish connection|Receiving end does not exist|message channel closed|asynchronous response by returning true/i.test(
     message,
+  );
+}
+
+export function isContentScriptMessageTimeoutError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Message action .* timed out|content script .* timed out/i.test(message);
+}
+
+export function isRecoverableContentScriptError(error: unknown): boolean {
+  return isContentScriptDisconnectedError(error) || isContentScriptMessageTimeoutError(error);
+}
+
+export function createExecutionUnknownResponse(
+  tabId: number,
+  action: string,
+  timeoutMs: number,
+  error: unknown,
+): ToolResult {
+  return createErrorResponse(
+    JSON.stringify({
+      success: false,
+      error: {
+        kind: 'execution_unknown',
+        code: 'EXECUTION_UNKNOWN',
+        tabId,
+        action,
+        timeoutMs,
+        message: `操作可能已经执行，禁止盲目重复。${error instanceof Error ? error.message : String(error)}`,
+      },
+    }),
   );
 }
 
@@ -186,7 +234,12 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
   /**
    * Send message to tab
    */
-  protected async sendMessageToTab(tabId: number, message: any, frameId?: number): Promise<any> {
+  protected async sendMessageToTab(
+    tabId: number,
+    message: any,
+    frameId?: number,
+    retryCount = 0,
+  ): Promise<any> {
     const contentMessageTimeoutMs = await getContentMessageTimeoutMs();
     try {
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -197,7 +250,14 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
             : chrome.tabs.sendMessage(tabId, message, { frameId: 0 }),
           new Promise<never>((_, reject) => {
             timeoutId = setTimeout(
-              () => reject(new Error(`Message action ${message?.action || 'unknown'} timed out`)),
+              () =>
+                reject(
+                  new ContentScriptMessageTimeoutError(
+                    tabId,
+                    message?.action || 'unknown',
+                    contentMessageTimeoutMs,
+                  ),
+                ),
               contentMessageTimeoutMs,
             );
           }),
@@ -220,7 +280,7 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
           ? console.warn
           : console.error;
       log(
-        `Error sending message to tab ${tabId} for action ${message?.action || 'unknown'}: ${errorMessage}`,
+        `Content message failed tabId=${tabId} action=${message?.action || 'unknown'} timeoutMs=${contentMessageTimeoutMs} retry=${retryCount}: ${errorMessage}`,
       );
 
       if (error instanceof Error) {
@@ -244,10 +304,14 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
     try {
       return await this.sendMessageToTab(tabId, message, frameId);
     } catch (error) {
-      if (!isContentScriptDisconnectedError(error)) throw error;
+      if (!isRecoverableContentScriptError(error)) throw error;
 
+      const timeoutMs =
+        error instanceof ContentScriptMessageTimeoutError
+          ? error.timeoutMs
+          : await getContentMessageTimeoutMs();
       console.warn(
-        `Content script disconnected in tab ${tabId}; waiting for navigation and retrying ${message?.action || 'unknown'}`,
+        `Recovering content script tabId=${tabId} action=${message?.action || 'unknown'} timeoutMs=${timeoutMs} retry=0`,
       );
       await this.waitForTabReady(tabId, 5_000);
       await this.injectContentScript(
@@ -258,7 +322,7 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
         false,
         typeof frameId === 'number' ? [frameId] : undefined,
       );
-      return this.sendMessageToTab(tabId, message, frameId);
+      return this.sendMessageToTab(tabId, message, frameId, 1);
     }
   }
 
