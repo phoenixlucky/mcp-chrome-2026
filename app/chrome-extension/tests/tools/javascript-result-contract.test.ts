@@ -56,6 +56,7 @@ describe('browser result contracts', () => {
   beforeEach(() => {
     sendCommand.mockReset();
     (chrome.tabs.get as any).mockResolvedValue({ id: 12, url: 'https://example.com/page' });
+    (chrome.windows.get as any).mockResolvedValue({ id: 7, state: 'normal' });
   });
 
   it('rejects undefined only when chrome_javascript requires a result', async () => {
@@ -159,6 +160,157 @@ describe('browser result contracts', () => {
         timeoutMs: 10_000,
         executionState: 'unknown',
       },
+    });
+  });
+
+  it('uses DOM scrolling in explicit background mode without wheel input or hit testing', async () => {
+    let runtimeCalls = 0;
+    sendCommand.mockImplementation(async (_tabId, method, params: any) => {
+      if (method !== 'Runtime.evaluate') return {};
+      runtimeCalls += 1;
+      const scrollTop = runtimeCalls >= 2 ? 800 : 0;
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: '#feed',
+            moved: scrollTop > 0,
+            scrollTop,
+            scrollHeight: 5000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 900,
+            clientWidth: 900,
+            visibilityState: 'hidden',
+          }),
+        },
+      };
+    });
+
+    const result = await scrollTool.execute({ tabId: 12, amount: 800, steps: 3, background: true });
+    expect(payload(result)).toMatchObject({
+      success: true,
+      execution: 'dom-background',
+      background: true,
+      moved: true,
+      scrollTop: 800,
+      scrollHeight: 5000,
+      clientHeight: 900,
+    });
+    expect(sendCommand.mock.calls.some(([, method]) => method === 'Input.dispatchMouseEvent')).toBe(
+      false,
+    );
+    expect(sendCommand.mock.calls.map(([, method]) => method)).toContain(
+      'Page.setWebLifecycleState',
+    );
+    expect(
+      sendCommand.mock.calls
+        .map(([, method, params]) => (method === 'Runtime.evaluate' ? params.expression : ''))
+        .join('\n'),
+    ).not.toContain('elementFromPoint');
+    expect(
+      sendCommand.mock.calls.filter(([, method]) => method === 'Runtime.evaluate'),
+    ).toHaveLength(5);
+  });
+
+  it('returns a retryable layout error after one background retry', async () => {
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method !== 'Runtime.evaluate') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            scrollTop: 0,
+            scrollHeight: 0,
+            clientHeight: 0,
+            visibilityState: 'hidden',
+          }),
+        },
+      };
+    });
+
+    const result = await scrollTool.execute({ tabId: 12, amount: 800, background: true });
+    expect(payload(result)).toEqual({
+      success: false,
+      code: 'BACKGROUND_LAYOUT_UNAVAILABLE',
+      retryable: true,
+      scrollHeight: 0,
+      clientHeight: 0,
+      visibilityState: 'hidden',
+    });
+    expect(
+      sendCommand.mock.calls.filter(([, method]) => method === 'Input.dispatchMouseEvent'),
+    ).toHaveLength(0);
+  });
+
+  it('auto-selects DOM background mode for a minimized target window', async () => {
+    (chrome.tabs.get as any).mockResolvedValue({
+      id: 12,
+      windowId: 7,
+      url: 'https://example.com/page',
+    });
+    (chrome.windows.get as any).mockResolvedValue({ id: 7, state: 'minimized' });
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method !== 'Runtime.evaluate') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            target: 'document.scrollingElement',
+            moved: true,
+            scrollTop: 300,
+            scrollHeight: 2000,
+            clientHeight: 900,
+            scrollLeft: 0,
+            scrollWidth: 1000,
+            clientWidth: 1000,
+          }),
+        },
+      };
+    });
+
+    const result = await scrollTool.execute({ tabId: 12, amount: 300 });
+    expect(payload(result)).toMatchObject({
+      success: true,
+      execution: 'dom-background',
+      background: true,
+    });
+    expect(sendCommand.mock.calls.some(([, method]) => method === 'Input.dispatchMouseEvent')).toBe(
+      false,
+    );
+  });
+
+  it('does not report a zeroed background scroll state as a valid state', async () => {
+    (chrome.tabs.get as any).mockResolvedValue({
+      id: 12,
+      windowId: 7,
+      url: 'https://example.com/page',
+    });
+    (chrome.windows.get as any).mockResolvedValue({ id: 7, state: 'minimized' });
+    sendCommand.mockImplementation(async (_tabId, method) => {
+      if (method !== 'Runtime.evaluate') return {};
+      return {
+        result: {
+          value: JSON.stringify({
+            success: true,
+            y: 0,
+            maxY: 0,
+            scrollHeight: 0,
+            clientHeight: 0,
+            visibilityState: 'hidden',
+          }),
+        },
+      };
+    });
+
+    const result = await scrollStateTool.execute({ tabId: 12 });
+    expect(payload(result)).toEqual({
+      success: false,
+      code: 'BACKGROUND_LAYOUT_UNAVAILABLE',
+      retryable: true,
+      scrollHeight: 0,
+      clientHeight: 0,
+      visibilityState: 'hidden',
     });
   });
 

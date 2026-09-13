@@ -2,6 +2,7 @@ import { createErrorResponse, type ToolResult } from '@/common/tool-handler';
 import { cdpSessionManager } from '@/utils/cdp-session-manager';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { BaseBrowserToolExecutor, getNonInjectablePageReason } from '../base-browser';
+import { requireForegroundWindow } from './common';
 
 type Target = { tabId?: number; windowId?: number };
 type SelectorType = 'css' | 'xpath';
@@ -109,6 +110,8 @@ class HoverTool extends BaseBrowserToolExecutor {
     if (!target) return createErrorResponse('selector is required');
     const tab = await this.resolveTargetTab(args.tabId, args.windowId);
     if (typeof tab.id !== 'number') return createErrorResponse('Target tab not found');
+    const foregroundError = await requireForegroundWindow(tab.id, 'hover');
+    if (foregroundError) return foregroundError;
 
     try {
       const point = await evaluatePage<

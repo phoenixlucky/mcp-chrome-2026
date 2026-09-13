@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.7.6] - 2026-09-13
+
+### Added
+
+- **后台窗口浏览器操作** — 增强最小化窗口下的滚动、采集、线程提取和页面交互支持，并提供明确的前台窗口要求与可重试错误。
+- **采集与滚动工具增强** — 支持后台模式、布局可用性检测、部分结果返回和统一滚动执行路径。
+
+### Fixed
+
+- **浏览器工具稳定性** — 改进 CDP 超时、页面生命周期、网络捕获、SPA 请求和跨页面结果处理。
+- **版本同步** — 根包、子包、WASM、桌面 Tauri/Cargo 配置统一为 v2.7.6。
+
 ## [v2.7.5] - 2026-09-13
 
 ### Added

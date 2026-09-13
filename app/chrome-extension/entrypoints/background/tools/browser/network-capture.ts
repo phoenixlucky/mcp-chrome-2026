@@ -14,6 +14,7 @@ interface NetworkCaptureToolParams {
   maxCaptureTime?: number;
   inactivityTimeout?: number;
   includeStatic?: boolean;
+  background?: boolean;
 }
 
 /**
@@ -113,6 +114,7 @@ class NetworkCaptureTool extends BaseBrowserToolExecutor {
       maxCaptureTime: args.maxCaptureTime,
       inactivityTimeout: args.inactivityTimeout,
       includeStatic: args.includeStatic,
+      background: args.background,
     });
 
     return decorateJsonResult(result, { backend, needResponseBody: wantBody });

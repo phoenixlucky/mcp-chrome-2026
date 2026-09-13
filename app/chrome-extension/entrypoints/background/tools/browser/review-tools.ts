@@ -10,9 +10,11 @@ import {
   mergeRecords,
   type Field,
 } from './review-utils';
+import { scrollTool } from './scroll';
+import { ensureTabRendering, resolveBackgroundMode } from './common';
 
 type Candidate = { selector?: string; text?: string; role?: string; type?: 'css' | 'xpath' };
-type Target = { tabId?: number; windowId?: number; frameSelector?: string };
+type Target = { tabId?: number; windowId?: number; frameSelector?: string; background?: boolean };
 const TIMEOUT = 10_000;
 
 type RuntimeExceptionDetails = {
@@ -56,6 +58,17 @@ function json(value: unknown, isError = false): ToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(value) }], isError };
 }
 
+function toolPayload(result: ToolResult): Record<string, any> {
+  const item = result.content.find((content) => content.type === 'text') as
+    { text?: string } | undefined;
+  if (!item?.text) return {};
+  try {
+    return JSON.parse(item.text);
+  } catch {
+    return {};
+  }
+}
+
 abstract class ReviewTool extends BaseBrowserToolExecutor {
   protected async tabId(args: Target): Promise<number> {
     const tab = await this.resolveTargetTab(args.tabId, args.windowId);
@@ -63,13 +76,14 @@ abstract class ReviewTool extends BaseBrowserToolExecutor {
     return tab.id;
   }
 
-  protected async eval(tabId: number, expression: string): Promise<unknown> {
+  protected async eval(tabId: number, expression: string, signal?: AbortSignal): Promise<unknown> {
     const response = await cdpSessionManager.withSession(tabId, 'review-tools', () =>
-      cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-        expression,
-        returnByValue: true,
-        awaitPromise: true,
-      }),
+      cdpSessionManager.sendCommand(
+        tabId,
+        'Runtime.evaluate',
+        { expression, returnByValue: true, awaitPromise: true },
+        { timeoutMs: TIMEOUT, signal },
+      ),
     );
     if (response?.exceptionDetails)
       throw new Error(evaluationError(response.exceptionDetails as RuntimeExceptionDetails));
@@ -100,6 +114,8 @@ class FindAndClickTool extends ReviewTool {
       );
     try {
       const tabId = await this.tabId(args);
+      const background = await resolveBackgroundMode(tabId, args.background);
+      if (background) await ensureTabRendering(tabId);
       const result = await this.eval(
         tabId,
         `(async () => {
@@ -113,7 +129,7 @@ class FindAndClickTool extends ReviewTool {
           if (!el || !el.isConnected) return false;
           const s = getComputedStyle(el), r = el.getBoundingClientRect();
           const disabled = el.closest('[disabled],[aria-disabled="true"]');
-          return !disabled && s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0' && r.width > 0 && r.height > 0;
+          return !disabled && s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0' && (${background ? 'true' : 'r.width > 0 && r.height > 0'});
         };
         const matchesFor = c => {
           if (c.type === 'xpath' && c.selector) {
@@ -323,6 +339,8 @@ class ExpandSectionTool extends ReviewTool {
       return json({ success: false, reason: 'invalid_parameters' }, true);
     try {
       const tabId = await this.tabId(args);
+      const background = await resolveBackgroundMode(tabId, args.background);
+      if (background) await ensureTabRendering(tabId);
       const attribute = args.expandedAttribute || 'aria-expanded';
       const candidates = args.triggers?.length ? args.triggers : args.trigger!.candidates;
       const scopeSelector = args.trigger?.scopeSelector;
@@ -338,7 +356,7 @@ class ExpandSectionTool extends ReviewTool {
       const triggerState = async () =>
         (await this.eval(
           tabId,
-          `(() => { const root=${scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'}; const candidates=${JSON.stringify(candidates)}; const marker=${JSON.stringify(clickedMarker)}; const visible=e=>{if(!e||!e.isConnected)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0}; let matched=false, pending=false, expanded=false; for(const c of candidates){if(c.text){pending=true;matched=true;continue} let matches=[];try{matches=c.selector?Array.from(root?.querySelectorAll(c.selector)||[]):[]}catch(_){matches=[]} if(matches.length)matched=true; if(matches.some(e=>visible(e)&&e.getAttribute(${JSON.stringify(attribute)})!=='true'&&!e[marker]))pending=true; if(matches.length&&matches.every(e=>e.getAttribute(${JSON.stringify(attribute)})==='true'||e[marker]))expanded=true;} return { matched, pending, expanded }; })()`,
+          `(() => { const root=${scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'}; const candidates=${JSON.stringify(candidates)}; const marker=${JSON.stringify(clickedMarker)}; const visible=e=>{if(!e||!e.isConnected)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&${background ? 'true' : 'r.width>0&&r.height>0'}}; let matched=false, pending=false, expanded=false; for(const c of candidates){if(c.text){pending=true;matched=true;continue} let matches=[];try{matches=c.selector?Array.from(root?.querySelectorAll(c.selector)||[]):[]}catch(_){matches=[]} if(matches.length)matched=true; if(matches.some(e=>visible(e)&&e.getAttribute(${JSON.stringify(attribute)})!=='true'&&!e[marker]))pending=true; if(matches.length&&matches.every(e=>e.getAttribute(${JSON.stringify(attribute)})==='true'||e[marker]))expanded=true;} return { matched, pending, expanded }; })()`,
         )) as { matched: boolean; pending: boolean; expanded: boolean };
       const waitFor = async () => {
         const config = args.waitFor;
@@ -389,7 +407,7 @@ class ExpandSectionTool extends ReviewTool {
         clicks += 1;
         await this.eval(
           tabId,
-          `(() => { const root=${scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'}; const candidates=${JSON.stringify(candidates)}; const c=candidates[${Number(payload.matchedCandidate) || 0}]; if(!c)return false; const visible=e=>{if(!e||!e.isConnected)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0}; let matches=[];try{matches=c.selector?Array.from(root?.querySelectorAll(c.selector)||[]):Array.from(root?.querySelectorAll('*')||[]).filter(e=>c.text&&(e.textContent||'').toLocaleLowerCase().includes(String(c.text).toLocaleLowerCase()))}catch(_){matches=[]} const e=matches.find(visible); if(e)e[${JSON.stringify(clickedMarker)}]=true; return Boolean(e); })()`,
+          `(() => { const root=${scopeSelector ? `document.querySelector(${JSON.stringify(scopeSelector)})` : 'document'}; const candidates=${JSON.stringify(candidates)}; const c=candidates[${Number(payload.matchedCandidate) || 0}]; if(!c)return false; const visible=e=>{if(!e||!e.isConnected)return false;const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&${background ? 'true' : 'r.width>0&&r.height>0'}}; let matches=[];try{matches=c.selector?Array.from(root?.querySelectorAll(c.selector)||[]):Array.from(root?.querySelectorAll('*')||[]).filter(e=>c.text&&(e.textContent||'').toLocaleLowerCase().includes(String(c.text).toLocaleLowerCase()))}catch(_){matches=[]} const e=matches.find(visible); if(e)e[${JSON.stringify(clickedMarker)}]=true; return Boolean(e); })()`,
         );
         contentFound = await waitFor();
         if (!args.repeat && !args.maxClicks) break;
@@ -426,7 +444,9 @@ class ScanForSectionTool extends ReviewTool {
       maxSteps?: number;
       rescanUpSteps?: number;
       waitAfterScrollMs?: number;
+      background?: boolean;
     },
+    signal?: AbortSignal,
   ): Promise<ToolResult> {
     try {
       const tabId = await this.tabId(args);
@@ -441,6 +461,7 @@ class ScanForSectionTool extends ReviewTool {
         this.eval(
           tabId,
           `(() => { const root=${root}; const win=root?.defaultView || window; const scrollHeight=root?.documentElement?.scrollHeight || 0; const top=win.scrollY; return { found: root?.querySelector(${JSON.stringify(args.targetSelector)}) !== null, stopped: ${args.stopSelector ? `root?.querySelector(${JSON.stringify(args.stopSelector)}) !== null` : 'false'}, atTop: top <= 1, atBottom: win.innerHeight + top >= scrollHeight - 1, scrollHeight, top }; })()`,
+          signal,
         ) as Promise<any>;
       let lastHeight = 0;
       let edgeWaits = 0;
@@ -472,14 +493,43 @@ class ScanForSectionTool extends ReviewTool {
           edgeWaits = 0;
           lastHeight = state.scrollHeight;
         }
-        await this.eval(
-          tabId,
-          `(${root}.defaultView || window).scrollBy(0, ${direction === 'up' ? -step : step})`,
+        const scrollResult = await scrollTool.execute(
+          {
+            tabId,
+            amount: step,
+            direction,
+            background: args.background !== false,
+            frameSelector: args.frameSelector,
+          },
+          signal,
         );
+        if (scrollResult.isError) {
+          const failure = toolPayload(scrollResult);
+          return json(
+            { success: false, found: false, reason: failure.code || 'scroll_failed', ...failure },
+            true,
+          );
+        }
         await new Promise((resolve) => setTimeout(resolve, waitMs));
       }
       for (let i = 0; i < (args.rescanUpSteps || 0); i += 1) {
-        await this.eval(tabId, `(${root}.defaultView || window).scrollBy(0, ${-step})`);
+        const scrollResult = await scrollTool.execute(
+          {
+            tabId,
+            amount: step,
+            direction: 'up',
+            background: args.background !== false,
+            frameSelector: args.frameSelector,
+          },
+          signal,
+        );
+        if (scrollResult.isError) {
+          const failure = toolPayload(scrollResult);
+          return json(
+            { success: false, found: false, reason: failure.code || 'scroll_failed', ...failure },
+            true,
+          );
+        }
         await new Promise((resolve) => setTimeout(resolve, waitMs));
         const state = await check();
         if (state.found)

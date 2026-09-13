@@ -18,6 +18,7 @@ import {
   CdpCommandTimeoutError,
   cdpSessionManager,
 } from '@/utils/cdp-session-manager';
+import { ensureTabRendering, resolveBackgroundMode } from './common';
 
 // ============================================================================
 // Constants
@@ -38,6 +39,8 @@ const MAX_SCROLL_INTERVAL_MS = 2_000;
 const MAX_SLOW_SCROLL_DURATION_MS = 9_000;
 const HUMAN_LAZY_LOAD_WAIT_MS = 800;
 const HUMAN_LAZY_LOAD_QUIET_MS = 150;
+const BACKGROUND_LAYOUT_RETRY_WAIT_MS = 400;
+const BACKGROUND_DOM_SETTLE_WAIT_MS = 300;
 // ponytail: cap one MCP call; repeat while atBottom is false for longer feeds.
 const MAX_HUMAN_TO_BOTTOM_DURATION_MS = 9_000;
 const MAX_HUMAN_TO_BOTTOM_ROUNDS = 50;
@@ -69,6 +72,7 @@ interface ScrollToolParams {
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
+  background?: boolean;
 }
 
 interface ScrollStateToolParams {
@@ -77,6 +81,7 @@ interface ScrollStateToolParams {
   frameSelector?: string;
   tabId?: number;
   windowId?: number;
+  background?: boolean;
 }
 
 interface PixelScrollPlan {
@@ -192,13 +197,14 @@ function formatScrollCdpError(error: unknown): string | null {
 export function buildScrollContainerExpression(
   containerSelector?: string,
   anchorSelector?: string,
+  background = false,
 ): string {
   return containerSelector
     ? `doc.querySelector(${JSON.stringify(containerSelector)})`
     : `(() => {
     const selected = ${anchorSelector ? `Array.from(doc.querySelectorAll(${JSON.stringify(anchorSelector)}))` : '[]'};
     const anchors = [...selected, doc.activeElement,
-      ...[0.35, 0.5, 0.65].map(x => doc.elementFromPoint(win.innerWidth * x, win.innerHeight / 2))].filter(Boolean);
+      ${background ? '' : '...[0.35, 0.5, 0.65].map(x => doc.elementFromPoint(win.innerWidth * x, win.innerHeight / 2))'}].filter(Boolean);
     const isScrollable = el => el?.isConnected && el.scrollHeight > el.clientHeight
       && (el === doc.scrollingElement || /auto|scroll/.test(win.getComputedStyle(el).overflowY));
     const cached = win.__mcpChromeScrollRoot;
@@ -215,7 +221,7 @@ export function buildScrollContainerExpression(
   })()`;
 }
 
-function buildScrollExpression(params: ScrollToolParams): string {
+function buildScrollExpression(params: ScrollToolParams, background = false): string {
   const {
     toBottom,
     toTop,
@@ -237,12 +243,18 @@ function buildScrollExpression(params: ScrollToolParams): string {
     : 'const doc = document; const win = window;';
 
   // Determine the container element expression
-  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+  const containerExpr = buildScrollContainerExpression(
+    containerSelector,
+    anchorSelector,
+    background,
+  );
+  const isHumanToBottom =
+    toBottom === true && isHumanMode(params.mode) && !toTop && !selector && !frameSelector;
 
   // Build scroll action
   const actions: string[] = [];
 
-  if (toBottom) {
+  if (toBottom && !isHumanToBottom) {
     // Scroll to bottom
     actions.push(`c.scrollTop = c.scrollHeight`);
   } else if (toTop) {
@@ -270,9 +282,13 @@ function buildScrollExpression(params: ScrollToolParams): string {
       steps: scrollSteps,
       intervalMs: scrollIntervalMs,
     } = getPixelScrollPlan(params);
+    const move = background
+      ? `if (typeof c.scrollBy === 'function') c.scrollBy({ left: ${deltaX} / ${scrollSteps}, top: ${deltaY} / ${scrollSteps}, behavior: 'auto' });
+      else { c.scrollLeft += ${deltaX} / ${scrollSteps}; c.scrollTop += ${deltaY} / ${scrollSteps}; }`
+      : `c.scrollLeft += ${deltaX} / ${scrollSteps};
+      c.scrollTop += ${deltaY} / ${scrollSteps};`;
     actions.push(`for (let i = 0; i < ${scrollSteps}; i++) {
-      c.scrollLeft += ${deltaX} / ${scrollSteps};
-      c.scrollTop += ${deltaY} / ${scrollSteps};
+      ${move}
       if (i < ${scrollSteps - 1} && ${scrollIntervalMs} > 0) {
         await new Promise(resolve => setTimeout(resolve, ${scrollIntervalMs}));
       }
@@ -311,12 +327,24 @@ function buildScrollExpression(params: ScrollToolParams): string {
 function buildScrollMeasurementExpression(
   containerSelector?: string,
   anchorSelector?: string,
+  background = false,
+  frameSelector?: string,
 ): string {
-  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+  const framePrelude = frameSelector
+    ? `const frame = document.querySelector(${JSON.stringify(frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${frameSelector}');
+       const win = frame.contentWindow || window;`
+    : 'const doc = document; const win = window;';
+  const containerExpr = buildScrollContainerExpression(
+    containerSelector,
+    anchorSelector,
+    background,
+  );
   return `(async () => {
   try {
-    const doc = document;
-    const win = window;
+    ${framePrelude}
     const c = ${containerExpr};
     if (!c) return JSON.stringify({ success: false, error: 'Scroll container not found' });
     return JSON.stringify({
@@ -328,6 +356,48 @@ function buildScrollMeasurementExpression(
       scrollLeft: c.scrollLeft,
       scrollWidth: c.scrollWidth,
       clientWidth: c.clientWidth,
+      visibilityState: doc.visibilityState,
+    });
+  } catch (e) {
+    return JSON.stringify({ success: false, error: e.message || String(e) });
+  }
+})()`;
+}
+
+function buildDomScrollStepExpression(
+  containerSelector: string | undefined,
+  anchorSelector: string | undefined,
+  frameSelector: string | undefined,
+  deltaX: number,
+  deltaY: number,
+): string {
+  const framePrelude = frameSelector
+    ? `const frame = document.querySelector(${JSON.stringify(frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${frameSelector}');
+       const win = frame.contentWindow || window;`
+    : 'const doc = document; const win = window;';
+  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector, true);
+  return `(async () => {
+  try {
+    ${framePrelude}
+    const c = ${containerExpr};
+    if (!c) return JSON.stringify({ success: false, error: 'Scroll container not found' });
+    const beforeTop = c.scrollTop;
+    const beforeLeft = c.scrollLeft;
+    if (typeof c.scrollBy === 'function') {
+      c.scrollBy({ left: ${deltaX}, top: ${deltaY}, behavior: 'auto' });
+    } else {
+      c.scrollLeft += ${deltaX};
+      c.scrollTop += ${deltaY};
+    }
+    return JSON.stringify({
+      success: true,
+      moved: c.scrollTop !== beforeTop || c.scrollLeft !== beforeLeft,
+      scrollTop: c.scrollTop,
+      scrollHeight: c.scrollHeight,
+      clientHeight: c.clientHeight,
     });
   } catch (e) {
     return JSON.stringify({ success: false, error: e.message || String(e) });
@@ -365,12 +435,24 @@ function buildWheelTargetExpression(containerSelector?: string, anchorSelector?:
 function buildHumanLazyLoadStartExpression(
   containerSelector?: string,
   anchorSelector?: string,
+  background = false,
+  frameSelector?: string,
 ): string {
   // ponytail: generic DOM/layout/resource signals; add page-specific loading selectors only when needed.
-  const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+  const containerExpr = buildScrollContainerExpression(
+    containerSelector,
+    anchorSelector,
+    background,
+  );
+  const framePrelude = frameSelector
+    ? `const frame = document.querySelector(${JSON.stringify(frameSelector)});
+       if (!frame) throw new Error('Iframe not found: ${frameSelector}');
+       const doc = frame.contentDocument;
+       if (!doc) throw new Error('Iframe is cross-origin or unavailable: ${frameSelector}');
+       const win = frame.contentWindow || window;`
+    : 'const doc = document; const win = window;';
   return `(() => {
-  const doc = document;
-  const win = window;
+  ${framePrelude}
   const c = ${containerExpr};
   win.__mcpChromeHumanLazyLoad?.cleanup?.();
   if (!c) return false;
@@ -441,16 +523,20 @@ function buildHumanLazyLoadStartExpression(
 })()`;
 }
 
-function buildHumanLazyLoadWaitExpression(): string {
+function buildHumanLazyLoadWaitExpression(frameSelector?: string): string {
+  const hostWindow = frameSelector
+    ? `(document.querySelector(${JSON.stringify(frameSelector)})?.contentWindow || window)`
+    : 'window';
   return `(() => {
-  const state = window.__mcpChromeHumanLazyLoad;
+  const hostWin = ${hostWindow};
+  const state = hostWin.__mcpChromeHumanLazyLoad;
   if (!state) return { changed: false, reason: 'not-started' };
   if (state.done) {
-    delete window.__mcpChromeHumanLazyLoad;
+    delete hostWin.__mcpChromeHumanLazyLoad;
     return state.result;
   }
   return state.promise.then(result => {
-    delete window.__mcpChromeHumanLazyLoad;
+    delete hostWin.__mcpChromeHumanLazyLoad;
     return result;
   });
 })()`;
@@ -459,6 +545,40 @@ function buildHumanLazyLoadWaitExpression(): string {
 // ============================================================================
 // Tool Implementation
 // ============================================================================
+
+function parseRuntimeValue(response: any): Record<string, any> | null {
+  const value = response?.result?.value;
+  if (typeof value !== 'string') return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function isZeroBackgroundLayout(value: Record<string, any> | null): boolean {
+  const scrollTop = value?.scrollTop ?? value?.y;
+  const noDimensions =
+    value?.scrollHeight === 0 && value?.clientHeight === 0
+      ? true
+      : value?.maxY === 0 && value?.scrollHeight === undefined;
+  return Boolean(value?.success && scrollTop === 0 && noDimensions);
+}
+
+function backgroundLayoutUnavailable(value: Record<string, any>) {
+  return {
+    result: {
+      value: JSON.stringify({
+        success: false,
+        code: 'BACKGROUND_LAYOUT_UNAVAILABLE',
+        retryable: true,
+        scrollHeight: value.scrollHeight || 0,
+        clientHeight: value.clientHeight || 0,
+        visibilityState: value.visibilityState || 'hidden',
+      }),
+    },
+  };
+}
 
 class ScrollTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.SCROLL;
@@ -485,7 +605,9 @@ class ScrollTool extends BaseBrowserToolExecutor {
         tabId = tab.id!;
       }
 
-      // 2. Use native wheel input for pixel scrolling; special modes keep the direct path.
+      const background = await resolveBackgroundMode(tabId, args.background);
+
+      // 2. Use native wheel input unless background mode was requested or required.
       const isHumanToBottom =
         args.toBottom === true &&
         isHumanMode(args.mode) &&
@@ -500,6 +622,190 @@ class ScrollTool extends BaseBrowserToolExecutor {
             timeoutMs: DEFAULT_TIMEOUT_MS,
             signal,
           });
+
+        if (background) {
+          await ensureTabRendering(tabId, { timeoutMs: DEFAULT_TIMEOUT_MS, signal });
+
+          const measure = async () => {
+            const measured = await sendCdp('Runtime.evaluate', {
+              expression: buildScrollMeasurementExpression(
+                args.containerSelector,
+                args.anchorSelector,
+                true,
+                args.frameSelector,
+              ),
+              returnByValue: true,
+              awaitPromise: true,
+            });
+            return parseRuntimeValue(measured);
+          };
+          let before = await measure();
+          if (isZeroBackgroundLayout(before)) {
+            await waitForScrollInterval(BACKGROUND_LAYOUT_RETRY_WAIT_MS, signal);
+            await ensureTabRendering(tabId, { timeoutMs: DEFAULT_TIMEOUT_MS, signal });
+            before = await measure();
+          }
+          if (isZeroBackgroundLayout(before)) return backgroundLayoutUnavailable(before!);
+
+          const humanLazyLoad = isHumanMode(args.mode) && args.humanLazyLoad === true;
+          if (!isPixelScroll) {
+            let after = before;
+            let moved = false;
+            let stableBottomRounds = 0;
+            let noMoveRounds = 0;
+            const startedAt = Date.now();
+            const maxRounds = args.toBottom ? MAX_HUMAN_TO_BOTTOM_ROUNDS : 1;
+            for (let round = 0; round < maxRounds; round += 1) {
+              if (humanLazyLoad) {
+                await sendCdp('Runtime.evaluate', {
+                  expression: buildHumanLazyLoadStartExpression(
+                    args.containerSelector,
+                    args.anchorSelector,
+                    true,
+                    args.frameSelector,
+                  ),
+                  returnByValue: true,
+                  awaitPromise: false,
+                });
+              }
+              const actionResponse = await sendCdp('Runtime.evaluate', {
+                expression: buildScrollExpression(args, true),
+                returnByValue: true,
+                awaitPromise: true,
+              });
+              const action = parseRuntimeValue(actionResponse);
+              if (action && action.success === false) return actionResponse;
+              if (humanLazyLoad) {
+                await sendCdp('Runtime.evaluate', {
+                  expression: buildHumanLazyLoadWaitExpression(args.frameSelector),
+                  returnByValue: true,
+                  awaitPromise: true,
+                });
+              } else if (args.toBottom) {
+                await waitForScrollInterval(BACKGROUND_DOM_SETTLE_WAIT_MS, signal);
+              }
+              after = await measure();
+              if (isZeroBackgroundLayout(after)) {
+                await waitForScrollInterval(BACKGROUND_LAYOUT_RETRY_WAIT_MS, signal);
+                after = await measure();
+              }
+              if (!after) return actionResponse;
+              if (isZeroBackgroundLayout(after)) return backgroundLayoutUnavailable(after);
+              const movedThisRound =
+                before?.scrollTop !== after.scrollTop || before?.scrollLeft !== after.scrollLeft;
+              moved ||= movedThisRound;
+              if (!args.toBottom) break;
+              const atBottom = after.scrollHeight - after.scrollTop - after.clientHeight < 1;
+              noMoveRounds = movedThisRound ? 0 : noMoveRounds + 1;
+              if (!movedThisRound && !atBottom && noMoveRounds >= 2) break;
+              if (atBottom && after.scrollHeight === before?.scrollHeight) {
+                stableBottomRounds += 1;
+                if (stableBottomRounds >= 2) break;
+              } else {
+                stableBottomRounds = 0;
+              }
+              if (Date.now() - startedAt >= MAX_HUMAN_TO_BOTTOM_DURATION_MS) break;
+              before = after;
+            }
+            return { result: { value: JSON.stringify({ ...after, moved }) } };
+          }
+
+          const plan = isHumanToBottom
+            ? getPixelScrollPlan({
+                ...args,
+                amount: Math.abs(args.amount ?? 600),
+                direction: 'down',
+              })
+            : getPixelScrollPlan(args);
+          let after = before;
+          let moved = false;
+          let stableBottomRounds = 0;
+          let noMoveRounds = 0;
+          const startedAt = Date.now();
+          const maxRounds = isHumanToBottom ? MAX_HUMAN_TO_BOTTOM_ROUNDS : 2;
+
+          for (let round = 0; round < maxRounds; round += 1) {
+            if (humanLazyLoad) {
+              await sendCdp('Runtime.evaluate', {
+                expression: buildHumanLazyLoadStartExpression(
+                  args.containerSelector,
+                  args.anchorSelector,
+                  true,
+                  args.frameSelector,
+                ),
+                returnByValue: true,
+                awaitPromise: false,
+              });
+            }
+            let previousEased = 0;
+            for (let step = 0; step < plan.steps; step += 1) {
+              const progress = (step + 1) / plan.steps;
+              const eased = isHumanToBottom ? 1 - (1 - progress) ** 3 : progress;
+              const factor = eased - previousEased;
+              const actionResponse = await sendCdp('Runtime.evaluate', {
+                expression: buildDomScrollStepExpression(
+                  args.containerSelector,
+                  args.anchorSelector,
+                  args.frameSelector,
+                  plan.deltaX * factor,
+                  plan.deltaY * factor,
+                ),
+                returnByValue: true,
+                awaitPromise: true,
+              });
+              const action = parseRuntimeValue(actionResponse);
+              if (action && action.success === false) return actionResponse;
+              previousEased = eased;
+              if (step < plan.steps - 1 && plan.intervalMs > 0) {
+                await waitForScrollInterval(plan.intervalMs, signal);
+              }
+            }
+            if (humanLazyLoad) {
+              await sendCdp('Runtime.evaluate', {
+                expression: buildHumanLazyLoadWaitExpression(args.frameSelector),
+                returnByValue: true,
+                awaitPromise: true,
+              });
+            }
+            after = await measure();
+            if (isZeroBackgroundLayout(after)) {
+              await waitForScrollInterval(BACKGROUND_LAYOUT_RETRY_WAIT_MS, signal);
+              after = await measure();
+            }
+            if (!after)
+              return {
+                result: {
+                  value: JSON.stringify({
+                    success: false,
+                    error: 'Scroll measurement unavailable',
+                  }),
+                },
+              };
+            if (isZeroBackgroundLayout(after)) return backgroundLayoutUnavailable(after!);
+
+            const movedThisRound =
+              before?.scrollTop !== after?.scrollTop || before?.scrollLeft !== after?.scrollLeft;
+            moved ||= movedThisRound;
+            const atBottom = after.scrollHeight - after.scrollTop - after.clientHeight < 1;
+            noMoveRounds = movedThisRound ? 0 : noMoveRounds + 1;
+            if (!isHumanToBottom) {
+              if (movedThisRound || atBottom || noMoveRounds >= 2) break;
+              before = after;
+              continue;
+            }
+            if (!movedThisRound && !atBottom && noMoveRounds >= 2) break;
+            if (atBottom && after.scrollHeight === before?.scrollHeight) {
+              stableBottomRounds += 1;
+              if (stableBottomRounds >= 2) break;
+            } else {
+              stableBottomRounds = 0;
+            }
+            if (Date.now() - startedAt >= MAX_HUMAN_TO_BOTTOM_DURATION_MS) break;
+            before = after;
+          }
+
+          return { result: { value: JSON.stringify({ ...after, moved }) } };
+        }
 
         if (!isPixelScroll) {
           return sendCdp('Runtime.evaluate', {
@@ -545,6 +851,8 @@ class ScrollTool extends BaseBrowserToolExecutor {
               expression: buildHumanLazyLoadStartExpression(
                 args.containerSelector,
                 args.anchorSelector,
+                false,
+                args.frameSelector,
               ),
               returnByValue: true,
               awaitPromise: false,
@@ -571,7 +879,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
 
           if (humanLazyLoad) {
             await sendCdp('Runtime.evaluate', {
-              expression: buildHumanLazyLoadWaitExpression(),
+              expression: buildHumanLazyLoadWaitExpression(args.frameSelector),
               returnByValue: true,
               awaitPromise: true,
             });
@@ -581,6 +889,8 @@ class ScrollTool extends BaseBrowserToolExecutor {
             expression: buildScrollMeasurementExpression(
               args.containerSelector,
               args.anchorSelector,
+              false,
+              args.frameSelector,
             ),
             returnByValue: true,
             awaitPromise: true,
@@ -645,6 +955,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
       const result = JSON.parse(rawValue);
 
       if (!result.success) {
+        if (result.code === 'BACKGROUND_LAYOUT_UNAVAILABLE') return createErrorResponse(rawValue);
         return createErrorResponse(`Scroll failed: ${result.error}`);
       }
 
@@ -654,6 +965,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
           {
             type: 'text',
             text: JSON.stringify({
+              ...(background ? { success: true } : {}),
               target: result.target,
               moved: result.moved,
               scrollTop: result.scrollTop,
@@ -662,6 +974,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
               scrollLeft: result.scrollLeft,
               scrollWidth: result.scrollWidth,
               clientWidth: result.clientWidth,
+              ...(background ? { execution: 'dom-background', background: true } : {}),
               atBottom: result.scrollHeight - result.scrollTop - result.clientHeight < 1,
               atTop: result.scrollTop <= 0,
             }),
@@ -680,7 +993,7 @@ class ScrollTool extends BaseBrowserToolExecutor {
 
 export const scrollTool = new ScrollTool();
 
-function buildScrollStateExpression(params: ScrollStateToolParams): string {
+function buildScrollStateExpression(params: ScrollStateToolParams, background = false): string {
   const framePrelude = params.frameSelector
     ? `const frame = document.querySelector(${JSON.stringify(params.frameSelector)});
        if (!frame) throw new Error('Iframe not found: ${params.frameSelector}');
@@ -691,6 +1004,7 @@ function buildScrollStateExpression(params: ScrollStateToolParams): string {
   const containerExpr = buildScrollContainerExpression(
     params.containerSelector,
     params.anchorSelector,
+    background,
   );
 
   return `(async () => {
@@ -706,6 +1020,7 @@ function buildScrollStateExpression(params: ScrollStateToolParams): string {
         maxY,
         atTop: c.scrollTop <= 0,
         atBottom: c.scrollTop >= maxY,
+        ${background ? 'scrollHeight: c.scrollHeight, clientHeight: c.clientHeight, visibilityState: doc.visibilityState,' : ''}
       });
     } catch (e) {
       return JSON.stringify({ success: false, error: e.message || String(e) });
@@ -716,7 +1031,7 @@ function buildScrollStateExpression(params: ScrollStateToolParams): string {
 class ScrollStateTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.GET_SCROLL_STATE;
 
-  async execute(args: ScrollStateToolParams): Promise<ToolResult> {
+  async execute(args: ScrollStateToolParams, signal?: AbortSignal): Promise<ToolResult> {
     try {
       const tab = args.tabId
         ? await this.tryGetTab(args.tabId)
@@ -728,14 +1043,29 @@ class ScrollStateTool extends BaseBrowserToolExecutor {
           args.tabId ? `Tab ${args.tabId} not found` : 'No active tab found',
         );
 
-      const response = await cdpSessionManager.withSession(tab.id, CDP_SESSION_KEY, () =>
-        cdpSessionManager.sendCommand(tab.id!, 'Runtime.evaluate', {
-          expression: buildScrollStateExpression(args),
-          returnByValue: true,
-          awaitPromise: true,
-          timeout: DEFAULT_TIMEOUT_MS,
-        }),
-      );
+      const background = await resolveBackgroundMode(tab.id, args.background);
+      const response = await cdpSessionManager.withSession(tab.id, CDP_SESSION_KEY, async () => {
+        const evaluate = () =>
+          cdpSessionManager.sendCommand(
+            tab.id!,
+            'Runtime.evaluate',
+            {
+              expression: buildScrollStateExpression(args, background),
+              returnByValue: true,
+              awaitPromise: true,
+            },
+            { timeoutMs: DEFAULT_TIMEOUT_MS, signal },
+          );
+        if (background)
+          await ensureTabRendering(tab.id!, { timeoutMs: DEFAULT_TIMEOUT_MS, signal });
+        let stateResponse = await evaluate();
+        if (background && isZeroBackgroundLayout(parseRuntimeValue(stateResponse))) {
+          await waitForScrollInterval(BACKGROUND_LAYOUT_RETRY_WAIT_MS, signal);
+          await ensureTabRendering(tab.id!, { timeoutMs: DEFAULT_TIMEOUT_MS, signal });
+          stateResponse = await evaluate();
+        }
+        return stateResponse;
+      });
       if (response?.exceptionDetails) {
         return createErrorResponse(
           `Get scroll state failed: ${response.exceptionDetails.text || 'execution failed'}`,
@@ -746,8 +1076,31 @@ class ScrollStateTool extends BaseBrowserToolExecutor {
       }
 
       const result = JSON.parse(response.result.value);
+      if (background && isZeroBackgroundLayout(result)) {
+        return createErrorResponse(
+          JSON.stringify({
+            success: false,
+            code: 'BACKGROUND_LAYOUT_UNAVAILABLE',
+            retryable: true,
+            scrollHeight: result.scrollHeight || 0,
+            clientHeight: result.clientHeight || 0,
+            visibilityState: result.visibilityState || 'hidden',
+          }),
+        );
+      }
       if (!result.success) return createErrorResponse(`Get scroll state failed: ${result.error}`);
-      return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: false };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ...result,
+              ...(background ? { execution: 'dom-background', background: true } : {}),
+            }),
+          },
+        ],
+        isError: false,
+      };
     } catch (error) {
       return createErrorResponse(
         `Get scroll state failed: ${error instanceof Error ? error.message : String(error)}`,

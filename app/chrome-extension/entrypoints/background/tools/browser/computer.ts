@@ -14,6 +14,8 @@ import {
   type ActionMetadata,
   type ActionType,
 } from './gif-recorder';
+import { requireForegroundWindow, resolveBackgroundMode } from './common';
+import { scrollTool } from './scroll';
 
 type MouseButton = 'left' | 'right' | 'middle';
 
@@ -230,6 +232,21 @@ class ComputerTool extends BaseBrowserToolExecutor {
       if (typeof tab.id !== 'number')
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       const needsForeground = params.action === 'type' || params.action === 'key';
+      const needsPixelSurface =
+        needsForeground ||
+        params.action === 'left_click' ||
+        params.action === 'right_click' ||
+        params.action === 'double_click' ||
+        params.action === 'triple_click' ||
+        params.action === 'left_click_drag' ||
+        params.action === 'hover' ||
+        params.action === 'scroll' ||
+        params.action === 'zoom';
+      const backgroundMode = await resolveBackgroundMode(tab.id, params.background);
+      if (needsPixelSurface && !(params.action === 'scroll' && backgroundMode)) {
+        const foregroundError = await requireForegroundWindow(tab.id, `computer:${params.action}`);
+        if (foregroundError) return foregroundError;
+      }
       if (params.background === false || needsForeground) {
         await this.ensureFocus(tab, { activate: true, focusWindow: true });
       }
@@ -343,6 +360,20 @@ class ComputerTool extends BaseBrowserToolExecutor {
   private async executeAction(params: ComputerParams, tab: chrome.tabs.Tab): Promise<ToolResult> {
     if (typeof tab.id !== 'number') {
       return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+    }
+
+    // Scrolling is a DOM capability in background mode. Do not let the
+    // computer tool silently fall back to a coordinate-based wheel event for
+    // minimized windows or an explicit background request.
+    if (params.action === 'scroll' && (await resolveBackgroundMode(tab.id, params.background))) {
+      const direction = params.scrollDirection || 'down';
+      const ticks = Math.max(1, Math.min(params.scrollAmount || 3, 10));
+      return scrollTool.execute({
+        tabId: tab.id,
+        amount: ticks * 100,
+        direction,
+        background: true,
+      });
     }
 
     // Helper to project coordinates using screenshot context when available

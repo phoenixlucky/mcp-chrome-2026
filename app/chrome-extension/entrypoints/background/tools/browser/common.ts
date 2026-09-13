@@ -10,6 +10,93 @@ const DEFAULT_WINDOW_HEIGHT = 720;
 const PAGE_READY_TIMEOUT_MS = 15_000;
 const MAX_PAGE_READY_TIMEOUT_MS = 30_000;
 
+export interface TabRenderingOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
+/** Keep a non-focused tab out of Chrome's frozen lifecycle when DOM work is requested. */
+export async function ensureTabRendering(
+  tabId: number,
+  options: TabRenderingOptions = {},
+): Promise<void> {
+  const cdpOptions = {
+    timeoutMs: options.timeoutMs ?? 10_000,
+    signal: options.signal,
+  };
+  try {
+    await cdpSessionManager.sendCommand(
+      tabId,
+      'Emulation.setFocusEmulationEnabled',
+      { enabled: true },
+      cdpOptions,
+    );
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    console.warn('[BrowserTools] Focus emulation unavailable:', error);
+  }
+  try {
+    await cdpSessionManager.sendCommand(
+      tabId,
+      'Page.setWebLifecycleState',
+      { state: 'active' },
+      cdpOptions,
+    );
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    console.warn('[BrowserTools] Lifecycle activation unavailable:', error);
+  }
+}
+
+/** Explicit mode wins; otherwise only a minimized target window selects DOM scrolling. */
+export async function resolveBackgroundMode(tabId: number, requested?: boolean): Promise<boolean> {
+  if (typeof requested === 'boolean') return requested;
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (typeof tab.windowId !== 'number' || !chrome.windows?.get) return false;
+    const targetWindow = await chrome.windows.get(tab.windowId, { populate: false });
+    return targetWindow.state === 'minimized';
+  } catch {
+    return false;
+  }
+}
+
+/** Pixel/input tools need a real, visible browser surface. Keep this check
+ * centralized so minimized-window failures are explicit and retryable. */
+export async function requireForegroundWindow(
+  tabId: number,
+  capability: string,
+): Promise<ToolResult | null> {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (typeof tab.windowId !== 'number' || !chrome.windows?.get) return null;
+    const targetWindow = await chrome.windows.get(tab.windowId, { populate: false });
+    if (targetWindow.state !== 'minimized') return null;
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            success: false,
+            code: 'FOREGROUND_REQUIRED',
+            retryable: true,
+            capability,
+            tabId,
+            windowId: tab.windowId,
+            windowState: targetWindow.state,
+            message: `${capability} requires a restored browser window`,
+          }),
+        },
+      ],
+      isError: true,
+    };
+  } catch {
+    // Let the caller's normal target/error handling report closed tabs and
+    // unavailable windows; this helper only owns the minimized-state case.
+    return null;
+  }
+}
+
 interface NavigateToolParams {
   url?: string;
   newWindow?: boolean;
@@ -42,21 +129,6 @@ export function getNavigationWaitOptions(args: NavigateToolParams) {
  */
 class NavigateTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.NAVIGATE;
-
-  private async keepTabRendering(tabId: number): Promise<void> {
-    try {
-      await cdpSessionManager.sendCommand(tabId, 'Emulation.setFocusEmulationEnabled', {
-        enabled: true,
-      });
-    } catch (error) {
-      console.warn('[NavigateTool] Focus emulation unavailable:', error);
-    }
-    try {
-      await cdpSessionManager.sendCommand(tabId, 'Page.setWebLifecycleState', { state: 'active' });
-    } catch (error) {
-      console.warn('[NavigateTool] Lifecycle activation unavailable:', error);
-    }
-  }
 
   private waitForNavigationReady(
     tabId: number,
@@ -132,6 +204,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
         // Get target tab (explicit or active in provided window)
         const targetTab = explicit || (await this.getActiveTabOrThrowInWindow(windowId));
         if (!targetTab.id) return createErrorResponse('No target tab found to refresh');
+        if (background === true) await ensureTabRendering(targetTab.id);
         await chrome.tabs.reload(targetTab.id);
         const pageReady = await waitForPage(targetTab.id);
 
@@ -179,6 +252,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
           activate: background !== true || activateTab,
           focusWindow: background !== true,
         });
+        if (background === true) await ensureTabRendering(targetTab.id);
 
         if (url === 'forward') {
           await chrome.tabs.goForward(targetTab.id);
@@ -336,8 +410,8 @@ class NavigateTool extends BaseBrowserToolExecutor {
           activate: background !== true || activateTab,
           focusWindow: background !== true,
         });
-        if (activateTab && typeof existingTab.id === 'number') {
-          await this.keepTabRendering(existingTab.id);
+        if ((background === true || activateTab) && typeof existingTab.id === 'number') {
+          await ensureTabRendering(existingTab.id);
         }
 
         console.log(`Activated existing Tab ID: ${existingTab.id}`);
@@ -385,6 +459,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
           // Trigger auto-capture if the new window has a tab
           const firstTab = newWindow.tabs?.[0];
+          if (background === true && firstTab?.id) await ensureTabRendering(firstTab.id);
           const pageReady = firstTab?.id ? await waitForPage(firstTab.id) : false;
           if (firstTab?.id) {
             await this.triggerAutoCapture(firstTab.id, firstTab.url);
@@ -434,6 +509,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
             await chrome.windows.update(targetWindow.id, { focused: true });
           }
           const pageReady = newTab.id ? await waitForPage(newTab.id) : false;
+          if (background === true && newTab.id) await ensureTabRendering(newTab.id);
 
           console.log(
             `URL opened in new Tab ID: ${newTab.id} in existing Window ID: ${targetWindow.id}`,
@@ -477,6 +553,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
 
             // Trigger auto-capture if fallback window has a tab
             const firstTab = fallbackWindow.tabs?.[0];
+            if (background === true && firstTab?.id) await ensureTabRendering(firstTab.id);
             const pageReady = firstTab?.id ? await waitForPage(firstTab.id) : false;
             if (firstTab?.id) {
               await this.triggerAutoCapture(firstTab.id, firstTab.url);

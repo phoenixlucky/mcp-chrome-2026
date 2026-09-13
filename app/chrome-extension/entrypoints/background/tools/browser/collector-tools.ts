@@ -7,7 +7,11 @@ import { networkDebuggerStartTool, networkDebuggerStopTool } from './network-cap
 import { findAndClickTool } from './review-tools';
 import { extractRecordsFromDom, type Field } from './review-utils';
 import { extractJsonRecords } from './collector-utils';
-import { buildScrollContainerExpression } from './scroll';
+import { buildScrollContainerExpression, scrollTool } from './scroll';
+import { ensureTabRendering, resolveBackgroundMode } from './common';
+
+const COLLECTOR_CDP_TIMEOUT_MS = 10_000;
+const BACKGROUND_LAYOUT_RETRY_WAIT_MS = 400;
 
 type Target = { tabId?: number; windowId?: number; frameSelector?: string };
 type Candidate = { selector?: string; text?: string; role?: string; type?: 'css' | 'xpath' };
@@ -24,6 +28,7 @@ type CollectionScroll = {
   settleMs?: number;
   stalledLimit?: number;
   rescanUp?: boolean;
+  background?: boolean;
   containerSelector?: string;
   anchorSelector?: string;
 };
@@ -59,9 +64,12 @@ type CollectionArgs = Target & {
   scroll?: CollectionScroll;
   stopWhen?: CollectionStopWhen;
   state?: CollectionState;
+  background?: boolean;
 };
 
 type ScrollSnapshot = {
+  success?: boolean;
+  error?: string;
   top: number;
   max: number;
   atTop: boolean;
@@ -72,6 +80,7 @@ type ScrollSnapshot = {
   cardSample: string;
   busy: boolean;
   target: string;
+  visibilityState?: string;
 };
 
 function clampInteger(value: unknown, fallback: number, min: number, max: number): number {
@@ -136,13 +145,22 @@ abstract class CollectorTool extends BaseBrowserToolExecutor {
     return tab;
   }
 
-  protected async evaluate(tabId: number, expression: string): Promise<unknown> {
+  protected async evaluate(
+    tabId: number,
+    expression: string,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
     const response = await cdpSessionManager.withSession(tabId, 'collector-tools', () =>
-      cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-        expression,
-        returnByValue: true,
-        awaitPromise: true,
-      }),
+      cdpSessionManager.sendCommand(
+        tabId,
+        'Runtime.evaluate',
+        {
+          expression,
+          returnByValue: true,
+          awaitPromise: true,
+        },
+        { timeoutMs: COLLECTOR_CDP_TIMEOUT_MS, signal },
+      ),
     );
     if (response?.exceptionDetails)
       throw new Error(response.exceptionDetails.text || 'page_evaluation_failed');
@@ -164,6 +182,11 @@ class CollectVirtualListTool extends CollectorTool {
     try {
       const tab = await this.resolveTab(args);
       const tabId = tab.id!;
+      const background = await resolveBackgroundMode(
+        tabId,
+        args.background ?? args.scroll?.background,
+      );
+      if (background) await ensureTabRendering(tabId, { signal });
       const root = 'doc';
       const maxItems = clampInteger(args.maxItems, 100, 1, 10_000);
       const maxDurationMs = clampInteger(args.maxDurationMs, 120_000, 1_000, 600_000);
@@ -182,7 +205,11 @@ class CollectVirtualListTool extends CollectorTool {
       const containerSelector = collectionContainerSelector(args);
       const anchorSelector = collectionAnchorSelector(args);
       const prelude = framePrelude(args.frameSelector);
-      const containerExpr = buildScrollContainerExpression(containerSelector, anchorSelector);
+      const containerExpr = buildScrollContainerExpression(
+        containerSelector,
+        anchorSelector,
+        background,
+      );
       const seen = new Set(args.state?.seenIds || []);
       const items = partialItems;
       const batches: Record<string, unknown>[][] = [];
@@ -206,7 +233,7 @@ class CollectVirtualListTool extends CollectorTool {
               const c = ${containerExpr};
               if (!c) return { success: false, error: 'Scroll container not found' };
               const cards = Array.from(doc.querySelectorAll(${JSON.stringify(args.cardSelector)}));
-              const top = c === doc.scrollingElement ? win.scrollY : c.scrollTop;
+              const top = c.scrollTop;
               const max = Math.max(0, c.scrollHeight - c.clientHeight);
               const sample = cards.slice(0, 4).map(el =>
                 (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 240)
@@ -223,12 +250,14 @@ class CollectVirtualListTool extends CollectorTool {
                 cardCount: cards.length,
                 cardSample: sample,
                 busy,
+                visibilityState: doc.visibilityState,
                 target: c === doc.scrollingElement ? 'document.scrollingElement' : c.id ? '#' + c.id : c.tagName.toLowerCase(),
               };
             } catch (e) {
               return { success: false, error: e.message || String(e) };
             }
           })()`,
+          signal,
         )) as ScrollSnapshot;
 
       const restoreScroll = async (value: number) => {
@@ -240,27 +269,14 @@ class CollectVirtualListTool extends CollectorTool {
             if (!c) return false;
             const max = Math.max(0, c.scrollHeight - c.clientHeight);
             const top = Math.max(0, Math.min(max, ${JSON.stringify(value)}));
-            if (c === doc.scrollingElement) win.scrollTo(0, top);
-            else c.scrollTop = top;
+            c.scrollTop = top;
             return true;
           })()`,
+          signal,
         );
       };
 
-      const scrollBy = async (direction: 1 | -1) =>
-        this.evaluate(
-          tabId,
-          `(async () => {
-            ${prelude}
-            const c = ${containerExpr};
-            if (!c) return false;
-            const delta = ${direction * step};
-            if (c === doc.scrollingElement) win.scrollBy(0, delta);
-            else if (typeof c.scrollBy === 'function') c.scrollBy({ top: delta, behavior: 'auto' });
-            else c.scrollTop += delta;
-            return true;
-          })()`,
-        );
+      let scrollFailure: Record<string, unknown> | null = null;
 
       const waitForStable = async (initial: ScrollSnapshot): Promise<ScrollSnapshot> => {
         await sleep(waitMs);
@@ -390,7 +406,23 @@ class CollectVirtualListTool extends CollectorTool {
           if (stopReason) return `stop:${stopReason}`;
           scrollY = before.top;
           if ((direction > 0 && before.atBottom) || (direction < 0 && before.atTop)) return 'edge';
-          await scrollBy(direction);
+          const scrollResult = await scrollTool.execute(
+            {
+              tabId,
+              amount: step,
+              direction: direction > 0 ? 'down' : 'up',
+              containerSelector,
+              anchorSelector,
+              frameSelector: args.frameSelector,
+              background,
+            },
+            signal,
+          );
+          const scrollPayload = parseResult(scrollResult);
+          if (scrollResult.isError || scrollPayload.success === false) {
+            scrollFailure = scrollPayload;
+            return 'failed';
+          }
           const after = await waitForStable(before);
           if (!after || (after as any).success === false) return 'failed';
           scrollY = after.top;
@@ -429,7 +461,37 @@ class CollectVirtualListTool extends CollectorTool {
         return 'stalled';
       };
 
-      const initial = await snapshot();
+      let initial = await snapshot();
+      if (
+        background &&
+        initial?.success &&
+        initial.top === 0 &&
+        initial.scrollHeight === 0 &&
+        initial.clientHeight === 0
+      ) {
+        await sleep(BACKGROUND_LAYOUT_RETRY_WAIT_MS);
+        await ensureTabRendering(tabId, { signal });
+        const retried = await snapshot();
+        if (
+          retried?.success &&
+          retried.top === 0 &&
+          retried.scrollHeight === 0 &&
+          retried.clientHeight === 0
+        ) {
+          return result(
+            {
+              success: false,
+              code: 'BACKGROUND_LAYOUT_UNAVAILABLE',
+              retryable: true,
+              scrollHeight: 0,
+              clientHeight: 0,
+              visibilityState: retried.visibilityState || 'hidden',
+            },
+            true,
+          );
+        }
+        initial = retried;
+      }
       if (!initial || (initial as any).success === false) {
         throw new Error((initial as any)?.error || 'scroll_state_failed');
       }
@@ -463,6 +525,17 @@ class CollectVirtualListTool extends CollectorTool {
                 : down === 'edge' || up === 'edge'
                   ? 'end'
                   : 'stalled');
+      const failure = scrollFailure as Record<string, unknown> | null;
+      if (failure?.code === 'BACKGROUND_LAYOUT_UNAVAILABLE') {
+        return result(
+          {
+            ...failure,
+            items: items.slice(0, maxItems),
+            partial: items.length > 0,
+          },
+          true,
+        );
+      }
       return result({
         success: stopReason !== 'failed',
         items: items.slice(0, maxItems),
@@ -904,6 +977,7 @@ type ExtractThreadArgs = Target & {
   maxScrolls?: number;
   waitMs?: number;
   stopWhen?: { type?: 'textMatch' | 'selector'; pattern?: string; selector?: string };
+  background?: boolean;
 };
 
 class ExtractThreadTool extends CollectorTool {
@@ -1010,10 +1084,18 @@ class ExtractThreadTool extends CollectorTool {
           await sleep(waitMs);
           continue;
         }
-        await this.evaluate(
-          tabId,
-          `(async () => { ${framePrelude(args.frameSelector)} const root = doc.querySelector(${JSON.stringify(args.rootSelector)}); const container = root && root.scrollHeight > root.clientHeight + 1 ? root : (doc.scrollingElement || doc.documentElement); if (container === doc.scrollingElement || container === doc.documentElement) win.scrollBy(0, Math.max(200, Math.floor(win.innerHeight * 0.8))); else container.scrollBy ? container.scrollBy({ top: Math.max(200, Math.floor(container.clientHeight * 0.8)), behavior: 'auto' }) : container.scrollTop += Math.max(200, Math.floor(container.clientHeight * 0.8)); return true; })()`,
+        const scrollResult = await scrollTool.execute(
+          {
+            tabId,
+            amount: 800,
+            direction: 'down',
+            anchorSelector: args.itemSelector,
+            background: args.background !== false,
+            frameSelector: args.frameSelector,
+          },
+          signal,
         );
+        if (scrollResult.isError) throw new Error('scroll_failed');
         await sleep(waitMs);
         void reportProgress?.({
           phase: 'scrolling',

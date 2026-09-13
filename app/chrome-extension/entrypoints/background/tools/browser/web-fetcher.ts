@@ -7,6 +7,7 @@ import {
 } from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
+import { ensureTabRendering } from './common';
 
 const WEB_FETCHER_SCRIPT = 'inject-scripts/web-fetcher-helper.js';
 const ERROR_PAGE_RECOVERY_DELAYS_MS = [1_000, 2_000] as const;
@@ -130,6 +131,10 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
         return createErrorResponse('Tab has no ID');
       }
       const tabId = tab.id;
+
+      if (background) {
+        await ensureTabRendering(tabId);
+      }
 
       if (tab.status === 'loading') {
         tab = await this.waitForTabReady(tabId);

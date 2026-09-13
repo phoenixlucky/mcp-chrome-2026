@@ -202,7 +202,13 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         progressEverySteps: { type: 'number' },
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
-        scroll: { type: 'object' },
+        background: { type: 'boolean', description: 'Force background DOM scrolling.' },
+        scroll: {
+          type: 'object',
+          properties: {
+            background: { type: 'boolean', description: 'Use background DOM scrolling.' },
+          },
+        },
         stopWhen: {
           type: 'object',
           description:
@@ -272,6 +278,10 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           description: 'Window used to resolve the active tab when tabId is omitted.',
         },
         frameSelector: { type: 'string', description: 'Optional same-origin iframe CSS selector.' },
+        background: {
+          type: 'boolean',
+          description: 'Use background DOM scrolling; defaults to it when omitted.',
+        },
       },
       required: ['rootSelector', 'itemSelector', 'fields'],
     },
@@ -295,7 +305,13 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         progressEverySteps: { type: 'number' },
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
-        scroll: { type: 'object' },
+        background: { type: 'boolean', description: 'Force background DOM scrolling.' },
+        scroll: {
+          type: 'object',
+          properties: {
+            background: { type: 'boolean', description: 'Use background DOM scrolling.' },
+          },
+        },
         stopWhen: {
           type: 'object',
           description:
@@ -388,6 +404,11 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
+        background: {
+          type: 'boolean',
+          description:
+            'Use DOM clicking without foreground activation; omitted auto-detects minimized windows.',
+        },
       },
       required: ['candidates'],
     },
@@ -422,6 +443,11 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
+        background: {
+          type: 'boolean',
+          description:
+            'Use DOM expansion without foreground activation; omitted auto-detects minimized windows.',
+        },
       },
       required: ['contentSelector'],
     },
@@ -442,6 +468,10 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
+        background: {
+          type: 'boolean',
+          description: 'Use background DOM scrolling; enabled by default.',
+        },
       },
       required: ['targetSelector'],
     },
@@ -1052,7 +1082,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            'Avoid focusing/activating tab/window for certain operations (best-effort). Default: true; set false only when foreground interaction is required.',
+            'Background scroll uses DOM + CDP Runtime without restoring the window; clicks, drags, hover, keyboard, and zoom still require a visible foreground window. Default: true; set false for foreground interaction.',
         },
         action: {
           type: 'string',
@@ -1553,6 +1583,11 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           description:
             'Capture only this tab. When stopping, only this tab is stopped; no other capture is affected.',
         },
+        background: {
+          type: 'boolean',
+          description:
+            'Do not activate the tab or focus its window while resolving the capture target.',
+        },
       },
       required: ['action'],
     },
@@ -1856,6 +1891,7 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
+        background: { type: 'boolean', description: 'Use background DOM scrolling.' },
       },
       required: ['cardSelector', 'checkboxSelector'],
     },
@@ -2625,6 +2661,11 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
           type: 'number',
           description: 'Target window ID to pick active tab from (when tabId is omitted).',
         },
+        background: {
+          type: 'boolean',
+          description:
+            'Use background DOM state reading. true forces it; omitted auto-detects minimized windows.',
+        },
       },
       required: [],
     },
@@ -2719,6 +2760,11 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         windowId: {
           type: 'number',
           description: 'Target window ID to pick active tab from (when tabId is omitted).',
+        },
+        background: {
+          type: 'boolean',
+          description:
+            'Use background DOM scrolling. true forces it; omitted auto-detects minimized windows; false keeps real mouse-wheel input.',
         },
       },
       required: [],

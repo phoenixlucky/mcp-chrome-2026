@@ -51,6 +51,7 @@ interface NetworkCaptureStartToolParams {
   maxCaptureTime?: number; // Maximum capture time (milliseconds)
   inactivityTimeout?: number; // Inactivity timeout (milliseconds)
   includeStatic?: boolean; // Whether to include static resources
+  background?: boolean; // Do not activate/focus when resolving a URL
 }
 
 interface NetworkRequestInfo {

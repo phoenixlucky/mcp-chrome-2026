@@ -44,6 +44,13 @@ if (typeof globalThis.chrome === 'undefined') {
       onCreated: { addListener: vi.fn(), removeListener: vi.fn() },
       onUpdated: { addListener: vi.fn(), removeListener: vi.fn() },
     },
+    windows: {
+      get: vi.fn().mockResolvedValue({ state: 'normal' }),
+      getLastFocused: vi.fn().mockResolvedValue({ id: 1, state: 'normal' }),
+      getAll: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({ id: 1 }),
+      update: vi.fn().mockResolvedValue({}),
+    },
     webRequest: {
       onBeforeRequest: { addListener: vi.fn(), removeListener: vi.fn() },
       onCompleted: { addListener: vi.fn(), removeListener: vi.fn() },

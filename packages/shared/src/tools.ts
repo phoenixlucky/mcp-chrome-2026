@@ -180,7 +180,11 @@ export const TOOL_SCHEMAS: Tool[] = [
         progressEverySteps: { type: 'number' },
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
-        scroll: { type: 'object' },
+        background: { type: 'boolean', description: '是否强制使用后台 DOM 滚动。' },
+        scroll: {
+          type: 'object',
+          properties: { background: { type: 'boolean', description: '是否使用后台 DOM 滚动。' } },
+        },
         stopWhen: {
           type: 'object',
           description:
@@ -234,6 +238,10 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前活动标签页。' },
         windowId: { type: 'number', description: '省略 tabId 时用于选择活动标签页的窗口 ID。' },
         frameSelector: { type: 'string', description: '可选的同源 iframe CSS 选择器。' },
+        background: {
+          type: 'boolean',
+          description: '是否使用后台 DOM 滚动；省略时默认使用后台滚动。',
+        },
       },
       required: ['rootSelector', 'itemSelector', 'fields'],
     },
@@ -257,7 +265,11 @@ export const TOOL_SCHEMAS: Tool[] = [
         progressEverySteps: { type: 'number' },
         containerSelector: { type: 'string' },
         anchorSelector: { type: 'string' },
-        scroll: { type: 'object' },
+        background: { type: 'boolean', description: '是否强制使用后台 DOM 滚动。' },
+        scroll: {
+          type: 'object',
+          properties: { background: { type: 'boolean', description: '是否使用后台 DOM 滚动。' } },
+        },
         stopWhen: {
           type: 'object',
           description:
@@ -350,6 +362,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
+        background: { type: 'boolean', description: '后台 DOM 点击；省略时最小化窗口自动启用。' },
       },
       required: ['candidates'],
     },
@@ -378,6 +391,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
+        background: { type: 'boolean', description: '后台 DOM 展开；省略时最小化窗口自动启用。' },
       },
       required: ['contentSelector'],
     },
@@ -398,6 +412,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         tabId: { type: 'number' },
         windowId: { type: 'number' },
         frameSelector: { type: 'string' },
+        background: { type: 'boolean', description: '使用后台 DOM 滚动；默认启用。' },
       },
       required: ['targetSelector'],
     },
@@ -979,7 +994,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         background: {
           type: 'boolean',
           description:
-            '对某些操作尽量避免聚焦/激活标签页或窗口（尽力而为）。默认 true；仅当需要前台交互时才设为 false。',
+            '后台滚动会使用 DOM + CDP Runtime，不恢复窗口；点击、拖拽、hover、键盘和缩放仍需要可见前台窗口。默认 true；需要真实前台交互时设为 false。',
         },
         action: {
           type: 'string',
@@ -1460,6 +1475,10 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'number',
           description: '仅采集此标签页。停止时只停止此标签页，不影响其他采集。',
         },
+        background: {
+          type: 'boolean',
+          description: '解析 URL 或启动 Debugger 采集时不激活标签页或聚焦窗口。',
+        },
       },
       required: ['action'],
     },
@@ -1765,6 +1784,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         restoreScroll: { type: 'boolean', description: '完成后是否恢复原滚动位置，默认 false。' },
         tabId: { type: 'number' },
         windowId: { type: 'number' },
+        background: { type: 'boolean', description: '是否使用后台 DOM 滚动。' },
       },
       required: ['cardSelector', 'checkboxSelector'],
     },
@@ -2502,6 +2522,10 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'number',
           description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
         },
+        background: {
+          type: 'boolean',
+          description: '后台 DOM 状态读取。true 强制启用；省略时最小化窗口自动启用。',
+        },
       },
       required: [],
     },
@@ -2591,6 +2615,11 @@ export const TOOL_SCHEMAS: Tool[] = [
         windowId: {
           type: 'number',
           description: '省略 tabId 时用于选取激活标签页的目标窗口 ID。',
+        },
+        background: {
+          type: 'boolean',
+          description:
+            '后台 DOM 滚动。true 强制启用；省略时最小化窗口自动启用；false 保持真实鼠标滚轮。',
         },
       },
       required: [],

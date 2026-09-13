@@ -5,6 +5,7 @@ import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
 import { listMarkersForUrl } from '@/entrypoints/background/element-marker/element-marker-storage';
 import { ContentScriptMessageTimeoutError, createExecutionUnknownResponse } from '../base-browser';
+import { requireForegroundWindow } from './common';
 
 interface Coordinates {
   x: number;
@@ -100,6 +101,10 @@ class ClickTool extends BaseBrowserToolExecutor {
       const tab = await this.resolveTargetTab(args.tabId, args.windowId);
       if (typeof tab.id !== 'number') {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+      }
+      if (coordinates) {
+        const foregroundError = await requireForegroundWindow(tab.id, 'click:coordinates');
+        if (foregroundError) return foregroundError;
       }
 
       const marker = await findMarkerForTab(tab, args.markerId, args.markerName);

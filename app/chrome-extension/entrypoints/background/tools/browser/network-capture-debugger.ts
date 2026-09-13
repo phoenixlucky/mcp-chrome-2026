@@ -10,6 +10,7 @@ interface NetworkDebuggerStartToolParams {
   maxCaptureTime?: number;
   inactivityTimeout?: number; // Inactivity timeout (milliseconds)
   includeStatic?: boolean; // if include static resources
+  background?: boolean; // Do not activate/focus when resolving a URL
 }
 
 // Network request object interface
@@ -778,6 +779,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
       maxCaptureTime = DEFAULT_MAX_CAPTURE_TIME_MS,
       inactivityTimeout = DEFAULT_INACTIVITY_TIMEOUT_MS,
       includeStatic = false,
+      background = false,
     } = args;
 
     console.log(
@@ -795,11 +797,13 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         }); // More specific query
         if (existingTabs.length > 0 && existingTabs[0]?.id) {
           tabToOperateOn = existingTabs[0];
-          // Ensure window gets focus and tab is truly activated
-          await chrome.windows.update(tabToOperateOn.windowId, { focused: true });
-          await chrome.tabs.update(tabToOperateOn.id!, { active: true });
+          if (!background) {
+            // Ensure window gets focus and tab is truly activated
+            await chrome.windows.update(tabToOperateOn.windowId, { focused: true });
+            await chrome.tabs.update(tabToOperateOn.id!, { active: true });
+          }
         } else {
-          tabToOperateOn = await chrome.tabs.create({ url: targetUrl, active: true });
+          tabToOperateOn = await chrome.tabs.create({ url: targetUrl, active: !background });
           // Wait for tab to be somewhat ready. A better way is to listen to tabs.onUpdated status='complete'
           // but for debugger attachment, it just needs the tabId.
           await new Promise((resolve) => setTimeout(resolve, 500)); // Short delay
@@ -846,6 +850,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
               maxCaptureTime,
               inactivityTimeout,
               includeStatic,
+              background,
               maxRequests: NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE,
             }),
           },

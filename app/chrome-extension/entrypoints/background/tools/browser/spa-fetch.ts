@@ -13,6 +13,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { cdpSessionManager } from '@/utils/cdp-session-manager';
+import { scrollStateTool, scrollTool } from './scroll';
 
 // ============================================================================
 // Constants
@@ -84,7 +85,7 @@ interface SpaFetchParams {
 class SpaFetchTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.SPA_FETCH;
 
-  async execute(args: SpaFetchParams): Promise<ToolResult> {
+  async execute(args: SpaFetchParams, signal?: AbortSignal): Promise<ToolResult> {
     const {
       url,
       maxScrolls = DEFAULT_MAX_SCROLLS,
@@ -132,10 +133,15 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
       }
 
       // ── Step 2: Wait for page to render ──────────────────────────
-      await this.waitForPageRender(tab.id, waitForSelector, waitTimeout);
+      await this.waitForPageRender(tab.id, waitForSelector, waitTimeout, signal);
 
       // ── Step 3: Scroll to trigger lazy content loading ────────────
-      const scrollsPerformed = await this.scrollToLoadContent(tab.id, maxScrolls, scrollDelay);
+      const scrollsPerformed = await this.scrollToLoadContent(
+        tab.id,
+        maxScrolls,
+        scrollDelay,
+        signal,
+      );
 
       // ── Step 4: Inject content script & extract text ──────────────
       await this.injectContentScript(tab.id, ['inject-scripts/web-fetcher-helper.js']);
@@ -209,6 +215,7 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
     tabId: number,
     waitForSelector?: string,
     waitTimeout = DEFAULT_WAIT_TIMEOUT_MS,
+    signal?: AbortSignal,
   ): Promise<void> {
     if (waitForSelector) {
       const start = Date.now();
@@ -216,6 +223,7 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
         const found = await this.cdpEval(
           tabId,
           `document.querySelector(${JSON.stringify(waitForSelector)}) !== null`,
+          signal,
         );
         if (found === true) return;
         await this.delay(POLL_INTERVAL_MS);
@@ -230,6 +238,7 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
       const ready = await this.cdpEval(
         tabId,
         'document.body !== null && document.readyState === "complete"',
+        signal,
       );
       if (ready === true) break;
       await this.delay(300);
@@ -247,50 +256,31 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
     tabId: number,
     maxScrolls: number,
     scrollDelay: number,
+    signal?: AbortSignal,
   ): Promise<number> {
     let scrolls = 0;
 
     for (let i = 0; i < maxScrolls; i++) {
-      // Check if we're already at the bottom (skip check on first pass)
-      if (i > 0) {
-        const atBottom = await this.cdpEval(
-          tabId,
-          `(() => {
-            const d = document.scrollingElement || document.documentElement || document.body;
-            return d ? (d.scrollHeight - d.scrollTop - d.clientHeight <= 50) : true;
-          })()`,
-        );
-        if (atBottom === true) break;
-      }
-
-      // Scroll down by a step
-      await this.cdpEval(
-        tabId,
-        `(() => {
-          const d = document.scrollingElement || document.documentElement || document.body;
-          if (d) {
-            const target = Math.min(d.scrollTop + ${SCROLL_STEP_PX}, d.scrollHeight - d.clientHeight);
-            d.scrollTop = target;
-          }
-        })()`,
+      const scrollResult = await scrollTool.execute(
+        { tabId, amount: SCROLL_STEP_PX, direction: 'down', background: true },
+        signal,
       );
-
+      if (scrollResult.isError) break;
       scrolls++;
-
-      // Wait for lazy content to load
       await this.delay(scrollDelay);
       await this.delay(POST_SCROLL_STABILIZE_MS);
+      const state = await scrollStateTool.execute({ tabId, background: true }, signal);
+      const stateText = state.content.find((item) => item.type === 'text') as
+        { text?: string } | undefined;
+      const stateValue = stateText?.text ? JSON.parse(stateText.text) : null;
+      if (stateValue?.atBottom) break;
     }
 
-    // One final scroll-to-bottom
-    await this.cdpEval(
-      tabId,
-      `(() => {
-        const d = document.scrollingElement || document.documentElement || document.body;
-        if (d) d.scrollTop = d.scrollHeight;
-      })()`,
+    const finalScroll = await scrollTool.execute(
+      { tabId, toBottom: true, background: true },
+      signal,
     );
-    await this.delay(POST_SCROLL_STABILIZE_MS);
+    if (!finalScroll.isError) await this.delay(POST_SCROLL_STABILIZE_MS);
 
     return scrolls;
   }
@@ -298,15 +288,15 @@ class SpaFetchTool extends BaseBrowserToolExecutor {
   /**
    * Evaluate a JS expression in the page via CDP Runtime.evaluate.
    */
-  private async cdpEval(tabId: number, expression: string): Promise<any> {
+  private async cdpEval(tabId: number, expression: string, signal?: AbortSignal): Promise<any> {
     try {
       const response = await cdpSessionManager.withSession(tabId, CDP_SESSION_KEY, () =>
-        cdpSessionManager.sendCommand(tabId, 'Runtime.evaluate', {
-          expression,
-          returnByValue: true,
-          awaitPromise: true,
-          timeout: 5_000,
-        }),
+        cdpSessionManager.sendCommand(
+          tabId,
+          'Runtime.evaluate',
+          { expression, returnByValue: true, awaitPromise: true },
+          { timeoutMs: 5_000, signal },
+        ),
       );
       if (response?.exceptionDetails) {
         return null;
