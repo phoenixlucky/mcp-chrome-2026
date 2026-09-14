@@ -19,6 +19,7 @@ describe('page tools', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     chromeApi.tabs.get.mockResolvedValue({ id: 7, windowId: 3, url: 'https://example.com' });
+    chromeApi.windows.get.mockResolvedValue({ id: 3, state: 'normal' });
     chromeApi.debugger.getTargets.mockResolvedValue([]);
     chromeApi.debugger.attach.mockResolvedValue(undefined);
     chromeApi.debugger.detach.mockResolvedValue(undefined);
@@ -64,6 +65,36 @@ describe('page tools', () => {
       { type: 'mouseMoved', x: 20, y: 30, button: 'none' },
     );
     expect(resultValue(result)).toMatchObject({ success: true, selector: '#menu' });
+  });
+
+  it('hovers a CSS-selected element through the DOM helper in a minimized window', async () => {
+    chromeApi.windows.get.mockResolvedValue({ id: 3, state: 'minimized' });
+    const inject = vi.spyOn(hoverTool as any, 'injectContentScript').mockResolvedValue(undefined);
+    const send = vi
+      .spyOn(hoverTool as any, 'sendMessageToTabWithRetry')
+      .mockImplementation(async (_tabId: any, message: any) => {
+        if (message.action === 'locateElement') {
+          return { success: true, ref: 'ref_menu', point: { x: 20, y: 30 } };
+        }
+        return {
+          success: true,
+          target: { tagName: 'BUTTON' },
+          point: { x: 20, y: 30 },
+        };
+      });
+
+    const result = await hoverTool.execute({ tabId: 7, selector: '#menu', durationMs: 0 });
+
+    expect(resultValue(result)).toMatchObject({
+      success: true,
+      selector: '#menu',
+      transport: 'dom-ref',
+      x: 20,
+      y: 30,
+    });
+    expect(inject).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(chromeApi.debugger.sendCommand).not.toHaveBeenCalled();
   });
 
   it('returns element info and prints a PDF through CDP', async () => {

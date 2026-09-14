@@ -2,7 +2,8 @@ import { createErrorResponse, type ToolResult } from '@/common/tool-handler';
 import { cdpSessionManager } from '@/utils/cdp-session-manager';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { BaseBrowserToolExecutor, getNonInjectablePageReason } from '../base-browser';
-import { requireForegroundWindow } from './common';
+import { requireForegroundWindow, resolveBackgroundMode } from './common';
+import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
 type Target = { tabId?: number; windowId?: number };
 type SelectorType = 'css' | 'xpath';
@@ -103,6 +104,51 @@ class CreateTabTool extends BaseBrowserToolExecutor {
 class HoverTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.HOVER;
 
+  private async domHover(
+    tabId: number,
+    target: { selector: string; selectorType: SelectorType },
+    durationMs: number,
+  ): Promise<ToolResult> {
+    const helper = ['inject-scripts/accessibility-tree-helper.js'];
+    await this.injectContentScript(tabId, helper, false, 'ISOLATED', false);
+    const located = await this.sendMessageToTabWithRetry(
+      tabId,
+      {
+        action: 'locateElement',
+        selector: target.selector,
+        selectorType: target.selectorType,
+        scrollIntoView: true,
+        highlight: false,
+      },
+      helper,
+    );
+    if (!located?.success || typeof located.ref !== 'string') {
+      return createErrorResponse(located?.error || 'Element not found');
+    }
+
+    const hovered = await this.sendMessageToTabWithRetry(
+      tabId,
+      { action: TOOL_MESSAGE_TYPES.DISPATCH_HOVER_FOR_REF, ref: located.ref },
+      helper,
+    );
+    if (!hovered?.success) {
+      return createErrorResponse(hovered?.error || 'DOM hover failed');
+    }
+    if (durationMs > 0) await new Promise((resolve) => setTimeout(resolve, durationMs));
+
+    const point = hovered.point || located.point || located.center;
+    return json({
+      success: true,
+      tabId,
+      selector: target.selector,
+      selectorType: target.selectorType,
+      tagName: hovered.target?.tagName || located.tagName,
+      ...(point && { x: point.x, y: point.y }),
+      durationMs,
+      transport: 'dom-ref',
+    });
+  }
+
   async execute(
     args: Target & { selector?: string; selectorType?: SelectorType; durationMs?: number } = {},
   ): Promise<ToolResult> {
@@ -110,6 +156,18 @@ class HoverTool extends BaseBrowserToolExecutor {
     if (!target) return createErrorResponse('selector is required');
     const tab = await this.resolveTargetTab(args.tabId, args.windowId);
     if (typeof tab.id !== 'number') return createErrorResponse('Target tab not found');
+    const durationMs =
+      typeof args.durationMs === 'number' && Number.isFinite(args.durationMs)
+        ? Math.min(Math.max(args.durationMs, 0), 10_000)
+        : 250;
+    if (await resolveBackgroundMode(tab.id)) {
+      try {
+        return await this.domHover(tab.id, target, durationMs);
+      } catch (error) {
+        return createErrorResponse(error instanceof Error ? error.message : String(error));
+      }
+    }
+
     const foregroundError = await requireForegroundWindow(tab.id, 'hover');
     if (foregroundError) return foregroundError;
 
@@ -139,10 +197,6 @@ class HoverTool extends BaseBrowserToolExecutor {
           button: 'none',
         }),
       );
-      const durationMs =
-        typeof args.durationMs === 'number' && Number.isFinite(args.durationMs)
-          ? Math.min(Math.max(args.durationMs, 0), 10_000)
-          : 250;
       if (durationMs > 0) await new Promise((resolve) => setTimeout(resolve, durationMs));
       return json({
         success: true,

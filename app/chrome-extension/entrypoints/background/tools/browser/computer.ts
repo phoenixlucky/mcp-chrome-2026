@@ -232,6 +232,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
       if (typeof tab.id !== 'number')
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       const needsForeground = params.action === 'type' || params.action === 'key';
+      const hasDomHoverTarget = params.action === 'hover' && (!!params.ref || !!params.selector);
       const needsPixelSurface =
         needsForeground ||
         params.action === 'left_click' ||
@@ -239,7 +240,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
         params.action === 'double_click' ||
         params.action === 'triple_click' ||
         params.action === 'left_click_drag' ||
-        params.action === 'hover' ||
+        (params.action === 'hover' && !hasDomHoverTarget) ||
         params.action === 'scroll' ||
         params.action === 'zoom';
       const backgroundMode = await resolveBackgroundMode(tab.id, params.background);
@@ -253,7 +254,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
 
       // Execute the action and capture frame on success
       const result = await this.addTargetFeedback(
-        await this.executeAction(params, tab),
+        await this.executeAction(params, tab, backgroundMode),
         tab,
         needsForeground,
       );
@@ -323,7 +324,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
   private async locateInteractionTarget(
     tabId: number,
     target: Pick<ComputerParams, 'ref' | 'selector' | 'selectorType' | 'frameId'>,
-  ): Promise<{ center: Coordinates; resolvedBy?: string }> {
+  ): Promise<{ center: Coordinates; resolvedBy?: string; ref?: string }> {
     if (!target.ref && !target.selector) {
       throw new Error('Provide ref or selector for element interaction');
     }
@@ -354,10 +355,18 @@ class ComputerTool extends BaseBrowserToolExecutor {
       throw new Error(located?.error || 'Element not found');
     }
 
-    return { center: { x: point.x, y: point.y }, resolvedBy: located.resolvedBy };
+    return {
+      center: { x: point.x, y: point.y },
+      resolvedBy: located.resolvedBy,
+      ref: typeof located.ref === 'string' ? located.ref : undefined,
+    };
   }
 
-  private async executeAction(params: ComputerParams, tab: chrome.tabs.Tab): Promise<ToolResult> {
+  private async executeAction(
+    params: ComputerParams,
+    tab: chrome.tabs.Tab,
+    backgroundMode = false,
+  ): Promise<ToolResult> {
     if (typeof tab.id !== 'number') {
       return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
     }
@@ -436,6 +445,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
         // Resolve target point from ref | selector | coordinates
         let coord: Coordinates | undefined = undefined;
         let resolvedBy: 'ref' | 'selector' | 'coordinates' | undefined;
+        let targetRef: string | undefined;
         let resolutionError: string | undefined;
 
         try {
@@ -443,6 +453,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
             const located = await this.locateInteractionTarget(tab.id, params);
             coord = project(located.center);
             resolvedBy = params.ref ? 'ref' : 'selector';
+            targetRef = located.ref || params.ref;
           } else if (params.coordinates) {
             coord = project(params.coordinates);
             resolvedBy = 'coordinates';
@@ -476,6 +487,10 @@ class ComputerTool extends BaseBrowserToolExecutor {
             return null;
           })();
           if (stale) return stale;
+        }
+
+        if (backgroundMode && resolvedBy !== 'coordinates') {
+          return await this.domHoverFallback(tab.id, coord, resolvedBy, targetRef);
         }
 
         try {
@@ -1418,6 +1433,8 @@ class ComputerTool extends BaseBrowserToolExecutor {
     resolvedBy?: 'ref' | 'selector' | 'coordinates',
     ref?: string,
   ): Promise<ToolResult> {
+    let refError: string | undefined;
+
     // Try ref-based approach first (handles iframes correctly)
     if (ref) {
       try {
@@ -1442,14 +1459,16 @@ class ComputerTool extends BaseBrowserToolExecutor {
             isError: false,
           };
         }
+        refError = resp?.error || 'DOM ref hover failed';
       } catch (error) {
+        refError = error instanceof Error ? error.message : String(error);
         console.warn('[ComputerTool] DOM ref hover failed, falling back to coordinates', error);
       }
     }
 
     // Fallback to coordinate-based approach
     if (!coord) {
-      return createErrorResponse('Hover fallback requires coordinates or ref');
+      return createErrorResponse(refError || 'Hover fallback requires coordinates or ref');
     }
 
     try {
@@ -1490,7 +1509,7 @@ class ComputerTool extends BaseBrowserToolExecutor {
 
       const payload = injection?.result;
       if (!payload?.success) {
-        return createErrorResponse(payload?.error || 'DOM hover fallback failed');
+        return createErrorResponse(refError || payload?.error || 'DOM hover fallback failed');
       }
 
       return {
@@ -1511,7 +1530,8 @@ class ComputerTool extends BaseBrowserToolExecutor {
       };
     } catch (error) {
       return createErrorResponse(
-        `DOM hover fallback failed: ${error instanceof Error ? error.message : String(error)}`,
+        refError ||
+          `DOM hover fallback failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
