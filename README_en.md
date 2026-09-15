@@ -110,7 +110,10 @@
 
 ### 1️⃣ Install the Chrome Extension
 
-Download `chrome-mcp-server-*.zip` from the [Releases page](https://github.com/phoenixlucky/mcp-chrome-2026/releases).
+Download the [Chrome extension package][extension-v2.7.6] from the [v2.7.6 Release][release-v2.7.6].
+
+[release-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.7.6
+[extension-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-server-2.7.6-chrome.zip
 
 Open `chrome://extensions/` → enable **Developer mode** → drag & drop the `.zip` to install.
 

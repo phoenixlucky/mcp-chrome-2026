@@ -111,7 +111,10 @@
 
 ### 1️⃣ 安装 Chrome 扩展
 
-从 [Releases 页面](https://github.com/phoenixlucky/mcp-chrome-2026/releases) 下载 `chrome-mcp-server-*.zip`。
+从 [v2.7.6 Release][release-v2.7.6] 下载 [Chrome 插件包][extension-v2.7.6]。
+
+[release-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.7.6
+[extension-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-server-2.7.6-chrome.zip
 
 打开 `chrome://extensions/` → 开启 **开发者模式** → 拖入 `.zip` 安装。
 
