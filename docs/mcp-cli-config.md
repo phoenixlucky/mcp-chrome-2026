@@ -66,7 +66,7 @@ Add the following to your `~/.claude/claude_desktop_config.json`:
 }
 ```
 
-### Option 2: Native Stdio Server (No extra bridge)
+### Option 2: Native Stdio Server (recommended for clients that launch commands)
 
 If you prefer stdio-based MCP communication:
 
@@ -74,7 +74,8 @@ If you prefer stdio-based MCP communication:
 {
   "mcpServers": {
     "chrome-mcp": {
-      "command": "mcp-chrome-stdio",
+      "command": "mcp-chrome-bridge",
+      "args": ["--stdio"],
       "env": {
         "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp-new"
       }
@@ -83,7 +84,16 @@ If you prefer stdio-based MCP communication:
 }
 ```
 
-The native stdio entry point uses the shared transport layer: it prefers `/mcp-new`, falls back to `/mcp`, and shares deadline, cancellation, retry, error mapping, and framing behavior. No separate `mcp-bridge.js` is required. Add `CHROME_MCP_API_KEY` to `env` when the HTTP server is protected.
+The native stdio entry point uses the shared transport layer: it prefers `/mcp-new`, falls back to `/mcp`, and shares deadline, cancellation, retry, error mapping, and framing behavior. It automatically starts a local standalone HTTP bridge when the configured loopback port is not already serving, then reuses an existing service when available. No separate `mcp-bridge.js` is required. Add `CHROME_MCP_API_KEY` to `env` when the HTTP server is protected.
+
+The following equivalent commands are also supported:
+
+```bash
+mcp-chrome-bridge stdio
+mcp-chrome-stdio
+```
+
+Set `CHROME_MCP_AUTOSTART_SERVER=0` to require the HTTP service to be started separately.
 
 ## Verifying Connection
 
@@ -130,6 +140,7 @@ If port 12306 is already in use:
 | `MCP_SERVER_URL`                    | Streamable HTTP endpoint used by the native stdio client | `http://127.0.0.1:12306/mcp-new` |
 | `MCP_SERVER_ORIGIN`                 | Origin sent by the native stdio client                   | `chrome-extension://mcp-stdio`   |
 | `CHROME_MCP_API_KEY`                | Bearer key forwarded to the HTTP MCP server              | (none)                           |
+| `CHROME_MCP_AUTOSTART_SERVER`       | Auto-start local HTTP bridge for STDIO (`0` disables)    | enabled                          |
 | `CHROME_MCP_ALLOWED_ORIGINS`        | Exact comma-separated HTTP Origin allowlist              | (none)                           |
 | `CHROME_MCP_EXTENSION_ID`           | Exact Chrome extension ID                                | (none)                           |
 | `CHROME_MCP_MAX_HTTP_BODY_BYTES`    | Maximum HTTP request body size                           | 8 MiB                            |

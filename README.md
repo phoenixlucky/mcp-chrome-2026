@@ -85,6 +85,32 @@
   </table>
 </p>
 
+## 🖥️ Windows 桌面客户端
+
+`chrome-mcp-desktop-2.7.6-win-x64.exe` 是随项目发布的 Windows 便携版桌面管理器（Tauri 2 + Vue）。它内置桥接运行时，双击即可启动或复用本机的 Chrome MCP 服务，不需要单独安装 Node.js；Chrome 扩展仍需按上面的步骤先安装并连接。
+
+![Chrome MCP Bridge Windows 桌面客户端](screenshots/desktop-client.webp)
+
+### 下载与使用
+
+1. 从 [v2.7.6 Release][release-v2.7.6] 下载 [`chrome-mcp-desktop-2.7.6-win-x64.exe`][desktop-v2.7.6]，将文件放到可写目录后直接双击运行。
+2. 客户端会自动启动或复用 `http://127.0.0.1:12306` 上的本机桥接服务；如果状态显示“等待连接”，请确认 Chrome 扩展已加载并点击扩展中的连接按钮。
+3. 在控制台中可查看服务状态、Chrome 扩展连接、Native Host 连接、MCP 会话、可用工具、运行中的任务、服务入口和错误诊断；点击“刷新状态”或“健康检查”可重新探测。
+4. 关闭窗口会将客户端最小化到系统托盘。托盘菜单可以重新显示客户端、立即健康检查，或选择“退出客户端（停止服务）”彻底退出并停止由客户端拥有的服务。
+
+桌面客户端使用以下 MCP 入口，客户端配置方式与其他安装方式相同：
+
+| 入口                      | 地址或配置                                               |
+| ------------------------- | -------------------------------------------------------- |
+| Streamable HTTP（兼容版） | `http://127.0.0.1:12306/mcp`                             |
+| Streamable HTTP（无会话） | `http://127.0.0.1:12306/mcp-new`                         |
+| SSE（旧版）               | `http://127.0.0.1:12306/sse`                             |
+| STDIO                     | 使用独立的 `chrome-mcp-bridge-2.7.6-win-x64.exe --stdio` |
+
+> 注意：`chrome-mcp-desktop-2.7.6-win-x64.exe` 是图形化管理客户端，不要把它直接作为 STDIO MCP `command`。需要 STDIO 时，请使用桥接运行时 EXE 并传入 `--stdio`；需要管理服务时再打开桌面客户端。
+
+[desktop-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-desktop-2.7.6-win-x64.exe
+
 ## ✨ 核心特性
 
 |                                                                     |                                                                    |                                                              |                                                                   |
@@ -109,110 +135,53 @@
 
 ## 🚀 5 分钟上手
 
+> 第一次使用？按下面的 1 → 4 做完即可。Windows 用户推荐使用桌面客户端；macOS / Linux 用户或习惯命令行的用户可以使用 Node.js 方式。
+
 ### 1️⃣ 安装 Chrome 扩展
 
-从 [v2.7.6 Release][release-v2.7.6] 下载 [Chrome 插件包][extension-v2.7.6]。
+1. 从 [v2.7.6 Release][release-v2.7.6] 下载 [Chrome 插件包][extension-v2.7.6]。
+2. 解压下载的 `.zip` 文件。
+3. 在 Chrome 地址栏打开 `chrome://extensions/`，开启右上角的 **开发者模式**。
+4. 点击 **加载已解压的扩展程序**，选择刚才解压出来的文件夹。
+5. 点击浏览器工具栏中的 Chrome MCP 图标，再点击 **连接**。
+
+看到扩展显示已连接后，保持 Chrome 开着，继续下一步。
 
 [release-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.7.6
 [extension-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-server-2.7.6-chrome.zip
 
-打开 `chrome://extensions/` → 开启 **开发者模式** → 拖入 `.zip` 安装。
+### 2️⃣ 启动本地服务（二选一）
 
-### 2️⃣ 安装 Native Host
+#### Windows：使用桌面客户端（推荐）
+
+1. 下载 [`chrome-mcp-desktop-2.7.6-win-x64.exe`][desktop-v2.7.6]。
+2. 双击 EXE 文件，客户端会自动启动或复用本机服务。
+3. 打开客户端后，看到“服务状态：运行中”和“Chrome 扩展：已连接”即可。
+
+桌面客户端是便携版，不需要安装 Node.js。它还可以查看 MCP 会话、工具调用、运行任务和错误诊断。关闭窗口不会停止服务，而是缩到系统托盘。
+
+#### macOS / Linux 或命令行：使用 Node.js
+
+先安装 Node.js 24 或更高版本，然后在终端执行：
 
 ```bash
-# npm（推荐，自动注册）
 npm install -g --allow-scripts=@ethanwilkins/mcp-chrome-bridge-2026 @ethanwilkins/mcp-chrome-bridge-2026
-
-# pnpm
-pnpm install -g @ethanwilkins/mcp-chrome-bridge-2026
-```
-
-> `postinstall` 自动注册 Native Messaging Host。如需手动注册：`mcp-chrome-bridge register`
-
-> 上面的 npm 命令会允许桥接器执行本次安装所需的脚本（`better-sqlite3` 自 v13 起自带 N-API 预编译二进制，不再需要执行安装脚本）。如果希望以后自动允许桥接器，可先执行：
->
-> ```bash
-> npm config set allow-scripts="@ethanwilkins/mcp-chrome-bridge-2026" --location=user
-> ```
-
-### 3️⃣ 启动服务
-
-```bash
-# 一键启动（推荐）
 mcp-chrome-bridge start
-
-# 或克隆仓库后用脚本
-# Windows
-start-server.bat
-
-# macOS / Linux
-bash start-server.sh
 ```
 
-服务默认使用 `http://127.0.0.1:12306/mcp-new`；同时保留 `/mcp` 兼容端点、旧 SSE 和 STDIO 入口。
+npm 安装完成后会自动注册 Chrome 需要的 Native Host。服务启动后默认监听 `http://127.0.0.1:12306`。
 
-### Windows 开发者：一键打包便携版 EXE
+> Windows 用户如果已经使用桌面客户端，就不要再重复执行 Node.js 安装和启动命令；两种方式选一种即可。
 
-在仓库根目录双击 `package-windows.bat`。脚本会自动读取根 `package.json` 的版本并生成：
+### 3️⃣ 把 MCP 服务添加到 AI 客户端
+
+在 Claude、Cherry Studio、Cursor 等 AI 客户端的 MCP 设置中，新增一个服务器，选择 **Streamable HTTP**（有些客户端写作 `streamableHttp`），填写：
 
 ```text
-releases/chrome-mcp-bridge-<版本>-win-x64.exe
+地址：http://127.0.0.1:12306/mcp
 ```
 
-主程序版本更新后无需修改 BAT；打包前会自动检查所有子包版本是否一致。
-
-### 可选：保护 HTTP MCP 端点
-
-默认保持本机免认证，便于直接使用。需要保护 HTTP / SSE 端点时，在启动服务前设置：
-
-```powershell
-$env:CHROME_MCP_API_KEY = "replace-with-a-long-random-key"
-mcp-chrome-bridge start
-```
-
-客户端发送 `Authorization: Bearer <key>`（或 `x-api-key`）即可；STDIO 代理会读取同一个环境变量并自动转发 Bearer token。
-
-需要收紧浏览器来源时，可配置精确的扩展 ID 或逗号分隔的 Origin 白名单；调试控制接口默认关闭：
-
-```powershell
-$env:CHROME_MCP_EXTENSION_ID = "abcdefghijklmnopabcdefghijklmnop"
-$env:CHROME_MCP_ALLOWED_ORIGINS = "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
-# 仅在本地诊断时开启 start/stop 控制接口
-$env:CHROME_MCP_ENABLE_DEBUG_ENDPOINTS = "1"
-```
-
-HTTP 请求体默认限制为 8 MiB，可用 `CHROME_MCP_MAX_HTTP_BODY_BYTES` 调整；Artifact 的单文件、总目录和 TTL 限制沿用对应的 `CHROME_MCP_MAX_ARTIFACT_*` / `CHROME_MCP_ARTIFACT_TTL_MS` 配置。
-
-### 工具并发和队列上限
-
-为避免多个任务同时操作浏览器造成积压，服务端默认最多并行执行 8 个工具调用，最多排队 64 个。可按机器性能调整：
-
-```powershell
-$env:CHROME_MCP_MAX_CONCURRENT_TOOLS = "8"
-$env:CHROME_MCP_MAX_QUEUED_TOOLS = "64"
-mcp-chrome-bridge start
-```
-
-当前占用和排队数量可通过 `http://127.0.0.1:12306/status` 的 `toolAdmission` 查看。
-
-### 工具权限范围与高风险审批
-
-可用逗号分隔的工具名或简单前缀通配符（例如 `flow.*`）限制 MCP 客户端能发现和调用的工具：
-
-```powershell
-$env:CHROME_MCP_ALLOWED_TOOLS = "chrome_read_page,chrome_get_tab_url,flow.*"
-$env:CHROME_MCP_REQUIRE_APPROVAL = "true"
-$env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
-```
-
-`CHROME_MCP_REQUIRE_APPROVAL=true` 时，`chrome_javascript`、`chrome_userscript`、写入/发布/文件上传、Profile 管理和 `flow.*` 等高风险工具必须同时出现在 `CHROME_MCP_APPROVED_TOOLS` 中；未通过范围或审批的工具不会出现在 `tools/list`，调用也会被拒绝。未配置这些变量时保持现有兼容行为。
-
-没有 `Origin` 的 HTTP MCP 请求必须携带有效 API Key；带 Origin 的请求只接受本机或扩展 Origin。
-
-### 4️⃣ 配置客户端
-
-**Streamable HTTP（兼容版，推荐用于现有客户端）**
+如果客户端需要 JSON 配置，可以直接使用：
 
 ```json
 {
@@ -225,9 +194,34 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 }
 ```
 
-**Streamable HTTP（尝鲜版）**
+如果客户端只支持 STDIO，请使用桥接运行时，不要使用图形化桌面客户端：
 
-新版 MCP 2026-07-28 无会话端点，地址为 `http://127.0.0.1:12306/mcp-new`。它针对本机通信链路进行了低延迟优化，响应更快；在轻量请求场景下，响应时间可达 **50ms 以内**：
+```json
+{
+  "mcpServers": {
+    "chrome-mcp-bridge": {
+      "command": "D:\\path\\chrome-mcp-bridge-2.7.6-win-x64.exe",
+      "args": ["--stdio"]
+    }
+  }
+}
+```
+
+### 4️⃣ 检查是否成功
+
+1. 回到 AI 客户端，刷新 MCP 服务器或重新打开会话。
+2. 看到 Chrome MCP 的工具列表（例如 `chrome_get_tab_url`、`chrome_screenshot`）就说明连接成功。
+3. 发送一句简单的测试指令：
+
+   > 请读取我当前 Chrome 标签页的标题和网址。
+
+如果桌面客户端显示“等待连接”，先检查 Chrome 扩展是否已点击 **连接**；也可以在浏览器打开 `http://127.0.0.1:12306/status?probe=1` 查看状态。
+
+### 进阶配置（第一次使用可以先跳过）
+
+#### 更快的无会话接口
+
+支持新版 MCP 2026-07-28 的客户端可以使用：
 
 ```json
 {
@@ -240,50 +234,67 @@ $env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
 }
 ```
 
-完整的请求头、`_meta` 结构和调试示例见 [`/mcp-new` 接口说明](docs/MCP_NEW_zh.md)。
+该接口按请求工作，不保存会话，轻量请求响应可达 **50ms 以内**。完整的请求头、`_meta` 结构和调试示例见 [`/mcp-new` 接口说明](docs/MCP_NEW_zh.md)。如果客户端不能自定义 `Origin` 等新版协议字段，请继续使用上面的 `/mcp`。
 
-**SSE（旧版 MCP）**
+#### 旧版 SSE 客户端
 
-需要旧 SSE 协议的客户端继续使用：
+需要旧 SSE 协议的客户端使用：
 
 - SSE 地址：`http://127.0.0.1:12306/sse`
 - 消息地址：`http://127.0.0.1:12306/messages?sessionId=...`
 
-**STDIO（无需额外桥接器）**
+#### STDIO 的其他启动方式
 
-```json
-{
-  "mcpServers": {
-    "chrome-mcp-stdio": {
-      "command": "mcp-chrome-stdio",
-      "env": {
-        "MCP_SERVER_URL": "http://127.0.0.1:12306/mcp-new"
-      }
-    }
-  }
-}
+安装 npm 包后，也可以直接运行：
+
+```bash
+mcp-chrome-bridge stdio
 ```
 
-`mcp-chrome-stdio` 使用统一传输层，优先连接 `/mcp-new`，失败时回退到 `/mcp`；同时统一处理 JSON-RPC、deadline、取消、重试和错误映射。STDIO framing 同时接受 newline JSON 与 `Content-Length`。如果服务启用了 API Key，在同一段 `env` 中加入 `CHROME_MCP_API_KEY` 即可。
+`mcp-chrome-bridge --stdio` 会优先连接 `/mcp-new`，失败时回退到 `/mcp`；如果本机服务尚未启动，会自动启动并复用本地服务。如需强制服务由外部进程启动，可设置 `CHROME_MCP_AUTOSTART_SERVER=0`。旧入口 `mcp-chrome-stdio` 仍然兼容。
 
-如果使用便携版 Windows EXE 作为 MCP 客户端的 `command`，请传入 `--stdio`：
+#### Windows 开发者：打包便携版 EXE
 
-```json
-{
-  "mcpServers": {
-    "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.6.11-win-x64.exe",
-      "args": ["--stdio"]
-    }
-  }
-}
+在仓库根目录双击 `package-desktop-windows.bat`，按提示选择 Desktop client。脚本会检查版本一致性，并生成：
+
+```text
+releases/chrome-mcp-desktop-<版本>-win-x64.exe
 ```
 
-`--stdio` 会自动启动或复用本机的 MCP HTTP 服务。直接双击 EXE 会打开常驻的桌面管理器：窗口关闭会最小化到系统托盘，插件连接后管理器只显示状态，不会退出或与 Native Host 抢占 `12306`。不要把不带参数的 EXE 直接当作 stdio MCP 服务调用；需要 stdio 时请使用 `--stdio`。
+如果只需要桥接运行时，也可以使用 `package-windows.bat` 生成 `chrome-mcp-bridge-<版本>-win-x64.exe`。
 
-桌面管理器提供服务状态、Chrome 扩展连接、Native Host 连接、MCP 会话数、工具数和健康检查。点击“停止服务”只暂停桥接服务并保留本机控制通道，点击“启动服务”即可恢复；托盘菜单中的“退出客户端（停止服务）”会停止服务并关闭管理器。若端口尚未监听，请先确认 Chrome 扩展已加载，扩展会自动启动 Native Host。
+#### 保护 HTTP MCP 端点
 
-便携版排障可访问 `http://127.0.0.1:12306/status?probe=1`：`nativeHost.connected` 表示 Native Messaging 握手，`probe.ok` 表示桥接服务已经实际收到 Chrome 回包；仅 `/ping` 正常不能证明 Chrome 已接管。
+默认仅监听本机且不需要 API Key。需要保护 HTTP / SSE 端点时，在启动服务前设置：
+
+```powershell
+$env:CHROME_MCP_API_KEY = "replace-with-a-long-random-key"
+mcp-chrome-bridge start
+```
+
+客户端发送 `Authorization: Bearer <key>`（或 `x-api-key`）即可；STDIO 代理会读取同一个环境变量并自动转发 Bearer token。没有 `Origin` 的 HTTP MCP 请求必须携带有效 API Key。
+
+#### 并发和工具权限
+
+服务默认最多同时执行 8 个工具调用，最多排队 64 个。可按机器性能调整：
+
+```powershell
+$env:CHROME_MCP_MAX_CONCURRENT_TOOLS = "8"
+$env:CHROME_MCP_MAX_QUEUED_TOOLS = "64"
+mcp-chrome-bridge start
+```
+
+也可以限制客户端能看到的工具，并要求高风险工具审批：
+
+```powershell
+$env:CHROME_MCP_ALLOWED_TOOLS = "chrome_read_page,chrome_get_tab_url,flow.*"
+$env:CHROME_MCP_REQUIRE_APPROVAL = "true"
+$env:CHROME_MCP_APPROVED_TOOLS = "flow.checkout"
+```
+
+`CHROME_MCP_REQUIRE_APPROVAL=true` 时，JavaScript 执行、写入/发布、文件上传、Profile 管理和 `flow.*` 等高风险工具必须同时出现在审批清单中。未配置这些变量时保持现有兼容行为。
+
+更多高级环境变量（扩展 ID、Origin 白名单、请求体大小和 Artifact 限制）见 [故障排除指南](docs/TROUBLESHOOTING_zh.md)。
 
 ---
 

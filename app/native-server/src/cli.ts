@@ -18,8 +18,11 @@ import server from './server';
 import nativeHost from './native-messaging-host';
 
 program
+  .name('mcp-chrome-bridge')
   .version(require('../package.json').version)
-  .description('Mcp Chrome Bridge - Local service for communicating with Chrome extension');
+  .description('Chrome MCP Bridge - local service and MCP entry point for AI clients')
+  .option('--stdio', 'Run as an MCP server over STDIO')
+  .option('--mcp-stdio', 'Alias for --stdio');
 
 // Register Native Messaging host
 program
@@ -273,7 +276,36 @@ program
     }
   });
 
-program.parse(process.argv);
+// Run the same MCP STDIO entry point through the main CLI as well. This makes
+// the package easier to configure in clients that only support one command
+// entry and keeps mcp-chrome-stdio as a backwards-compatible alias.
+program
+  .command('stdio')
+  .description('Run as an MCP server over STDIO for AI clients')
+  .action(async () => {
+    try {
+      const { runStdioServer } = await import('./mcp/mcp-server-stdio.js');
+      await runStdioServer();
+    } catch (error: any) {
+      console.error(`Failed to start MCP STDIO server: ${error?.message || error}`);
+      process.exit(1);
+    }
+  });
+
+const stdioFlag = process.argv
+  .slice(2)
+  .some((argument) => ['--stdio', '--mcp-stdio'].includes(argument));
+
+if (stdioFlag) {
+  import('./mcp/mcp-server-stdio.js')
+    .then(({ runStdioServer }) => runStdioServer())
+    .catch((error) => {
+      console.error(`Failed to start MCP STDIO server: ${error?.message || error}`);
+      process.exit(1);
+    });
+} else {
+  program.parse(process.argv);
+}
 
 // If no command provided, show help
 if (!process.argv.slice(2).length) {

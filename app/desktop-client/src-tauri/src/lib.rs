@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
 
@@ -145,6 +145,47 @@ fn show_main_window(app: &AppHandle) {
         let _ = window.unminimize();
         let _ = window.set_focus();
     }
+}
+
+fn tray_status(response: &BridgeResponse) -> (String, bool, bool, bool) {
+    let Some(data) = response.data.as_ref() else {
+        return ("状态：服务未连接".into(), true, false, false);
+    };
+    let running = data
+        .get("server")
+        .and_then(|server| server.get("serviceRunning"))
+        .and_then(Value::as_bool);
+    let connected = data
+        .get("nativeHost")
+        .and_then(|native| native.get("connected"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
+    match running {
+        Some(false) => ("状态：服务已停止".into(), true, false, false),
+        Some(true) if connected => ("状态：运行中 · Chrome 已连接".into(), false, true, true),
+        Some(true) => ("状态：运行中 · 等待 Chrome".into(), false, true, true),
+        None => ("状态：服务未连接".into(), true, false, false),
+    }
+}
+
+fn refresh_tray_menu(
+    port: u16,
+    status: &MenuItem<tauri::Wry>,
+    start: &MenuItem<tauri::Wry>,
+    stop: &MenuItem<tauri::Wry>,
+    restart: &MenuItem<tauri::Wry>,
+) {
+    let response = request_json(port, "GET", "/status");
+    let (label, start_enabled, stop_enabled, restart_enabled) = if response.ok {
+        tray_status(&response)
+    } else {
+        ("状态：服务未连接".into(), true, false, false)
+    };
+    let _ = status.set_text(label);
+    let _ = start.set_enabled(start_enabled);
+    let _ = stop.set_enabled(stop_enabled);
+    let _ = restart.set_enabled(restart_enabled);
 }
 
 #[tauri::command]
@@ -303,20 +344,88 @@ pub fn run() {
             open_log
         ])
         .setup(|app| {
-            let show = MenuItem::with_id(app, "show", "显示客户端", true, None::<&str>)?;
-            let health = MenuItem::with_id(app, "health", "立即健康检查", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出客户端（停止服务）", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &health, &quit])?;
+            let status = MenuItem::with_id(app, "status", "状态：正在读取…", false, None::<&str>)?;
+            let show = MenuItem::with_id(app, "show", "打开客户端", true, None::<&str>)?;
+            let start = MenuItem::with_id(app, "start", "启动 MCP 服务", true, None::<&str>)?;
+            let stop = MenuItem::with_id(app, "stop", "停止 MCP 服务", false, None::<&str>)?;
+            let restart = MenuItem::with_id(app, "restart", "重启 MCP 服务", true, None::<&str>)?;
+            let health = MenuItem::with_id(app, "health", "检查 Chrome 连接", true, None::<&str>)?;
+            let log = MenuItem::with_id(app, "log", "打开运行日志", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "退出客户端并停止服务", true, None::<&str>)?;
+            let separator = PredefinedMenuItem::separator(app)?;
+            let separator_before_quit = PredefinedMenuItem::separator(app)?;
+            let menu = Menu::with_items(
+                app,
+                &[
+                    &status,
+                    &separator,
+                    &show,
+                    &start,
+                    &stop,
+                    &restart,
+                    &health,
+                    &log,
+                    &separator_before_quit,
+                    &quit,
+                ],
+            )?;
             let icon = tauri::image::Image::from_bytes(ICON_BYTES)?;
+
+            let menu_status = status.clone();
+            let menu_start = start.clone();
+            let menu_stop = stop.clone();
+            let menu_restart = restart.clone();
+            let tray_status_item = status.clone();
+            let tray_start_item = start.clone();
+            let tray_stop_item = stop.clone();
+            let tray_restart_item = restart.clone();
             TrayIconBuilder::new()
                 .icon(icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id().as_ref() {
+                .on_menu_event(move |app, event| match event.id().as_ref() {
+                    "status" => {}
                     "show" => show_main_window(app),
+                    "start" => {
+                        let state = app.state::<BridgeState>();
+                        let _ = request_json(state.port, "POST", "/__chrome_mcp_bridge/start");
+                        refresh_tray_menu(
+                            state.port,
+                            &menu_status,
+                            &menu_start,
+                            &menu_stop,
+                            &menu_restart,
+                        );
+                    }
+                    "stop" => {
+                        let state = app.state::<BridgeState>();
+                        let _ = request_json(state.port, "POST", "/__chrome_mcp_bridge/stop");
+                        refresh_tray_menu(
+                            state.port,
+                            &menu_status,
+                            &menu_start,
+                            &menu_stop,
+                            &menu_restart,
+                        );
+                    }
+                    "restart" => {
+                        let state = app.state::<BridgeState>();
+                        let _ = request_json(state.port, "POST", "/__chrome_mcp_bridge/stop");
+                        let _ = request_json(state.port, "POST", "/__chrome_mcp_bridge/start");
+                        refresh_tray_menu(
+                            state.port,
+                            &menu_status,
+                            &menu_start,
+                            &menu_stop,
+                            &menu_restart,
+                        );
+                    }
                     "health" => {
                         show_main_window(app);
                         let _ = app.emit("tray-health-check", ());
+                    }
+                    "log" => {
+                        let _ = open_log();
                     }
                     "quit" => {
                         let state = app.state::<BridgeState>();
@@ -326,15 +435,28 @@ pub fn run() {
                     }
                     _ => {}
                 })
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
+                .on_tray_icon_event(move |tray, event| match event {
+                    TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
-                    } = event
-                    {
-                        show_main_window(tray.app_handle());
+                    } => show_main_window(tray.app_handle()),
+                    TrayIconEvent::Click {
+                        button: MouseButton::Right,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } => {
+                        let state = tray.app_handle().state::<BridgeState>();
+                        let port = state.port;
+                        let status = tray_status_item.clone();
+                        let start = tray_start_item.clone();
+                        let stop = tray_stop_item.clone();
+                        let restart = tray_restart_item.clone();
+                        std::thread::spawn(move || {
+                            refresh_tray_menu(port, &status, &start, &stop, &restart)
+                        });
                     }
+                    _ => {}
                 })
                 .build(app)?;
             Ok(())
