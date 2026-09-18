@@ -393,13 +393,26 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
   function dispatchClickEvent(element, base) {
     try {
       if (base.button === 0 && typeof element.click === 'function') {
-        element.click();
-        return;
+        // Element-marker's capture listener intentionally consumes user clicks
+        // while selecting. Mark validation clicks so that listener lets the
+        // page's own handler/default action run normally.
+        window.__elementMarkerValidationBypass = true;
+        try {
+          element.click();
+          return;
+        } finally {
+          window.__elementMarkerValidationBypass = false;
+        }
       }
     } catch {}
     try {
-      element.dispatchEvent(new MouseEvent('click', base));
-    } catch {}
+      const event = new MouseEvent('click', base);
+      Object.defineProperty(event, '__elementMarkerValidation', { value: true });
+      element.dispatchEvent(event);
+    } catch {
+    } finally {
+      window.__elementMarkerValidationBypass = false;
+    }
   }
 
   /**

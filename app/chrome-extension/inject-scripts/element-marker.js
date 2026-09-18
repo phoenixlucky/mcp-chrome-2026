@@ -286,6 +286,25 @@
         font-size: 11px;
       }
 
+      .em-copy-element-text-btn {
+        flex: 0 0 auto;
+        min-width: 132px;
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid #d4d4d4;
+        border-radius: 6px;
+        background: #f5f5f5;
+        color: #404040;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 150ms ease;
+      }
+
+      .em-copy-element-text-btn:hover {
+        border-color: #a3a3a3;
+        background: #e5e5e5;
+      }
+
       .em-nav-btn {
         width: 28px;
         height: 28px;
@@ -917,6 +936,9 @@
             <input type="checkbox" id="__em_replay_click" />
             <span>标记后触发页面点击</span>
           </label>
+          <button class="em-copy-element-text-btn" id="__em_copy_element_text" type="button">
+            获取该元素文本
+          </button>
           <span class="em-behavior-hint">用于打开弹窗/下拉</span>
         </div>
 
@@ -1707,9 +1729,16 @@
     if (!parent) return generateSelector(target);
 
     const parentSel = generateSelector(parent);
-    return parentSel
-      ? `${parentSel} > ${selected.tagName.toLowerCase()}`
-      : generateSelector(target);
+    if (!parentSel) return generateSelector(target);
+
+    // The repeated container is usually a row, while the selected element is
+    // a descendant such as a button or switch. Keep the row unindexed and
+    // append the selected element's relative path so every row is matched.
+    const relative =
+      selected !== target && selected.contains(target)
+        ? buildPathFromAncestor(selected, target)
+        : '';
+    return `${parentSel} > ${selected.tagName.toLowerCase()}${relative ? ` > ${relative}` : ''}`;
   }
 
   function generateListXPath(target) {
@@ -1718,7 +1747,29 @@
     const parent = selected.parentElement;
     if (!parent) return generateXPath(target);
 
-    return `${generateXPath(parent, { skipText: true })}/${selected.tagName.toLowerCase()}`;
+    const parentXPath = generateXPath(parent, { skipText: true });
+    if (!parentXPath) return generateXPath(target);
+    const relative =
+      selected !== target && selected.contains(target)
+        ? buildXPathPathFromAncestor(selected, target)
+        : '';
+    return `${parentXPath}/${selected.tagName.toLowerCase()}${relative ? `/${relative}` : ''}`;
+  }
+
+  function buildXPathPathFromAncestor(ancestor, target) {
+    const parts = [];
+    let current = target;
+    while (current && current !== ancestor && current.nodeType === 1) {
+      const tag = current.tagName.toLowerCase();
+      let index = 1;
+      let sibling = current;
+      while ((sibling = sibling.previousElementSibling)) {
+        if (sibling.tagName.toLowerCase() === tag) index += 1;
+      }
+      parts.unshift(`${tag}[${index}]`);
+      current = current.parentElement;
+    }
+    return parts.join('/');
   }
 
   function getAccessibleName(el) {
@@ -1837,6 +1888,37 @@
     }
   }
 
+  // List mode groups repeated containers (for example table rows), while the
+  // user usually selected a descendant inside that container. Resolve the
+  // same descendant in every repeated container for preview and execution.
+  function resolveListTargets(target, containers = null) {
+    if (!(target instanceof Element)) return [];
+
+    const list =
+      Array.isArray(containers) && containers.length ? containers : computeElementList(target);
+    if (!Array.isArray(list) || list.length === 0) return [target];
+
+    const container = list[0];
+    if (!(container instanceof Element) || !container.contains(target) || container === target) {
+      return list.filter((item) => item instanceof Element);
+    }
+
+    const relative = buildPathFromAncestor(container, target);
+    if (!relative) return [target];
+
+    const resolved = list
+      .map((item) => {
+        try {
+          return item instanceof Element ? item.querySelector(relative) : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter((item) => item instanceof Element);
+
+    return resolved.length === list.length ? resolved : [target];
+  }
+
   // ============================================================================
   // Deep Query (Shadow DOM Support)
   // ============================================================================
@@ -1939,6 +2021,7 @@
     active: false,
     hoverEl: null,
     selectedEl: null,
+    selectedElements: [],
     box: null,
     highlighter: null,
     listenersAttached: false,
@@ -2292,7 +2375,7 @@
 
     if (!IS_MAIN) {
       try {
-        const list = listMode ? computeElementList(target) || [target] : [target];
+        const list = listMode ? resolveListTargets(target) : [target];
         const rects = list.map((el) => {
           const r = el.getBoundingClientRect();
           return { x: r.left, y: r.top, width: r.width, height: r.height };
@@ -2305,7 +2388,7 @@
     }
 
     if (listMode) {
-      STATE.hoveredList = computeElementList(target) || [target];
+      STATE.hoveredList = resolveListTargets(target);
       drawRects(STATE.hoveredList);
     } else {
       moveHighlighterTo(target);
@@ -2429,6 +2512,11 @@
 
     if (ev?.__elementMarkerReplay || STATE.replayingClick) return;
 
+    // Validation clicks are generated by the extension and must reach the
+    // page's own handlers/default actions. Only user selection clicks remain
+    // consumed by the marker.
+    if (ev?.__elementMarkerValidation || window.__elementMarkerValidationBypass) return;
+
     // If another picker owns the page, let its listener receive the native click.
     if (isExternalPickerActive()) return;
 
@@ -2522,6 +2610,26 @@
     return target || candidates[0] || null;
   }
 
+  function findBoxSelectionTargets(rect) {
+    const fullyContained = Array.from(document.querySelectorAll('*')).filter((el) => {
+      if (!(el instanceof Element) || isOverlayElement(el)) return false;
+      const bounds = el.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return false;
+      return (
+        bounds.left >= rect.left &&
+        bounds.top >= rect.top &&
+        bounds.right <= rect.left + rect.width &&
+        bounds.bottom <= rect.top + rect.height
+      );
+    });
+
+    // Keep the highest-level fully contained elements. Their text includes
+    // nested content without duplicating every child node's text.
+    return fullyContained.filter(
+      (el) => !fullyContained.some((candidate) => candidate !== el && candidate.contains(el)),
+    );
+  }
+
   function onBoxSelectionStart(event) {
     if (!STATE.active || !StateStore.get('boxSelect') || event.button !== 0) return;
     if (isExternalPickerActive()) return;
@@ -2551,14 +2659,16 @@
 
     event.preventDefault();
     event.stopPropagation();
-    const target = findBoxSelectionTarget(getBoxSelectionRect(start, event));
+    const selectionRect = getBoxSelectionRect(start, event);
+    const selectedElements = findBoxSelectionTargets(selectionRect);
+    const target = selectedElements[0] || findBoxSelectionTarget(selectionRect);
     clearBoxSelectionOverlay();
     StateStore.set({ boxSelect: false });
     STATE.suppressClick = true;
     setTimeout(() => {
       STATE.suppressClick = false;
     }, 0);
-    if (target) setSelection(target);
+    if (target) setSelection(target, selectedElements.length ? selectedElements : [target]);
   }
 
   function onKeyDown(e) {
@@ -2608,10 +2718,16 @@
     }
   }
 
-  function setSelection(el) {
+  function setSelection(el, selectedElements = null) {
     if (!(el instanceof Element)) return;
 
     STATE.selectedEl = el;
+    const elements = Array.isArray(selectedElements)
+      ? selectedElements
+      : StateStore.get('listMode')
+        ? resolveListTargets(el)
+        : [el];
+    STATE.selectedElements = filterOverlayElements(elements);
 
     let selectorType = StateStore.get('selectorType');
     if (selectorType === 'xpath' && el.getRootNode() instanceof ShadowRoot) {
@@ -3036,6 +3152,67 @@
     }
   }
 
+  async function copySelectedElementTextNow() {
+    try {
+      const selected = STATE.selectedEl;
+      if (!(selected instanceof Element)) {
+        StateStore.set({
+          validation: { status: 'failure', message: '请先点击页面元素，再获取文本' },
+        });
+        return;
+      }
+
+      const elements =
+        Array.isArray(STATE.selectedElements) && STATE.selectedElements.length
+          ? STATE.selectedElements
+          : [selected];
+      const value = elements
+        .map((element) => {
+          const text =
+            element instanceof HTMLInputElement ||
+            element instanceof HTMLTextAreaElement ||
+            element instanceof HTMLSelectElement
+              ? element.value
+              : element.innerText || element.textContent || '';
+          return text.trim();
+        })
+        .filter(Boolean)
+        .join('\n');
+      if (!value) {
+        StateStore.set({
+          validation: { status: 'failure', message: '该元素没有可复制的文本内容' },
+        });
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(value);
+      } catch {
+        const textarea = document.createElement('textarea');
+        try {
+          textarea.value = value;
+          document.body.appendChild(textarea);
+          textarea.select();
+          if (!document.execCommand('copy')) throw new Error('浏览器拒绝访问剪贴板');
+        } finally {
+          textarea.remove();
+        }
+      }
+
+      StateStore.set({
+        validation: { status: 'success', message: `✓ 已复制该元素文本（${value.length} 字）` },
+      });
+
+      setTimeout(() => {
+        StateStore.set({ validation: { status: 'idle', message: '' } });
+      }, 2000);
+    } catch (error) {
+      StateStore.set({
+        validation: { status: 'failure', message: error?.message || '获取元素文本失败' },
+      });
+    }
+  }
+
   function formatValidationError(error) {
     const message = String(error || '验证失败');
     if (message.includes('Provide ref or selector or coordinates for hover')) {
@@ -3203,6 +3380,7 @@
     STATE.hoveredList = [];
     STATE.hoverEl = null;
     STATE.selectedEl = null;
+    STATE.selectedElements = [];
     STATE.nameElement = null;
     STATE.lastHoverTarget = null;
     STATE.verifyRectsActive = false;
@@ -3249,6 +3427,9 @@
     // Copy
     host.querySelector('#__em_copy')?.addEventListener('click', copySelectorNow);
     host.querySelector('#__em_copy_selector')?.addEventListener('click', copySelectorNow);
+    host
+      .querySelector('#__em_copy_element_text')
+      ?.addEventListener('click', copySelectedElementTextNow);
 
     // Decide whether selecting an element should also replay the page click.
     host.querySelector('#__em_replay_click')?.addEventListener('change', (e) => {

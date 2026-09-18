@@ -12,6 +12,7 @@ import { initQuickPanelCommands } from './quick-panel/commands';
 import { initQuickPanelTabsHandler } from './quick-panel/tabs-handler';
 import { initErrorLog } from './error-log';
 import { initProxyManager } from './proxy';
+import { initContextActionListeners } from './context-actions';
 
 import { bootstrapV3 } from './record-replay-v3/bootstrap';
 import { initPageRecorder } from './record-replay-v3/page-recorder';
@@ -48,6 +49,8 @@ export default defineBackground(() => {
 
   // Element marker: context menu + CRUD listeners
   initElementMarkerListeners();
+  // Right-click convenience action: copy the entire page text
+  initContextActionListeners();
   // Web editor: toggle edit-mode overlay
   initWebEditorListeners();
   // Quick Panel: send messages to AgentChat via background-stream bridge

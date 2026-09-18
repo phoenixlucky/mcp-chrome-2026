@@ -593,6 +593,60 @@
     }
   }
 
+  function queryAllElementsBySelector(selector, selectorType = 'css') {
+    if (!selector) return { elements: [] };
+
+    try {
+      const elements = [];
+      const seen = new Set();
+      const add = (candidate) => {
+        if (!(candidate instanceof Element) || seen.has(candidate)) return;
+        if (!elementIsVisibleForLocator(candidate)) return;
+        seen.add(candidate);
+        elements.push(candidate);
+      };
+
+      if (selectorType === 'xpath') {
+        const snapshot = document.evaluate(
+          selector,
+          document,
+          null,
+          XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+          null,
+        );
+        for (let i = 0; i < snapshot.snapshotLength; i++) {
+          add(snapshot.snapshotItem(i));
+        }
+        return { elements };
+      }
+
+      // Query every reachable shadow root as well as the light DOM. Keep the
+      // result ordered and de-duplicated so list actions are deterministic.
+      const roots = [document];
+      const visitedRoots = new Set();
+      while (roots.length) {
+        const root = roots.shift();
+        if (!root || visitedRoots.has(root)) continue;
+        visitedRoots.add(root);
+
+        root.querySelectorAll(selector).forEach(add);
+        root.querySelectorAll('*').forEach((node) => {
+          if (node.shadowRoot) roots.push(node.shadowRoot);
+        });
+      }
+
+      return { elements };
+    } catch (error) {
+      return {
+        elements: [],
+        error:
+          selectorType === 'xpath'
+            ? `Invalid XPath "${selector}": ${error.message || error}`
+            : `Invalid CSS selector "${selector}": ${error.message || error}`,
+      };
+    }
+  }
+
   /**
    * Whether to include element in tree under config
    * @param {Element} el
@@ -1434,6 +1488,47 @@
         }
         sendResponse({ success: true, ...result });
         return true;
+      }
+      if (request && request.action === 'locateElements') {
+        try {
+          const selector = String(request.selector || '').trim();
+          const selectorType = request.selectorType === 'xpath' ? 'xpath' : 'css';
+          if (!selector) {
+            sendResponse({ success: false, error: 'selector is required' });
+            return true;
+          }
+
+          const result = queryAllElementsBySelector(selector, selectorType);
+          if (result.error) {
+            sendResponse({ success: false, error: result.error });
+            return true;
+          }
+          if (!result.elements.length) {
+            sendResponse({ success: false, error: `selector not found: ${selector}` });
+            return true;
+          }
+
+          const elements = result.elements
+            .map((element) => {
+              const ref = ensureRefForElement(element);
+              return ref ? locatorElementMetadata(element, ref, result.elements.length, 0.9) : null;
+            })
+            .filter(Boolean);
+
+          sendResponse({
+            success: elements.length > 0,
+            resolvedBy: selectorType,
+            matchedSelector: selector,
+            matchedSelectorType: selectorType,
+            matchCount: elements.length,
+            elements,
+            ...(elements.length === 0 ? { error: 'Failed to create element refs' } : {}),
+          });
+          return true;
+        } catch (e) {
+          sendResponse({ success: false, error: String(e && e.message ? e.message : e) });
+          return true;
+        }
       }
       if (request && request.action === 'locateElement') {
         try {

@@ -181,6 +181,22 @@ export const TOOL_MESSAGE_TYPES = {
   ELEMENT_PICKER_UI_HIDE: 'elementPickerUiHide',
 } as const;
 
+/** Messages used by the extension's right-click convenience actions. */
+export const CONTEXT_ACTION_MESSAGE_TYPES = {
+  COPY_TEXT_TO_CLIPBOARD: 'contextActionCopyTextToClipboard',
+  SMART_CLOSE_POPUPS: 'contextActionSmartClosePopups',
+  RESTORE_PAGE_SCROLL: 'contextActionRestorePageScroll',
+  TOGGLE_PAGE_ANIMATIONS: 'contextActionTogglePageAnimations',
+  EXPAND_COLLAPSED_CONTENT: 'contextActionExpandCollapsedContent',
+  FOCUS_FIRST_INPUT: 'contextActionFocusFirstInput',
+  FILL_EMPTY_TEST_DATA: 'contextActionFillEmptyTestData',
+  TOGGLE_ELEMENT_BORDERS: 'contextActionToggleElementBorders',
+  START_COLOR_PICKER: 'contextActionStartColorPicker',
+  TOGGLE_PAGE_IMAGES: 'contextActionTogglePageImages',
+  CAPTURE_FULL_PAGE: 'contextActionCaptureFullPage',
+  SHOW_TOAST: 'contextActionShowToast',
+} as const;
+
 // Type unions for type safety
 export type BackgroundMessageType =
   (typeof BACKGROUND_MESSAGE_TYPES)[keyof typeof BACKGROUND_MESSAGE_TYPES];

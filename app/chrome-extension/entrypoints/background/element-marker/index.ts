@@ -44,6 +44,124 @@ function extractToolError(result: any): string | undefined {
   return result.error || (result.isError ? 'unknown tool error' : undefined);
 }
 
+async function executeMarkerValidationAction({
+  action,
+  req,
+  tabId,
+  locatorTarget,
+  coordinates,
+}: {
+  action: MarkerValidationAction;
+  req: any;
+  tabId: number;
+  locatorTarget: Record<string, unknown>;
+  coordinates?: { x: number; y: number };
+}): Promise<{ name: string; ok: boolean; error?: string }> {
+  switch (action) {
+    case 'hover': {
+      const result = await computerTool.execute({
+        action: 'hover',
+        ...locatorTarget,
+        tabId,
+      } as any);
+      return {
+        name: 'computer.hover',
+        ok: !result.isError,
+        error: result.isError ? extractToolError(result) : undefined,
+      };
+    }
+    case 'left_click':
+    case 'double_click':
+    case 'right_click': {
+      const result = await clickTool.execute({
+        ...locatorTarget,
+        tabId,
+        double: action === 'double_click',
+        waitForNavigation: !!req.waitForNavigation,
+        timeout: Number.isFinite(req.timeoutMs) ? req.timeoutMs : 3000,
+        button: action === 'right_click' ? 'right' : req.button || 'left',
+        modifiers: req.modifiers || {},
+      } as any);
+      return {
+        name:
+          action === 'double_click'
+            ? 'interaction.click(double)'
+            : action === 'right_click'
+              ? 'interaction.click(right)'
+              : 'interaction.click',
+        ok: !result.isError,
+        error: result.isError ? extractToolError(result) : undefined,
+      };
+    }
+    case 'scroll': {
+      const result = await computerTool.execute({
+        action: 'scroll',
+        scrollDirection: req.scrollDirection || 'down',
+        scrollAmount: Number.isFinite(req.scrollAmount) ? Number(req.scrollAmount) : 300,
+        coordinates,
+        tabId,
+      } as any);
+      return {
+        name: 'computer.scroll',
+        ok: !result.isError,
+        error: result.isError ? extractToolError(result) : undefined,
+      };
+    }
+    case 'type_text': {
+      const focus = await clickTool.execute({
+        ...locatorTarget,
+        tabId,
+        waitForNavigation: false,
+        timeout: 2000,
+      } as any);
+      if (focus.isError) {
+        return {
+          name: 'interaction.click',
+          ok: false,
+          error: extractToolError(focus),
+        };
+      }
+      const result = await computerTool.execute({
+        action: 'type',
+        text: String(req.text || ''),
+        tabId,
+      } as any);
+      return {
+        name: 'computer.type',
+        ok: !result.isError,
+        error: result.isError ? extractToolError(result) : undefined,
+      };
+    }
+    case 'press_keys': {
+      const focus = await clickTool.execute({
+        ...locatorTarget,
+        tabId,
+        waitForNavigation: false,
+        timeout: 2000,
+      } as any);
+      if (focus.isError) {
+        return {
+          name: 'interaction.click',
+          ok: false,
+          error: extractToolError(focus),
+        };
+      }
+      const result = await keyboardTool.execute({
+        keys: String(req.keys || ''),
+        delay: 0,
+        tabId,
+      } as any);
+      return {
+        name: 'keyboard.simulate',
+        ok: !result.isError,
+        error: result.isError ? extractToolError(result) : undefined,
+      };
+    }
+    default:
+      return { name: 'noop', ok: true };
+  }
+}
+
 async function ensureContextMenu() {
   try {
     // Guard: contextMenus permission may be missing
@@ -213,17 +331,19 @@ export function initElementMarkerListeners() {
               } as any);
             } catch {}
 
-            // 2) Resolve selector -> ref/center via helper (same as tools)
+            // 2) Resolve selector -> one or many refs via helper.
             let ensured: any;
             try {
               const isCompositeSelector = selectorType === 'css' && selector.includes('|>');
+              const resolveMany = !!req.listMode && !isCompositeSelector;
               ensured = await chrome.tabs.sendMessage(
                 tabId,
                 {
-                  // locateElement scrolls the matched element into view before
-                  // returning its center. The legacy ensureRefForSelector path
-                  // only returned the old center and caused coordinate misses.
-                  action: isCompositeSelector ? 'ensureRefForSelector' : 'locateElement',
+                  action: resolveMany
+                    ? 'locateElements'
+                    : isCompositeSelector
+                      ? 'ensureRefForSelector'
+                      : 'locateElement',
                   selector,
                   ...(isCompositeSelector ? { isXPath: false } : {}),
                   allowMultiple: !!req.listMode,
@@ -245,15 +365,32 @@ export function initElementMarkerListeners() {
               });
             }
 
+            const listElements =
+              req.listMode && Array.isArray(ensured.elements) ? ensured.elements : [];
+            if (req.listMode && listElements.length === 0) {
+              return sendResponse({ success: false, error: '未找到可验证的批量元素' });
+            }
+
             const base = {
               success: true,
               resolved: true,
               ref: ensured.ref,
               center: ensured.center,
+              ...(req.listMode
+                ? {
+                    matchCount: listElements.length,
+                    elements: listElements.map((item: any) => ({
+                      ref: item.ref,
+                      selector: item.selector,
+                      center: item.center,
+                    })),
+                  }
+                : {}),
             } as any;
 
             // Compute optional coordinates from offsets
-            let coords: { x: number; y: number } | undefined = ensured.center;
+            let coords: { x: number; y: number } | undefined =
+              ensured.center || listElements[0]?.center;
             if (
               req.coordinates &&
               typeof req.coordinates.x === 'number' &&
@@ -269,7 +406,7 @@ export function initElementMarkerListeners() {
               const dy = Number.isFinite(req.offsetY as any) ? (req.offsetY as number) : 0;
               coords = { x: ensured.center.x + dx, y: ensured.center.y + dy };
             }
-            if (!coords) {
+            if (!coords && !req.listMode) {
               return sendResponse({
                 success: false,
                 error: '定位成功但无法获取元素坐标，请重新选择后验证',
@@ -285,138 +422,81 @@ export function initElementMarkerListeners() {
               ? { coordinates: coords }
               : { selector, selectorType };
 
-            // 3) Dispatch to appropriate tool for end-to-end validation
-            try {
-              switch (action) {
-                case 'hover': {
-                  const r = await computerTool.execute({
-                    action: 'hover',
-                    ...locatorTarget,
-                    tabId,
-                  } as any);
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'computer.hover', ok: !r.isError, error };
-                  break;
-                }
-                case 'left_click': {
-                  const r = await clickTool.execute({
-                    ...locatorTarget,
-                    tabId,
-                    waitForNavigation: !!req.waitForNavigation,
-                    timeout: Number.isFinite(req.timeoutMs as any)
-                      ? (req.timeoutMs as number)
-                      : 3000,
-                    button: (req.button || 'left') as any,
-                    modifiers: req.modifiers || {},
-                  } as any);
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'interaction.click', ok: !r.isError, error };
-                  break;
-                }
-                case 'double_click': {
-                  const r = await clickTool.execute({
-                    ...locatorTarget,
-                    tabId,
-                    double: true,
-                    waitForNavigation: !!req.waitForNavigation,
-                    timeout: Number.isFinite(req.timeoutMs as any)
-                      ? (req.timeoutMs as number)
-                      : 3000,
-                    button: (req.button || 'left') as any,
-                    modifiers: req.modifiers || {},
-                  } as any);
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'interaction.click(double)', ok: !r.isError, error };
-                  break;
-                }
-                case 'right_click': {
-                  const r = await clickTool.execute({
-                    ...locatorTarget,
-                    tabId,
-                    waitForNavigation: !!req.waitForNavigation,
-                    timeout: Number.isFinite(req.timeoutMs as any)
-                      ? (req.timeoutMs as number)
-                      : 3000,
-                    button: 'right',
-                    modifiers: req.modifiers || {},
-                  } as any);
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'interaction.click(right)', ok: !r.isError, error };
-                  break;
-                }
-                case 'scroll': {
-                  const direction = (req as any).scrollDirection || 'down';
-                  const amount = Number.isFinite((req as any).scrollAmount)
-                    ? Number((req as any).scrollAmount)
-                    : 300;
-                  const payload = {
-                    action: 'scroll',
-                    scrollDirection: direction,
-                    scrollAmount: amount,
-                    coordinates: coords,
-                    tabId,
-                  };
-                  const r = await computerTool.execute(payload as any);
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'computer.scroll', ok: !r.isError, error };
-                  break;
-                }
-                case 'type_text': {
-                  const text = String(req.text || '');
-                  const focus = await clickTool.execute({
-                    ...locatorTarget,
-                    tabId,
-                    waitForNavigation: false,
-                    timeout: 2000,
-                  });
-                  if (focus.isError) {
-                    base.tool = {
-                      name: 'interaction.click',
-                      ok: false,
-                      error: extractToolError(focus),
-                    };
-                    break;
-                  }
-                  const r = await computerTool.execute({
-                    action: 'type',
-                    text,
-                    tabId,
-                  });
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'computer.type', ok: !r.isError, error };
-                  break;
-                }
-                case 'press_keys': {
-                  const keys = String(req.keys || '');
-                  const focus = await clickTool.execute({
-                    ...locatorTarget,
-                    tabId,
-                    waitForNavigation: false,
-                    timeout: 2000,
-                  });
-                  if (focus.isError) {
-                    base.tool = {
-                      name: 'interaction.click',
-                      ok: false,
-                      error: extractToolError(focus),
-                    };
-                    break;
-                  }
-                  const r = await keyboardTool.execute({ keys, delay: 0, tabId } as any);
-                  const error = r.isError ? extractToolError(r) : undefined;
-                  base.tool = { name: 'keyboard.simulate', ok: !r.isError, error };
-                  break;
-                }
-                default: {
-                  base.tool = { name: 'noop', ok: true };
-                }
+            // 3) Dispatch to the tool once per matched element. A list marker
+            // must never collapse back to the first ref during validation.
+            const items = req.listMode
+              ? listElements
+              : [{ ref: ensured.ref, selector, center: ensured.center }];
+            const validationResults: any[] = [];
+
+            for (let index = 0; index < items.length; index += 1) {
+              const item = items[index] || {};
+              const itemCenter = item.center || coords;
+              let itemCoords = itemCenter;
+              if (
+                req.coordinates &&
+                typeof req.coordinates.x === 'number' &&
+                typeof req.coordinates.y === 'number'
+              ) {
+                itemCoords = {
+                  x: Math.round(req.coordinates.x),
+                  y: Math.round(req.coordinates.y),
+                };
+              } else if (
+                req.relativeTo === 'element' &&
+                itemCenter &&
+                (typeof req.offsetX === 'number' || typeof req.offsetY === 'number')
+              ) {
+                itemCoords = {
+                  x: itemCenter.x + (Number.isFinite(req.offsetX) ? req.offsetX : 0),
+                  y: itemCenter.y + (Number.isFinite(req.offsetY) ? req.offsetY : 0),
+                };
               }
-            } catch (e) {
-              console.warn('[ElementMarker] Validation failed before tool execution', e);
+
+              const itemTarget = isCompositeSelector
+                ? { coordinates: itemCoords }
+                : {
+                    ref: item.ref,
+                    selector: item.selector || selector,
+                    selectorType,
+                  };
+              let tool;
+              try {
+                tool = await executeMarkerValidationAction({
+                  action,
+                  req,
+                  tabId,
+                  locatorTarget: itemTarget,
+                  coordinates: itemCoords,
+                });
+              } catch (e) {
+                tool = {
+                  name: 'unknown',
+                  ok: false,
+                  error: String(e instanceof Error ? e.message : e),
+                };
+              }
+              validationResults.push({
+                index: index + 1,
+                ref: item.ref,
+                center: itemCenter,
+                tool,
+              });
+            }
+
+            if (req.listMode) {
+              base.results = validationResults;
               base.tool = {
+                name: 'batch.validation',
+                ok: validationResults.every((result) => result.tool.ok),
+                successCount: validationResults.filter((result) => result.tool.ok).length,
+                failureCount: validationResults.filter((result) => !result.tool.ok).length,
+              };
+            } else {
+              base.tool = validationResults[0]?.tool || {
                 name: 'unknown',
                 ok: false,
-                error: String(e instanceof Error ? e.message : e),
+                error: 'validation did not run',
               };
             }
 
