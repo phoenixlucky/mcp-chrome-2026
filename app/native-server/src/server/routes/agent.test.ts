@@ -255,7 +255,16 @@ describe('agent route integration', () => {
       payload: { instruction: 'hello' },
     });
     expect(badAct.statusCode).toBe(400);
-    expect(badAct.json()).toEqual({ error: 'projectId is required' });
+    expect(badAct.json()).toEqual(
+      expect.objectContaining({
+        error: 'projectId is required',
+        errorInfo: expect.objectContaining({
+          category: 'request',
+          phase: 'dispatch',
+          retryable: false,
+        }),
+      }),
+    );
 
     await app.close();
   });

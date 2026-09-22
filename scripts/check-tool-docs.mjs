@@ -3,12 +3,14 @@ import path from 'node:path';
 
 const root = process.cwd();
 
-function readCurrentToolNames(file) {
+function readCurrentToolNames(file, namesFile = file) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const namesSource = fs.readFileSync(path.join(root, namesFile), 'utf8');
   const lines = source.split(/\r?\n/);
+  const nameLines = namesSource.split(/\r?\n/);
   const values = new Map();
   let inNames = false;
-  for (const line of lines) {
+  for (const line of nameLines) {
     if (line.includes('TOOL_NAMES =')) inNames = true;
     if (inNames) {
       const match = line.match(/^\s*([A-Z0-9_]+): '([^']+)'/);
@@ -41,7 +43,10 @@ function readHeadings(file) {
 }
 
 const current = readCurrentToolNames('packages/shared/src/tools.ts');
-const currentEnglish = readCurrentToolNames('packages/shared/src/tools-en.ts');
+const currentEnglish = readCurrentToolNames(
+  'packages/shared/src/tools-en.ts',
+  'packages/shared/src/tools.ts',
+);
 const failures = [];
 const languageDrift = [
   ...[...current].filter((name) => !currentEnglish.has(name)),

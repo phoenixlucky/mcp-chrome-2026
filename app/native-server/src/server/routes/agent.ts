@@ -14,6 +14,7 @@ import { stat } from 'node:fs/promises';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../../constant';
 import { AgentStreamManager } from '../../agent/stream-manager';
 import { AgentChatService } from '../../agent/chat-service';
+import { normalizeAgentError } from '../../agent/error-normalizer';
 import type { AgentActRequest, AgentActResponse, RealtimeEvent } from '../../agent/types';
 import type { CreateOrUpdateProjectInput } from '../../agent/project-types';
 import {
@@ -1104,10 +1105,12 @@ export function registerAgentRoutes(fastify: FastifyInstance, options: AgentRout
         };
         reply.status(HTTP_STATUS.OK).send(response);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        reply
-          .status(HTTP_STATUS.BAD_REQUEST)
-          .send({ error: message || ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+        const errorInfo = normalizeAgentError(error, { phase: 'dispatch', sessionId });
+        const message = errorInfo.technicalMessage || errorInfo.userMessage;
+        reply.status(HTTP_STATUS.BAD_REQUEST).send({
+          error: message || ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+          errorInfo,
+        });
       }
     },
   );

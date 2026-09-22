@@ -142,15 +142,80 @@ describe('AgentChatService lifecycle', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(publish).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'error', error: 'engine failed' }),
+      expect.objectContaining({
+        type: 'error',
+        error: 'engine failed',
+        data: expect.objectContaining({
+          errorInfo: expect.objectContaining({
+            category: 'engine',
+            phase: 'model',
+            retryable: false,
+          }),
+        }),
+      }),
     );
     expect(publish).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'status',
-        data: expect.objectContaining({ status: 'error', requestId: 'request-2' }),
+        data: expect.objectContaining({
+          status: 'error',
+          requestId: 'request-2',
+          errorInfo: expect.objectContaining({ userMessage: expect.any(String) }),
+        }),
       }),
     );
     expect(service.getRunningExecutions()).toEqual([]);
+  });
+
+  test('adds structured error details to failed tool results', async () => {
+    getProject.mockResolvedValue(project);
+    touchProjectActivity.mockResolvedValue(undefined);
+    persistAgentMessage.mockResolvedValue(undefined);
+    const streamManager = new AgentStreamManager();
+    const publish = jest.spyOn(streamManager, 'publish');
+    const service = new AgentChatService({
+      engines: [
+        createEngine(async (_options, context) => {
+          context.emit({
+            type: 'message',
+            data: {
+              id: 'tool-error-1',
+              sessionId: 'session-1',
+              role: 'tool',
+              content: 'Error: permission denied',
+              messageType: 'tool_result',
+              cliSource: 'deepseek',
+              requestId: 'request-tool-error',
+              createdAt: new Date().toISOString(),
+              metadata: { toolName: 'computer', is_error: true },
+            },
+          });
+        }),
+      ],
+      streamManager,
+    });
+
+    await service.handleAct('session-1', {
+      instruction: 'use the computer tool',
+      projectId: 'project-1',
+      requestId: 'request-tool-error',
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'message',
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({
+            errorInfo: expect.objectContaining({
+              category: 'tool',
+              phase: 'tool',
+              toolName: 'computer',
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   test('cancels an active execution once and reports no-op on repeat cancellation', async () => {

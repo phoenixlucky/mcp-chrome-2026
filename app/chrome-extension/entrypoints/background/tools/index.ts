@@ -4,21 +4,117 @@ import type { ToolResult } from '@/common/tool-handler';
 import { resolveActionPolicy, runWithActionPolicy } from './action-policy';
 import * as browserTools from './browser';
 import { pauseSpaFetchTabCleanup, scheduleSpaFetchTabCleanup } from './browser/spa-fetch';
+import { createToolRegistry } from './tool-registry';
 
-const tools = browserTools as any;
-const toolsMap = new Map(Object.values(tools).map((tool: any) => [tool.name, tool]));
+const browserToolNames = [
+  'navigateTool',
+  'closeTabsTool',
+  'switchTabTool',
+  'createTabTool',
+  'hoverTool',
+  'printToPdfTool',
+  'elementInfoTool',
+  'storageGetTool',
+  'storageSetTool',
+  'storageDeleteTool',
+  'windowTool',
+  'cookieGetTool',
+  'cookieSetTool',
+  'cookieDeleteTool',
+  'searchTabsContentTool',
+  'screenshotTool',
+  'webFetcherTool',
+  'getInteractiveElementsTool',
+  'clickTool',
+  'fillTool',
+  'elementLocatorTool',
+  'elementPickerTool',
+  'selectAllItemsTool',
+  'networkRequestTool',
+  'networkCaptureTool',
+  'blockImagesTool',
+  'blockResourcesTool',
+  'keyboardTool',
+  'historyTool',
+  'bookmarkSearchTool',
+  'bookmarkAddTool',
+  'bookmarkDeleteTool',
+  'javascriptTool',
+  'pasteTextTool',
+  'consoleTool',
+  'fileUploadTool',
+  'pasteImageTool',
+  'formValueTool',
+  'readPageTool',
+  'computerTool',
+  'postToXTool',
+  'handleDialogTool',
+  'handleDownloadTool',
+  'userscriptTool',
+  'performanceStartTraceTool',
+  'performanceStopTraceTool',
+  'performanceAnalyzeInsightTool',
+  'gifRecorderTool',
+  'getTabUrlTool',
+  'scrollStateTool',
+  'scrollTool',
+  'waitTool',
+  'extractTool',
+  'pageTextTool',
+  'spaFetchTool',
+  'clickAndWaitTool',
+  'taskContextTool',
+  'scopedActionTool',
+  'diagnosticSnapshotTool',
+  'errorLogsTool',
+  'proxyDiagnosticsTool',
+  'proxyRotateTool',
+  'listFramesTool',
+  'captureDebugBundleTool',
+  'collectVirtualListTool',
+  'collectVirtualListsTool',
+  'crawlLinksTool',
+  'extractThreadTool',
+  'resumeTabTaskTool',
+  'waitExtractResponseTool',
+  'detectEmptyStateTool',
+  'extractReviewSummaryTool',
+  'expandSectionTool',
+  'extractRecordsTool',
+  'findAndClickTool',
+  'mergeRecordsTool',
+  'paginateExtractTool',
+  'scanForSectionTool',
+] as const satisfies readonly (keyof typeof browserTools)[];
+
+export const browserToolExports = browserToolNames.flatMap((name) =>
+  name in browserTools ? [browserTools[name]] : [],
+);
+
+const toolsMap = createToolRegistry(browserToolExports);
 
 /**
  * Tool call parameter interface
  */
 export interface ToolCallParam {
   name: string;
-  args: any;
+  args: Record<string, unknown>;
 }
 
 function compact(value: unknown, max = 72): string {
   const text = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function isCoordinates(value: unknown): value is { x: number; y: number } {
+  if (!value || typeof value !== 'object') return false;
+  const coordinates = value as { x?: unknown; y?: unknown };
+  return (
+    typeof coordinates.x === 'number' &&
+    Number.isFinite(coordinates.x) &&
+    typeof coordinates.y === 'number' &&
+    Number.isFinite(coordinates.y)
+  );
 }
 
 function duration(value: unknown, fallbackMs: number): string {
@@ -184,13 +280,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
     (param.name === 'chrome_scroll' ? compact(param.args?.containerSelector) : '') ||
     null;
   const coordinates = param.args?.coordinates;
-  const safeCoordinates =
-    typeof coordinates?.x === 'number' &&
-    Number.isFinite(coordinates.x) &&
-    typeof coordinates?.y === 'number' &&
-    Number.isFinite(coordinates.y)
-      ? { x: coordinates.x, y: coordinates.y }
-      : null;
+  const safeCoordinates = isCoordinates(coordinates) ? coordinates : null;
   const intent = compact(param.args?.intent, 160) || null;
 
   try {

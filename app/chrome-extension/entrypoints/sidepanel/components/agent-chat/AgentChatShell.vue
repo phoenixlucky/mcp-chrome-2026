@@ -37,7 +37,7 @@
     >
       <!-- Error Banner (above input) -->
       <div
-        v-if="errorMessage"
+        v-if="errorMessage || errorInfo"
         class="mb-2 px-4 py-2 text-xs rounded-lg flex items-start gap-2"
         :style="{
           backgroundColor: 'var(--ac-diff-del-bg)',
@@ -46,12 +46,51 @@
           borderRadius: 'var(--ac-radius-inner)',
         }"
       >
-        <!-- Error message with scroll for long content -->
-        <div
-          class="min-w-0 flex-1 whitespace-pre-wrap break-all ac-scroll"
-          :style="{ maxHeight: '30vh', overflowY: 'auto', overflowWrap: 'anywhere' }"
-        >
-          {{ errorMessage }}
+        <div class="min-w-0 flex-1 space-y-1">
+          <div class="font-medium">
+            {{ errorInfo?.userMessage || errorMessage }}
+          </div>
+          <div v-if="errorInfo" class="text-[10px] opacity-75">
+            {{ labelForError(errorInfo, isChinese) }}
+          </div>
+          <details v-if="errorInfo" :open="showErrorDetails" class="mt-1">
+            <summary
+              class="cursor-pointer select-none text-[10px] opacity-80"
+              @click.prevent="showErrorDetails = !showErrorDetails"
+            >
+              {{ showErrorDetails ? copy.hideDetails : copy.details }}
+            </summary>
+            <div
+              v-if="showErrorDetails"
+              class="mt-1 whitespace-pre-wrap break-all ac-scroll opacity-80"
+              :style="{ maxHeight: '20vh', overflowY: 'auto', overflowWrap: 'anywhere' }"
+            >
+              <div v-if="errorInfo.technicalMessage">{{ errorInfo.technicalMessage }}</div>
+              <div v-if="errorInfo.code">Code: {{ errorInfo.code }}</div>
+              <div v-if="errorInfo.requestId">Request: {{ errorInfo.requestId }}</div>
+              <div v-if="errorInfo.toolName">Tool: {{ errorInfo.toolName }}</div>
+            </div>
+          </details>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button
+              v-if="canRetry"
+              type="button"
+              class="ac-btn ac-focus-ring cursor-pointer rounded px-2 py-1"
+              :style="{ backgroundColor: 'var(--ac-danger)', color: 'white' }"
+              @click="emit('error:retry')"
+            >
+              {{ copy.retry }}
+            </button>
+            <button
+              v-if="errorInfo"
+              type="button"
+              class="ac-btn ac-focus-ring cursor-pointer rounded px-2 py-1"
+              :style="{ color: 'var(--ac-danger)' }"
+              @click="emit('error:copy')"
+            >
+              {{ diagnosticsCopied ? copy.copied : copy.copy }}
+            </button>
+          </div>
         </div>
 
         <!-- Dismiss button -->
@@ -106,11 +145,14 @@
 
 <script lang="ts" setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
-import type { AgentUsageStats } from '@ethanwilkins/chrome-mcp-shared-2026';
+import type { AgentErrorInfo, AgentUsageStats } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { useAgentLocale } from '../../composables/useAgentLocale';
 
 defineProps<{
   errorMessage?: string | null;
+  errorInfo?: AgentErrorInfo | null;
+  canRetry?: boolean;
+  diagnosticsCopied?: boolean;
   usage?: AgentUsageStats | null;
   /** Footer label to display (e.g., "Claude Code Preview", "Codex Preview") */
   footerLabel?: string;
@@ -119,14 +161,56 @@ defineProps<{
 const emit = defineEmits<{
   /** Emitted when user clicks dismiss button on error banner */
   'error:dismiss': [];
+  'error:retry': [];
+  'error:copy': [];
 }>();
 
 const { isChinese } = useAgentLocale();
+const showErrorDetails = ref(false);
 const copy = computed(() =>
   isChinese.value
-    ? { dismiss: '关闭错误提示', tokens: '个词元' }
-    : { dismiss: 'Dismiss error', tokens: 'tokens' },
+    ? {
+        dismiss: '关闭错误提示',
+        tokens: '个词元',
+        retry: '重试',
+        details: '详情',
+        hideDetails: '收起详情',
+        copy: '复制诊断',
+        copied: '已复制',
+      }
+    : {
+        dismiss: 'Dismiss error',
+        tokens: 'tokens',
+        retry: 'Retry',
+        details: 'Details',
+        hideDetails: 'Hide details',
+        copy: 'Copy diagnostics',
+        copied: 'Copied',
+      },
 );
+
+function labelForError(info: AgentErrorInfo, chinese: boolean): string {
+  const labels: Record<string, [string, string]> = {
+    connection: ['连接', 'Connection'],
+    request: ['请求', 'Request'],
+    engine: ['模型', 'Model'],
+    tool: ['工具', 'Tool'],
+    timeout: ['超时', 'Timeout'],
+    cancelled: ['已取消', 'Cancelled'],
+    unknown: ['未知', 'Unknown'],
+  };
+  const phases: Record<string, [string, string]> = {
+    connection: ['连接阶段', 'Connection'],
+    dispatch: ['提交阶段', 'Dispatch'],
+    model: ['模型执行', 'Model execution'],
+    tool: ['工具执行', 'Tool execution'],
+    stream: ['流式传输', 'Streaming'],
+    cancel: ['取消操作', 'Cancellation'],
+  };
+  const category = labels[info.category] ?? labels.unknown;
+  const phase = phases[info.phase] ?? phases.stream;
+  return `${chinese ? category[0] : category[1]} · ${chinese ? phase[0] : phase[1]}`;
+}
 
 /**
  * Format token count for display (e.g., 1.2k, 3.5M)

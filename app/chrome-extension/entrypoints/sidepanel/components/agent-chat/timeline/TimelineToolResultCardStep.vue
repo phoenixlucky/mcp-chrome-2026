@@ -118,7 +118,7 @@
           }"
           @click="expanded = !expanded"
         >
-          {{ expanded ? 'Show less' : 'Show more...' }}
+          {{ expanded ? copy.less : copy.more }}
         </button>
       </template>
 
@@ -142,14 +142,24 @@
           }"
           @click="expanded = !expanded"
         >
-          {{ expanded ? 'Show less' : 'Show more...' }}
+          {{ expanded ? copy.less : copy.more }}
         </button>
       </template>
     </div>
 
     <!-- Error indicator -->
-    <div v-if="item.isError" class="text-[11px]" :style="{ color: 'var(--ac-danger)' }">
-      Error occurred
+    <div v-if="item.isError" class="text-[11px] space-y-1" :style="{ color: 'var(--ac-danger)' }">
+      <div class="font-medium">
+        {{ item.errorInfo?.userMessage || copy.error }}
+      </div>
+      <details v-if="item.errorInfo" class="opacity-80">
+        <summary class="cursor-pointer select-none">{{ copy.details }}</summary>
+        <div class="mt-1 whitespace-pre-wrap break-words">
+          <div v-if="item.errorInfo.technicalMessage">{{ item.errorInfo.technicalMessage }}</div>
+          <div v-if="item.errorInfo.toolName">{{ copy.tool }}: {{ item.errorInfo.toolName }}</div>
+          <div v-if="item.errorInfo.code">{{ copy.code }}: {{ item.errorInfo.code }}</div>
+        </div>
+      </details>
     </div>
   </div>
 </template>
@@ -157,12 +167,33 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import type { TimelineItem } from '../../../composables/useAgentThreads';
+import { useAgentLocale } from '../../../composables/useAgentLocale';
 
 const props = defineProps<{
   item: Extract<TimelineItem, { kind: 'tool_result' }>;
 }>();
 
 const expanded = ref(false);
+const { isChinese } = useAgentLocale();
+const copy = computed(() =>
+  isChinese.value
+    ? {
+        less: '收起',
+        more: '展开更多…',
+        error: '工具执行失败',
+        details: '查看详情',
+        tool: '工具',
+        code: '错误码',
+      }
+    : {
+        less: 'Show less',
+        more: 'Show more…',
+        error: 'Tool execution failed',
+        details: 'Details',
+        tool: 'Tool',
+        code: 'Code',
+      },
+);
 const MAX_LINES = 10;
 const MAX_CHARS = 500;
 

@@ -21,6 +21,7 @@ import {
 } from './session-service';
 import { attachmentService, type SavedAttachment } from './attachment-service';
 import { RuntimeRegistry } from '../runtime-registry';
+import { normalizeAgentError } from './error-normalizer';
 
 export interface AgentChatServiceOptions {
   engines: AgentEngine[];
@@ -197,8 +198,9 @@ export class AgentChatService {
     const hasAttachments = attachmentMetadata && attachmentMetadata.length > 0;
     const hasClientMeta = payload.clientMeta !== undefined;
     const hasDisplayText = payload.displayText !== undefined;
+    const hasRetryOfRequestId = Boolean(payload.retryOfRequestId?.trim());
 
-    if (hasAttachments || hasClientMeta || hasDisplayText) {
+    if (hasAttachments || hasClientMeta || hasDisplayText || hasRetryOfRequestId) {
       userMessageMetadata = {};
       if (hasAttachments) {
         userMessageMetadata.attachments = attachmentMetadata;
@@ -208,6 +210,9 @@ export class AgentChatService {
       }
       if (hasDisplayText) {
         userMessageMetadata.displayText = payload.displayText;
+      }
+      if (hasRetryOfRequestId) {
+        userMessageMetadata.retryOfRequestId = payload.retryOfRequestId?.trim();
       }
     }
 
@@ -260,19 +265,79 @@ export class AgentChatService {
         status: 'starting',
         requestId,
         message: 'Agent request accepted',
+        phase: 'dispatch',
+        timestamp: new Date().toISOString(),
       },
     });
 
     const ctx: EngineExecutionContext = {
       emit: (event: RealtimeEvent) => {
-        this.streamManager.publish(event);
+        let eventToPublish = event;
+
+        if (
+          event.type === 'message' &&
+          event.data.role === 'tool' &&
+          event.data.messageType === 'tool_result'
+        ) {
+          const metadata = (event.data.metadata ?? {}) as Record<string, unknown>;
+          const toolName =
+            typeof metadata.toolName === 'string'
+              ? metadata.toolName
+              : typeof metadata.tool_name === 'string'
+                ? metadata.tool_name
+                : undefined;
+          const isToolError =
+            metadata.is_error === true ||
+            metadata.isError === true ||
+            event.data.content.trimStart().startsWith('Error:') ||
+            metadata.status === 'failed';
+
+          if (isToolError) {
+            const errorInfo = normalizeAgentError(event.data.content, {
+              category: 'tool',
+              phase: 'tool',
+              requestId,
+              sessionId,
+              toolName,
+            });
+            eventToPublish = {
+              type: 'message',
+              data: {
+                ...event.data,
+                metadata: { ...metadata, errorInfo },
+              },
+            };
+          }
+        }
+
+        if (eventToPublish.type === 'message' && eventToPublish.data.role === 'tool') {
+          const toolName =
+            typeof eventToPublish.data.metadata?.toolName === 'string'
+              ? eventToPublish.data.metadata.toolName
+              : typeof eventToPublish.data.metadata?.tool_name === 'string'
+                ? eventToPublish.data.metadata.tool_name
+                : 'tool';
+          this.streamManager.publish({
+            type: 'status',
+            data: {
+              sessionId,
+              status: 'running',
+              requestId,
+              phase: 'tool',
+              message: `Executing ${toolName}`,
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+
+        this.streamManager.publish(eventToPublish);
 
         if (!projectId) {
           return;
         }
 
-        if (event.type === 'message') {
-          const msg = event.data;
+        if (eventToPublish.type === 'message') {
+          const msg = eventToPublish.data;
           if (!msg) return;
 
           // Only persist final snapshots; streaming deltas are transient.
@@ -401,6 +466,8 @@ export class AgentChatService {
         status: 'cancelled',
         requestId,
         message: 'Execution cancelled by user',
+        phase: 'cancel',
+        timestamp: new Date().toISOString(),
       },
     });
 
@@ -448,6 +515,8 @@ export class AgentChatService {
           sessionId,
           status: 'cancelled',
           message: `Cancelled ${cancelled} running execution(s)`,
+          phase: 'cancel',
+          timestamp: new Date().toISOString(),
         },
       });
     }
@@ -492,6 +561,8 @@ export class AgentChatService {
           sessionId,
           status: 'running',
           requestId,
+          phase: 'model',
+          timestamp: new Date().toISOString(),
         },
       });
       this.runtimeRegistry?.update(
@@ -516,6 +587,7 @@ export class AgentChatService {
             sessionId,
             status: 'completed',
             requestId,
+            timestamp: new Date().toISOString(),
           },
         });
         this.runtimeRegistry?.finish(requestId, 'success');
@@ -527,22 +599,30 @@ export class AgentChatService {
         return;
       }
 
-      const message = error instanceof Error ? error.message : String(error);
+      const errorInfo = normalizeAgentError(error, {
+        phase: 'model',
+        requestId,
+        sessionId,
+      });
+      const message = errorInfo.technicalMessage || errorInfo.userMessage;
 
       this.streamManager.publish({
         type: 'error',
         error: message,
-        data: { sessionId, requestId },
+        data: { sessionId, requestId, errorInfo },
       });
-      this.runtimeRegistry?.finish(requestId, 'error', message);
+      this.runtimeRegistry?.finish(requestId, 'error', errorInfo.userMessage);
 
       this.streamManager.publish({
         type: 'status',
         data: {
           sessionId,
           status: 'error',
-          message,
+          message: errorInfo.userMessage,
           requestId,
+          phase: errorInfo.phase,
+          errorInfo,
+          timestamp: new Date().toISOString(),
         },
       });
     } finally {

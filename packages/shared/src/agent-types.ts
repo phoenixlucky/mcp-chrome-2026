@@ -31,11 +31,32 @@ export interface AgentMessage {
 
 export type StreamTransport = 'sse' | 'websocket';
 
+export type AgentErrorCategory =
+  'connection' | 'request' | 'engine' | 'tool' | 'timeout' | 'cancelled' | 'unknown';
+
+export type AgentExecutionPhase =
+  'connection' | 'dispatch' | 'model' | 'tool' | 'stream' | 'cancel';
+
+export interface AgentErrorInfo {
+  category: AgentErrorCategory;
+  phase: AgentExecutionPhase;
+  userMessage: string;
+  technicalMessage?: string;
+  retryable: boolean;
+  code?: string;
+  requestId?: string;
+  sessionId?: string;
+  toolName?: string;
+}
+
 export interface AgentStatusEvent {
   sessionId: string;
   status: 'starting' | 'ready' | 'running' | 'completed' | 'error' | 'cancelled';
   message?: string;
   requestId?: string;
+  phase?: AgentExecutionPhase;
+  errorInfo?: AgentErrorInfo;
+  timestamp?: string;
 }
 
 export interface AgentConnectedEvent {
@@ -64,7 +85,15 @@ export interface AgentUsageStats {
 export type RealtimeEvent =
   | { type: 'message'; data: AgentMessage }
   | { type: 'status'; data: AgentStatusEvent }
-  | { type: 'error'; error: string; data?: { sessionId?: string; requestId?: string } }
+  | {
+      type: 'error';
+      error: string;
+      data?: {
+        sessionId?: string;
+        requestId?: string;
+        errorInfo?: AgentErrorInfo;
+      };
+    }
   | { type: 'connected'; data: AgentConnectedEvent }
   | { type: 'heartbeat'; data: AgentHeartbeatEvent }
   | { type: 'usage'; data: AgentUsageStats };
@@ -111,6 +140,8 @@ export interface AgentActRequest {
    * Optional request id from client; server will generate one if missing.
    */
   requestId?: string;
+  /** Optional request ID that this attempt is retrying. */
+  retryOfRequestId?: string;
   /**
    * Optional client metadata to store with the user message.
    * For extension-specific context that should be preserved.

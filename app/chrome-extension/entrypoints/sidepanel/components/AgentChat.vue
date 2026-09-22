@@ -22,9 +22,14 @@
     <template v-else>
       <AgentChatShell
         :error-message="chat.errorMessage.value"
+        :error-info="chat.errorInfo.value"
+        :can-retry="chat.canRetry.value"
+        :diagnostics-copied="chat.diagnosticsCopied.value"
         :usage="chat.lastUsage.value"
         :footer-label="`${engineDisplayName} ${copy.preview}`"
-        @error:dismiss="chat.errorMessage.value = null"
+        @error:dismiss="chat.clearError()"
+        @error:retry="chat.retryLastRequest()"
+        @error:copy="chat.copyErrorDiagnostics()"
       >
         <!-- Header -->
         <template #header>
@@ -409,6 +414,7 @@ const threadState = useAgentThreads({
   messages: chat.messages,
   requestState: chat.requestState,
   currentRequestId: chat.currentRequestId,
+  requestPhase: chat.requestPhase,
 });
 
 // Computed values

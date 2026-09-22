@@ -188,11 +188,11 @@ export default defineConfig({
       target: 'es2015',
       // 非生产环境下生成sourcemap
       sourcemap: env.mode !== 'production',
-      // 禁用gzip 压缩大小报告，因为压缩大型文件可能会很慢
-      reportCompressedSize: false,
+      // Keep development builds fast, but ship minified production bundles.
+      reportCompressedSize: env.mode === 'production',
       // chunk大小超过1500kb是触发警告
       chunkSizeWarningLimit: 1500,
-      minify: false,
+      minify: env.mode === 'production' ? 'esbuild' : false,
     },
   }),
 });

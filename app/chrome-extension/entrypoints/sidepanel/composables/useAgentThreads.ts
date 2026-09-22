@@ -7,6 +7,8 @@ import type {
   AgentMessage,
   AgentMessageAttachmentMetadata,
   AttachmentMetadata,
+  AgentErrorInfo,
+  AgentExecutionPhase,
 } from '@ethanwilkins/chrome-mcp-shared-2026';
 import type { RequestState } from './useAgentChat';
 
@@ -56,6 +58,7 @@ export interface ToolPresentation {
   engine?: string;
   severity: ToolSeverity;
   phase: 'use' | 'result';
+  errorInfo?: AgentErrorInfo;
   raw: { content: string; metadata?: Record<string, unknown> };
 }
 
@@ -96,6 +99,7 @@ export type TimelineItem =
       messageId: string;
       tool: ToolPresentation;
       isError: boolean;
+      errorInfo?: AgentErrorInfo;
     }
   | {
       kind: 'status';
@@ -134,6 +138,8 @@ export interface AgentThread {
   items: TimelineItem[];
   /** Attachments from the user prompt (for display in thread header) */
   attachments: AttachmentMetadata[];
+  /** Previous request ID when this thread was created by a retry. */
+  retryOfRequestId?: string;
   /** Thread header data for special message rendering */
   header?: ThreadHeader;
 }
@@ -144,6 +150,7 @@ export interface UseAgentThreadsOptions {
   /** Request lifecycle state (replaces isStreaming for thread state calculation) */
   requestState: Ref<RequestState>;
   currentRequestId: Ref<string | null>;
+  requestPhase: Ref<AgentExecutionPhase | null>;
 }
 
 /**
@@ -210,6 +217,21 @@ function buildDiffStats(meta: Record<string, unknown>): DiffStats | undefined {
   return undefined;
 }
 
+function getErrorInfo(meta: Record<string, unknown>): AgentErrorInfo | undefined {
+  const value = meta.errorInfo;
+  if (!value || typeof value !== 'object') return undefined;
+  const info = value as Partial<AgentErrorInfo>;
+  if (
+    typeof info.category !== 'string' ||
+    typeof info.phase !== 'string' ||
+    typeof info.userMessage !== 'string' ||
+    typeof info.retryable !== 'boolean'
+  ) {
+    return undefined;
+  }
+  return info as AgentErrorInfo;
+}
+
 /**
  * Present a tool message as ToolPresentation
  */
@@ -227,6 +249,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
     meta.is_error === true ||
     meta.isError === true ||
     (typeof msg.content === 'string' && msg.content.trimStart().startsWith('Error:'));
+  const errorInfo = getErrorInfo(meta);
 
   // Extract common metadata fields
   const filePath = firstString(meta.filePath as string);
@@ -252,6 +275,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : 'info',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -273,6 +297,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : 'success',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -290,6 +315,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : 'success',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -312,6 +338,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : 'success',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -344,6 +371,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : phase === 'result' ? 'success' : 'info',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -363,6 +391,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : 'info',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -394,6 +423,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : phase === 'result' ? 'success' : 'info',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -419,6 +449,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
       engine,
       severity: isError ? 'error' : phase === 'result' ? 'success' : 'info',
       phase,
+      errorInfo,
       raw: { content: msg.content, metadata: meta },
     };
   }
@@ -432,6 +463,7 @@ function presentTool(msg: AgentMessage): ToolPresentation {
     engine,
     severity: isError ? 'error' : 'info',
     phase,
+    errorInfo,
     raw: { content: msg.content, metadata: meta },
   };
 }
@@ -530,6 +562,7 @@ function mapMessageToTimelineItem(msg: AgentMessage): TimelineItem | null {
       messageId: msg.id,
       tool,
       isError: tool.severity === 'error',
+      errorInfo: tool.errorInfo,
     };
   }
 
@@ -555,6 +588,7 @@ function buildThreads(
   messages: AgentMessage[],
   requestState: RequestState,
   currentRequestId: string | null,
+  requestPhase: AgentExecutionPhase | null,
 ): AgentThread[] {
   // Sort messages by createdAt
   const sortedMessages = [...messages].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -572,6 +606,7 @@ function buildThreads(
       title?: string;
       items: TimelineItem[];
       attachments: AttachmentMetadata[];
+      retryOfRequestId?: string;
       /** Thread header for special message types */
       header?: ThreadHeader;
     }
@@ -626,6 +661,10 @@ function buildThreads(
       // Store attachments for thread header display
       if (attachments.length > 0) {
         group.attachments = attachments;
+      }
+      const retryOfRequestId = meta.retryOfRequestId;
+      if (typeof retryOfRequestId === 'string' && retryOfRequestId.trim()) {
+        group.retryOfRequestId = retryOfRequestId;
       }
 
       // Build thread header for special message types
@@ -683,7 +722,7 @@ function buildThreads(
     // Add status item for active requests
     // Use stable ID without Date.now() to prevent component remount on each render
     if (state === 'running' || state === 'starting') {
-      const statusText = state === 'running' ? 'Working...' : 'Starting...';
+      const statusText = getStatusText(state, requestPhase);
       items.push({
         kind: 'status',
         id: `status:streaming:${requestId ?? 'current'}`,
@@ -702,12 +741,30 @@ function buildThreads(
       state,
       items,
       attachments: g.attachments,
+      retryOfRequestId: g.retryOfRequestId,
       header: g.header,
     });
   }
 
   // Sort threads by createdAt
   return threads.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+function getStatusText(state: 'starting' | 'running', phase: AgentExecutionPhase | null): string {
+  if (state === 'starting') return 'Starting...';
+  switch (phase) {
+    case 'connection':
+      return 'Connecting...';
+    case 'dispatch':
+      return 'Submitting request...';
+    case 'tool':
+      return 'Executing tool...';
+    case 'stream':
+      return 'Receiving response...';
+    case 'model':
+    default:
+      return 'Thinking...';
+  }
 }
 
 /**
@@ -719,6 +776,7 @@ export function useAgentThreads(options: UseAgentThreadsOptions) {
       options.messages.value,
       options.requestState.value,
       options.currentRequestId.value,
+      options.requestPhase.value,
     );
   });
 

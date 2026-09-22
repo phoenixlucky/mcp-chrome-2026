@@ -125,6 +125,16 @@ describe('MCP tool catalog', () => {
   it('keeps the bilingual catalog aligned and fully described', () => {
     const names = TOOL_SCHEMAS.map((tool) => tool.name);
     expect(TOOL_SCHEMAS_EN.map((tool) => tool.name)).toEqual(names);
+    const withoutDescriptions = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(withoutDescriptions);
+      if (!value || typeof value !== 'object') return value;
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(([key]) => key !== 'description')
+          .map(([key, child]) => [key, withoutDescriptions(child)]),
+      );
+    };
+    expect(withoutDescriptions(TOOL_SCHEMAS_EN)).toEqual(withoutDescriptions(TOOL_SCHEMAS));
     const han = /\p{Script=Han}/u;
     for (const catalog of [TOOL_SCHEMAS, TOOL_SCHEMAS_EN]) {
       for (const tool of catalog) {

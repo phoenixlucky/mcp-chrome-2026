@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridge-monorepo-2026",
-  "version": "2.7.6",
+  "version": "2.7.7",
   "private": true,
   "packageManager": "pnpm@12.4.1+sha512.2e81e399d73fe8390dab25e06aa788ab7a5908248d2f5a370f82b481147a6a7a367bf8048f9a6fdb6460f21a66f0542dedb8b94ca2c8723596741920b1656d4c",
   "engines": {
@@ -35,9 +35,9 @@
     "check:phase8": "pnpm run build:native && node scripts/phase8-gates.mjs",
     "lint:fix": "pnpm -r lint:fix",
     "format": "pnpm -r format",
-    "clean:dist": "pnpm -r exec rm -rf dist .turbo",
-    "clean:modules": "pnpm -r exec rm -rf node_modules && rm -rf node_modules",
-    "clean": "npm run clean:dist && npm run clean:modules",
+    "clean:dist": "node scripts/clean.mjs --dist",
+    "clean:modules": "node scripts/clean.mjs --modules",
+    "clean": "pnpm run clean:dist && pnpm run clean:modules",
     "typecheck": "pnpm run typecheck:shared && pnpm run build:shared && pnpm run typecheck:native && pnpm run typecheck:extension && pnpm run typecheck:desktop",
     "typecheck:shared": "pnpm exec tsc --noEmit -p packages/shared/tsconfig.json",
     "typecheck:native": "pnpm exec tsc --noEmit -p app/native-server/tsconfig.json",

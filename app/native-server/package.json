@@ -1,6 +1,6 @@
 {
   "name": "@ethanwilkins/mcp-chrome-bridge-2026",
-  "version": "2.7.6",
+  "version": "2.7.7",
   "description": "Chrome Native-Messaging host (Node)",
   "main": "dist/index.js",
   "bin": {
@@ -51,8 +51,7 @@
     "commander": "^13.1.0",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.12.3",
-    "is-admin": "^4.0.0",
-    "zod": "^4.6.1"
+    "is-admin": "^4.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

@@ -16,6 +16,16 @@
         >
           {{ thread.title }}
         </h2>
+        <span
+          v-if="thread.retryOfRequestId"
+          class="ml-2 flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded"
+          :style="{
+            color: 'var(--ac-text-muted)',
+            backgroundColor: 'var(--ac-chip-bg)',
+          }"
+        >
+          {{ isChinese ? '重试' : 'Retry' }}
+        </span>
 
         <!-- Edit button (placeholder, appears on hover) -->
         <button
@@ -152,10 +162,13 @@ import type { AgentThread } from '../../composables/useAgentThreads';
 import { AGENT_SERVER_PORT_KEY } from '../../composables';
 import AgentTimeline from './AgentTimeline.vue';
 import ApplyMessageChip from './ApplyMessageChip.vue';
+import { useAgentLocale } from '../../composables/useAgentLocale';
 
 const props = defineProps<{
   thread: AgentThread;
 }>();
+
+const { isChinese } = useAgentLocale();
 
 // Inject server port from parent
 const serverPort = inject(AGENT_SERVER_PORT_KEY, ref<number | null>(null));

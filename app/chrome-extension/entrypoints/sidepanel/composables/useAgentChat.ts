@@ -10,9 +10,16 @@ import type {
   AgentAttachment,
   RealtimeEvent,
   AgentStatusEvent,
+  AgentErrorInfo,
+  AgentExecutionPhase,
   AgentCliPreference,
   AgentUsageStats,
 } from '@ethanwilkins/chrome-mcp-shared-2026';
+import {
+  createFallbackAgentError,
+  formatAgentDiagnostics,
+  parseAgentErrorInfo,
+} from './agent-error';
 
 /**
  * Request lifecycle state.
@@ -33,6 +40,27 @@ export interface UseAgentChatOptions {
   openEventSource: () => void;
 }
 
+interface RequestSnapshot {
+  requestId?: string;
+  userText: string;
+  payload: Omit<AgentActRequest, 'requestId'>;
+  retryCount: number;
+  errorInfo?: AgentErrorInfo;
+}
+
+type SendOptions = {
+  cliPreference?: string;
+  model?: string;
+  projectId?: string;
+  projectRoot?: string;
+  dbSessionId?: string;
+  instruction?: string;
+  displayText?: string;
+  clientMeta?: AgentActRequestClientMeta;
+  retryOfRequestId?: string;
+  retryCount?: number;
+};
+
 export function useAgentChat(options: UseAgentChatOptions) {
   // State
   const messages = ref<AgentMessage[]>([]);
@@ -52,20 +80,16 @@ export function useAgentChat(options: UseAgentChatOptions) {
    */
   const requestState = ref<RequestState>('idle');
   const errorMessage = ref<string | null>(null);
+  const errorInfo = ref<AgentErrorInfo | null>(null);
   const currentRequestId = ref<string | null>(null);
   const cancelling = ref(false);
   const attachments = ref<AgentAttachment[]>([]);
   const lastUsage = ref<AgentUsageStats | null>(null);
+  const requestPhase = ref<AgentExecutionPhase | null>(null);
+  const activeRequest = ref<RequestSnapshot | null>(null);
+  const lastFailedRequest = ref<RequestSnapshot | null>(null);
+  const diagnosticsCopied = ref(false);
 
-  // Computed
-  const canSend = computed(() => {
-    return input.value.trim().length > 0 && !sending.value;
-  });
-
-  /**
-   * Whether there is an active request in progress.
-   * Use this for UI elements like stop button, loading indicators, and running badges.
-   */
   const isRequestActive = computed(() => {
     return (
       requestState.value === 'starting' ||
@@ -73,6 +97,35 @@ export function useAgentChat(options: UseAgentChatOptions) {
       requestState.value === 'running'
     );
   });
+
+  // Computed
+  const canSend = computed(() => {
+    return input.value.trim().length > 0 && !sending.value && !isRequestActive.value;
+  });
+  const canRetry = computed(() => {
+    return Boolean(lastFailedRequest.value?.errorInfo?.retryable) && !isRequestActive.value;
+  });
+
+  function setError(info: AgentErrorInfo): void {
+    errorInfo.value = info;
+    errorMessage.value = info.userMessage;
+    diagnosticsCopied.value = false;
+  }
+
+  function rememberFailure(info: AgentErrorInfo, snapshot = activeRequest.value): void {
+    if (!snapshot) return;
+    lastFailedRequest.value = { ...snapshot, errorInfo: info };
+    if (snapshot.retryCount > 0) {
+      input.value = snapshot.userText;
+      attachments.value = [...(snapshot.payload.attachments ?? [])];
+    }
+  }
+
+  function clearError(): void {
+    errorMessage.value = null;
+    errorInfo.value = null;
+    diagnosticsCopied.value = false;
+  }
 
   /**
    * Check if an incoming event belongs to a different active request.
@@ -112,7 +165,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
         }
         handleStatusEvent(event.data);
         break;
-      case 'error':
+      case 'error': {
         // Error events may not have sessionId, but if they do, filter
         if (event.data?.sessionId && event.data.sessionId !== currentSessionId) {
           return;
@@ -121,7 +174,15 @@ export function useAgentChat(options: UseAgentChatOptions) {
         if (isDifferentActiveRequest(event.data?.requestId)) {
           return;
         }
-        errorMessage.value = event.error;
+        const info =
+          event.data?.errorInfo ??
+          createFallbackAgentError(event.error, {
+            phase: 'stream',
+            requestId: event.data?.requestId,
+            sessionId: currentSessionId,
+          });
+        setError(info);
+        rememberFailure(info);
         isStreaming.value = false;
         requestState.value = 'error';
         // Clear requestId if it matches the error event's requestId (or unconditionally if no requestId in error)
@@ -129,6 +190,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
           currentRequestId.value = null;
         }
         break;
+      }
       case 'connected':
         console.log('[AgentChat] Connected to session:', event.data.sessionId);
         break;
@@ -199,6 +261,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
     // should not stop the overall request, only indicate this message is complete
     if (msg.role === 'assistant' || msg.role === 'tool') {
       isStreaming.value = msg.isStreaming === true && !msg.isFinal;
+      requestPhase.value = msg.role === 'tool' ? 'tool' : 'model';
 
       // If we're receiving model/tool output but requestState hasn't progressed to 'running',
       // update it. This handles:
@@ -231,6 +294,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
 
     // Update request lifecycle state (driven by status events only)
     requestState.value = status.status;
+    requestPhase.value = status.phase ?? requestPhase.value;
 
     switch (status.status) {
       case 'starting':
@@ -239,7 +303,6 @@ export function useAgentChat(options: UseAgentChatOptions) {
         // Request is active - no additional state changes needed
         break;
       case 'completed':
-      case 'error':
       case 'cancelled':
         // Request finished - clear message streaming and requestId
         isStreaming.value = false;
@@ -248,7 +311,32 @@ export function useAgentChat(options: UseAgentChatOptions) {
         if (!statusRequestId || statusRequestId === currentRequestId.value) {
           currentRequestId.value = null;
         }
+        activeRequest.value = null;
+        if (status.status === 'completed') {
+          lastFailedRequest.value = null;
+          requestPhase.value = null;
+        } else {
+          requestPhase.value = 'cancel';
+          clearError();
+        }
         break;
+      case 'error': {
+        const info =
+          status.errorInfo ??
+          createFallbackAgentError(status.message || 'The agent request failed', {
+            phase: status.phase ?? 'model',
+            requestId: status.requestId,
+            sessionId: status.sessionId,
+          });
+        if (!errorInfo.value) setError(info);
+        rememberFailure(info);
+        isStreaming.value = false;
+        cancelling.value = false;
+        if (!statusRequestId || statusRequestId === currentRequestId.value) {
+          currentRequestId.value = null;
+        }
+        break;
+      }
     }
   }
 
@@ -279,6 +367,8 @@ export function useAgentChat(options: UseAgentChatOptions) {
        * Used for special UI rendering (e.g., web editor apply/selection chips).
        */
       clientMeta?: AgentActRequestClientMeta;
+      retryOfRequestId?: string;
+      retryCount?: number;
     } = {},
   ): Promise<void> {
     // User-visible content is always the user's raw input
@@ -286,14 +376,40 @@ export function useAgentChat(options: UseAgentChatOptions) {
     // Actual instruction sent to server can be overridden (e.g., with context prepended)
     const instructionText = chatOptions.instruction?.trim() || userText;
 
-    if (!userText) return;
+    if (!userText || isRequestActive.value) return;
+
+    const savedInput = input.value;
+    const savedAttachments = [...attachments.value];
+    const retryCount = chatOptions.retryCount ?? (chatOptions.retryOfRequestId ? 1 : 0);
+    const basePayload: Omit<AgentActRequest, 'requestId'> = {
+      instruction: instructionText,
+      retryOfRequestId: chatOptions.retryOfRequestId,
+      displayText: chatOptions.displayText?.trim() || undefined,
+      clientMeta: chatOptions.clientMeta,
+      cliPreference: chatOptions.cliPreference
+        ? (chatOptions.cliPreference as AgentCliPreference)
+        : undefined,
+      model: chatOptions.model?.trim() || undefined,
+      projectId: chatOptions.projectId || undefined,
+      projectRoot: chatOptions.projectRoot?.trim() || undefined,
+      dbSessionId: chatOptions.dbSessionId || undefined,
+      attachments: savedAttachments.length > 0 ? savedAttachments : undefined,
+    };
+    activeRequest.value = { userText, payload: basePayload, retryCount };
+    lastFailedRequest.value = null;
 
     const ready = await options.ensureServer();
     const serverPort = options.getServerPort();
     const sessionId = options.getSessionId();
 
     if (!ready || !serverPort) {
-      errorMessage.value = 'Agent server is not available.';
+      const info = createFallbackAgentError('Agent server is not available.', {
+        category: 'connection',
+        phase: 'connection',
+        retryable: true,
+      });
+      setError(info);
+      rememberFailure(info);
       return;
     }
 
@@ -303,6 +419,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
     // Generate requestId on client side for optimistic message matching
     // Server will use this requestId when echoing user message via SSE
     const requestId = crypto.randomUUID();
+    activeRequest.value = { ...activeRequest.value!, requestId };
 
     // Create optimistic user message for immediate feedback
     // Note: Use userText for UI, not instructionText (which may contain injected context)
@@ -317,10 +434,11 @@ export function useAgentChat(options: UseAgentChatOptions) {
       createdAt: new Date().toISOString(),
       // Include metadata for immediate chip rendering (before server echo)
       metadata:
-        chatOptions.displayText || chatOptions.clientMeta
+        chatOptions.displayText || chatOptions.clientMeta || chatOptions.retryOfRequestId
           ? {
               displayText: chatOptions.displayText?.trim(),
               clientMeta: chatOptions.clientMeta,
+              retryOfRequestId: chatOptions.retryOfRequestId,
             }
           : undefined,
     };
@@ -328,22 +446,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
     // Add user message immediately
     messages.value.push(optimisticMessage);
 
-    const payload: AgentActRequest = {
-      // Use instructionText which may include injected context (e.g., web editor selection)
-      instruction: instructionText,
-      requestId, // Send requestId to server so it can be used in SSE events
-      // Optional metadata for special UI rendering (stored with the user message)
-      displayText: chatOptions.displayText?.trim() || undefined,
-      clientMeta: chatOptions.clientMeta,
-      cliPreference: chatOptions.cliPreference
-        ? (chatOptions.cliPreference as AgentCliPreference)
-        : undefined,
-      model: chatOptions.model?.trim() || undefined,
-      projectId: chatOptions.projectId || undefined,
-      projectRoot: chatOptions.projectRoot?.trim() || undefined,
-      dbSessionId: chatOptions.dbSessionId || undefined,
-      attachments: attachments.value.length > 0 ? attachments.value : undefined,
-    };
+    const payload: AgentActRequest = { ...basePayload, requestId };
 
     sending.value = true;
     // Initialize request lifecycle state - request begins once we dispatch /act
@@ -351,12 +454,10 @@ export function useAgentChat(options: UseAgentChatOptions) {
     currentRequestId.value = requestId;
     // Reset message-level streaming; it will be driven by message.isStreaming deltas
     isStreaming.value = false;
-    errorMessage.value = null;
+    clearError();
 
     // Clear input immediately for better UX
-    const savedInput = input.value;
     input.value = '';
-    const savedAttachments = [...attachments.value];
     attachments.value = [];
 
     try {
@@ -370,7 +471,18 @@ export function useAgentChat(options: UseAgentChatOptions) {
 
       if (!response.ok) {
         const text = await response.text().catch(() => '');
-        throw new Error(text || `HTTP ${response.status}`);
+        let parsed: unknown;
+        try {
+          parsed = text ? JSON.parse(text) : undefined;
+        } catch {
+          parsed = undefined;
+        }
+        const info = parseAgentErrorInfo(parsed, text || `HTTP ${response.status}`);
+        const requestError = new Error(info.userMessage) as Error & {
+          agentErrorInfo?: AgentErrorInfo;
+        };
+        requestError.agentErrorInfo = info;
+        throw requestError;
       }
 
       const result = await response.json().catch(() => ({}));
@@ -391,6 +503,9 @@ export function useAgentChat(options: UseAgentChatOptions) {
       // This is used for cancel functionality
       if (result.requestId) {
         currentRequestId.value = result.requestId;
+        if (activeRequest.value?.requestId === requestId) {
+          activeRequest.value = { ...activeRequest.value, requestId: result.requestId };
+        }
       } else {
         // Fallback: use our client-generated requestId
         currentRequestId.value = requestId;
@@ -406,8 +521,18 @@ export function useAgentChat(options: UseAgentChatOptions) {
       }
 
       console.error('Failed to send agent act request:', error);
-      errorMessage.value =
-        error instanceof Error ? error.message : 'Failed to send request to agent server.';
+      const attachedErrorInfo =
+        error instanceof Error
+          ? (error as Error & { agentErrorInfo?: AgentErrorInfo }).agentErrorInfo
+          : undefined;
+      const info = attachedErrorInfo
+        ? attachedErrorInfo
+        : createFallbackAgentError(
+            error instanceof Error ? error.message : 'Failed to send request to agent server.',
+            { phase: 'dispatch' },
+          );
+      setError(info);
+      rememberFailure(info);
       // Restore input on error
       input.value = savedInput;
       attachments.value = savedAttachments;
@@ -417,7 +542,7 @@ export function useAgentChat(options: UseAgentChatOptions) {
         messages.value.splice(msgIndex, 1);
       }
       isStreaming.value = false;
-      requestState.value = 'idle';
+      requestState.value = 'error';
       currentRequestId.value = null;
     } finally {
       sending.value = false;
@@ -449,7 +574,12 @@ export function useAgentChat(options: UseAgentChatOptions) {
         // so user can try again or wait for natural completion
         const errorMsg = data?.message || `Failed to cancel request (HTTP ${response.status})`;
         console.error('Cancel request failed:', errorMsg);
-        errorMessage.value = errorMsg;
+        setError(
+          createFallbackAgentError(errorMsg, {
+            phase: 'cancel',
+            category: 'unknown',
+          }),
+        );
         return;
       }
 
@@ -461,7 +591,12 @@ export function useAgentChat(options: UseAgentChatOptions) {
       // cancelling will be reset when handleStatusEvent receives 'cancelled' status
     } catch (error) {
       console.error('Failed to cancel request:', error);
-      errorMessage.value = error instanceof Error ? error.message : 'Failed to cancel request';
+      setError(
+        createFallbackAgentError(
+          error instanceof Error ? error.message : 'Failed to cancel request',
+          { phase: 'cancel' },
+        ),
+      );
       // Only reset cancelling on error, not on success
       cancelling.value = false;
     }
@@ -477,6 +612,32 @@ export function useAgentChat(options: UseAgentChatOptions) {
     messages.value = newMessages;
   }
 
+  async function retryLastRequest(): Promise<void> {
+    const failed = lastFailedRequest.value;
+    if (!failed?.errorInfo?.retryable || sending.value || isRequestActive.value) return;
+
+    input.value = failed.userText;
+    attachments.value = [...(failed.payload.attachments ?? [])];
+    await send({
+      cliPreference: failed.payload.cliPreference,
+      model: failed.payload.model,
+      projectId: failed.payload.projectId,
+      projectRoot: failed.payload.projectRoot,
+      dbSessionId: failed.payload.dbSessionId,
+      instruction: failed.payload.instruction,
+      displayText: failed.payload.displayText,
+      clientMeta: failed.payload.clientMeta,
+      retryOfRequestId: failed.requestId,
+      retryCount: failed.retryCount + 1,
+    });
+  }
+
+  async function copyErrorDiagnostics(): Promise<void> {
+    if (!errorInfo.value || !navigator.clipboard?.writeText) return;
+    await navigator.clipboard.writeText(formatAgentDiagnostics(errorInfo.value));
+    diagnosticsCopied.value = true;
+  }
+
   return {
     // State
     messages,
@@ -485,14 +646,18 @@ export function useAgentChat(options: UseAgentChatOptions) {
     isStreaming,
     requestState,
     errorMessage,
+    errorInfo,
     currentRequestId,
     cancelling,
     attachments,
     lastUsage,
+    requestPhase,
+    diagnosticsCopied,
 
     // Computed
     canSend,
     isRequestActive,
+    canRetry,
 
     // Methods
     handleRealtimeEvent,
@@ -500,5 +665,8 @@ export function useAgentChat(options: UseAgentChatOptions) {
     cancelCurrentRequest,
     clearMessages,
     setMessages,
+    retryLastRequest,
+    copyErrorDiagnostics,
+    clearError,
   };
 }
