@@ -20,8 +20,17 @@ type ProxyTestResult = {
   pending?: boolean;
   ip?: string;
   country?: string;
+  region?: string;
+  city?: string;
   error?: string;
   checkedAt: number;
+};
+
+type ProxyLocation = {
+  ip: string;
+  country?: string;
+  region?: string;
+  city?: string;
 };
 
 const DEFAULT_CONFIG: ProxyConfig = {
@@ -354,6 +363,12 @@ type ProxyRotationResult = {
   skipped?: string;
   previousIp?: string;
   currentIp?: string;
+  previousCountry?: string;
+  currentCountry?: string;
+  previousRegion?: string;
+  currentRegion?: string;
+  previousCity?: string;
+  currentCity?: string;
 };
 
 async function rotateAndReload(
@@ -396,7 +411,9 @@ async function rotateAndReload(
   rotationTimes.set(rotationKey, [...recent, now]);
   try {
     const previousSessionId = explicit ? sessionIdForUrl(url) : undefined;
-    const previousIp = explicit ? await readProxyIpForSession(previousSessionId) : undefined;
+    const previousLocation = explicit
+      ? await readProxyLocationForSession(previousSessionId)
+      : undefined;
     rotateCountryStickyPort();
     rotateSessionForUrl(url);
     await reconnectProxy();
@@ -407,13 +424,29 @@ async function rotateAndReload(
       if (!isClosedTabError(reloadError)) throw reloadError;
       skipped = 'tab_closed_after_rotation';
     }
-    const currentIp = explicit ? await readProxyIpForSession(sessionIdForUrl(url)) : undefined;
+    const currentLocation = explicit
+      ? await readProxyLocationForSession(sessionIdForUrl(url))
+      : undefined;
     return {
       rotated: true,
       tabId,
       ...(skipped ? { skipped } : {}),
-      ...(previousIp ? { previousIp } : {}),
-      ...(currentIp ? { currentIp } : {}),
+      ...(previousLocation
+        ? {
+            previousIp: previousLocation.ip,
+            ...(previousLocation.country ? { previousCountry: previousLocation.country } : {}),
+            ...(previousLocation.region ? { previousRegion: previousLocation.region } : {}),
+            ...(previousLocation.city ? { previousCity: previousLocation.city } : {}),
+          }
+        : {}),
+      ...(currentLocation
+        ? {
+            currentIp: currentLocation.ip,
+            ...(currentLocation.country ? { currentCountry: currentLocation.country } : {}),
+            ...(currentLocation.region ? { currentRegion: currentLocation.region } : {}),
+            ...(currentLocation.city ? { currentCity: currentLocation.city } : {}),
+          }
+        : {}),
     };
   } catch (reloadError) {
     if (!isClosedTabError(reloadError)) throw reloadError;
@@ -423,9 +456,11 @@ async function rotateAndReload(
   }
 }
 
-async function readProxyIpForSession(sessionId: string | undefined): Promise<string | undefined> {
+async function readProxyLocationForSession(
+  sessionId: string | undefined,
+): Promise<ProxyLocation | undefined> {
   try {
-    return (await testProxyConnection(sessionId)).ip;
+    return await testProxyConnection(sessionId);
   } catch {
     // IP probing is supplemental UI information; a failed probe must not
     // prevent the requested proxy rotation from completing.
@@ -518,7 +553,7 @@ export async function getProxyDiagnostics(
   return diagnostics;
 }
 
-async function testProxyConnection(sessionId?: string): Promise<{ ip: string; country?: string }> {
+async function testProxyConnection(sessionId?: string): Promise<ProxyLocation> {
   if (!config.enabled) throw new Error('请先启用并保存代理');
   const previousProbeSessionId = proxyProbeSessionId;
   lastProxyNetworkError = undefined;
@@ -529,11 +564,21 @@ async function testProxyConnection(sessionId?: string): Promise<{ ip: string; co
       signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) throw new Error(`代理测试失败（HTTP ${response.status}）`);
-    const result = (await response.json()) as { ip?: unknown; country?: unknown };
+    const result = (await response.json()) as {
+      ip?: unknown;
+      country?: unknown;
+      region?: unknown;
+      state?: unknown;
+      city?: unknown;
+    };
     if (typeof result.ip !== 'string') throw new Error('代理测试未返回出口 IP');
     return {
       ip: result.ip,
       ...(typeof result.country === 'string' ? { country: result.country } : {}),
+      ...(typeof (result.region ?? result.state) === 'string'
+        ? { region: String(result.region ?? result.state) }
+        : {}),
+      ...(typeof result.city === 'string' ? { city: result.city } : {}),
     };
   } catch (error) {
     const detail = String(error instanceof Error ? error.message : error);

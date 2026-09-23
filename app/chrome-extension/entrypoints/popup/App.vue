@@ -769,11 +769,27 @@
           </div>
         </div>
         <div class="proxy-ip-change" aria-label="IP 切换前后对比">
-          <code class="proxy-ip-value">{{ proxyRotationResult?.previousIp || '获取失败' }}</code>
+          <div class="proxy-ip-item">
+            <span class="proxy-ip-period">切换前</span>
+            <span
+              v-if="formatProxyLocation(proxyRotationResult, 'previous')"
+              class="proxy-ip-location"
+              >{{ formatProxyLocation(proxyRotationResult, 'previous') }}</span
+            >
+            <code class="proxy-ip-value">{{ proxyRotationResult?.previousIp || '获取失败' }}</code>
+          </div>
           <span class="proxy-ip-arrow" aria-hidden="true">→</span>
-          <code class="proxy-ip-value proxy-ip-value--current">{{
-            proxyRotationResult?.currentIp || '获取失败'
-          }}</code>
+          <div class="proxy-ip-item">
+            <span class="proxy-ip-period">切换后</span>
+            <span
+              v-if="formatProxyLocation(proxyRotationResult, 'current')"
+              class="proxy-ip-location"
+              >{{ formatProxyLocation(proxyRotationResult, 'current') }}</span
+            >
+            <code class="proxy-ip-value proxy-ip-value--current">{{
+              proxyRotationResult?.currentIp || '获取失败'
+            }}</code>
+          </div>
         </div>
         <p class="proxy-rotation-note">当前网页正在重新加载，请稍后查看。</p>
         <footer class="error-log-actions">
@@ -1197,7 +1213,16 @@ const proxyRotationPending = ref(false);
 const proxyResult = ref('');
 const proxyQuickResult = ref('');
 const showProxyRotationResult = ref(false);
-const proxyRotationResult = ref<{ previousIp?: string; currentIp?: string } | null>(null);
+const proxyRotationResult = ref<{
+  previousIp?: string;
+  currentIp?: string;
+  previousCountry?: string;
+  currentCountry?: string;
+  previousRegion?: string;
+  currentRegion?: string;
+  previousCity?: string;
+  currentCity?: string;
+} | null>(null);
 const proxyDomains = ref('');
 const proxy = reactive({
   enabled: false,
@@ -1853,7 +1878,19 @@ async function rotateCurrentProxy() {
     });
     if (!response?.success) throw new Error(response?.error || '切换 IP 失败');
     const result = response.result as
-      { rotated?: boolean; skipped?: string; previousIp?: string; currentIp?: string } | undefined;
+      | {
+          rotated?: boolean;
+          skipped?: string;
+          previousIp?: string;
+          currentIp?: string;
+          previousCountry?: string;
+          currentCountry?: string;
+          previousRegion?: string;
+          currentRegion?: string;
+          previousCity?: string;
+          currentCity?: string;
+        }
+      | undefined;
     if (!result?.rotated) {
       const reasons: Record<string, string> = {
         proxy_disabled: '代理未启用',
@@ -1866,6 +1903,12 @@ async function rotateCurrentProxy() {
     proxyRotationResult.value = {
       previousIp: result.previousIp,
       currentIp: result.currentIp,
+      previousCountry: result.previousCountry,
+      currentCountry: result.currentCountry,
+      previousRegion: result.previousRegion,
+      currentRegion: result.currentRegion,
+      previousCity: result.previousCity,
+      currentCity: result.currentCity,
     };
     proxyQuickResult.value = 'IP 切换完成。';
     showProxyRotationResult.value = true;
@@ -1879,6 +1922,18 @@ async function rotateCurrentProxy() {
 
 function closeProxyRotationResult() {
   showProxyRotationResult.value = false;
+}
+
+function formatProxyLocation(
+  result: typeof proxyRotationResult.value,
+  side: 'previous' | 'current',
+): string {
+  if (!result) return '';
+  return [result[`${side}Country`], result[`${side}Region`], result[`${side}City`]]
+    .filter(
+      (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index,
+    )
+    .join(' · ');
 }
 
 function isCookiePageUrl(url: unknown): url is string {
@@ -3862,6 +3917,27 @@ onUnmounted(() => {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   background: rgba(248, 250, 252, 0.72);
+}
+
+.proxy-ip-item {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  text-align: center;
+}
+
+.proxy-ip-period {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.proxy-ip-location {
+  min-width: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .proxy-ip-value {
