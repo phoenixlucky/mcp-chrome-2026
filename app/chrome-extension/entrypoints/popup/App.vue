@@ -168,6 +168,37 @@
                 }}</span>
               </button>
             </div>
+            <section class="proxy-live-status" aria-live="polite">
+              <div class="proxy-live-status-header">
+                <strong>当前出口 IP 位置</strong>
+                <button
+                  class="proxy-live-refresh"
+                  type="button"
+                  :disabled="!proxy.enabled || currentProxyInfoLoading"
+                  :aria-busy="currentProxyInfoLoading"
+                  @click="refreshCurrentProxyInfo"
+                >
+                  {{ currentProxyInfoLoading ? '获取中…' : '刷新' }}
+                </button>
+              </div>
+              <p v-if="!proxy.enabled" class="proxy-live-placeholder">代理未启用</p>
+              <p
+                v-else-if="currentProxyInfoLoading && !currentProxyInfo"
+                class="proxy-live-placeholder"
+              >
+                正在获取当前位置…
+              </p>
+              <template v-else-if="currentProxyInfo">
+                <p v-if="currentProxyLocation" class="proxy-live-location">{{
+                  currentProxyLocation
+                }}</p>
+                <p v-else class="proxy-live-placeholder">接口未返回位置数据</p>
+                <code class="proxy-live-ip">{{ currentProxyInfo.ip }}</code>
+              </template>
+              <p v-else class="proxy-live-placeholder">
+                {{ currentProxyInfoError || '暂时无法获取出口 IP 位置' }}
+              </p>
+            </section>
             <div class="extension-id">扩展 ID: {{ extensionId }}</div>
             <label class="background-operations-switch">
               <span>
@@ -1223,6 +1254,24 @@ const proxyRotationResult = ref<{
   previousCity?: string;
   currentCity?: string;
 } | null>(null);
+const currentProxyInfo = ref<{
+  ip: string;
+  country?: string;
+  region?: string;
+  city?: string;
+} | null>(null);
+const currentProxyInfoLoading = ref(false);
+const currentProxyInfoError = ref('');
+let currentProxyInfoRequestId = 0;
+const currentProxyLocation = computed(() =>
+  currentProxyInfo.value
+    ? joinProxyLocation(
+        currentProxyInfo.value.country,
+        currentProxyInfo.value.region,
+        currentProxyInfo.value.city,
+      )
+    : '',
+);
 const proxyDomains = ref('');
 const proxy = reactive({
   enabled: false,
@@ -1774,8 +1823,24 @@ async function loadProxySettings() {
   }
   proxyDomains.value = (saved.domains || []).join('\n');
   const test = stored[STORAGE_KEYS.PROXY_TEST_RESULT] as
-    | { success?: boolean; pending?: boolean; ip?: string; country?: string; error?: string }
+    | {
+        success?: boolean;
+        pending?: boolean;
+        ip?: string;
+        country?: string;
+        region?: string;
+        city?: string;
+        error?: string;
+      }
     | undefined;
+  if (test?.success && test.ip) {
+    currentProxyInfo.value = {
+      ip: test.ip,
+      country: test.country,
+      region: test.region,
+      city: test.city,
+    };
+  }
   if (test?.pending) {
     proxyResult.value = '正在测试代理出口…';
   } else if (test?.success && test.ip) {
@@ -1803,6 +1868,8 @@ async function saveProxySettings(showResult = true): Promise<boolean> {
     Object.assign(proxy, response.config);
     proxyDomains.value = (response.config.domains || []).join('\n');
     if (showResult) proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
+    if (showResult && proxy.enabled) void refreshCurrentProxyInfo();
+    else if (showResult) currentProxyInfo.value = null;
     return true;
   } catch (error: any) {
     proxyResult.value = `错误：${error?.message || String(error)}`;
@@ -1818,13 +1885,52 @@ async function testProxyConnection() {
   proxySaving.value = true;
   proxyResult.value = '正在测试代理出口…';
   try {
-    const response = await chrome.runtime.sendMessage({ type: 'proxy_test' });
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const response = await chrome.runtime.sendMessage({ type: 'proxy_test', tabId: tab?.id });
     if (!response?.success) throw new Error(response?.error || '测试失败');
+    currentProxyInfo.value = {
+      ip: response.ip,
+      country: response.country,
+      region: response.region,
+      city: response.city,
+    };
+    currentProxyInfoError.value = '';
     proxyResult.value = `连接成功，出口 IP：${response.ip}${response.country ? `（国家/地区：${response.country}）` : ''}`;
   } catch (error: any) {
     proxyResult.value = `错误：${error?.message || String(error)}`;
   } finally {
     proxySaving.value = false;
+  }
+}
+
+async function refreshCurrentProxyInfo() {
+  const requestId = ++currentProxyInfoRequestId;
+  currentProxyInfoError.value = '';
+  if (!proxy.enabled) {
+    currentProxyInfo.value = null;
+    currentProxyInfoLoading.value = false;
+    return;
+  }
+
+  currentProxyInfoLoading.value = true;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tab?.id) throw new Error('当前没有可查询的网页标签');
+    const response = await chrome.runtime.sendMessage({ type: 'proxy_test', tabId: tab.id });
+    if (!response?.success) throw new Error(response?.error || '位置查询失败');
+    if (requestId !== currentProxyInfoRequestId) return;
+    currentProxyInfo.value = {
+      ip: response.ip,
+      country: response.country,
+      region: response.region,
+      city: response.city,
+    };
+  } catch (error: any) {
+    if (requestId !== currentProxyInfoRequestId) return;
+    currentProxyInfo.value = null;
+    currentProxyInfoError.value = error?.message || String(error);
+  } finally {
+    if (requestId === currentProxyInfoRequestId) currentProxyInfoLoading.value = false;
   }
 }
 
@@ -1853,6 +1959,12 @@ async function toggleProxy(event: Event) {
     proxyQuickResult.value = `错误：${error?.message || String(error)}`;
   } finally {
     proxySaving.value = false;
+    if (proxy.enabled) void refreshCurrentProxyInfo();
+    else {
+      currentProxyInfoRequestId++;
+      currentProxyInfo.value = null;
+      currentProxyInfoLoading.value = false;
+    }
   }
 }
 
@@ -1910,6 +2022,19 @@ async function rotateCurrentProxy() {
       previousCity: result.previousCity,
       currentCity: result.currentCity,
     };
+    currentProxyInfoRequestId++;
+    currentProxyInfoLoading.value = false;
+    if (result.currentIp) {
+      currentProxyInfo.value = {
+        ip: result.currentIp,
+        country: result.currentCountry,
+        region: result.currentRegion,
+        city: result.currentCity,
+      };
+      currentProxyInfoError.value = '';
+    } else {
+      void refreshCurrentProxyInfo();
+    }
     proxyQuickResult.value = 'IP 切换完成。';
     showProxyRotationResult.value = true;
   } catch (error: any) {
@@ -1929,10 +2054,20 @@ function formatProxyLocation(
   side: 'previous' | 'current',
 ): string {
   if (!result) return '';
-  return [result[`${side}Country`], result[`${side}Region`], result[`${side}City`]]
-    .filter(
-      (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index,
-    )
+  return joinProxyLocation(
+    result[`${side}Country`],
+    result[`${side}Region`],
+    result[`${side}City`],
+  );
+}
+
+function joinProxyLocation(country?: string, region?: string, city?: string): string {
+  return [
+    country ? `国家：${country}` : '',
+    region ? `区域/州/省：${region}` : '',
+    city ? `市：${city}` : '',
+  ]
+    .filter(Boolean)
     .join(' · ');
 }
 
@@ -3021,6 +3156,7 @@ onMounted(async () => {
   await initTheme();
   await loadPortPreference();
   await loadProxySettings();
+  void refreshCurrentProxyInfo();
   await loadBackgroundOperations();
   await loadContentMessageTimeout();
   await loadScrollCoordinatesSetting();
@@ -3858,6 +3994,58 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.proxy-live-status {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.proxy-live-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #334155;
+  font-size: 12px;
+}
+
+.proxy-live-refresh {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ac-accent, #d97757);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.proxy-live-refresh:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.proxy-live-location,
+.proxy-live-placeholder {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.proxy-live-ip {
+  color: #166534;
+  font:
+    12px/1.4 'Monaco',
+    'Menlo',
+    monospace;
+  overflow-wrap: anywhere;
 }
 
 .proxy-rotation-dialog {

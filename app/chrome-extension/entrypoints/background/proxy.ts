@@ -569,15 +569,17 @@ async function testProxyConnection(sessionId?: string): Promise<ProxyLocation> {
       country?: unknown;
       region?: unknown;
       state?: unknown;
+      province?: unknown;
       city?: unknown;
     };
     if (typeof result.ip !== 'string') throw new Error('代理测试未返回出口 IP');
+    const region = [result.region, result.state, result.province].find(
+      (value): value is string => typeof value === 'string' && Boolean(value.trim()),
+    );
     return {
       ip: result.ip,
       ...(typeof result.country === 'string' ? { country: result.country } : {}),
-      ...(typeof (result.region ?? result.state) === 'string'
-        ? { region: String(result.region ?? result.state) }
-        : {}),
+      ...(region ? { region } : {}),
       ...(typeof result.city === 'string' ? { city: result.city } : {}),
     };
   } catch (error) {
@@ -606,13 +608,13 @@ async function testProxyConnection(sessionId?: string): Promise<ProxyLocation> {
   }
 }
 
-async function runProxyTest(): Promise<ProxyTestResult> {
+async function runProxyTest(sessionId?: string): Promise<ProxyTestResult> {
   lastProxyAuth = undefined;
   await chrome.storage.local.set({
     [STORAGE_KEYS.PROXY_TEST_RESULT]: { success: false, pending: true, checkedAt: Date.now() },
   });
   try {
-    const result = await testProxyConnection();
+    const result = await testProxyConnection(sessionId);
     const saved: ProxyTestResult = { success: true, ...result, checkedAt: Date.now() };
     await chrome.storage.local.set({ [STORAGE_KEYS.PROXY_TEST_RESULT]: saved });
     return saved;
@@ -797,7 +799,15 @@ export function initProxyManager(): void {
       return true;
     }
     if (message?.type === 'proxy_test') {
-      runProxyTest()
+      const tabId = Number(message.tabId);
+      const sessionPromise = Number.isInteger(tabId)
+        ? chrome.tabs
+            .get(tabId)
+            .then((tab) => sessionIdForUrl(tab.url ?? ''))
+            .catch(() => undefined)
+        : Promise.resolve(undefined);
+      sessionPromise
+        .then((sessionId) => runProxyTest(sessionId))
         .then(sendResponse)
         .catch((error) => {
           logProxyError('代理测试消息处理失败', error);
