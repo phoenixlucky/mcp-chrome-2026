@@ -1253,12 +1253,15 @@ const proxyRotationResult = ref<{
   currentRegion?: string;
   previousCity?: string;
   currentCity?: string;
+  previousLocation?: string;
+  currentLocation?: string;
 } | null>(null);
 const currentProxyInfo = ref<{
   ip: string;
   country?: string;
   region?: string;
   city?: string;
+  location?: string;
 } | null>(null);
 const currentProxyInfoLoading = ref(false);
 const currentProxyInfoError = ref('');
@@ -1269,6 +1272,7 @@ const currentProxyLocation = computed(() =>
         currentProxyInfo.value.country,
         currentProxyInfo.value.region,
         currentProxyInfo.value.city,
+        currentProxyInfo.value.location,
       )
     : '',
 );
@@ -1830,6 +1834,7 @@ async function loadProxySettings() {
         country?: string;
         region?: string;
         city?: string;
+        location?: string;
         error?: string;
       }
     | undefined;
@@ -1839,6 +1844,7 @@ async function loadProxySettings() {
       country: test.country,
       region: test.region,
       city: test.city,
+      location: test.location,
     };
   }
   if (test?.pending) {
@@ -1893,6 +1899,7 @@ async function testProxyConnection() {
       country: response.country,
       region: response.region,
       city: response.city,
+      location: response.location,
     };
     currentProxyInfoError.value = '';
     proxyResult.value = `连接成功，出口 IP：${response.ip}${response.country ? `（国家/地区：${response.country}）` : ''}`;
@@ -1924,6 +1931,7 @@ async function refreshCurrentProxyInfo() {
       country: response.country,
       region: response.region,
       city: response.city,
+      location: response.location,
     };
   } catch (error: any) {
     if (requestId !== currentProxyInfoRequestId) return;
@@ -2001,6 +2009,8 @@ async function rotateCurrentProxy() {
           currentRegion?: string;
           previousCity?: string;
           currentCity?: string;
+          previousLocation?: string;
+          currentLocation?: string;
         }
       | undefined;
     if (!result?.rotated) {
@@ -2021,6 +2031,8 @@ async function rotateCurrentProxy() {
       currentRegion: result.currentRegion,
       previousCity: result.previousCity,
       currentCity: result.currentCity,
+      previousLocation: result.previousLocation,
+      currentLocation: result.currentLocation,
     };
     currentProxyInfoRequestId++;
     currentProxyInfoLoading.value = false;
@@ -2030,6 +2042,7 @@ async function rotateCurrentProxy() {
         country: result.currentCountry,
         region: result.currentRegion,
         city: result.currentCity,
+        location: result.currentLocation,
       };
       currentProxyInfoError.value = '';
     } else {
@@ -2058,10 +2071,17 @@ function formatProxyLocation(
     result[`${side}Country`],
     result[`${side}Region`],
     result[`${side}City`],
+    result[`${side}Location`],
   );
 }
 
-function joinProxyLocation(country?: string, region?: string, city?: string): string {
+function joinProxyLocation(
+  country?: string,
+  region?: string,
+  city?: string,
+  location?: string,
+): string {
+  if (location) return location;
   return [
     country ? `国家：${country}` : '',
     region ? `区域/州/省：${region}` : '',

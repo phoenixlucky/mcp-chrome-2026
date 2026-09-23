@@ -22,6 +22,7 @@ type ProxyTestResult = {
   country?: string;
   region?: string;
   city?: string;
+  location?: string;
   error?: string;
   checkedAt: number;
 };
@@ -31,6 +32,7 @@ type ProxyLocation = {
   country?: string;
   region?: string;
   city?: string;
+  location?: string;
 };
 
 const DEFAULT_CONFIG: ProxyConfig = {
@@ -229,7 +231,7 @@ export function createProxyPac(
   port: number,
   protocol: ProxyConfig['protocol'] = 'http',
 ): string {
-  // Keep the Oxylabs verification endpoint on the proxy even when the user scopes browser traffic.
+  // Keep proxy verification and exit-IP lookup requests proxied outside user-scoped domains.
   const matches = ['ip.oxylabs.io', ...domains]
     .map((domain) => domain.replace(/^\*\./, ''))
     .map(
@@ -238,7 +240,7 @@ export function createProxyPac(
     )
     .join(' || ');
   const type = protocol === 'https' ? 'HTTPS' : 'PROXY';
-  return `function FindProxyForURL(url, host) { if (${matches}) return ${JSON.stringify(`${type} ${host}:${port}`)}; return "DIRECT"; }`;
+  return `function FindProxyForURL(url, host) { if (url.indexOf("https://ping0.cc/geo") === 0 || ${matches}) return ${JSON.stringify(`${type} ${host}:${port}`)}; return "DIRECT"; }`;
 }
 
 function nextSessionId(): string {
@@ -287,7 +289,10 @@ function persistSessionIds(): void {
 }
 
 function sessionIdForUrl(url: string): string {
-  if (proxyProbeSessionId && url.startsWith('https://ip.oxylabs.io/')) {
+  if (
+    proxyProbeSessionId &&
+    (url.startsWith('https://ip.oxylabs.io/') || url.startsWith('https://ping0.cc/geo'))
+  ) {
     return proxyProbeSessionId;
   }
   const scope = getProxyScope(url) || 'global';
@@ -369,6 +374,8 @@ type ProxyRotationResult = {
   currentRegion?: string;
   previousCity?: string;
   currentCity?: string;
+  previousLocation?: string;
+  currentLocation?: string;
 };
 
 async function rotateAndReload(
@@ -437,6 +444,7 @@ async function rotateAndReload(
             ...(previousLocation.country ? { previousCountry: previousLocation.country } : {}),
             ...(previousLocation.region ? { previousRegion: previousLocation.region } : {}),
             ...(previousLocation.city ? { previousCity: previousLocation.city } : {}),
+            ...(previousLocation.location ? { previousLocation: previousLocation.location } : {}),
           }
         : {}),
       ...(currentLocation
@@ -445,6 +453,7 @@ async function rotateAndReload(
             ...(currentLocation.country ? { currentCountry: currentLocation.country } : {}),
             ...(currentLocation.region ? { currentRegion: currentLocation.region } : {}),
             ...(currentLocation.city ? { currentCity: currentLocation.city } : {}),
+            ...(currentLocation.location ? { currentLocation: currentLocation.location } : {}),
           }
         : {}),
     };
@@ -576,12 +585,35 @@ async function testProxyConnection(sessionId?: string): Promise<ProxyLocation> {
     const region = [result.region, result.state, result.province].find(
       (value): value is string => typeof value === 'string' && Boolean(value.trim()),
     );
-    return {
+    const location: ProxyLocation = {
       ip: result.ip,
       ...(typeof result.country === 'string' ? { country: result.country } : {}),
       ...(region ? { region } : {}),
       ...(typeof result.city === 'string' ? { city: result.city } : {}),
     };
+    if (location.country || location.region || location.city) return location;
+
+    try {
+      const locationResponse = await fetch('https://ping0.cc/geo', {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (locationResponse.ok) {
+        const [ip, address] = (await locationResponse.text())
+          .trim()
+          .split(/\r?\n/)
+          .map((line) => line.trim());
+        if (address && !address.includes('<')) {
+          return {
+            ip: ip || location.ip,
+            location: address,
+          };
+        }
+      }
+    } catch {
+      // Keep the original IP result when the supplemental location lookup is unavailable.
+    }
+    return location;
   } catch (error) {
     const detail = String(error instanceof Error ? error.message : error);
     if (!/failed to fetch/i.test(detail)) throw error;
