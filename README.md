@@ -426,39 +426,6 @@ pnpm test:chrome-smoke
 - **多版本 Chrome 实机矩阵** — 在不同 Chrome 版本 / Profile / 运行环境中做真实浏览器回归
 - **产品边界扩展** — 托管浏览器与远程 CDP
 
-#### 🧭 三层通道架构（已实现）
-
-Native Messaging 作为**安全控制通道**；大块二进制通过 Artifact 分片传输并由 localhost HTTP 提供下载；事件和流式更新可通过受限的 localhost WebSocket 推送。
-
-```text
-MCP Client
-    │ stdio JSON-RPC
-    ▼
-mcp-chrome-bridge
-    │ HTTP / MCP
-    ▼
-Native Service
-    ├── 控制面：Native Messaging + JSON-RPC v2
-    ├── 数据面：Artifact 文件 + localhost HTTP
-    └── 事件面：localhost WebSocket（可选）
-    ▼
-Chrome Extension Background
-    ├── chrome.tabs / scripting
-    └── CDP
-```
-
-已落地协议 V2、请求超时与取消、断线清理、同 Tab 写操作串行、并发与队列限制、Artifact 分片校验及清理、WebSocket 来源与连接限制、请求追踪和 `/status` 指标。CI 执行协议回归与 1000 次混合读写门禁；30 分钟压力测试可按需单独运行。
-
-发布门禁命令：
-
-```powershell
-pnpm run test:phase8
-pnpm run check:phase8
-$env:PHASE8_STRESS_MS = '1800000'; node --expose-gc scripts/phase8-gates.mjs
-```
-
-其中第一条运行 Native Service 回归测试，第二条构建并执行 1000 次混合读写及归零检查；30 分钟压力测试需显式执行。V1 输入由 `UNSUPPORTED_VERSION` 拒绝，V2 为唯一协议。
-
 ### 🆕 新增工具
 
 | 工具                                    | 说明                                                                          |
