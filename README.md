@@ -27,7 +27,7 @@
 
 ---
 
-## 📢 v2.7.6 更新内容
+## 📢 v2.8.0 更新内容
 
 > **页面采集与审查能力增强** — 更适合处理多页面内容、评论线程和长列表数据。
 >
@@ -36,7 +36,7 @@
 > - 📊 **长列表采集增强** — 虚拟列表、分页提取和多标签页采集支持独立状态、进度快照与诊断信息。
 > - 🧭 **审查工具增强** — 页面审查摘要和分段展开流程支持更细的停止条件与可控点击次数。
 > - 🖥️ **桌面助手与运行时改进** — 改进附件处理、运行时注册和桌面端交互稳定性。
-> - 🔧 所有发布包版本统一为 v2.7.6
+> - 🔧 所有发布包版本统一为 v2.8.0
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -87,13 +87,13 @@
 
 ## 🖥️ Windows 桌面客户端
 
-`chrome-mcp-desktop-2.7.6-win-x64.exe` 是随项目发布的 Windows 便携版桌面管理器（Tauri 2 + Vue）。它内置桥接运行时，双击即可启动或复用本机的 Chrome MCP 服务，不需要单独安装 Node.js；Chrome 扩展仍需按上面的步骤先安装并连接。
+`chrome-mcp-desktop-2.8.0-win-x64.exe` 是随项目发布的 Windows 便携版桌面管理器（Tauri 2 + Vue）。它内置桥接运行时，双击即可启动或复用本机的 Chrome MCP 服务，不需要单独安装 Node.js；Chrome 扩展仍需按上面的步骤先安装并连接。
 
 ![Chrome MCP Bridge Windows 桌面客户端](screenshots/desktop-client.webp)
 
 ### 下载与使用
 
-1. 从 [v2.7.6 Release][release-v2.7.6] 下载 [`chrome-mcp-desktop-2.7.6-win-x64.exe`][desktop-v2.7.6]，将文件放到可写目录后直接双击运行。
+1. 从 [v2.8.0 Release][release-v2.8.0] 下载 [`chrome-mcp-desktop-2.8.0-win-x64.exe`][desktop-v2.8.0]，将文件放到可写目录后直接双击运行。
 2. 客户端会自动启动或复用 `http://127.0.0.1:12306` 上的本机桥接服务；如果状态显示“等待连接”，请确认 Chrome 扩展已加载并点击扩展中的连接按钮。
 3. 在控制台中可查看服务状态、Chrome 扩展连接、Native Host 连接、MCP 会话、可用工具、运行中的任务、服务入口和错误诊断；点击“刷新状态”或“健康检查”可重新探测。
 4. 关闭窗口会将客户端最小化到系统托盘。托盘菜单可以重新显示客户端、立即健康检查，或选择“退出客户端（停止服务）”彻底退出并停止由客户端拥有的服务。
@@ -105,11 +105,11 @@
 | Streamable HTTP（兼容版） | `http://127.0.0.1:12306/mcp`                             |
 | Streamable HTTP（无会话） | `http://127.0.0.1:12306/mcp-new`                         |
 | SSE（旧版）               | `http://127.0.0.1:12306/sse`                             |
-| STDIO                     | 使用独立的 `chrome-mcp-bridge-2.7.6-win-x64.exe --stdio` |
+| STDIO                     | 使用独立的 `chrome-mcp-bridge-2.8.0-win-x64.exe --stdio` |
 
-> 注意：`chrome-mcp-desktop-2.7.6-win-x64.exe` 是图形化管理客户端，不要把它直接作为 STDIO MCP `command`。需要 STDIO 时，请使用桥接运行时 EXE 并传入 `--stdio`；需要管理服务时再打开桌面客户端。
+> 注意：`chrome-mcp-desktop-2.8.0-win-x64.exe` 是图形化管理客户端，不要把它直接作为 STDIO MCP `command`。需要 STDIO 时，请使用桥接运行时 EXE 并传入 `--stdio`；需要管理服务时再打开桌面客户端。
 
-[desktop-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-desktop-2.7.6-win-x64.exe
+[desktop-v2.8.0]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.0/chrome-mcp-desktop-2.8.0-win-x64.exe
 
 ## ✨ 核心特性
 
@@ -139,7 +139,7 @@
 
 ### 1️⃣ 安装 Chrome 扩展
 
-1. 从 [v2.7.6 Release][release-v2.7.6] 下载 [Chrome 插件包][extension-v2.7.6]。
+1. 从 [v2.8.0 Release][release-v2.8.0] 下载 [Chrome 插件包][extension-v2.8.0]。
 2. 解压下载的 `.zip` 文件。
 3. 在 Chrome 地址栏打开 `chrome://extensions/`，开启右上角的 **开发者模式**。
 4. 点击 **加载已解压的扩展程序**，选择刚才解压出来的文件夹。
@@ -147,14 +147,14 @@
 
 看到扩展显示已连接后，保持 Chrome 开着，继续下一步。
 
-[release-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.7.6
-[extension-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-server-2.7.6-chrome.zip
+[release-v2.8.0]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.8.0
+[extension-v2.8.0]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.0/chrome-mcp-server-2.8.0-chrome.zip
 
 ### 2️⃣ 启动本地服务（二选一）
 
 #### Windows：使用桌面客户端（推荐）
 
-1. 下载 [`chrome-mcp-desktop-2.7.6-win-x64.exe`][desktop-v2.7.6]。
+1. 下载 [`chrome-mcp-desktop-2.8.0-win-x64.exe`][desktop-v2.8.0]。
 2. 双击 EXE 文件，客户端会自动启动或复用本机服务。
 3. 打开客户端后，看到“服务状态：运行中”和“Chrome 扩展：已连接”即可。
 
@@ -200,7 +200,7 @@ npm 安装完成后会自动注册 Chrome 需要的 Native Host。服务启动�
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.7.6-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.8.0-win-x64.exe",
       "args": ["--stdio"]
     }
   }
@@ -416,17 +416,19 @@ pnpm test:chrome-smoke
 - **安全升级** — 精确版本、SHA-512 校验、失败回滚
 - **批量与定时任务** — `chrome_batch`、工作流队列和 cron/interval 触发
 - **Native Messaging 控制通道与并发治理** — 全局并发限制与全局队列限制（`CHROME_MCP_MAX_CONCURRENT_TOOLS=8` / `CHROME_MCP_MAX_QUEUED_TOOLS=64`）、同一 Tab 写操作串行、`chrome_batch` 不额外占用外层并发槽位、`/status` 的 `toolAdmission` 实时暴露占用与排队
+- **认证与权限管理** — HTTP API Key、工具范围和高风险操作批准
+- **实时监控面板** — 桌面客户端实时查看 MCP 调用、活动请求、耗时和错误诊断
+- **三层通道架构** — Native Messaging 控制通道、Artifact 文件数据面和 localhost WebSocket 事件通道
 
 ### 🎯 规划中
 
-- **认证与权限管理** — HTTP API Key、工具范围和高风险批准清单已支持；OAuth 仍在规划
-- **实时监控仪表盘** — Web 面板查看调用、性能、错误
+- **OAuth** — 第三方身份认证与授权接入
 - **多版本 Chrome 实机矩阵** — 在不同 Chrome 版本 / Profile / 运行环境中做真实浏览器回归
 - **产品边界扩展** — 托管浏览器与远程 CDP
 
-#### 🧭 三层通道架构（规划中）
+#### 🧭 三层通道架构（已实现）
 
-目标通道布局：Native Messaging 继续作为**安全控制通道**；大块二进制（截图、PDF、完整 HTML）不经过 Native Messaging，改走 Artifact 文件面；高频事件按需走 WebSocket。
+Native Messaging 作为**安全控制通道**；大块二进制通过 Artifact 分片传输并由 localhost HTTP 提供下载；事件和流式更新可通过受限的 localhost WebSocket 推送。
 
 ```text
 MCP Client
@@ -445,18 +447,9 @@ Chrome Extension Background
     └── CDP
 ```
 
-**核心原则**：Native Messaging 不传大块二进制；写操作不自动重试；同一 Tab 操作串行；所有请求具备超时、取消、追踪与最终状态；WebSocket、Go/Rust 重写只在性能数据证明需要时引入（Chrome Native Messaging 单条消息上限约 1 MB，不适合承载大截图、PDF 与完整 HTML）。
+已落地协议 V2、请求超时与取消、断线清理、同 Tab 写操作串行、并发与队列限制、Artifact 分片校验及清理、WebSocket 来源与连接限制、请求追踪和 `/status` 指标。CI 执行协议回归与 1000 次混合读写门禁；30 分钟压力测试可按需单独运行。
 
-- **阶段一 · 协议 V2** — 统一 Native Service 与 Extension Background 协议：消息类型 `request` / `response` / `event` / `cancel` / `ping` / `pong` / `hello` / `capabilities`；协议版本协商、能力发现、JSON Schema 校验、requestId 去重、traceId 链路追踪、deadline 传播、AbortSignal 取消、统一错误码、单请求只响应一次。错误码：`INVALID_REQUEST` / `UNSUPPORTED_VERSION` / `DEADLINE_EXCEEDED` / `CANCELED` / `NATIVE_DISCONNECTED` / `QUEUE_FULL` / `BROWSER_ERROR` / `EXECUTION_UNKNOWN`
-- **阶段二 · 连接与请求生命周期** — 统一状态机 `starting → connected → ready → degraded → stopped`；由一个重连管理器统一负责 Native Host 重连；断线时取消所有 active/pending 请求，HTTP 断开向下游传播取消；超时发送 cancel 而非仅返回错误；pending 请求最终必须进入完成 / 取消 / 失败。MV3 Service Worker 关键状态持久化到 `chrome.storage` / IndexedDB。副作用操作区分 `succeeded` / `failed-before-execution` / `execution-unknown`，断线后不自动重试
-- **阶段三 · 并发、队列和隔离** — 在已完成机制之上继续：按浏览器实例 / Profile 隔离队列；读、写操作分离；写操作保持 Tab 内严格顺序；队列满返回 `QUEUE_FULL`；统计平均排队时长、拒绝次数、超时次数；读操作可选优先级但不打乱写顺序
-- **阶段四 · Artifact 数据面** — 控制消息只返回元数据（`artifactId` / `contentType` / `size` / `sha256`）；小数据直接 JSON 返回，大文件分片传输（每片 256～512 KB，`artifactId + seq + eof + sha256`）；写入临时文件后原子改名；TTL 自动清理、容量上限、断线删除残留；对 Cookie / Token / Authorization 脱敏。第一版：Native Messaging 分片上传 + localhost HTTP 下载（改动最小）
-- **阶段五 · localhost WebSocket 事件通道** — 仅当事件推送或高频数据成为瓶颈时启用；随机端口 + 一次性 Token 下发；适用于 Tab 状态变化、下载 / 长任务进度、网络事件、订阅与流式数据；只绑定 127.0.0.1、Origin 白名单、连接数 / 空闲 / 请求大小限制、禁止匿名访问敏感接口；Service Worker 中需周期性通信维持活跃
-- **阶段六 · 安全和可观测性** — 精确校验扩展 ID、支持 `CHROME_MCP_ALLOWED_ORIGINS`、localhost 接口用 API Key / 一次性 Token、日志禁止输出 Cookie / Token / 完整页面、限制请求体与执行时间与 Artifact 容量、默认关闭调试接口；每请求 traceId 并记录 `stdio_wait` / `http_process` / `native_queue_wait` / `native_roundtrip` / `browser_execution` / `total` 分段耗时；`/status` 增加 `connectionState` / `pendingRequests` / `activeTools` / `queuedTools` / `reconnectCount` / `timeoutCount` / `cancelCount` / `queueRejectCount` / `lastError`；跨进程链路追踪（OpenTelemetry）暂缓
-- **阶段七 · 统一传输实现** — 收敛 stdio 适配器公共逻辑（JSON-RPC 编解码、deadline、retry、错误映射、取消、Content-Length、`/mcp-new` 与 `/mcp` 兼容）；Native Messaging 只支持协议 V2，`/mcp-new` 默认，`/mcp` 仅保留兼容用途
-- **阶段八 · 测试和发布** — 故障场景覆盖：Native Host 断线、响应丢失但操作成功、半包 / 粘包、Service Worker 休眠恢复、CDP 被 DevTools 占用、队列满取消、batch 达最大并发、Artifact 传输中断、重连连发请求、同一写操作重复请求。发布门槛：1000 次混合读写通过、30 分钟压测无内存持续增长、断线后 pending / controller / queue 归零、写操作无自动重放、单条 Native 输出低于安全阈值、大文件全走 Artifact、`/status` 准确、`/mcp` 兼容与 `/mcp-new` 主流程测试全过
-
-阶段八门禁命令：
+发布门禁命令：
 
 ```powershell
 pnpm run test:phase8
@@ -464,9 +457,7 @@ pnpm run check:phase8
 $env:PHASE8_STRESS_MS = '1800000'; node --expose-gc scripts/phase8-gates.mjs
 ```
 
-其中第一条运行 Native Service 回归测试，第二条构建并执行 1000 次混合读写及归零检查；30 分钟压力测试需显式执行。V1 不再实现，V1 输入由 `UNSUPPORTED_VERSION` 拒绝，V2 为唯一协议。
-
-- **最终技术选择与路线** — 推荐 Node.js/TypeScript：JSON-RPC V2 + TypeBox 校验 + AbortController + Artifact 文件存储 + localhost HTTP；WebSocket 仅用于高频事件与流式；暂不引入 WebTransport / gRPC / 直接 9222 CDP。路线：先统一协议 → 再完善取消与断线恢复 → 再拆分 Artifact 数据面 → 再按指标引入 WebSocket → 最后考虑 Go/Rust Native Host；优先完成协议 V2、生命周期管理、Artifact 与故障测试
+其中第一条运行 Native Service 回归测试，第二条构建并执行 1000 次混合读写及归零检查；30 分钟压力测试需显式执行。V1 输入由 `UNSUPPORTED_VERSION` 拒绝，V2 为唯一协议。
 
 ### 🆕 新增工具
 

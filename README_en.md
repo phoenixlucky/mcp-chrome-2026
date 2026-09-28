@@ -26,7 +26,7 @@
 
 ---
 
-## 📢 What's New in v2.7.6
+## 📢 What's New in v2.8.0
 
 > **Stronger page collection and review workflows** — Better support for multi-page content, comment threads, and long lists.
 >
@@ -35,7 +35,7 @@
 > - 📊 **Stronger long-list collection** — Virtual-list, paginated, and multi-tab collection workflows expose independent state, progress snapshots, and diagnostics.
 > - 🧭 **Improved review tools** — Page review summaries and expandable sections support finer stop conditions and bounded clicks.
 > - 🖥️ **Desktop assistant and runtime improvements** — Better attachment handling, runtime registration, and desktop interaction stability.
-> - 🔧 All release packages bumped to v2.7.6
+> - 🔧 All release packages bumped to v2.8.0
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -110,10 +110,10 @@
 
 ### 1️⃣ Install the Chrome Extension
 
-Download the [Chrome extension package][extension-v2.7.6] from the [v2.7.6 Release][release-v2.7.6].
+Download the [Chrome extension package][extension-v2.8.0] from the [v2.8.0 Release][release-v2.8.0].
 
-[release-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.7.6
-[extension-v2.7.6]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.7.6/chrome-mcp-server-2.7.6-chrome.zip
+[release-v2.8.0]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.8.0
+[extension-v2.8.0]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.0/chrome-mcp-server-2.8.0-chrome.zip
 
 Open `chrome://extensions/` → enable **Developer mode** → drag & drop the `.zip` to install.
 
@@ -345,11 +345,13 @@ It checks the Native Host extension connection and browser probe, creates a real
 - **Profile Diagnostics** — Profile, CDP, MCP, proxy and extension state
 - **Safe Upgrades** — Exact versions, SHA-512 verification and rollback
 - **Batch and Scheduled Tasks** — `chrome_batch`, workflow queues and cron/interval triggers
+- **Authentication and Permissions** — HTTP API keys, tool scopes, and high-risk action approvals
+- **Live Monitoring Panel** — The desktop client shows MCP calls, active requests, latency, and error diagnostics
+- **Three-Layer Channel Architecture** — Native Messaging control channel, Artifact data plane, and localhost WebSocket event channel
 
 ### 🎯 Planned
 
-- **Auth & Permission** — HTTP API key, tool scopes, and high-risk approval lists are supported; OAuth remains planned
-- **Monitoring Dashboard** — Web panel for calls, perf, errors
+- **OAuth** — Third-party identity authentication and authorization
 - **Multi-version Chrome Matrix** — Run real-browser regression tests across Chrome versions / profiles / environments
 - **Expanded Product Scope** — Hosted browsers and remote CDP
 
