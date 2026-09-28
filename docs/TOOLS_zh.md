@@ -481,6 +481,8 @@
 
 - `selector` (字符串，必需)：目标元素的 CSS 选择器
 - `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
+- `snapshotId` (字符串，可选)：来自 `chrome_get_action_snapshot`；须与对应 ref 和 frameId 一起提供，目标过期或变化时会拒绝点击
+- `frameId` (数字，可选)：与 `snapshotId` 一起使用时必填，使用控件返回的 frame ID
 
 **示例**：
 
@@ -499,6 +501,8 @@
 - `selector` (字符串，必需)：目标元素的 CSS 选择器
 - `value` (字符串，必需)：要填充或选择的值
 - `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
+- `snapshotId` (字符串，可选)：来自 `chrome_get_action_snapshot`；须与对应 ref 和 frameId 一起提供，目标过期或变化时会拒绝填表
+- `frameId` (数字，可选)：与 `snapshotId` 一起使用时必填，使用控件返回的 frame ID
 
 **示例**：
 
@@ -1335,6 +1339,12 @@ await callTool('chrome_bookmark_add', {
 
 > 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
 
+### `chrome_get_action_snapshot`
+
+一次性获取当前视口中可操作控件的结构化快照。响应包含短期有效的 `snapshotId` 以及每个控件的 frame-scoped `ref`（例如 `frame:0:ref_1`）和 `frameId`。将三者一起传给 `chrome_click_element` 或 `chrome_fill_or_select`；快照缺失、过期或目标发生变化时，操作会被拒绝。密码、文件和隐藏输入框不会出现在快照中。
+
+> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
 ### `chrome_computer`
 
 使用鼠标和键盘与浏览器交互，并可截图。\n* 每当要点击图标等元素时，应先通过 read_page 确定该元素的 ref，再移动光标。\n* 如果点击程序或链接后等待很久仍未加载成功，先截图，再调整点击位置，使光标尖端视觉上落在要点击的元素上。\n* 点击按钮、链接、图标等时，务必让光标尖端位于元素中心，除非被要求，否则不要点击边缘。
@@ -1419,10 +1429,6 @@ await callTool('chrome_bookmark_add', {
 
 > 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
 
-## 🔄 Schema Catalog 补充
-
-> 该部分由共享工具 schema 自动生成。
-
 ### `chrome_userscript`
 
 管理浏览器用户脚本：创建、查询、启用、停用、更新、删除、导出脚本，或向已安装脚本发送命令。高风险工具，启用审批策略后需要显式批准。
@@ -1455,3 +1461,7 @@ await callTool('chrome_bookmark_add', {
 读取或清除浏览器插件保留的原始错误日志，供桌面端错误诊断使用。
 
 > 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
+
+## 🔄 Schema Catalog 补充
+
+> 该部分由共享工具 schema 自动生成。

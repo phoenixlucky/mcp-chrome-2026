@@ -165,11 +165,27 @@ if (window.__FILL_HELPER_INITIALIZED__) {
     return findVisibleElement(selector, selectorType, true);
   }
 
-  async function fillElement(selector, value, ref = null, selectorType = 'css', timeout = 5000) {
+  async function fillElement(
+    selector,
+    value,
+    ref = null,
+    selectorType = 'css',
+    timeout = 5000,
+    snapshotId = null,
+  ) {
     try {
       // Find the element
       let element = null;
-      if (ref && typeof ref === 'string') {
+      if (snapshotId) {
+        const weak = window.__claudeElementMap?.[ref];
+        element = weak && typeof weak.deref === 'function' ? weak.deref() : null;
+        const operation = snapshotOperationForElement(element);
+        const validation = verifySnapshotTarget(snapshotId, ref, operation);
+        if (!validation.success) return { error: validation.error };
+        if (!element) {
+          return { error: 'Action snapshot target changed; read a fresh action snapshot.' };
+        }
+      } else if (ref && typeof ref === 'string') {
         try {
           const map = window.__claudeElementMap;
           const weak = map && map[ref];
@@ -338,6 +354,12 @@ if (window.__FILL_HELPER_INITIALIZED__) {
       element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
       await new Promise((resolve) => setTimeout(resolve, 100));
 
+      if (snapshotId) {
+        const operation = snapshotOperationForElement(element);
+        const validation = verifySnapshotTarget(snapshotId, ref, operation);
+        if (!validation.success) return { error: validation.error };
+      }
+
       // Focus the element
       element.focus();
 
@@ -496,8 +518,15 @@ if (window.__FILL_HELPER_INITIALIZED__) {
         element.dispatchEvent(new Event('change', { bubbles: true }));
       }
 
-      // Blur the element
-      element.blur();
+      const waitForOptions = Boolean(snapshotId && element.getAttribute('role') === 'combobox');
+      if (waitForOptions) {
+        // Controlled widgets may render suggestions asynchronously and close
+        // them on blur, so keep the observed combobox focused during the wait.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await waitForControlledOptions(element, 200);
+      } else {
+        element.blur();
+      }
 
       // Read back the property after the input/change events. This catches
       // controlled components that reject a synthetic value assignment.
@@ -527,6 +556,77 @@ if (window.__FILL_HELPER_INITIALIZED__) {
         error: `Error filling element: ${error.message}`,
       };
     }
+  }
+
+  function verifySnapshotTarget(snapshotId, ref, operation) {
+    if (!ref || typeof window.__verifyActionSnapshot !== 'function') {
+      return {
+        success: false,
+        error: 'Action snapshot target is unavailable; read a fresh action snapshot.',
+      };
+    }
+    return window.__verifyActionSnapshot(snapshotId, ref, operation);
+  }
+
+  function snapshotOperationForElement(element) {
+    return element?.tagName === 'SELECT' ||
+      (element?.tagName === 'INPUT' && ['checkbox', 'radio'].includes(element.type))
+      ? 'select'
+      : 'type_text';
+  }
+
+  function waitForControlledOptions(element, timeoutMs) {
+    const ids = String(
+      element.getAttribute('aria-controls') || element.getAttribute('aria-owns') || '',
+    )
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!ids.length || typeof MutationObserver !== 'function') return Promise.resolve(false);
+
+    const hasVisibleOption = () =>
+      ids.some((id) => {
+        const root = document.getElementById(id);
+        if (!root) return false;
+        return Array.from(root.querySelectorAll('[role="option"]')).some((option) => {
+          if (
+            option.matches(':disabled') ||
+            option.getAttribute('aria-disabled') === 'true' ||
+            option.closest('[aria-hidden="true"], [inert]') ||
+            !isElementRenderable(option)
+          )
+            return false;
+          const rect = option.getBoundingClientRect();
+          return (
+            rect.bottom > 0 &&
+            rect.top < window.innerHeight &&
+            rect.right > 0 &&
+            rect.left < window.innerWidth
+          );
+        });
+      });
+
+    if (hasVisibleOption()) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      let settled = false;
+      let timer;
+      const finish = (found) => {
+        if (settled) return;
+        settled = true;
+        observer.disconnect();
+        clearTimeout(timer);
+        resolve(found);
+      };
+      const observer = new MutationObserver(() => {
+        if (hasVisibleOption()) finish(true);
+      });
+      observer.observe(document.documentElement || document, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true,
+      });
+      timer = setTimeout(() => finish(false), Math.min(Math.max(timeoutMs, 0), 200));
+    });
   }
 
   /**
@@ -603,6 +703,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
         request.ref,
         request.selectorType,
         request.timeout,
+        request.snapshotId,
       )
         .then(sendResponse)
         .catch((error) => {

@@ -27,6 +27,7 @@ interface ClickToolParams {
   bubbles?: boolean;
   cancelable?: boolean;
   modifiers?: { altKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean };
+  snapshotId?: string;
   tabId?: number; // target existing tab id
   windowId?: number; // when no tabId, pick active tab from this window
 }
@@ -40,6 +41,25 @@ function normalizeMarkerName(value: unknown): string {
 
 function frameIdsFor(frameId?: number): number[] | undefined {
   return typeof frameId === 'number' ? [frameId] : undefined;
+}
+
+export function resolveActionSnapshotRef(
+  ref: string | undefined,
+  frameId: number | undefined,
+  snapshotId: string | undefined,
+): { ref?: string; error?: string } {
+  const match = /^frame:(\d+):(ref_\d+)$/.exec(String(ref || ''));
+  if (!snapshotId && !match) return { ref };
+  if (!match) {
+    return {
+      error: 'Snapshot-scoped actions require the frame-scoped ref returned by the snapshot.',
+    };
+  }
+  const refFrameId = Number(match[1]);
+  if (!Number.isInteger(frameId) || frameId !== refFrameId) {
+    return { error: `frameId must match the action snapshot ref (${refFrameId}).` };
+  }
+  return { ref: match[2] };
 }
 
 async function findMarkerForTab(tab: chrome.tabs.Tab, markerId?: string, markerName?: string) {
@@ -88,6 +108,11 @@ class ClickTool extends BaseBrowserToolExecutor {
 
     console.log(`Starting click operation with options:`, args);
 
+    const snapshotTarget = resolveActionSnapshotRef(args.ref, frameId, args.snapshotId);
+    if (snapshotTarget.error) {
+      return createErrorResponse(snapshotTarget.error);
+    }
+
     if (!selector && !coordinates && !args.ref && !args.markerId && !args.markerName) {
       return createErrorResponse(
         ERROR_MESSAGES.INVALID_PARAMETERS +
@@ -108,7 +133,7 @@ class ClickTool extends BaseBrowserToolExecutor {
       }
 
       const marker = await findMarkerForTab(tab, args.markerId, args.markerName);
-      let finalRef = args.ref;
+      let finalRef = snapshotTarget.ref;
       let finalSelector = marker?.selector || selector;
       let finalSelectorType = marker?.selectorType || selectorType;
 
@@ -209,9 +234,12 @@ class ClickTool extends BaseBrowserToolExecutor {
         );
       }
 
+      const interactionFiles = args.snapshotId
+        ? ['inject-scripts/accessibility-tree-helper.js', 'inject-scripts/click-helper.js']
+        : ['inject-scripts/click-helper.js'];
       await this.injectContentScript(
         tab.id,
-        ['inject-scripts/click-helper.js'],
+        interactionFiles,
         false,
         'ISOLATED',
         false,
@@ -236,6 +264,7 @@ class ClickTool extends BaseBrowserToolExecutor {
             bubbles,
             cancelable,
             modifiers,
+            snapshotId: args.snapshotId,
           },
           frameId,
         );
@@ -303,6 +332,7 @@ interface FillToolParams {
   frameId?: number;
   tabId?: number; // target existing tab id
   windowId?: number; // when no tabId, pick active tab from this window
+  snapshotId?: string;
 }
 
 /**
@@ -326,6 +356,11 @@ class FillTool extends BaseBrowserToolExecutor {
 
     console.log(`Starting fill operation with options:`, args);
 
+    const snapshotTarget = resolveActionSnapshotRef(ref, frameId, args.snapshotId);
+    if (snapshotTarget.error) {
+      return createErrorResponse(snapshotTarget.error);
+    }
+
     if (!selector && !ref && !args.markerId && !args.markerName) {
       return createErrorResponse(
         ERROR_MESSAGES.INVALID_PARAMETERS + ': Provide markerId, markerName, ref, or selector',
@@ -343,7 +378,7 @@ class FillTool extends BaseBrowserToolExecutor {
       }
 
       const marker = await findMarkerForTab(tab, args.markerId, args.markerName);
-      let finalRef = ref;
+      let finalRef = snapshotTarget.ref;
       let finalSelector = marker?.selector || selector;
       let finalSelectorType = marker?.selectorType || selectorType;
 
@@ -441,9 +476,12 @@ class FillTool extends BaseBrowserToolExecutor {
         );
       }
 
+      const interactionFiles = args.snapshotId
+        ? ['inject-scripts/accessibility-tree-helper.js', 'inject-scripts/fill-helper.js']
+        : ['inject-scripts/fill-helper.js'];
       await this.injectContentScript(
         tab.id,
-        ['inject-scripts/fill-helper.js'],
+        interactionFiles,
         false,
         'ISOLATED',
         false,
@@ -462,6 +500,7 @@ class FillTool extends BaseBrowserToolExecutor {
             ref: finalRef,
             timeout,
             value,
+            snapshotId: args.snapshotId,
           },
           frameId,
         );

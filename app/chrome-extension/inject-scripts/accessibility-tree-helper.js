@@ -931,8 +931,245 @@
     }
   }
 
+  const ACTION_SNAPSHOT_TTL_MS = 30_000;
+  const ACTION_SNAPSHOT_LIMIT = 5;
+  const ACTION_SNAPSHOT_CONTROL_LIMIT = 150;
+
+  function snapshotValue(el) {
+    if ('value' in el && !['password', 'file', 'hidden'].includes(el.type))
+      return String(el.value ?? '');
+    if (el.isContentEditable) return String(el.innerText || el.textContent || '').trim();
+    return '';
+  }
+
+  function actionGuard(el) {
+    const context =
+      el.closest('form, dialog, [role="dialog"], article, li, tr, [role="row"]') ||
+      el.parentElement;
+    return {
+      tagName: String(el.tagName || '').toLowerCase(),
+      type: String(el.type || '').toLowerCase(),
+      role: inferRole(el),
+      name: inferLabel(el).replace(/\s+/g, ' ').trim().slice(0, MAX_LINE_LABEL),
+      value: snapshotValue(el),
+      checked: 'checked' in el ? Boolean(el.checked) : null,
+      selectedIndex: el instanceof HTMLSelectElement ? el.selectedIndex : null,
+      disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true'),
+      readOnly: Boolean(el.readOnly || el.getAttribute('aria-readonly') === 'true'),
+      expanded: el.getAttribute('aria-expanded'),
+      selected: el.getAttribute('aria-selected'),
+      href: el.getAttribute('href'),
+      formAction: el.getAttribute('formaction'),
+      formMethod: el.getAttribute('formmethod'),
+      formTarget: el.getAttribute('formtarget'),
+      form: el.form
+        ? {
+            id: el.form.id,
+            name: el.form.name,
+            action: el.form.action,
+            method: el.form.method,
+            target: el.form.target,
+          }
+        : null,
+      ariaControls: el.getAttribute('aria-controls'),
+      context: String(context?.innerText || context?.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 600),
+    };
+  }
+
+  function actionOperations(el) {
+    const tag = String(el.tagName || '').toLowerCase();
+    const type = String(el.type || '').toLowerCase();
+    const role = inferRole(el).toLowerCase();
+    if (tag === 'input' && ['password', 'file', 'hidden'].includes(type)) return [];
+    if (tag === 'select') return ['select'];
+    if (tag === 'input' && ['checkbox', 'radio'].includes(type)) return ['select'];
+    if (
+      el.isContentEditable ||
+      (['input', 'textarea'].includes(tag) &&
+        !['checkbox', 'radio', 'button', 'submit', 'reset', 'image'].includes(type) &&
+        !el.readOnly &&
+        el.getAttribute('aria-readonly') !== 'true')
+    )
+      return ['type_text'];
+    if (
+      ['a', 'button', 'summary'].includes(tag) ||
+      [
+        'button',
+        'link',
+        'checkbox',
+        'radio',
+        'switch',
+        'option',
+        'menuitem',
+        'tab',
+        'combobox',
+      ].includes(role) ||
+      el.hasAttribute('onclick')
+    )
+      return ['click'];
+    return [];
+  }
+
+  function snapshotControl(el) {
+    const ref = ensureRefForElement(el);
+    const role = inferRole(el);
+    const name = inferLabel(el).replace(/\s+/g, ' ').trim().slice(0, MAX_LINE_LABEL);
+    const operations = actionOperations(el);
+    const control = {
+      ref,
+      role,
+      name: name || role,
+      value: snapshotValue(el),
+      operations,
+      checked: 'checked' in el ? Boolean(el.checked) : undefined,
+      expanded: el.getAttribute('aria-expanded') ?? undefined,
+      selected: el.getAttribute('aria-selected') ?? undefined,
+      options:
+        el instanceof HTMLSelectElement
+          ? Array.from(el.options)
+              .filter((option) => !option.disabled && !option.closest('optgroup[disabled]'))
+              .map((option) => ({
+                label: String(option.label || option.textContent || '').trim(),
+                value: option.value,
+                selected: option.selected,
+              }))
+          : undefined,
+    };
+    return { control, guard: actionGuard(el), el };
+  }
+
+  function __generateActionSnapshot(snapshotId, limit = ACTION_SNAPSHOT_CONTROL_LIMIT) {
+    const id = String(snapshotId || '').trim();
+    if (!id) throw new Error('snapshotId is required');
+    const requestedLimit = Number.isFinite(Number(limit))
+      ? Math.max(0, Math.min(ACTION_SNAPSHOT_CONTROL_LIMIT, Math.floor(Number(limit))))
+      : ACTION_SNAPSHOT_CONTROL_LIMIT;
+    const startedAt = performance?.now ? performance.now() : Date.now();
+    const selector =
+      'a[href], button, input, textarea, select, summary, [contenteditable="true"], [role], [onclick]';
+    const candidates = queryAllElementsBySelector(selector).elements;
+    const controls = [];
+    const guards = new Map();
+    const seen = new Set();
+    let truncated = false;
+    for (const el of candidates) {
+      if (seen.has(el) || !isInteractive(el)) continue;
+      seen.add(el);
+      const type = String(el.type || '').toLowerCase();
+      if (['password', 'file', 'hidden'].includes(type)) continue;
+      if (el.closest('[aria-hidden="true"], [inert]')) continue;
+      if (el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
+      const rect = el.getBoundingClientRect();
+      if (
+        rect.bottom <= 0 ||
+        rect.top >= window.innerHeight ||
+        rect.right <= 0 ||
+        rect.left >= window.innerWidth
+      )
+        continue;
+      const { control, guard } = snapshotControl(el);
+      if (!control.operations.length) continue;
+      if (controls.length >= requestedLimit) {
+        truncated = true;
+        break;
+      }
+      if (el.tagName === 'SELECT') {
+        control.value = String(el.selectedOptions?.[0]?.label || el.value || '');
+      }
+      guards.set(control.ref, { element: el, guard, operations: control.operations });
+      controls.push(control);
+    }
+
+    const cache = (window.__chromeMcpActionSnapshots ||= new Map());
+    const now = Date.now();
+    for (const [key, snapshot] of cache) {
+      if (snapshot.expiresAt <= now) cache.delete(key);
+    }
+    cache.set(id, { expiresAt: now + ACTION_SNAPSHOT_TTL_MS, guards });
+    while (cache.size > ACTION_SNAPSHOT_LIMIT) cache.delete(cache.keys().next().value);
+
+    const text = [];
+    const walker = document.createTreeWalker(
+      document.body || document.documentElement,
+      NodeFilter.SHOW_TEXT,
+    );
+    let textLength = 0;
+    let node;
+    while ((node = walker.nextNode()) && textLength < 6_000) {
+      const value = String(node.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const parent = node.parentElement;
+      if (!value || !parent || parent.closest('script, style, noscript, template')) continue;
+      if (!isVisible(parent)) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const bounds = range.getBoundingClientRect?.() || parent.getBoundingClientRect();
+      if (
+        bounds.width <= 0 ||
+        bounds.height <= 0 ||
+        bounds.bottom <= 0 ||
+        bounds.top >= window.innerHeight ||
+        bounds.right <= 0 ||
+        bounds.left >= window.innerWidth
+      )
+        continue;
+      text.push(value);
+      textLength += value.length;
+    }
+    const visibleText = text.join('\n');
+
+    const end = performance?.now ? performance.now() : Date.now();
+    return {
+      snapshotId: id,
+      url: location.href,
+      title: document.title,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      text: visibleText.slice(0, 6_000),
+      controls,
+      truncated: truncated || textLength >= 6_000 || visibleText.length > 6_000,
+      stats: { controlCount: controls.length, durationMs: Math.round(end - startedAt) },
+    };
+  }
+
+  function __verifyActionSnapshot(snapshotId, ref, operation) {
+    const cache = window.__chromeMcpActionSnapshots;
+    const snapshot = cache instanceof Map ? cache.get(String(snapshotId || '')) : null;
+    if (!snapshot || snapshot.expiresAt <= Date.now()) {
+      cache?.delete?.(String(snapshotId || ''));
+      return {
+        success: false,
+        error: 'Action snapshot is missing or expired; read a fresh snapshot.',
+      };
+    }
+    const target = snapshot.guards.get(String(ref || ''));
+    const weak = window.__claudeElementMap?.[String(ref || '')];
+    const current = weak && typeof weak.deref === 'function' ? weak.deref() : null;
+    if (!target || current !== target.element || !target.element.isConnected) {
+      return { success: false, error: 'Action snapshot target changed; read a fresh snapshot.' };
+    }
+    const el = target.element;
+    if (
+      !target.operations.includes(operation) ||
+      !actionOperations(el).includes(operation) ||
+      !isVisible(el) ||
+      el.closest('[aria-hidden="true"], [inert]') ||
+      el.disabled ||
+      el.getAttribute('aria-disabled') === 'true' ||
+      JSON.stringify(actionGuard(el)) !== JSON.stringify(target.guard)
+    ) {
+      return { success: false, error: 'Action snapshot target changed; read a fresh snapshot.' };
+    }
+    return { success: true };
+  }
+
   // Expose API on window
   window.__generateAccessibilityTree = __generateAccessibilityTree;
+  window.__generateActionSnapshot = __generateActionSnapshot;
+  window.__verifyActionSnapshot = __verifyActionSnapshot;
 
   // ============================================================================
   // Hover for Ref (DOM Fallback Support)
@@ -1482,6 +1719,15 @@
           maxDepth: request.depth,
           refId: request.refId,
         });
+        if (result && result.error) {
+          sendResponse({ success: false, error: result.error });
+          return true;
+        }
+        sendResponse({ success: true, ...result });
+        return true;
+      }
+      if (request && request.action === 'generateActionSnapshot') {
+        const result = window.__generateActionSnapshot(request.snapshotId, request.limit);
         if (result && result.error) {
           sendResponse({ success: false, error: result.error });
           return true;

@@ -36,6 +36,7 @@ export const TOOL_NAMES = {
     FILE_UPLOAD: 'chrome_upload_file',
     GET_FORM_VALUE: 'chrome_get_form_value',
     READ_PAGE: 'chrome_read_page',
+    GET_ACTION_SNAPSHOT: 'chrome_get_action_snapshot',
     COMPUTER: 'chrome_computer',
     POST_TO_X: 'chrome_post_to_x',
     HANDLE_DIALOG: 'chrome_handle_dialog',
@@ -939,6 +940,20 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.GET_ACTION_SNAPSHOT,
+    description:
+      '创建当前页面可操作控件的快照；点击或填表时传入返回的 snapshotId 和控件 ref，可防止使用过期观测操作页面。密码、文件和隐藏字段不会包含在快照中。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: '目标标签页 ID；省略时使用当前激活标签页。' },
+        windowId: { type: 'number', description: '省略 tabId 时用于选择激活标签页的窗口 ID。' },
+        limit: { type: 'number', description: '返回的控件数量上限，默认 150，最大 150。' },
+      },
+      required: [],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.READ_PAGE,
     description:
       '获取页面上可见元素的无障碍树表示；仅返回视口中可见的元素，可选只筛选交互元素。\n提示：如果返回的元素不包含所需的具体元素，请使用 computer 工具的截图（action="screenshot"）获取该元素的屏幕坐标，再按坐标操作。',
@@ -1812,7 +1827,13 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         ref: {
           type: 'string',
-          description: '来自 chrome_read_page 的元素引用（优先于 selector）。',
+          description:
+            '来自 chrome_read_page 的元素引用；快照引用形如 frame:0:ref_1，并优先于 selector。',
+        },
+        snapshotId: {
+          type: 'string',
+          description:
+            '来自 chrome_get_action_snapshot 的 ID；须与控件 ref 和 frameId 一起传入，并拒绝操作过期或已变化的目标。',
         },
         coordinates: {
           type: 'object',
@@ -1860,7 +1881,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         frameId: {
           type: 'number',
-          description: '用于 iframe 支持的目标框架 ID。',
+          description: '目标框架 ID；snapshotId 操作必须传入控件快照返回的 frameId。',
         },
       },
       required: [],
@@ -1889,7 +1910,13 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         ref: {
           type: 'string',
-          description: '来自 chrome_read_page 的元素引用（优先于 selector）。',
+          description:
+            '来自 chrome_read_page 的元素引用；快照引用形如 frame:0:ref_1，并优先于 selector。',
+        },
+        snapshotId: {
+          type: 'string',
+          description:
+            '来自 chrome_get_action_snapshot 的 ID；须与控件 ref 和 frameId 一起传入，并拒绝操作过期或已变化的目标。',
         },
         value: {
           type: ['string', 'number', 'boolean'],
@@ -1906,7 +1933,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
         frameId: {
           type: 'number',
-          description: '用于 iframe 支持的目标框架 ID。',
+          description: '目标框架 ID；snapshotId 操作必须传入控件快照返回的 frameId。',
         },
       },
       required: ['value'],

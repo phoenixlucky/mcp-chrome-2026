@@ -3,7 +3,7 @@
   "description": "a chrome extension to use your own chrome as a mcp server",
   "author": "hangye",
   "private": true,
-  "version": "2.7.11",
+  "version": "2.8.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -21,6 +21,7 @@
     "format": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "test": "vitest run",
+    "test:action-snapshot-baseline": "vitest run tests/tools/interaction-helper.test.ts --testNamePattern=baseline --reporter=verbose",
     "test:watch": "vitest"
   },
   "dependencies": {

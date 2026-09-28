@@ -77,6 +77,150 @@ describe('interaction helpers', () => {
     });
   });
 
+  it('builds a structured action snapshot and omits sensitive inputs', () => {
+    const button = document.createElement('button');
+    button.textContent = 'Search';
+    setRect(button);
+    const email = document.createElement('input');
+    email.type = 'email';
+    email.setAttribute('aria-label', 'Email');
+    email.value = 'a@example.test';
+    setRect(email);
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.setAttribute('aria-label', 'Remember me');
+    setRect(checkbox);
+    const password = document.createElement('input');
+    password.type = 'password';
+    password.setAttribute('aria-label', 'Password');
+    setRect(password);
+    document.body.append(button, email, checkbox, password);
+
+    const helper = loadInjectedHelper(
+      'accessibility-tree-helper.js',
+      '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__',
+    );
+    const generate = (window as any).__generateActionSnapshot;
+    expect(generate).toBeTypeOf('function');
+    if (typeof generate !== 'function') return;
+
+    const snapshot = generate('snapshot-1');
+    expect(snapshot).toMatchObject({
+      snapshotId: 'snapshot-1',
+      controls: [
+        expect.objectContaining({ role: 'button', name: 'Search', operations: ['click'] }),
+        expect.objectContaining({
+          role: 'textbox',
+          name: 'Email',
+          value: 'a@example.test',
+          operations: ['type_text'],
+        }),
+        expect.objectContaining({ role: 'checkbox', name: 'Remember me', operations: ['select'] }),
+      ],
+    });
+    expect(JSON.stringify(snapshot)).not.toContain('Password');
+    expect(typeof helper).toBe('function');
+  });
+
+  it('serves an action snapshot in one read and records a deterministic discovery baseline', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Save';
+    setRect(button);
+    const input = document.createElement('input');
+    input.setAttribute('aria-label', 'Title');
+    input.value = 'known-state';
+    setRect(input);
+    document.body.append(button, input);
+
+    const accessibility = loadInjectedHelper(
+      'accessibility-tree-helper.js',
+      '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__',
+    );
+    const interactive = loadInjectedHelper(
+      'interactive-elements-helper.js',
+      '__INTERACTIVE_ELEMENTS_HELPER_INITIALIZED__',
+    );
+    const startLegacy = performance.now();
+    const tree = await callHelper(accessibility, { action: 'generateAccessibilityTree' });
+    const elements = await callHelper(interactive, { action: 'getInteractiveElements' });
+    const legacyMs = performance.now() - startLegacy;
+    expect(tree.success).toBe(true);
+    expect(elements.success).toBe(true);
+
+    const snapshotStart = performance.now();
+    const snapshot = await callHelper(accessibility, {
+      action: 'generateActionSnapshot',
+      snapshotId: 'baseline-snapshot',
+    });
+    const snapshotMs = performance.now() - snapshotStart;
+    expect(snapshot).toMatchObject({
+      success: true,
+      snapshotId: 'baseline-snapshot',
+      controls: [
+        expect.objectContaining({ name: 'Save' }),
+        expect.objectContaining({ name: 'Title', value: 'known-state' }),
+      ],
+    });
+    expect(snapshot.controls.find((control: any) => control.name === 'Title').value).toBe(
+      input.value,
+    );
+    console.info(
+      '[action-snapshot-baseline]',
+      JSON.stringify({
+        legacyReadCalls: 2,
+        snapshotReadCalls: 1,
+        legacyMs,
+        snapshotMs,
+        domVerified: true,
+      }),
+    );
+  });
+
+  it('caps controls, reuses refs, and expires snapshot guards after 30 seconds', () => {
+    const first = document.createElement('button');
+    first.textContent = 'First';
+    setRect(first);
+    const second = document.createElement('button');
+    second.textContent = 'Second';
+    setRect(second);
+    document.body.append(first, second);
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const generate = (window as any).__generateActionSnapshot;
+    const verify = (window as any).__verifyActionSnapshot;
+
+    const limited = generate('limited-snapshot', 1);
+    const repeated = generate('repeated-snapshot', 1);
+    expect(limited.controls).toHaveLength(1);
+    expect(limited.truncated).toBe(true);
+    expect(repeated.controls[0].ref).toBe(limited.controls[0].ref);
+    expect(verify('limited-snapshot', limited.controls[0].ref, 'click')).toMatchObject({
+      success: true,
+    });
+
+    vi.useFakeTimers();
+    try {
+      vi.advanceTimersByTime(30_001);
+      expect(verify('limited-snapshot', limited.controls[0].ref, 'click')).toMatchObject({
+        success: false,
+        error: expect.stringContaining('expired'),
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('marks the snapshot truncated when visible page text exceeds its cap', () => {
+    const content = document.createElement('div');
+    content.textContent = 'Visible text '.repeat(600);
+    setRect(content);
+    document.body.append(content);
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-long-text');
+    expect(snapshot.text).toHaveLength(6_000);
+    expect(snapshot.truncated).toBe(true);
+  });
+
   it('recovers a click from a selector when the ref has expired', async () => {
     const button = document.createElement('button');
     button.setAttribute('aria-label', '选择 image.jpg - 1');
@@ -297,6 +441,274 @@ describe('interaction helpers', () => {
         isHitTestVisible: false,
       },
     });
+  });
+
+  it('rejects snapshot-scoped clicks when the snapshot is missing', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Continue';
+    setRect(button);
+    const click = vi.fn();
+    button.addEventListener('click', click);
+    document.body.append(button);
+    mockElementFromPoint(button);
+    (window as any).__claudeElementMap.ref_1 = new WeakRef(button);
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        ref: 'ref_1',
+        snapshotId: 'missing-snapshot',
+      }),
+    ).resolves.toMatchObject({ error: expect.stringContaining('snapshot') });
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it('rejects snapshot-scoped clicks when the observed target changes', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Continue';
+    setRect(button);
+    const click = vi.fn();
+    button.addEventListener('click', click);
+    document.body.append(button);
+    mockElementFromPoint(button);
+
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-1');
+    button.textContent = 'Delete account';
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        ref: snapshot.controls[0].ref,
+        snapshotId: 'snapshot-1',
+      }),
+    ).resolves.toMatchObject({ error: expect.stringContaining('snapshot') });
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it('rejects snapshot-scoped clicks after the observed node is replaced', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Continue';
+    button.id = 'replace-target';
+    setRect(button);
+    const click = vi.fn();
+    button.addEventListener('click', click);
+    document.body.append(button);
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-replaced');
+    button.remove();
+    const replacement = document.createElement('button');
+    replacement.id = button.id;
+    replacement.textContent = 'Continue';
+    setRect(replacement);
+    document.body.append(replacement);
+    mockElementFromPoint(replacement);
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        ref: snapshot.controls[0].ref,
+        snapshotId: 'snapshot-replaced',
+      }),
+    ).resolves.toMatchObject({ error: expect.stringContaining('changed') });
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it('rejects a snapshot-scoped submit click when the owning form action changes', async () => {
+    const form = document.createElement('form');
+    form.action = '/safe-submit';
+    const button = document.createElement('button');
+    button.type = 'submit';
+    button.textContent = 'Continue';
+    setRect(button);
+    const click = vi.fn((event: Event) => event.preventDefault());
+    button.addEventListener('click', click);
+    form.append(button);
+    document.body.append(form);
+    mockElementFromPoint(button);
+
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-form-action');
+    form.action = '/changed-submit';
+    const handler = loadInjectedHelper('click-helper.js', '__CLICK_HELPER_INITIALIZED__');
+    await expect(
+      callHelper(handler, {
+        action: 'clickElement',
+        ref: snapshot.controls[0].ref,
+        snapshotId: 'snapshot-form-action',
+      }),
+    ).resolves.toMatchObject({ error: expect.stringContaining('changed') });
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it('fills a snapshot-scoped editable field only while its observation is current', async () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('aria-label', 'Search');
+    setRect(input);
+    document.body.append(input);
+    mockElementFromPoint(input);
+
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-1');
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'fillElement',
+        ref: snapshot.controls[0].ref,
+        snapshotId: 'snapshot-1',
+        value: 'hello',
+      }),
+    ).resolves.toMatchObject({ success: true });
+    expect(input.value).toBe('hello');
+  });
+
+  it('does not fill when a snapshot-scoped target token is missing', async () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('aria-label', 'Search');
+    setRect(input);
+    document.body.append(input);
+    mockElementFromPoint(input);
+    (window as any).__claudeElementMap.ref_1 = new WeakRef(input);
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'fillElement',
+        ref: 'ref_1',
+        snapshotId: 'missing-snapshot',
+        value: 'must not be entered',
+      }),
+    ).resolves.toMatchObject({ error: expect.stringContaining('snapshot') });
+    expect(input.value).toBe('');
+  });
+
+  it('rejects a snapshot-scoped fill if a visible text field becomes a password field', async () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('aria-label', 'Search');
+    setRect(input);
+    document.body.append(input);
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-sensitive-change');
+    input.type = 'password';
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+
+    await expect(
+      callHelper(handler, {
+        action: 'fillElement',
+        ref: snapshot.controls[0].ref,
+        snapshotId: 'snapshot-sensitive-change',
+        value: 'must not be entered',
+      }),
+    ).resolves.toMatchObject({ error: expect.stringContaining('changed') });
+    expect(input.value).toBe('');
+  });
+
+  it('waits briefly for options controlled by a snapshot-scoped combobox', async () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-label', 'Destination');
+    input.setAttribute('aria-controls', 'suggestions');
+    setRect(input);
+    const suggestions = document.createElement('div');
+    suggestions.id = 'suggestions';
+    document.body.append(input, suggestions);
+    mockElementFromPoint(input);
+    input.addEventListener('input', () => {
+      setTimeout(() => {
+        const option = document.createElement('div');
+        option.setAttribute('role', 'option');
+        option.textContent = 'London';
+        setRect(option);
+        suggestions.append(option);
+      }, 140);
+    });
+
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-1');
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+    const startedAt = Date.now();
+    const result = await callHelper(handler, {
+      action: 'fillElement',
+      ref: snapshot.controls[0].ref,
+      snapshotId: 'snapshot-1',
+      value: 'Lon',
+    });
+
+    expect(result.success).toBe(true);
+    expect(suggestions.querySelector('[role="option"]')?.textContent).toBe('London');
+    expect(Date.now() - startedAt).toBeLessThan(300);
+  });
+
+  it('keeps a snapshot-scoped combobox focused while waiting for options that close on blur', async () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-label', 'Destination');
+    input.setAttribute('aria-controls', 'blur-sensitive-suggestions');
+    setRect(input);
+    const suggestions = document.createElement('div');
+    suggestions.id = 'blur-sensitive-suggestions';
+    input.addEventListener('input', () => {
+      setTimeout(() => {
+        const option = document.createElement('div');
+        option.setAttribute('role', 'option');
+        option.textContent = 'London';
+        setRect(option);
+        suggestions.append(option);
+      }, 20);
+    });
+    input.addEventListener('blur', () => suggestions.replaceChildren());
+    document.body.append(input, suggestions);
+    mockElementFromPoint(input);
+
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-blur-sensitive');
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+    await expect(
+      callHelper(handler, {
+        action: 'fillElement',
+        ref: snapshot.controls[0].ref,
+        snapshotId: 'snapshot-blur-sensitive',
+        value: 'Lon',
+      }),
+    ).resolves.toMatchObject({ success: true });
+    expect(suggestions.querySelector('[role="option"]')?.textContent).toBe('London');
+  });
+
+  it('caps a snapshot-scoped combobox options wait at 200 ms', async () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-label', 'Destination');
+    input.setAttribute('aria-controls', 'missing-suggestions');
+    setRect(input);
+    document.body.append(input);
+    mockElementFromPoint(input);
+
+    loadInjectedHelper('accessibility-tree-helper.js', '__ACCESSIBILITY_TREE_HELPER_INITIALIZED__');
+    const snapshot = (window as any).__generateActionSnapshot('snapshot-1');
+    const handler = loadInjectedHelper('fill-helper.js', '__FILL_HELPER_INITIALIZED__');
+    const startedAt = Date.now();
+    const result = await callHelper(handler, {
+      action: 'fillElement',
+      ref: snapshot.controls[0].ref,
+      snapshotId: 'snapshot-1',
+      value: 'Lon',
+    });
+
+    expect(result.success).toBe(true);
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(270);
+    expect(Date.now() - startedAt).toBeLessThan(450);
   });
 
   it('rejects an ambiguous click selector instead of clicking the first match', async () => {

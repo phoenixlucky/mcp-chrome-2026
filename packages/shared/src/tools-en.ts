@@ -936,6 +936,26 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.GET_ACTION_SNAPSHOT,
+    description:
+      'Capture a snapshot of actionable controls on the current page. Pass the returned snapshotId and a control ref to click or fill to prevent acting on stale observations. Password, file, and hidden fields are excluded.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: { type: 'number', description: 'Target tab ID; defaults to the active tab.' },
+        windowId: {
+          type: 'number',
+          description: 'Window used to resolve the active tab when tabId is omitted.',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum controls to return; defaults to 150 and is capped at 150.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.READ_PAGE,
     description:
       'Get an accessibility tree representation of visible elements on the page. Only returns elements that are visible in the viewport. Optionally filter for only interactive elements.\nTip: If the returned elements do not include the specific element you need, use the computer tool\'s screenshot (action="screenshot") to capture the element\'s on-screen coordinates, then operate by coordinates.',
@@ -1828,7 +1848,13 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         markerName: { type: 'string', description: 'Persisted element marker name.' },
         ref: {
           type: 'string',
-          description: 'Element ref from chrome_read_page (takes precedence over selector).',
+          description:
+            'Element ref from chrome_read_page; snapshot refs look like frame:0:ref_1 and take precedence over selector.',
+        },
+        snapshotId: {
+          type: 'string',
+          description:
+            'ID from chrome_get_action_snapshot; pass with the control ref and frameId to reject stale or changed targets.',
         },
         coordinates: {
           type: 'object',
@@ -1876,7 +1902,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         },
         frameId: {
           type: 'number',
-          description: 'Target frame ID for iframe support.',
+          description:
+            'Target frame ID; snapshotId calls must pass the frameId returned with the control.',
         },
       },
       required: [],
@@ -1902,7 +1929,13 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         markerName: { type: 'string', description: 'Persisted element marker name.' },
         ref: {
           type: 'string',
-          description: 'Element ref from chrome_read_page (takes precedence over selector).',
+          description:
+            'Element ref from chrome_read_page; snapshot refs look like frame:0:ref_1 and take precedence over selector.',
+        },
+        snapshotId: {
+          type: 'string',
+          description:
+            'ID from chrome_get_action_snapshot; pass with the control ref and frameId to reject stale or changed targets.',
         },
         value: {
           type: ['string', 'number', 'boolean'],
@@ -1919,7 +1952,8 @@ export const TOOL_SCHEMAS_EN: Tool[] = [
         },
         frameId: {
           type: 'number',
-          description: 'Target frame ID for iframe support.',
+          description:
+            'Target frame ID; snapshotId calls must pass the frameId returned with the control.',
         },
       },
       required: ['value'],

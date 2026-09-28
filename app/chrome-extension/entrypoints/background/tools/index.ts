@@ -46,6 +46,7 @@ const browserToolNames = [
   'pasteImageTool',
   'formValueTool',
   'readPageTool',
+  'actionSnapshotTool',
   'computerTool',
   'postToXTool',
   'handleDialogTool',

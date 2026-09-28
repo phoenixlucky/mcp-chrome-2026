@@ -23,10 +23,15 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     coordinates = null,
     ref = null,
     double = false,
+    snapshotId = null,
     options = {},
   ) {
     try {
       const selectorType = options?.selectorType === 'xpath' ? 'xpath' : 'css';
+      if (snapshotId) {
+        const validation = verifySnapshotTarget(snapshotId, ref, 'click');
+        if (!validation.success) return { error: validation.error };
+      }
       if (
         !ref &&
         !(
@@ -223,6 +228,11 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         };
       }
 
+      if (snapshotId) {
+        const validation = verifySnapshotTarget(snapshotId, ref, 'click');
+        if (!validation.success) return { error: validation.error };
+      }
+
       let navigationPromise;
       if (waitForNavigation) {
         navigationPromise = new Promise((resolve) => {
@@ -271,6 +281,16 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         error: `Error clicking element: ${error.message}`,
       };
     }
+  }
+
+  function verifySnapshotTarget(snapshotId, ref, operation) {
+    if (!ref || typeof window.__verifyActionSnapshot !== 'function') {
+      return {
+        success: false,
+        error: 'Action snapshot target is unavailable; read a fresh action snapshot.',
+      };
+    }
+    return window.__verifyActionSnapshot(snapshotId, ref, operation);
   }
 
   /**
@@ -667,6 +687,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         request.coordinates,
         request.ref,
         !!request.double,
+        request.snapshotId,
         {
           button: request.button,
           bubbles: request.bubbles,

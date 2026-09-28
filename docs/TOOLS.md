@@ -362,6 +362,10 @@ Example:
 
 Response contains `pageContent` (text tree), `viewport`, and a `refMapCount` summary. Use `chrome_get_interactive_elements` or your own logic to act on returned refs.
 
+### `chrome_get_action_snapshot`
+
+Capture visible actionable controls in one structured observation. The response includes a short-lived `snapshotId` and each control's frame-scoped `ref` (for example, `frame:0:ref_1`) and `frameId`. Pass all three to `chrome_click_element` or `chrome_fill_or_select`; the action is rejected if that observation is missing, expired, or its target changed. Password, file, and hidden inputs are omitted.
+
 ### `search_tabs_content` (Launched: 2025-06-09)
 
 AI-powered semantic search across browser tabs.
@@ -529,6 +533,8 @@ Click elements using a ref, selector, or coordinates.
 - `ref` (string, optional): Element ref from `chrome_read_page` (preferred when available)
 - `selector` (string, optional): CSS selector for target element
 - `coordinates` (object, optional): `{ "x": 120, "y": 240 }` viewport coordinates
+- `snapshotId` (string, optional): ID from `chrome_get_action_snapshot`; requires its matching `ref` and `frameId`, and rejects stale targets
+- `frameId` (number, optional): Required with `snapshotId`; use the control's returned frame ID
 
 At least one of `ref`, `selector`, or `coordinates` must be provided.
 
@@ -549,6 +555,8 @@ Fill form fields or select options.
 - `ref` (string, optional): Element ref from `chrome_read_page`
 - `selector` (string, optional): CSS selector for target element
 - `value` (string, required): Value to fill or select
+- `snapshotId` (string, optional): ID from `chrome_get_action_snapshot`; requires its matching `ref` and `frameId`, and rejects stale targets
+- `frameId` (number, optional): Required with `snapshotId`; use the control's returned frame ID
 
 Provide `ref` or `selector` to identify the element.
 
