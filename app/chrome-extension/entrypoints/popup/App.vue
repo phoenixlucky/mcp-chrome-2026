@@ -4,6 +4,7 @@
       'popup-container',
       'agent-theme',
       {
+        'popup-container--home': currentView === 'home',
         'popup-container--premium': currentView !== 'home',
         'popup-container--unlocked': hiddenInterfaceUnlocked,
       },
@@ -14,7 +15,13 @@
     <div v-show="currentView === 'home'" class="home-view">
       <div class="header">
         <div class="header-content">
-          <h1 class="header-title">猫娘 Chrome MCP Server</h1>
+          <div class="header-brand">
+            <img class="header-brand-icon" src="/assets/brand/popup-mascot.png" alt="" />
+            <div class="header-brand-copy">
+              <h1 class="header-title">猫娘 Chrome MCP Server</h1>
+              <p class="header-caption">CHROME MCP SERVER FOR ANYTHING</p>
+            </div>
+          </div>
           <button
             v-if="hiddenInterfaceUnlocked"
             type="button"
@@ -23,10 +30,10 @@
             aria-label="打开欢迎页"
             @click="openWelcomePage"
           >
-            <img class="header-logo" :src="extensionLogoUrl" alt="" />
+            <img class="header-logo" src="/assets/brand/popup-avatar.webp" alt="" />
           </button>
           <div v-else class="header-logo-button header-logo-button--hidden" aria-hidden="true">
-            <img class="header-logo" :src="extensionLogoUrl" alt="" />
+            <img class="header-logo" src="/assets/brand/popup-avatar.webp" alt="" />
           </div>
         </div>
       </div>
@@ -34,25 +41,36 @@
         <!-- 服务配置卡片 -->
         <div class="section">
           <h2 class="section-title">{{ getMessage('nativeServerConfigLabel') }}</h2>
+          <p class="section-description">快速配置和管理你的本地 MCP 服务器</p>
           <div class="config-card">
-            <div class="status-section">
-              <div class="status-header">
-                <p class="status-label">{{ getMessage('runningStatusLabel') }}</p>
+            <div :class="['status-section', getStatusBgClass()]">
+              <div :class="['status-banner', getStatusBgClass()]">
+                <span :class="['status-symbol', getStatusBgClass()]"
+                  ><PopupIcon name="bolt"
+                /></span>
+                <div class="status-copy">
+                  <span class="status-label">{{ getMessage('runningStatusLabel') }}</span>
+                  <strong class="status-text">{{ getStatusText() }}</strong>
+                  <span class="status-description">
+                    {{
+                      serverStatus.isRunning
+                        ? '一切正常，正在为客户端提供服务'
+                        : '连接本地服务后即可向客户端提供 MCP 接入'
+                    }}
+                  </span>
+                </div>
+                <div v-if="serverStatus.lastUpdated" class="status-meta">
+                  <PopupIcon name="clock" />
+                  <span>{{ getMessage('lastUpdatedLabel') }}</span>
+                  <time>{{ new Date(serverStatus.lastUpdated).toLocaleTimeString() }}</time>
+                </div>
                 <button
                   class="refresh-status-button"
                   @click="refreshServerStatus"
                   :title="getMessage('refreshStatusButton')"
                 >
-                  <RefreshIcon className="icon-small" />
+                  <PopupIcon name="refresh" class="icon-small" />
                 </button>
-              </div>
-              <div :class="['status-banner', getStatusBgClass()]">
-                <span :class="['status-dot', getStatusDotClass()]"></span>
-                <span class="status-text">{{ getStatusText() }}</span>
-                <div v-if="serverStatus.lastUpdated" class="status-timestamp">
-                  {{ getMessage('lastUpdatedLabel') }}
-                  {{ new Date(serverStatus.lastUpdated).toLocaleTimeString() }}
-                </div>
               </div>
               <div v-if="packageVersions" class="package-versions">
                 <span>mcp-chrome-bridge-2026 v{{ packageVersions }}</span>
@@ -64,20 +82,7 @@
               class="service-warning"
             >
               <div class="service-warning-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="#d97706"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
+                <PopupIcon name="warning" class="service-warning-icon-glyph" />
               </div>
               <div class="service-warning-body">
                 <div class="service-warning-title">{{
@@ -98,15 +103,22 @@
               </div>
             </div>
 
-            <div v-if="showMcpConfig" class="mcp-config-section">
+            <div class="mcp-config-section">
               <div class="mcp-config-header">
-                <p class="mcp-config-label">{{ getMessage('mcpServerConfigLabel') }}</p>
+                <div class="mcp-config-heading">
+                  <PopupIcon name="server" />
+                  <div>
+                    <p class="mcp-config-label">{{ getMessage('mcpServerConfigLabel') }}</p>
+                    <span>选择合适的配置链接，在客户端中使用</span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   class="copy-config-button"
                   :aria-label="`复制${selectedMcpTransportOption.title}配置`"
                   @click="copyMcpConfig"
                 >
+                  <PopupIcon name="copy" />
                   {{ copyButtonText }}
                 </button>
               </div>
@@ -119,10 +131,19 @@
                   class="mcp-transport-option"
                   :class="{
                     'mcp-transport-option--selected': selectedMcpTransport === transport.id,
+                    'mcp-transport-option--expanded': expandedMcpTransport === transport.id,
                   }"
                   :aria-checked="selectedMcpTransport === transport.id"
+                  :aria-expanded="expandedMcpTransport === transport.id"
                   @click="selectedMcpTransport = transport.id"
+                  @mouseenter="hoveredMcpTransport = transport.id"
+                  @mouseleave="hoveredMcpTransport = null"
+                  @focus="focusedMcpTransport = transport.id"
+                  @blur="focusedMcpTransport = null"
                 >
+                  <span class="mcp-transport-option-icon">
+                    <PopupIcon :name="transport.icon" />
+                  </span>
                   <span class="mcp-transport-option-header">
                     <strong class="mcp-transport-option-title">{{ transport.title }}</strong>
                     <span
@@ -134,6 +155,7 @@
                   </span>
                   <code class="mcp-transport-option-endpoint">{{ transport.endpoint }}</code>
                   <span class="mcp-transport-option-description">{{ transport.description }}</span>
+                  <PopupIcon name="chevron" class="mcp-transport-option-arrow" />
                 </button>
               </div>
               <div class="mcp-config-content">
@@ -158,7 +180,7 @@
               </div>
 
               <button class="connect-button" :disabled="isConnecting" @click="testNativeConnection">
-                <BoltIcon />
+                <PopupIcon name="bolt" />
                 <span>{{
                   isConnecting
                     ? getMessage('connectingStatus')
@@ -199,6 +221,13 @@
                 {{ currentProxyInfoError || '暂时无法获取出口 IP 位置' }}
               </p>
             </section>
+            <div class="popup-subsection-heading">
+              <PopupIcon name="sparkles" />
+              <div>
+                <strong>设置 / 偏好</strong>
+                <small>自定义扩展行为和功能偏好</small>
+              </div>
+            </div>
             <div class="extension-id">扩展 ID: {{ extensionId }}</div>
             <label class="background-operations-switch">
               <span>
@@ -241,6 +270,13 @@
                   @change="saveScrollCoordinatesSetting"
                 />
               </label>
+              <div class="popup-subsection-heading popup-subsection-heading--nested">
+                <PopupIcon name="home" />
+                <div>
+                  <strong>代理设置</strong>
+                  <small>管理网络代理相关配置</small>
+                </div>
+              </div>
               <label class="background-operations-switch">
                 <span>
                   <strong>住宅代理</strong>
@@ -293,21 +329,24 @@
               @click="toggleWebEditor"
               data-tooltip="页面编辑：可视化调整元素，并将选中元素交给助手修改"
             >
-              <EditIcon />
+              <PopupIcon name="edit" />
+              <span>页面编辑</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-marker has-tooltip"
               @click="toggleElementMarker"
               data-tooltip="元素标注：保存关键元素，供 MCP 读取与助手定位"
             >
-              <MarkerIcon />
+              <PopupIcon name="tag" />
+              <span>元素标注</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-logs has-tooltip"
               @click="openErrorLogs"
               data-tooltip="查看错误日志"
             >
-              <ErrorLogIcon />
+              <PopupIcon name="warning" />
+              <span>错误日志</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-record has-tooltip"
@@ -315,7 +354,8 @@
               @click="startRecording"
               data-tooltip="开始录制（Ctrl+Shift+1）"
             >
-              <RecordIcon :recording="rrRecording" />
+              <PopupIcon name="record" />
+              <span>录制</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-pause has-tooltip"
@@ -323,15 +363,8 @@
               @click="togglePauseRecording"
               :data-tooltip="rrPaused ? '继续录制（Ctrl+Shift+2）' : '暂停录制（Ctrl+Shift+2）'"
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M6 4h4v16H6zm8 0h4v16h-4z" />
-              </svg>
+              <PopupIcon name="pause" />
+              <span>{{ rrPaused ? '继续' : '暂停' }}</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-stop has-tooltip"
@@ -339,7 +372,8 @@
               @click="stopRecording"
               data-tooltip="停止录制（Ctrl+Shift+3）"
             >
-              <StopIcon />
+              <PopupIcon name="stop" />
+              <span>停止</span>
             </button>
           </div>
           <p class="quick-tools-help"
@@ -354,258 +388,83 @@
           <div class="entry-card">
             <button class="entry-item" @click="openAgentSidepanel">
               <div class="entry-icon agent">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
+                <PopupIcon name="chat" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">智能助手</span>
                 <span class="entry-desc">AI Agent 对话与任务</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="openWorkflowSidepanel">
               <div class="entry-icon workflow">
-                <WorkflowIcon />
+                <PopupIcon name="workflow" />
               </div>
               <div class="entry-content">
                 <span class="entry-title"> 工作流管理 </span>
                 <span class="entry-desc">录制与回放自动化流程</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="openElementMarkerSidepanel">
               <div class="entry-icon marker">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                  />
-                </svg>
+                <PopupIcon name="tag" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">元素标注管理</span>
                 <span class="entry-desc">管理页面元素标注</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="currentView = 'local-model'">
               <div class="entry-icon model">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
+                <PopupIcon name="server" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">本地模型</span>
                 <span class="entry-desc">语义引擎与模型管理</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="currentView = 'mcp-tools'">
               <div class="entry-icon tools">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M4 6h16M4 12h16M4 18h10"
-                  />
-                </svg>
+                <PopupIcon name="grid" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">MCP 工具一览</span>
                 <span class="entry-desc">查询可用工具与参数</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="openProxySettings">
               <div class="entry-icon tools">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path
-                    stroke-linecap="round"
-                    d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"
-                  />
-                </svg>
+                <PopupIcon name="home" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">住宅代理</span>
                 <span class="entry-desc">配置代理与页面异常自动轮换</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="openCookieManager">
               <div class="entry-icon tools">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="8.5" />
-                  <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none" />
-                  <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
-                  <circle cx="11" cy="15" r="1" fill="currentColor" stroke="none" />
-                </svg>
+                <PopupIcon name="cookie" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">Cookie 管理</span>
                 <span class="entry-desc">查看并选择清除所有网页标签页 Cookie</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
             <button class="entry-item" @click="openRecentRecordedScripts">
               <div class="entry-icon recordings">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M14 2v6h6M8 13h8M8 17h5"
-                  />
-                </svg>
+                <PopupIcon name="document" />
               </div>
               <div class="entry-content">
                 <span class="entry-title">最近录制脚本</span>
                 <span class="entry-desc">查询、打开或复制页面录制流程</span>
               </div>
-              <svg
-                class="entry-arrow"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <PopupIcon name="chevron" class="entry-arrow" />
             </button>
           </div>
         </div>
@@ -614,25 +473,11 @@
       <div v-if="hiddenInterfaceUnlocked" class="footer">
         <div class="footer-links">
           <button class="footer-link" @click="openWelcomePage" title="View installation guide">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <PopupIcon name="info" />
             Guide
           </button>
           <button class="footer-link" @click="openTroubleshooting" title="Troubleshooting">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
+            <PopupIcon name="book" />
             Docs
           </button>
         </div>
@@ -663,7 +508,7 @@
 
     <div
       v-if="hiddenInterfaceUnlocked && showProxyModal"
-      class="error-log-modal"
+      class="error-log-modal subpage-modal"
       @click.self="showProxyModal = false"
     >
       <section
@@ -864,7 +709,7 @@
 
     <div
       v-if="hiddenInterfaceUnlocked && showCookieModal"
-      class="error-log-modal"
+      class="error-log-modal subpage-modal"
       @click.self="showCookieModal = false"
     >
       <section
@@ -986,7 +831,7 @@
 
     <div
       v-if="hiddenInterfaceUnlocked && showRecentRecordedScripts"
-      class="error-log-modal"
+      class="error-log-modal subpage-modal"
       @click.self="showRecentRecordedScripts = false"
     >
       <section
@@ -1066,7 +911,7 @@
         getMessage('clearDataList3'),
       ]"
       :warning="getMessage('clearDataIrreversibleWarning')"
-      icon="⚠️"
+      icon="warning"
       :confirm-text="getMessage('confirmClearButton')"
       :cancel-text="getMessage('cancelButton')"
       :confirming-text="getMessage('clearingStatus')"
@@ -1080,16 +925,7 @@
     <!-- Coming Soon Toast -->
     <Transition name="toast">
       <div v-if="comingSoonToast.show" class="coming-soon-toast">
-        <svg
-          class="toast-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <PopupIcon name="clock" class="toast-icon" />
         <span>{{ comingSoonToast.feature }} 功能开发中，敬请期待</span>
       </div>
     </Transition>
@@ -1108,27 +944,13 @@ import { getMessage } from '@/utils/i18n';
 import { useRRV3Rpc } from '@/entrypoints/shared/composables';
 import { useAgentTheme, type AgentThemeId } from '../sidepanel/composables/useAgentTheme';
 
+import PopupIcon from './components/PopupIcon.vue';
+import type { PopupIconName } from './components/popup-icons';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import ProgressIndicator from './components/ProgressIndicator.vue';
 import ModelCacheManagement from './components/ModelCacheManagement.vue';
 import LocalModelPage from './components/LocalModelPage.vue';
 import McpToolsPage from './components/McpToolsPage.vue';
-import {
-  DatabaseIcon,
-  BoltIcon,
-  TrashIcon,
-  CheckIcon,
-  TabIcon,
-  VectorIcon,
-  RecordIcon,
-  StopIcon,
-  WorkflowIcon,
-  RefreshIcon,
-  EditIcon,
-  MarkerIcon,
-  ErrorLogIcon,
-} from './components/icons';
-
 // AgentChat theme - 从preload中获取，保持与sidepanel一致
 const { theme: agentTheme, initTheme } = useAgentTheme();
 const rrRpc = useRRV3Rpc();
@@ -1587,8 +1409,6 @@ const backgroundOperations = ref(true);
 const contentMessageTimeoutSeconds = ref(30);
 const sendScrollCoordinates = ref(false);
 const extensionId = chrome.runtime.id;
-const extensionLogoUrl = chrome.runtime.getURL('icon/128.png');
-
 const serverStatus = ref<{
   isRunning: boolean;
   port?: number;
@@ -1599,16 +1419,13 @@ const serverStatus = ref<{
 });
 const packageVersions = ref<string | null>(null);
 
-const showMcpConfig = computed(() => {
-  return nativeConnectionStatus.value === 'connected' && serverStatus.value.isRunning;
-});
-
 const copyButtonText = ref(getMessage('copyConfigButton'));
 
 type McpTransportId = 'streamable-http' | 'streamable-http-new' | 'sse' | 'stdio';
 
 type McpTransportOption = {
   id: McpTransportId;
+  icon: PopupIconName;
   title: string;
   endpoint: string;
   description: string;
@@ -1616,6 +1433,11 @@ type McpTransportOption = {
 };
 
 const selectedMcpTransport = ref<McpTransportId>('streamable-http-new');
+const hoveredMcpTransport = ref<McpTransportId | null>(null);
+const focusedMcpTransport = ref<McpTransportId | null>(null);
+const expandedMcpTransport = computed(
+  () => hoveredMcpTransport.value ?? focusedMcpTransport.value ?? selectedMcpTransport.value,
+);
 
 const mcpTransportOptions = computed<McpTransportOption[]>(() => {
   const port = serverStatus.value.port || nativeServerPort.value;
@@ -1624,6 +1446,7 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
   return [
     {
       id: 'streamable-http',
+      icon: 'globe',
       title: 'Streamable HTTP（兼容版）',
       endpoint: `${baseUrl}/mcp`,
       description: '保留会话，兼容现有客户端',
@@ -1638,6 +1461,7 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
     },
     {
       id: 'streamable-http-new',
+      icon: 'rocket',
       title: 'Streamable HTTP（尝鲜版）',
       endpoint: `${baseUrl}/mcp-new`,
       description: 'MCP 2026-07-28，无会话',
@@ -1652,6 +1476,7 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
     },
     {
       id: 'sse',
+      icon: 'share',
       title: 'SSE（旧版 MCP）',
       endpoint: `${baseUrl}/sse`,
       description: '消息地址：/messages?sessionId=…',
@@ -1665,6 +1490,7 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
     },
     {
       id: 'stdio',
+      icon: 'server',
       title: 'STDIO',
       endpoint: 'mcp-chrome-stdio 或 EXE --stdio',
       description: '内部优先连接 /mcp-new，失败时回退 /mcp',
@@ -5202,5 +5028,1108 @@ onUnmounted(() => {
 
 .service-warning-btn-primary:hover {
   background: #d97706;
+}
+
+/* Catgirl glass theme for the complete, scrollable popup home page. */
+.popup-container.popup-container--home {
+  color: #182c51;
+  background:
+    linear-gradient(180deg, rgba(251, 247, 255, 0.04), rgba(255, 248, 242, 0.08)),
+    url('/assets/backgrounds/popup-catgirl.webp') center 34% / cover !important;
+  --popup-ink: #182c51;
+  --popup-muted: #596d91;
+  --popup-violet: #7c3aed;
+  --popup-glass: rgba(255, 255, 255, 0.2);
+  --popup-border: rgba(255, 255, 255, 0.4);
+}
+
+.popup-container--home .home-view {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.popup-container--home .header {
+  z-index: 1;
+  flex-shrink: 0;
+  margin: 8px 10px 0;
+  padding: 6px 0 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 8px 26px rgba(64, 47, 94, 0.09);
+  backdrop-filter: blur(4px);
+}
+
+.popup-container--home .header-content {
+  min-height: 34px;
+  gap: 8px;
+}
+
+.header-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.header-brand-icon {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  object-fit: cover;
+}
+
+.header-brand-copy {
+  min-width: 0;
+}
+
+.popup-container--home .header-title {
+  overflow: hidden;
+  color: var(--popup-ink);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-caption {
+  margin: 4px 0 0;
+  color: #8190ae;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  line-height: 1;
+}
+
+.popup-container--home .header-logo-button {
+  margin-right: 9px;
+}
+
+.popup-container--home .header-logo {
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+}
+
+.popup-container--home .content {
+  margin: 8px 10px 0;
+  padding: 12px 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: none;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.popup-container--home .section {
+  margin-bottom: 16px;
+}
+
+.popup-container--home .section-title {
+  margin: 0 0 9px;
+  color: var(--popup-ink);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.popup-container--home .section-description {
+  margin: -2px 0 10px;
+  color: var(--popup-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.popup-container--home .section-title:not(.quick-tools-unlock-trigger)::after {
+  display: block;
+  width: 44px;
+  height: 3px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8b5cf6, #ca72ff);
+  content: '';
+}
+
+.popup-container--home .config-card,
+.popup-container--home .entry-card,
+.popup-container--home .rr-icon-buttons,
+.popup-container--home .proxy-live-status {
+  border: 1px solid var(--popup-border);
+  border-radius: 19px;
+  background: var(--popup-glass);
+  box-shadow: 0 10px 30px rgba(50, 41, 78, 0.09);
+  backdrop-filter: blur(5px);
+}
+
+.popup-container--home .config-card {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.popup-container--home .status-section {
+  display: block;
+  padding: 11px;
+  border: 1px solid rgba(158, 238, 214, 0.72);
+  border-radius: 20px;
+  background: rgba(249, 250, 255, 0.24);
+  box-shadow: 0 9px 25px rgba(43, 157, 127, 0.1);
+  backdrop-filter: blur(2px);
+}
+
+.popup-container--home .status-section.bg-green-subtle {
+  border-color: rgba(158, 238, 214, 0.72);
+  background: rgba(230, 255, 246, 0.3);
+}
+
+.popup-container--home .status-section.bg-red-subtle {
+  border-color: rgba(255, 177, 193, 0.62);
+  background: rgba(255, 239, 244, 0.3);
+}
+
+.popup-container--home .status-section.bg-yellow-subtle {
+  border-color: rgba(255, 215, 152, 0.66);
+  background: rgba(255, 247, 228, 0.3);
+}
+
+.popup-container--home .status-label,
+.popup-container--home .mcp-config-label,
+.popup-container--home .port-label {
+  color: var(--popup-muted);
+}
+
+.popup-container--home .status-banner {
+  display: flex;
+  min-height: 60px;
+  gap: 10px;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+}
+
+.popup-container--home .status-banner.bg-green-subtle {
+  background: transparent;
+}
+
+.popup-container--home .status-symbol {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #65e2bc, #16c995);
+  box-shadow: 0 6px 15px rgba(22, 201, 149, 0.24);
+  font-size: 21px;
+}
+
+.popup-container--home .status-symbol.bg-red-subtle {
+  background: linear-gradient(145deg, #ff9eaa, #ef4765);
+  box-shadow: 0 6px 15px rgba(239, 71, 101, 0.2);
+}
+
+.popup-container--home .status-symbol.bg-yellow-subtle {
+  background: linear-gradient(145deg, #ffd17b, #f2a52b);
+  box-shadow: 0 6px 15px rgba(242, 165, 43, 0.2);
+}
+
+.popup-container--home :deep(.status-symbol .popup-icon) {
+  filter: brightness(0) invert(1);
+}
+
+.popup-container--home .status-dot {
+  display: none;
+}
+
+.popup-container--home .status-copy {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.popup-container--home .status-label {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.popup-container--home .status-text {
+  color: #153451;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.popup-container--home .status-description {
+  color: #647b9e;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.popup-container--home .status-meta {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  align-content: center;
+  column-gap: 5px;
+  min-width: 72px;
+  padding-left: 9px;
+  border-left: 1px solid rgba(95, 124, 158, 0.24);
+  color: var(--popup-muted);
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.popup-container--home .status-meta .popup-icon {
+  grid-row: 1 / span 2;
+  width: 14px;
+  height: 14px;
+}
+
+.popup-container--home .status-meta time {
+  grid-column: 2;
+  color: var(--popup-ink);
+  font-size: 12px;
+}
+
+.popup-container--home .refresh-status-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  align-self: center;
+  margin-left: 1px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.28);
+  color: #0aa87f;
+}
+
+.popup-container--home .status-timestamp {
+  color: #617696;
+  font-size: 10px;
+}
+
+.popup-container--home .package-versions {
+  color: var(--popup-muted);
+  font-size: 10px;
+}
+
+.popup-container--home .service-warning {
+  border-color: rgba(245, 158, 11, 0.26);
+  border-radius: 15px;
+  background: rgba(255, 251, 235, 0.94);
+}
+
+.popup-container--home .service-warning-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff0c9;
+}
+
+.popup-container--home .service-warning-icon-glyph {
+  font-size: 22px;
+}
+
+.popup-container--home .mcp-config-section {
+  border-top: 0;
+  margin-bottom: 0;
+  padding-top: 2px;
+}
+
+.popup-container--home .mcp-config-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.popup-container--home .mcp-config-header {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.popup-container--home .mcp-config-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.popup-container--home .mcp-config-heading > .popup-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.popup-container--home .mcp-config-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.popup-container--home .mcp-config-heading span {
+  color: var(--popup-muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.popup-container--home .copy-config-button {
+  min-height: 34px;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #6544cf;
+  font-size: 12px;
+}
+
+.popup-container--home .copy-config-button:hover:not(:disabled) {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: #f4edff;
+  color: #5b21b6;
+}
+
+.popup-container--home :deep(.copy-config-button .popup-icon) {
+  width: 17px;
+  height: 17px;
+}
+
+.popup-container--home .mcp-transport-options {
+  gap: 0;
+  padding-top: 8px;
+}
+
+.popup-container--home .mcp-transport-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 12px;
+  grid-template-areas:
+    'icon title arrow'
+    'icon endpoint arrow'
+    'icon description arrow';
+  align-items: center;
+  gap: 2px 9px;
+  min-height: 50px;
+  margin-top: -9px;
+  padding: 6px 9px;
+  border-color: rgba(207, 211, 230, 0.66);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.32);
+  color: var(--popup-ink);
+  transition:
+    min-height 220ms ease,
+    padding 220ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.popup-container--home .mcp-transport-option:first-child {
+  margin-top: 0;
+}
+
+.popup-container--home .mcp-transport-option:hover {
+  border-color: rgba(139, 92, 246, 0.42);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.popup-container--home .mcp-transport-option--selected {
+  border: 1px solid #a855f7;
+  background: linear-gradient(110deg, rgba(252, 247, 255, 0.44), rgba(255, 255, 255, 0.38));
+  box-shadow:
+    inset 4px 0 0 #a855f7,
+    0 5px 16px rgba(168, 85, 247, 0.12);
+}
+
+.popup-container--home .mcp-transport-option--expanded {
+  z-index: 2;
+  min-height: 86px;
+  padding-block: 8px;
+}
+
+.popup-container--home .mcp-transport-option-icon {
+  grid-area: icon;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e4edff;
+  color: #3678ed;
+  font-size: 27px;
+}
+
+.popup-container--home .mcp-transport-option:nth-child(2) .mcp-transport-option-icon {
+  background: #f0e3ff;
+  color: #793be5;
+}
+
+.popup-container--home .mcp-transport-option:nth-child(3) .mcp-transport-option-icon {
+  background: #fff0da;
+  color: #e89a25;
+}
+
+.popup-container--home .mcp-transport-option:nth-child(4) .mcp-transport-option-icon {
+  background: #dcf7ec;
+  color: #13a773;
+}
+
+.popup-container--home .mcp-transport-option-header {
+  grid-area: title;
+  min-width: 0;
+}
+
+.popup-container--home .mcp-transport-option--expanded .mcp-transport-option-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.popup-container--home .mcp-transport-option-title {
+  overflow: hidden;
+  color: #182c51;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-container--home .mcp-transport-option-selected {
+  padding: 3px 7px;
+  background: #8b35e9;
+  color: white;
+}
+
+.popup-container--home .mcp-transport-option-endpoint {
+  grid-area: endpoint;
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 6px;
+  border: 1px solid rgba(215, 218, 238, 0.9);
+  border-radius: 8px;
+  background: rgba(246, 247, 253, 0.48);
+  color: #31466e;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-container--home .mcp-transport-option-description {
+  grid-area: description;
+  display: none;
+  color: var(--popup-muted);
+  font-size: 10px;
+}
+
+.popup-container--home .mcp-transport-option--expanded .mcp-transport-option-endpoint,
+.popup-container--home .mcp-transport-option--expanded .mcp-transport-option-description {
+  display: block;
+}
+
+.popup-container--home .mcp-transport-option-arrow {
+  grid-area: arrow;
+  width: 12px;
+  height: 12px;
+  align-self: center;
+  opacity: 0.75;
+}
+
+.popup-container--home .mcp-config-content,
+.popup-container--home .port-input-wrapper {
+  border-color: rgba(205, 211, 230, 0.9);
+  border-radius: 11px;
+  background: rgba(248, 249, 255, 0.38);
+}
+
+.popup-container--home .mcp-config-content {
+  display: none;
+}
+
+.popup-container--home .mcp-config-json,
+.popup-container--home .port-prefix,
+.popup-container--home .port-input {
+  color: #2c4168;
+}
+
+.popup-container--home .connect-button {
+  min-height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 13px;
+  background: linear-gradient(110deg, #8742ef, #ad54eb);
+  box-shadow: 0 7px 16px rgba(139, 92, 246, 0.25);
+}
+
+.popup-container--home .connect-button:hover:not(:disabled) {
+  background: linear-gradient(110deg, #7430df, #9942de);
+}
+
+.popup-container--home .connection-group,
+.popup-container--home .proxy-live-status {
+  border-color: rgba(105, 117, 151, 0.17);
+}
+
+.popup-container--home .proxy-live-status {
+  margin-top: 0;
+  background: rgba(250, 249, 255, 0.3);
+}
+
+.popup-container--home .proxy-live-status-header,
+.popup-container--home .proxy-live-location,
+.popup-container--home .proxy-live-placeholder {
+  color: #526789;
+}
+
+.popup-container--home .extension-id {
+  padding: 10px 12px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.42);
+  color: #354b74;
+  font-size: 11px;
+}
+
+.popup-subsection-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 1px 0;
+  color: #7040ce;
+  font-size: 17px;
+}
+
+.popup-subsection-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.popup-subsection-heading strong {
+  color: var(--popup-ink);
+}
+
+.popup-subsection-heading small {
+  color: var(--popup-muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.popup-subsection-heading--nested {
+  margin-top: 2px;
+}
+
+.popup-subsection-heading--nested > div {
+  gap: 2px;
+}
+
+.popup-container--home .background-operations-switch {
+  min-height: 54px;
+  gap: 10px;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(216, 218, 235, 0.8);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.32);
+  color: var(--popup-ink);
+}
+
+.popup-container--home .background-operations-switch strong {
+  font-size: 13px;
+}
+
+.popup-container--home .background-operations-switch small {
+  color: var(--popup-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.popup-container--home .background-operations-switch input[type='checkbox'] {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  flex: 0 0 40px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #b8c0d1;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.popup-container--home .background-operations-switch input[type='checkbox']::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(31, 41, 55, 0.22);
+  content: '';
+  transition: transform 160ms ease;
+}
+
+.popup-container--home .background-operations-switch input[type='checkbox']:checked {
+  background: linear-gradient(110deg, #8b45ed, #bc55ec);
+}
+
+.popup-container--home .background-operations-switch input[type='checkbox']:checked::after {
+  transform: translateX(16px);
+}
+
+.popup-container--home .background-operations-switch input[type='checkbox']:focus-visible {
+  outline: 2px solid #702fe0;
+  outline-offset: 3px;
+}
+
+.popup-container--home .timeout-input input {
+  min-height: 34px;
+  border-color: rgba(205, 211, 230, 0.94);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.popup-container--home .proxy-quick-actions {
+  padding: 2px;
+}
+
+.popup-container--home .proxy-quick-actions .copy-config-button {
+  width: 100%;
+  min-height: 43px;
+  border-radius: 14px;
+  font-weight: 650;
+}
+
+.popup-container--home .quick-tools-unlock-trigger {
+  width: auto;
+  cursor: pointer;
+}
+
+.popup-container--home .rr-icon-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px 7px 8px;
+}
+
+.popup-container--home .rr-icon-btn {
+  width: auto;
+  min-width: 0;
+  min-height: 76px;
+  height: auto;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(235, 241, 255, 0.96), rgba(224, 232, 255, 0.9));
+  color: #2d66dc;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.popup-container--home .rr-icon-btn:nth-child(2) {
+  background: linear-gradient(145deg, #e4fbf3, #d2f5e9);
+  color: #0e9b72;
+}
+
+.popup-container--home .rr-icon-btn:nth-child(3) {
+  background: linear-gradient(145deg, #f5eaff, #eddcff);
+  color: #7b35da;
+}
+
+.popup-container--home .rr-icon-btn:nth-child(4) {
+  background: linear-gradient(145deg, #ffeaf0, #ffdde7);
+  color: #e64271;
+}
+
+.popup-container--home .rr-icon-btn:nth-child(5) {
+  background: linear-gradient(145deg, #fff2dc, #ffe8c9);
+  color: #d98517;
+}
+
+.popup-container--home .rr-icon-btn:nth-child(6) {
+  background: linear-gradient(145deg, #ffe9ed, #ffdce3);
+  color: #d9335d;
+}
+
+.popup-container--home :deep(.rr-icon-btn .popup-icon) {
+  width: 27px;
+  height: 27px;
+}
+
+.popup-container--home .rr-icon-btn:hover:not(:disabled) {
+  border-color: rgba(139, 92, 246, 0.38);
+  box-shadow: 0 5px 14px rgba(87, 60, 137, 0.12);
+  transform: translateY(-1px);
+}
+
+.popup-container--home .rr-icon-btn:disabled {
+  filter: grayscale(0.55);
+  opacity: 0.5;
+}
+
+.popup-container--home .quick-tools-help {
+  margin: 8px 1px 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.36);
+  color: var(--popup-muted);
+  font-size: 11px;
+}
+
+.popup-container--home .entry-card {
+  padding: 7px;
+}
+
+.popup-container--home .entry-item {
+  min-height: 67px;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding: 8px 9px;
+  border: 1px solid rgba(217, 220, 238, 0.78);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.popup-container--home .entry-item:last-child {
+  margin-bottom: 0;
+}
+
+.popup-container--home .entry-item:hover {
+  border-color: rgba(139, 92, 246, 0.42);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.popup-container--home .entry-icon {
+  width: 43px;
+  height: 43px;
+  border-radius: 14px;
+  font-size: 25px;
+}
+
+.popup-container--home .entry-icon.agent {
+  background: #ffe7f0;
+  color: #e83a83;
+}
+
+.popup-container--home .entry-icon.workflow {
+  background: #eee2ff;
+  color: #7939e1;
+}
+
+.popup-container--home .entry-icon.marker {
+  background: #dbf8ed;
+  color: #119c70;
+}
+
+.popup-container--home .entry-icon.model {
+  background: #fff0d9;
+  color: #dc8c1b;
+}
+
+.popup-container--home .entry-icon.tools {
+  background: #e1edff;
+  color: #3b72e8;
+}
+
+.popup-container--home .entry-icon.recordings {
+  background: #f2e5ff;
+  color: #8c42db;
+}
+
+.popup-container--home :deep(.entry-icon .popup-icon) {
+  width: 25px;
+  height: 25px;
+}
+
+.popup-container--home .entry-title {
+  color: var(--popup-ink);
+  font-size: 13px;
+}
+
+.popup-container--home .entry-desc {
+  color: var(--popup-muted);
+  font-size: 10px;
+}
+
+.popup-container--home .entry-arrow {
+  width: 12px;
+  height: 12px;
+  opacity: 0.75;
+}
+
+.popup-container--home .footer {
+  flex: 0 0 auto;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(5px);
+}
+
+.popup-container--home .footer-links {
+  gap: 9px;
+  margin-bottom: 6px;
+}
+
+.popup-container--home .footer-link {
+  min-width: 104px;
+  min-height: 35px;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--popup-ink);
+  font-size: 12px;
+}
+
+.popup-container--home :deep(.footer-link .popup-icon) {
+  width: 18px;
+  height: 18px;
+}
+
+.popup-container--home .footer-link:hover {
+  background: #fff;
+  color: #6d35db;
+}
+
+.popup-container--home .footer-text {
+  color: #8492ae;
+  font-size: 9px;
+  letter-spacing: 1.8px;
+}
+
+.popup-container.popup-container--premium {
+  --ac-bg: rgba(255, 255, 255, 0.12);
+  --ac-surface: rgba(255, 255, 255, 0.52);
+  --ac-surface-muted: rgba(255, 255, 255, 0.38);
+  --ac-border: rgba(255, 255, 255, 0.72);
+  --ac-text: #182c51;
+  --ac-text-muted: #526789;
+  --ac-text-subtle: #637797;
+  --ac-accent: #7c3aed;
+  --ac-accent-hover: #6d32d1;
+  --ac-accent-subtle: rgba(139, 92, 246, 0.14);
+  --ac-radius-card: 16px;
+  --ac-radius-button: 12px;
+  --ac-shadow-card: 0 8px 22px rgba(47, 38, 76, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 248, 253, 0.25)),
+    url('/assets/backgrounds/popup-subpage-catgirl.webp') center 34% / cover !important;
+  box-shadow:
+    0 20px 48px rgba(54, 42, 82, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.popup-container--premium :deep(.local-model-page),
+.popup-container--premium :deep(.mcp-tools-page) {
+  color: var(--ac-text);
+  background: transparent !important;
+}
+
+.popup-container--premium :deep(.page-header) {
+  flex: 0 0 auto;
+  margin: 8px 10px 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.38) !important;
+  box-shadow: 0 7px 22px rgba(53, 42, 82, 0.1);
+  backdrop-filter: blur(14px) saturate(125%);
+}
+
+.popup-container--premium :deep(.page-title) {
+  color: var(--ac-text);
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.popup-container--premium :deep(.page-content) {
+  padding: 13px 12px 18px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(2px);
+}
+
+.popup-container--premium :deep(.back-button),
+.popup-container--premium :deep(.language-toggle) {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.42);
+  color: #493a76;
+  box-shadow: 0 3px 10px rgba(67, 53, 99, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.popup-container--premium :deep(.back-button:hover),
+.popup-container--premium :deep(.language-toggle:hover) {
+  border-color: rgba(139, 92, 246, 0.48);
+  background: rgba(255, 255, 255, 0.62);
+  color: #6d35db;
+}
+
+.popup-container--premium :deep(.semantic-engine-card),
+.popup-container--premium :deep(.model-card),
+.popup-container--premium :deep(.stats-card),
+.popup-container--premium :deep(.tool-card) {
+  border-color: rgba(255, 255, 255, 0.74);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.48) !important;
+  box-shadow: 0 8px 22px rgba(49, 39, 76, 0.11);
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+.popup-container--premium :deep(.model-card.selected),
+.popup-container--premium :deep(.tool-card[open]) {
+  border-color: rgba(139, 92, 246, 0.72);
+  background: rgba(249, 243, 255, 0.68) !important;
+  box-shadow: 0 8px 22px rgba(125, 71, 194, 0.16);
+}
+
+.popup-container--premium :deep(.section-title),
+.popup-container--premium :deep(.tool-group h3) {
+  color: var(--ac-text);
+}
+
+.popup-container--premium :deep(.tool-search) {
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--ac-text);
+  box-shadow: 0 4px 14px rgba(49, 39, 76, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.popup-container--premium :deep(.tool-search:focus) {
+  border-color: rgba(124, 58, 237, 0.68);
+  outline: 2px solid rgba(124, 58, 237, 0.22);
+  outline-offset: 1px;
+}
+
+.popup-container--premium :deep(.tool-params) {
+  border-color: rgba(128, 112, 159, 0.18);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.popup-container--premium :deep(.error-card) {
+  border-color: rgba(239, 71, 101, 0.3);
+  background: rgba(255, 242, 246, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+.popup-container--home .subpage-modal,
+.popup-container--premium .subpage-modal {
+  background: rgba(50, 38, 73, 0.24);
+  backdrop-filter: blur(7px) saturate(110%);
+}
+
+.popup-container--home .subpage-modal .error-log-dialog,
+.popup-container--premium .subpage-modal .error-log-dialog {
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 250, 255, 0.76)),
+    url('/assets/backgrounds/popup-subpage-catgirl.webp') center 34% / cover;
+  box-shadow:
+    0 20px 48px rgba(43, 32, 68, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  color: #182c51;
+  backdrop-filter: blur(16px) saturate(120%);
+}
+
+.popup-container--home .subpage-modal .error-log-header,
+.popup-container--premium .subpage-modal .error-log-header {
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(93, 78, 125, 0.16);
+  color: #182c51;
+}
+
+.popup-container--home .subpage-modal .proxy-description,
+.popup-container--home .subpage-modal .cookie-selected-count,
+.popup-container--premium .subpage-modal .proxy-description,
+.popup-container--premium .subpage-modal .cookie-selected-count {
+  color: #526789;
+}
+
+.popup-container--home .subpage-modal .proxy-form input:not([type='checkbox']),
+.popup-container--home .subpage-modal .proxy-form textarea,
+.popup-container--home .subpage-modal .proxy-form select,
+.popup-container--premium .subpage-modal .proxy-form input:not([type='checkbox']),
+.popup-container--premium .subpage-modal .proxy-form textarea,
+.popup-container--premium .subpage-modal .proxy-form select {
+  border-color: rgba(133, 119, 163, 0.26);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #243a60;
+}
+
+.popup-container--home .subpage-modal .cookie-tab-card,
+.popup-container--home .subpage-modal .recent-script-item,
+.popup-container--home .subpage-modal .proxy-ip-change,
+.popup-container--premium .subpage-modal .cookie-tab-card,
+.popup-container--premium .subpage-modal .recent-script-item,
+.popup-container--premium .subpage-modal .proxy-ip-change {
+  border-color: rgba(255, 255, 255, 0.76);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: 0 5px 16px rgba(49, 39, 76, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.popup-container--home .subpage-modal .cookie-tab-title strong,
+.popup-container--home .subpage-modal .recent-script-info strong,
+.popup-container--premium .subpage-modal .cookie-tab-title strong,
+.popup-container--premium .subpage-modal .recent-script-info strong {
+  color: #182c51;
+}
+
+@media (max-width: 360px) {
+  .popup-container--home .header-title {
+    font-size: 15px;
+  }
+
+  .header-caption {
+    font-size: 7px;
+    letter-spacing: 1.3px;
+  }
+
+  .popup-container--home .content {
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .popup-container--home .rr-icon-buttons {
+    gap: 4px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .popup-container--home .rr-icon-btn {
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-container--home .content {
+    scroll-behavior: auto;
+  }
+
+  .popup-container--home .mcp-transport-option {
+    transition: none;
+  }
 }
 </style>

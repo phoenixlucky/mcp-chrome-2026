@@ -8,7 +8,7 @@
         <div class="stats-header">
           <p class="stats-label">{{ getMessage('cacheSizeLabel') }}</p>
           <span class="stats-icon orange">
-            <DatabaseIcon />
+            <PopupIcon name="server" />
           </span>
         </div>
         <p class="stats-value">{{ cacheStats?.totalSizeMB || 0 }} MB</p>
@@ -18,7 +18,7 @@
         <div class="stats-header">
           <p class="stats-label">{{ getMessage('cacheEntriesLabel') }}</p>
           <span class="stats-icon purple">
-            <VectorIcon />
+            <PopupIcon name="target" />
           </span>
         </div>
         <p class="stats-value">{{ cacheStats?.entryCount || 0 }}</p>
@@ -65,14 +65,14 @@
     <!-- Action Buttons -->
     <div class="cache-actions">
       <div class="secondary-button" :disabled="isManagingCache" @click="$emit('cleanup-cache')">
-        <span class="stats-icon"><DatabaseIcon /></span>
+        <span class="stats-icon"><PopupIcon name="server" /></span>
         <span>{{
           isManagingCache ? getMessage('cleaningStatus') : getMessage('cleanExpiredCacheButton')
         }}</span>
       </div>
 
       <div class="danger-button" :disabled="isManagingCache" @click="$emit('clear-all-cache')">
-        <span class="stats-icon"><TrashIcon /></span>
+        <span class="stats-icon"><PopupIcon name="trash" /></span>
         <span>{{
           isManagingCache ? getMessage('clearingStatus') : getMessage('clearAllCacheButton')
         }}</span>
@@ -83,7 +83,7 @@
 
 <script lang="ts" setup>
 import ProgressIndicator from './ProgressIndicator.vue';
-import { DatabaseIcon, VectorIcon, TrashIcon } from './icons';
+import PopupIcon from './PopupIcon.vue';
 import { getMessage } from '@/utils/i18n';
 
 interface CacheEntry {

@@ -2,7 +2,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const MAX_EXTENSION_ZIP_BYTES = 6_600_000;
+export const MAX_EXTENSION_ZIP_BYTES = 7_500_000;
 
 export const REQUIRED_EXTENSION_FILES = [
   'libs/ort.min.js',

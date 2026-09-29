@@ -3,16 +3,7 @@
     <!-- 返回按钮 -->
     <div class="page-header">
       <button class="back-button" @click="$emit('back')" title="返回首页">
-        <svg
-          viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        <PopupIcon name="chevron" class="back-arrow-icon" />
         <span>返回</span>
       </button>
       <h2 class="page-title">本地模型</h2>
@@ -46,7 +37,7 @@
             :disabled="isSemanticEngineInitializing"
             @click="$emit('initializeSemanticEngine')"
           >
-            <BoltIcon />
+            <PopupIcon name="bolt" />
             <span>{{ getSemanticEngineButtonText() }}</span>
           </button>
         </div>
@@ -105,7 +96,7 @@
                 <p class="model-description">{{ getModelDescription(model) }}</p>
               </div>
               <div v-if="currentModel === model.preset" class="check-icon">
-                <CheckIcon class="text-white" />
+                <PopupIcon name="check" />
               </div>
             </div>
             <div class="model-tags">
@@ -125,7 +116,7 @@
             <div class="stats-header">
               <p class="stats-label">{{ getMessage('indexedPagesLabel') }}</p>
               <span class="stats-icon violet">
-                <DocumentIcon />
+                <PopupIcon name="document" />
               </span>
             </div>
             <p class="stats-value">{{ storageStats?.indexedPages || 0 }}</p>
@@ -135,7 +126,7 @@
             <div class="stats-header">
               <p class="stats-label">{{ getMessage('indexSizeLabel') }}</p>
               <span class="stats-icon teal">
-                <DatabaseIcon />
+                <PopupIcon name="server" />
               </span>
             </div>
             <p class="stats-value">{{ formatIndexSize() }}</p>
@@ -145,7 +136,7 @@
             <div class="stats-header">
               <p class="stats-label">{{ getMessage('activeTabsLabel') }}</p>
               <span class="stats-icon blue">
-                <TabIcon />
+                <PopupIcon name="grid" />
               </span>
             </div>
             <p class="stats-value">{{ storageStats?.totalTabs || 0 }}</p>
@@ -155,7 +146,7 @@
             <div class="stats-header">
               <p class="stats-label">{{ getMessage('vectorDocumentsLabel') }}</p>
               <span class="stats-icon green">
-                <VectorIcon />
+                <PopupIcon name="target" />
               </span>
             </div>
             <p class="stats-value">{{ storageStats?.totalDocuments || 0 }}</p>
@@ -174,7 +165,7 @@
           :disabled="isClearingData"
           @click="$emit('showClearConfirmation')"
         >
-          <TrashIcon />
+          <PopupIcon name="trash" />
           <span>{{
             isClearingData ? getMessage('clearingStatus') : getMessage('clearAllDataButton')
           }}</span>
@@ -198,15 +189,7 @@ import type { ModelPreset } from '@/utils/semantic-models';
 import { getMessage } from '@/utils/i18n';
 import ProgressIndicator from './ProgressIndicator.vue';
 import ModelCacheManagement from './ModelCacheManagement.vue';
-import {
-  DocumentIcon,
-  DatabaseIcon,
-  BoltIcon,
-  TrashIcon,
-  CheckIcon,
-  TabIcon,
-  VectorIcon,
-} from './icons';
+import PopupIcon from './PopupIcon.vue';
 
 interface Props {
   // 语义引擎

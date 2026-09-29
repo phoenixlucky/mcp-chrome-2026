@@ -2,16 +2,7 @@
   <div class="mcp-tools-page">
     <div class="page-header">
       <button class="back-button" @click="$emit('back')" :title="copy.backTitle">
-        <svg
-          viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        <PopupIcon name="chevron" class="back-arrow-icon" />
         <span>{{ copy.back }}</span>
       </button>
       <h2 class="page-title">{{ copy.title }}</h2>
@@ -83,6 +74,7 @@
 import { computed, ref } from 'vue';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { TOOL_SCHEMAS, TOOL_SCHEMAS_EN } from '@ethanwilkins/chrome-mcp-shared-2026';
+import PopupIcon from './PopupIcon.vue';
 
 defineEmits<{ (e: 'back'): void }>();
 

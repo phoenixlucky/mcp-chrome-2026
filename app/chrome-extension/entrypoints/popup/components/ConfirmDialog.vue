@@ -2,7 +2,7 @@
   <div v-if="visible" class="confirmation-dialog" @click.self="$emit('cancel')">
     <div class="dialog-content">
       <div class="dialog-header">
-        <span class="dialog-icon">{{ icon }}</span>
+        <span class="dialog-icon"><PopupIcon :name="icon" /></span>
         <h3 class="dialog-title">{{ title }}</h3>
       </div>
 
@@ -36,13 +36,15 @@
 
 <script lang="ts" setup>
 import { getMessage } from '@/utils/i18n';
+import PopupIcon from './PopupIcon.vue';
+import type { PopupIconName } from './popup-icons';
 interface Props {
   visible: boolean;
   title: string;
   message: string;
   items?: string[];
   warning?: string;
-  icon?: string;
+  icon?: PopupIconName;
   confirmText?: string;
   cancelText?: string;
   confirmingText?: string;
@@ -55,7 +57,7 @@ interface Emits {
 }
 
 withDefaults(defineProps<Props>(), {
-  icon: '⚠️',
+  icon: 'warning',
   confirmText: getMessage('confirmButton'),
   cancelText: getMessage('cancelButton'),
   confirmingText: getMessage('processingStatus'),

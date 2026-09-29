@@ -8,8 +8,8 @@ extension package work.
 
 | Measure                            |                                                           Result | How to reproduce                                                                |
 | ---------------------------------- | ---------------------------------------------------------------: | ------------------------------------------------------------------------------- |
-| Extension production output        |                                                          9.04 MB | `pnpm build:extension`                                                          |
-| Chrome extension ZIP               |                                        6,478,613 bytes (6.48 MB) | `pnpm --filter @ethanwilkins/chrome-mcp-server-2026 zip`                        |
+| Extension production output        |                                                          9.71 MB | `pnpm build:extension`                                                          |
+| Chrome extension ZIP               |                                        7,140,512 bytes (7.14 MB) | `pnpm --filter @ethanwilkins/chrome-mcp-server-2026 zip`                        |
 | Background bundle                  |                                                          2.76 MB | Read WXT production build output                                                |
 | Largest separate chunks            |      ELK 1.43 MB; semantic engine 893.85 KB; sidepanel 667.46 KB | Read WXT production build output                                                |
 | Extension tests                    |                                       73 files, 639 tests passed | `pnpm --filter @ethanwilkins/chrome-mcp-server-2026 test -- --reporter=default` |
@@ -19,7 +19,8 @@ extension package work.
 | Recent GitHub Actions CI sample    |                     10/10 successful; latest workflow took 132 s | `gh run list --workflow ci.yml --limit 10`                                      |
 
 The production ZIP checker confirmed required WASM assets are present, JSEP
-assets are absent, and the archive is below the 6.6 MB limit.
+assets are absent, and the archive is below the updated 7.5 MB limit. The
+larger budget accommodates the new bundled popup artwork and raster icons.
 
 The latest CI workflow's parallel jobs took 110 s (checks), 125 s
 (desktop-native), and 128 s (WASM). Installing `wasm-pack` v0.15.0 took 82 s,

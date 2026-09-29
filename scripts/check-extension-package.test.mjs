@@ -64,8 +64,8 @@ test('rejects ZIP archives that still include JSEP assets', async (t) => {
 });
 
 test('rejects packages over the maximum size', async (t) => {
-  const fixture = await createPackageFixture(t, { zipSize: 6_600_001 });
-  await assert.rejects(checkExtensionPackage(fixture), /exceeds 6600000 bytes/);
+  const fixture = await createPackageFixture(t, { zipSize: 7_500_001 });
+  await assert.rejects(checkExtensionPackage(fixture), /exceeds 7500000 bytes/);
 });
 
 test('rejects ZIP archives missing required WASM runtime files', async (t) => {
