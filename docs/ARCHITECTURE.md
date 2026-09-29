@@ -1,308 +1,81 @@
-# Chrome MCP Server Architecture 🏗️
+# Architecture
 
-This document provides a detailed technical overview of the Chrome MCP Server architecture, design decisions, and implementation details.
+Chrome MCP Bridge connects an MCP client to the user's existing Chrome profile through a local service and a Manifest V3 extension. The extension owns browser access; the local Node.js process exposes the MCP transports and forwards browser tool calls over Chrome Native Messaging.
 
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [System Architecture](#system-architecture)
-- [Component Details](#component-details)
-- [Data Flow](#data-flow)
-- [AI Integration](#ai-integration)
-- [Performance Optimizations](#performance-optimizations)
-- [Security Considerations](#security-considerations)
-
-## 🎯 Overview
-
-Chrome MCP Server is a sophisticated browser automation platform that bridges AI assistants with Chrome browser capabilities through the Model Context Protocol (MCP). The architecture is designed for:
-
-- **High Performance**: SIMD-optimized AI operations and efficient native messaging
-- **Extensibility**: Modular tool system for easy feature additions
-- **Reliability**: Robust error handling and graceful degradation
-- **Security**: Sandboxed execution and permission-based access control
-
-## 🏗️ System Architecture
+## Runtime components
 
 ```mermaid
-graph TB
-    subgraph "AI Assistant Layer"
-        A[Claude Desktop]
-        B[Custom MCP Client]
-        C[Other AI Tools]
-    end
-
-    subgraph "MCP Protocol Layer"
-        D[HTTP/SSE Transport]
-        E[MCP Server Instance]
-        F[Tool Registry]
-    end
-
-    subgraph "Native Server Layer"
-        G[Fastify HTTP Server]
-        H[Native Messaging Host]
-        I[Session Management]
-    end
-
-    subgraph "Chrome Extension Layer"
-        J[Background Script]
-        K[Content Scripts]
-        L[Popup Interface]
-        M[Offscreen Documents]
-    end
-
-    subgraph "Browser APIs Layer"
-        N[Chrome APIs]
-        O[Web APIs]
-        P[Native Messaging]
-    end
-
-    subgraph "AI Processing Layer"
-        Q[Semantic Engine]
-        R[Vector Database]
-        S[SIMD Math Engine]
-        T[Web Workers]
-    end
-
-    A --> D
-    B --> D
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-    H --> P
-    P --> J
-    J --> K
-    J --> L
-    J --> M
-    J --> N
-    J --> O
-    J --> Q
-    Q --> R
-    Q --> S
-    Q --> T
+flowchart LR
+  Client[MCP client] -->|HTTP /mcp, /mcp-new, /sse or STDIO| Server[Native server]
+  Server -->|Native Messaging| Worker[Extension service worker]
+  Worker -->|Chrome APIs and tab messages| Browser[Chrome tabs and APIs]
+  Worker --> Content[Content scripts]
+  Popup[Popup and options UI] -->|runtime messages| Worker
+  Sidepanel[Side panel and builder] -->|runtime messages| Worker
+  Desktop[Tauri desktop manager] -->|local HTTP and process control| Server
 ```
 
-## 🔧 Component Details
+### Native server (`app/native-server/`)
 
-### 1. Native Server (`app/native-server/`)
+- `src/server/index.ts` creates the Fastify server and exposes health, status, diagnostics, and MCP routes.
+- `src/mcp/` owns protocol transports, tool registration, permission filtering, and request admission.
+- `src/native-messaging-host.ts` connects the local process to the extension using Chrome Native Messaging.
+- `src/agent/` contains the optional local assistant, its provider engines, session services, and SQLite persistence.
 
-**Purpose**: MCP protocol implementation and native messaging bridge
+### Chrome extension (`app/chrome-extension/`)
 
-**Key Components**:
+- `entrypoints/background/` is the Manifest V3 service worker. It registers runtime listeners and routes tools to browser APIs, content scripts, and page-side helpers.
+- `entrypoints/`, `inject-scripts/`, and `shared/` implement page interaction and reusable UI behavior.
+- `entrypoints/popup/`, `options/`, `sidepanel/`, and `builder/` provide extension interfaces; messages that need privileged browser APIs go through the service worker.
+- `entrypoints/offscreen/` hosts work that needs a document context, including GIF encoding and local semantic inference.
 
-- **Fastify HTTP Server**: Handles MCP protocol over HTTP/SSE
-- **Native Messaging Host**: Communicates with Chrome extension
-- **Session Management**: Manages multiple MCP client sessions
-- **Tool Registry**: Routes tool calls to Chrome extension
+### Shared contracts (`packages/shared/`)
 
-**Technologies**:
+`src/tools.ts` and `src/tools-en.ts` define the browser tool schemas and descriptions. The native server and extension consume these contracts so the MCP names and input shapes stay aligned.
 
-- TypeScript + Fastify
-- MCP SDK (@modelcontextprotocol/sdk)
-- Native messaging protocol
+### Desktop client (`app/desktop-client/`)
 
-### 2. Chrome Extension (`app/chrome-extension/`)
+The Tauri + Vue client manages the local service lifecycle and presents its health and diagnostic status. It does not replace the extension: Chrome must still have the extension installed and connected.
 
-**Purpose**: Browser automation and AI-powered content analysis
+## Browser tool request flow
 
-**Key Components**:
-
-- **Background Script**: Main orchestrator and tool executor
-- **Content Scripts**: Page interaction and content extraction
-- **Popup Interface**: User configuration and status display
-- **Offscreen Documents**: AI model processing in isolated context
-
-**Technologies**:
-
-- WXT Framework + Vue 3
-- Chrome Extension APIs
-- WebAssembly + SIMD
-- Transformers.js
-
-### 3. Shared Packages (`packages/`)
-
-#### 3.1 Shared Types (`packages/shared/`)
-
-- Tool schemas and type definitions
-- Common interfaces and utilities
-- MCP protocol types
-
-#### 3.2 WASM SIMD (`packages/wasm-simd/`)
-
-- Rust-based SIMD-optimized math functions
-- WebAssembly compilation with Emscripten
-- 4-8x performance improvement for vector operations
-
-## 🔄 Data Flow
-
-### Tool Execution Flow
-
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐    ┌──────────────┐
-│ AI Assistant│    │ Native Server│    │ Chrome Extension│    │ Browser APIs │
-└─────┬───────┘    └──────┬───────┘    └─────────┬───────┘    └──────┬───────┘
-      │                   │                      │                   │
-      │ 1. Tool Call      │                      │                   │
-      ├──────────────────►│                      │                   │
-      │                   │ 2. Native Message   │                   │
-      │                   ├─────────────────────►│                   │
-      │                   │                      │ 3. Execute Tool   │
-      │                   │                      ├──────────────────►│
-      │                   │                      │ 4. API Response   │
-      │                   │                      │◄──────────────────┤
-      │                   │ 5. Tool Result      │                   │
-      │                   │◄─────────────────────┤                   │
-      │ 6. MCP Response   │                      │                   │
-      │◄──────────────────┤                      │                   │
+```mermaid
+sequenceDiagram
+  participant AI as MCP client
+  participant NS as Native server
+  participant NH as Native host bridge
+  participant SW as Extension service worker
+  participant Tab as Chrome tab / content script
+  AI->>NS: tools/call(name, arguments)
+  NS->>NH: native request
+  NH->>SW: runtime message
+  SW->>Tab: Chrome API or tab message
+  Tab-->>SW: result
+  SW-->>NH: tool result
+  NH-->>NS: native response
+  NS-->>AI: MCP result
 ```
 
-### AI Processing Flow
+The `/mcp` endpoint maintains client sessions; `/mcp-new` is stateless; `/sse` preserves the legacy transport. STDIO clients use the bridge executable, which runs the same native server and protocol implementation.
 
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐    ┌──────────────┐
-│ Content     │    │ Text Chunker │    │ Semantic Engine │    │ Vector DB    │
-│ Extraction  │    │              │    │                 │    │              │
-└─────┬───────┘    └──────┬───────┘    └─────────┬───────┘    └──────┬───────┘
-      │                   │                      │                   │
-      │ 1. Raw Content    │                      │                   │
-      ├──────────────────►│                      │                   │
-      │                   │ 2. Text Chunks      │                   │
-      │                   ├─────────────────────►│                   │
-      │                   │                      │ 3. Embeddings     │
-      │                   │                      ├──────────────────►│
-      │                   │                      │                   │
-      │                   │ 4. Search Query     │                   │
-      │                   ├─────────────────────►│                   │
-      │                   │                      │ 5. Query Vector   │
-      │                   │                      ├──────────────────►│
-      │                   │                      │ 6. Similar Docs   │
-      │                   │                      │◄──────────────────┤
-      │                   │ 7. Search Results   │                   │
-      │                   │◄─────────────────────┤                   │
-```
+## Optional local semantic search
 
-## 🧠 AI Integration
+Semantic search is an optional extension feature. The extension stores downloaded model data in the browser Cache API and vector/index data in IndexedDB. The service worker checks for an existing model cache at startup and only initializes the inference path when a cached model exists or a semantic message arrives. Inference runs in a worker hosted by the offscreen document; model files are fetched on demand. The extension package also includes the runtime assets needed by that inference worker.
 
-### Semantic Similarity Engine
+## Build and verification
 
-**Architecture**:
+- `pnpm build` builds the shared package, native server, extension, and desktop frontend.
+- `pnpm run build:release` builds the Rust/WASM SIMD package and copies its generated worker files before the workspace build.
+- `.github/workflows/ci.yml` runs type checking, lint, unit/integration tests, builds, and a native-server admission gate. The real Chrome smoke test is a manually dispatched acceptance job on a prepared Windows runner.
 
-- **Model Support**: BGE-small-en-v1.5, E5-small-v2, Universal Sentence Encoder
-- **Execution Context**: Web Workers for non-blocking processing
-- **Optimization**: SIMD acceleration for vector operations
-- **Caching**: LRU cache for embeddings and tokenization
+## Source map
 
-**Performance Optimizations**:
-
-```typescript
-// SIMD-accelerated cosine similarity
-const similarity = await simdMath.cosineSimilarity(vecA, vecB);
-
-// Batch processing for efficiency
-const similarities = await simdMath.batchSimilarity(vectors, query, dimension);
-
-// Memory-efficient matrix operations
-const matrix = await simdMath.similarityMatrix(vectorsA, vectorsB, dimension);
-```
-
-### Vector Database (hnswlib-wasm)
-
-**Features**:
-
-- **Algorithm**: Hierarchical Navigable Small World (HNSW)
-- **Implementation**: WebAssembly for near-native performance
-- **Persistence**: IndexedDB storage with automatic cleanup
-- **Scalability**: Handles 10,000+ documents efficiently
-
-**Configuration**:
-
-```typescript
-const config: VectorDatabaseConfig = {
-  dimension: 384, // Model embedding dimension
-  maxElements: 10000, // Maximum documents
-  efConstruction: 200, // Build-time accuracy
-  M: 16, // Connectivity parameter
-  efSearch: 100, // Search-time accuracy
-  enableAutoCleanup: true, // Automatic old data removal
-  maxRetentionDays: 30, // Data retention period
-};
-```
-
-## ⚡ Performance Optimizations
-
-### 1. SIMD Acceleration
-
-**Rust Implementation**:
-
-```rust
-use wide::f32x4;
-
-fn cosine_similarity_simd(&self, vec_a: &[f32], vec_b: &[f32]) -> f32 {
-    let len = vec_a.len();
-    let simd_lanes = 4;
-    let simd_len = len - (len % simd_lanes);
-
-    let mut dot_sum_simd = f32x4::ZERO;
-    let mut norm_a_sum_simd = f32x4::ZERO;
-    let mut norm_b_sum_simd = f32x4::ZERO;
-
-    for i in (0..simd_len).step_by(simd_lanes) {
-        let a_chunk = f32x4::new(vec_a[i..i+4].try_into().unwrap());
-        let b_chunk = f32x4::new(vec_b[i..i+4].try_into().unwrap());
-
-        dot_sum_simd = a_chunk.mul_add(b_chunk, dot_sum_simd);
-        norm_a_sum_simd = a_chunk.mul_add(a_chunk, norm_a_sum_simd);
-        norm_b_sum_simd = b_chunk.mul_add(b_chunk, norm_b_sum_simd);
-    }
-
-    // Calculate final similarity
-    let dot_product = dot_sum_simd.reduce_add();
-    let norm_a = norm_a_sum_simd.reduce_add().sqrt();
-    let norm_b = norm_b_sum_simd.reduce_add().sqrt();
-
-    dot_product / (norm_a * norm_b)
-}
-```
-
-### 2. Memory Management
-
-**Strategies**:
-
-- **Object Pooling**: Reuse Float32Array buffers
-- **Lazy Loading**: Load AI models on-demand
-- **Cache Management**: LRU eviction for embeddings
-- **Garbage Collection**: Explicit cleanup of large objects
-
-### 3. Concurrent Processing
-
-**Web Workers**:
-
-- **AI Processing**: Separate worker for model inference
-- **Content Indexing**: Background indexing of tab content
-- **Network Capture**: Parallel request processing
-
-## 🔧 Extension Points
-
-### Adding New Tools
-
-1. **Define Schema** in `packages/shared/src/tools.ts`
-2. **Implement Tool** extending `BaseBrowserToolExecutor`
-3. **Register Tool** in tool index
-4. **Add Tests** for functionality
-
-### Custom AI Models
-
-1. **Model Integration** in `SemanticSimilarityEngine`
-2. **Worker Support** for processing
-3. **Configuration** in model presets
-4. **Performance Testing** with benchmarks
-
-### Protocol Extensions
-
-1. **MCP Extensions** for custom capabilities
-2. **Transport Layers** for different communication methods
-3. **Authentication** for secure connections
-4. **Monitoring** for performance metrics
-
-This architecture enables Chrome MCP Server to deliver high-performance browser automation with advanced AI capabilities while maintaining security and extensibility.
+| Concern                               | Source                                               |
+| ------------------------------------- | ---------------------------------------------------- |
+| MCP HTTP/SSE routes and status        | `app/native-server/src/server/`                      |
+| MCP tool registration and permissions | `app/native-server/src/mcp/`                         |
+| Native messaging bridge               | `app/native-server/src/native-host/`                 |
+| Extension tool implementations        | `app/chrome-extension/entrypoints/background/tools/` |
+| Page injection helpers                | `app/chrome-extension/inject-scripts/`               |
+| Shared tool schemas                   | `packages/shared/src/tools.ts`                       |
+| Desktop process integration           | `app/desktop-client/src-tauri/src/`                  |

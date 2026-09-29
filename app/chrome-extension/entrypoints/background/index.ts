@@ -1,10 +1,7 @@
 import { initNativeHostListener } from './native-host';
-import {
-  initSemanticSimilarityListener,
-  initializeSemanticEngineIfCached,
-} from './semantic-similarity';
+import { initSemanticSimilarityListener } from './semantic-similarity-router';
 import { initStorageManagerListener } from './storage-manager';
-import { cleanupModelCache } from '@/utils/semantic-similarity-engine';
+import { cleanupModelCache, hasAnyModelCache } from '@/utils/model-cache-lifecycle';
 import { initElementMarkerListeners } from './element-marker';
 import { initWebEditorListeners } from './web-editor';
 import { initQuickPanelAgentHandler } from './quick-panel/agent-handler';
@@ -61,15 +58,19 @@ export default defineBackground(() => {
   initQuickPanelCommands();
 
   // Conditionally initialize semantic similarity engine if model cache exists
-  initializeSemanticEngineIfCached()
-    .then((initialized) => {
-      if (initialized) {
-        console.log('Background: Semantic similarity engine initialized from cache');
-      } else {
+  hasAnyModelCache()
+    .then(async (initialized) => {
+      if (!initialized) {
         console.log(
           'Background: Semantic similarity engine initialization skipped (no cache found)',
         );
+        return;
       }
+
+      await import('./semantic-similarity').then(({ initializeDefaultSemanticEngine }) =>
+        initializeDefaultSemanticEngine(),
+      );
+      console.log('Background: Semantic similarity engine initialized from cache');
     })
     .catch((error) => {
       console.warn('Background: Failed to conditionally initialize semantic engine:', error);

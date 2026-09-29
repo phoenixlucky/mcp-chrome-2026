@@ -5,12 +5,8 @@
 
 import { TextChunker } from './text-chunker';
 import { VectorDatabase, getGlobalVectorDatabase } from './vector-database';
-import {
-  SemanticSimilarityEngine,
-  SemanticSimilarityEngineProxy,
-  PREDEFINED_MODELS,
-  type ModelPreset,
-} from './semantic-similarity-engine';
+import { SemanticSimilarityEngineProxy } from './semantic-similarity-proxy';
+import { PREDEFINED_MODELS, type ModelPreset } from './semantic-models';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 
 export interface IndexingOptions {
@@ -22,7 +18,7 @@ export interface IndexingOptions {
 export class ContentIndexer {
   private textChunker: TextChunker;
   private vectorDatabase!: VectorDatabase;
-  private semanticEngine!: SemanticSimilarityEngine | SemanticSimilarityEngineProxy;
+  private semanticEngine!: SemanticSimilarityEngineProxy;
   private isInitialized = false;
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;

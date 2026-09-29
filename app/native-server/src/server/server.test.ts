@@ -1,7 +1,15 @@
-import { describe, expect, test, afterAll, beforeAll } from '@jest/globals';
+import { describe, expect, test, afterAll, beforeAll, jest } from '@jest/globals';
 import supertest from 'supertest';
 import Server from './index';
 import { ERROR_MESSAGES, isAllowedCorsOrigin, MCP_API_KEY_ENV } from '../constant';
+import nativeMessagingHostInstance from '../native-messaging-host';
+
+function parseMcpResponse(response: { body?: any; text?: string }): any {
+  if (response.body?.jsonrpc) return response.body;
+  const dataLine = response.text?.split(/\r?\n/).find((line) => line.startsWith('data:'));
+  if (!dataLine) throw new Error('MCP response did not contain a JSON body');
+  return JSON.parse(dataLine.slice('data:'.length).trim());
+}
 
 describe('服务器测试', () => {
   // 启动服务器测试实例
@@ -101,6 +109,102 @@ describe('服务器测试', () => {
           .set('Origin', 'http://127.0.0.1:1420')
           .set('Mcp-Session-Id', sessionId);
       }
+      Server.serviceEnabled = false;
+    }
+  });
+
+  test('MCP initialize → tools/list → tools/call forwards a browser result', async () => {
+    Server.serviceEnabled = true;
+    const connected = jest
+      .spyOn(nativeMessagingHostInstance, 'isExtensionConnected')
+      .mockReturnValue(true);
+    const sendToExtension = jest
+      .spyOn(nativeMessagingHostInstance, 'sendRequestToExtensionAndWait')
+      .mockResolvedValue({
+        status: 'success',
+        data: {
+          content: [
+            { type: 'text', text: JSON.stringify({ tabId: 17, url: 'https://example.com' }) },
+          ],
+          isError: false,
+        },
+      } as any);
+    let sessionId: string | undefined;
+
+    try {
+      const initialized = await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-03-26',
+            capabilities: {},
+            clientInfo: { name: 'integration-test-client', version: '1.0.0' },
+          },
+        })
+        .expect(200);
+      sessionId = initialized.headers['mcp-session-id'];
+      expect(sessionId).toEqual(expect.any(String));
+
+      await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .set('Accept', 'application/json, text/event-stream')
+        .set('Mcp-Session-Id', sessionId!)
+        .send({ jsonrpc: '2.0', method: 'notifications/initialized' })
+        .expect(202);
+
+      const listed = await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .set('Accept', 'application/json, text/event-stream')
+        .set('Mcp-Session-Id', sessionId!)
+        .send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} })
+        .expect(200);
+      expect(parseMcpResponse(listed).result.tools).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'chrome_get_tab_url' })]),
+      );
+
+      const called = await supertest(Server.getInstance().server)
+        .post('/mcp')
+        .set('Origin', 'http://127.0.0.1:1420')
+        .set('Accept', 'application/json, text/event-stream')
+        .set('Mcp-Session-Id', sessionId!)
+        .send({
+          jsonrpc: '2.0',
+          id: 3,
+          method: 'tools/call',
+          params: { name: 'chrome_get_tab_url', arguments: { tabId: 17 } },
+        })
+        .expect(200);
+
+      expect(parseMcpResponse(called).result).toMatchObject({
+        content: [
+          { type: 'text', text: JSON.stringify({ tabId: 17, url: 'https://example.com' }) },
+        ],
+        isError: false,
+      });
+      expect(sendToExtension).toHaveBeenLastCalledWith(
+        { name: 'chrome_get_tab_url', args: { tabId: 17 } },
+        'call_tool',
+        expect.any(Number),
+        expect.any(AbortSignal),
+        undefined,
+        expect.any(String),
+      );
+    } finally {
+      if (sessionId) {
+        await supertest(Server.getInstance().server)
+          .delete('/mcp')
+          .set('Origin', 'http://127.0.0.1:1420')
+          .set('Mcp-Session-Id', sessionId);
+      }
+      connected.mockRestore();
+      sendToExtension.mockRestore();
       Server.serviceEnabled = false;
     }
   });

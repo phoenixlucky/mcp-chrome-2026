@@ -1,307 +1,81 @@
-# Chrome MCP Server 架构设计 🏗️
+# 项目架构
 
-本文档提供 Chrome MCP Server 架构、设计决策和实现细节的详细技术概述。
+Chrome MCP Bridge 通过本地服务和 Manifest V3 扩展，把 MCP 客户端连接到用户现有的 Chrome 配置。扩展负责浏览器访问；本地 Node.js 进程提供 MCP 传输，并通过 Chrome Native Messaging 转发浏览器工具调用。
 
-## 📋 目录
-
-- [概述](#概述)
-- [系统架构](#系统架构)
-- [组件详情](#组件详情)
-- [数据流](#数据流)
-- [AI 集成](#ai-集成)
-- [性能优化](#性能优化)
-- [安全考虑](#安全考虑)
-
-## 🎯 概述
-
-Chrome MCP Server 是一个复杂的浏览器自动化平台，通过模型上下文协议 (MCP) 将 AI 助手与 Chrome 浏览器功能连接起来。架构设计目标：
-
-- **高性能**：SIMD 优化的 AI 操作和高效的原生消息传递
-- **可扩展性**：模块化工具系统，便于添加新功能
-- **可靠性**：强大的错误处理和优雅降级
-- **安全性**：沙盒执行和基于权限的访问控制
-
-## 🏗️ 系统架构
+## 运行组件
 
 ```mermaid
-graph TB
-    subgraph "AI 助手层"
-        A[Claude Desktop]
-        B[自定义 MCP 客户端]
-        C[其他 AI 工具]
-    end
-
-    subgraph "MCP 协议层"
-        D[HTTP/SSE 传输]
-        E[MCP 服务器实例]
-        F[工具注册表]
-    end
-
-    subgraph "原生服务器层"
-        G[Fastify HTTP 服务器]
-        H[原生消息主机]
-        I[会话管理]
-    end
-
-    subgraph "Chrome 扩展层"
-        J[后台脚本]
-        K[内容脚本]
-        L[弹窗界面]
-        M[离屏文档]
-    end
-
-    subgraph "浏览器 APIs 层"
-        N[Chrome APIs]
-        O[Web APIs]
-        P[原生消息]
-    end
-
-    subgraph "AI 处理层"
-        Q[语义引擎]
-        R[向量数据库]
-        S[SIMD 数学引擎]
-        T[Web Workers]
-    end
-
-    A --> D
-    B --> D
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-    H --> P
-    P --> J
-    J --> K
-    J --> L
-    J --> M
-    J --> N
-    J --> O
-    J --> Q
-    Q --> R
-    Q --> S
-    Q --> T
+flowchart LR
+  Client[MCP 客户端] -->|HTTP /mcp、/mcp-new、/sse 或 STDIO| Server[本地服务]
+  Server -->|Native Messaging| Worker[扩展 service worker]
+  Worker -->|Chrome API 和标签页消息| Browser[Chrome 标签页与 API]
+  Worker --> Content[内容脚本]
+  Popup[弹窗和选项页] -->|runtime 消息| Worker
+  Sidepanel[侧边栏和 Builder] -->|runtime 消息| Worker
+  Desktop[Tauri 桌面端] -->|本地 HTTP 和进程管理| Server
 ```
 
-## 🔧 组件详情
+### 本地服务（`app/native-server/`）
 
-### 1. 原生服务器 (`app/native-server/`)
+- `src/server/index.ts` 创建 Fastify 服务，并提供健康状态、诊断和 MCP 路由。
+- `src/mcp/` 实现协议传输、工具注册、权限过滤和请求排队。
+- `src/native-messaging-host.ts` 通过 Chrome Native Messaging 连接扩展。
+- `src/agent/` 包含可选的本地助手、不同引擎、会话服务和 SQLite 持久化。
 
-**目的**：MCP 协议实现和原生消息桥接
+### Chrome 扩展（`app/chrome-extension/`）
 
-**核心组件**：
+- `entrypoints/background/` 是 Manifest V3 service worker，注册 runtime 监听器，并将工具调用路由到浏览器 API、内容脚本或页面辅助脚本。
+- `entrypoints/`、`inject-scripts/` 和 `shared/` 实现页面交互与复用 UI 行为。
+- `entrypoints/popup/`、`options/`、`sidepanel/` 和 `builder/` 提供扩展界面；需要特权浏览器 API 的操作通过 service worker 消息完成。
+- `entrypoints/offscreen/` 提供需要文档环境的任务，包括 GIF 编码和本地语义推理。
 
-- **Fastify HTTP 服务器**：处理基于 HTTP/SSE 的 MCP 协议
-- **原生消息主机**：与 Chrome 扩展通信
-- **会话管理**：管理多个 MCP 客户端会话
-- **工具注册表**：将工具调用路由到 Chrome 扩展
+### 共享契约（`packages/shared/`）
 
-**技术栈**：
+`src/tools.ts` 与 `src/tools-en.ts` 定义浏览器工具的 schema 和描述。本地服务与扩展共用这些契约，确保 MCP 工具名称和输入结构一致。
 
-- TypeScript + Fastify
-- MCP SDK (@modelcontextprotocol/sdk)
-- 原生消息协议
+### 桌面端（`app/desktop-client/`）
 
-### 2. Chrome 扩展 (`app/chrome-extension/`)
+Tauri + Vue 客户端负责管理本地服务生命周期，并展示服务健康状态和诊断信息。它不替代 Chrome 扩展；Chrome 仍需安装并连接扩展。
 
-**目的**：浏览器自动化和 AI 驱动的内容分析
+## 浏览器工具调用流程
 
-**核心组件**：
-
-- **后台脚本**：主要协调器和工具执行器
-- **内容脚本**：页面交互和内容提取
-- **弹窗界面**：用户配置和状态显示
-- **离屏文档**：在隔离环境中进行 AI 模型处理
-
-**技术栈**：
-
-- WXT 框架 + Vue 3
-- Chrome 扩展 APIs
-- WebAssembly + SIMD
-- Transformers.js
-
-### 3. 共享包 (`packages/`)
-
-#### 3.1 共享类型 (`packages/shared/`)
-
-- 工具模式和类型定义
-- 通用接口和工具
-- MCP 协议类型
-
-#### 3.2 WASM SIMD (`packages/wasm-simd/`)
-
-- 基于 Rust 的 SIMD 优化数学函数
-- 使用 Emscripten 编译 WebAssembly
-- 向量运算性能提升 4-8 倍
-
-## 🔄 数据流
-
-### 工具执行流程
-
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐    ┌──────────────┐
-│ AI 助手     │    │ 原生服务器   │    │ Chrome 扩展     │    │ 浏览器 APIs  │
-└─────┬───────┘    └──────┬───────┘    └─────────┬───────┘    └──────┬───────┘
-      │                   │                      │                   │
-      │ 1. 工具调用       │                      │                   │
-      ├──────────────────►│                      │                   │
-      │                   │ 2. 原生消息          │                   │
-      │                   ├─────────────────────►│                   │
-      │                   │                      │ 3. 执行工具       │
-      │                   │                      ├──────────────────►│
-      │                   │                      │ 4. API 响应       │
-      │                   │                      │◄──────────────────┤
-      │                   │ 5. 工具结果          │                   │
-      │                   │◄─────────────────────┤                   │
-      │ 6. MCP 响应       │                      │                   │
-      │◄──────────────────┤                      │                   │
+```mermaid
+sequenceDiagram
+  participant AI as MCP 客户端
+  participant NS as 本地服务
+  participant NH as Native Host 桥接
+  participant SW as 扩展 service worker
+  participant Tab as Chrome 标签页 / 内容脚本
+  AI->>NS: tools/call(name, arguments)
+  NS->>NH: Native 请求
+  NH->>SW: runtime 消息
+  SW->>Tab: Chrome API 或标签页消息
+  Tab-->>SW: 执行结果
+  SW-->>NH: 工具结果
+  NH-->>NS: Native 响应
+  NS-->>AI: MCP 结果
 ```
 
-### AI 处理流程
+`/mcp` 为客户端维护会话；`/mcp-new` 无状态；`/sse` 保留旧传输。STDIO 客户端使用桥接可执行文件，该程序运行相同的本地服务和 MCP 协议实现。
 
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐    ┌──────────────┐
-│ 内容提取    │    │ 文本分块器   │    │ 语义引擎        │    │ 向量数据库   │
-└─────┬───────┘    └──────┬───────┘    └─────────┬───────┘    └──────┬───────┘
-      │                   │                      │                   │
-      │ 1. 原始内容       │                      │                   │
-      ├──────────────────►│                      │                   │
-      │                   │ 2. 文本块            │                   │
-      │                   ├─────────────────────►│                   │
-      │                   │                      │ 3. 嵌入向量       │
-      │                   │                      ├──────────────────►│
-      │                   │                      │                   │
-      │                   │ 4. 搜索查询          │                   │
-      │                   ├─────────────────────►│                   │
-      │                   │                      │ 5. 查询向量       │
-      │                   │                      ├──────────────────►│
-      │                   │                      │ 6. 相似文档       │
-      │                   │                      │◄──────────────────┤
-      │                   │ 7. 搜索结果          │                   │
-      │                   │◄─────────────────────┤                   │
-```
+## 可选的本地语义搜索
 
-## 🧠 AI 集成
+语义搜索是可选的扩展功能。模型文件保存在浏览器 Cache API，向量和索引数据保存在 IndexedDB。service worker 启动时会检查模型缓存，只有缓存已有模型或收到语义操作消息时才初始化推理流程。推理在 offscreen 文档创建的 worker 中运行；模型文件按需下载。扩展包包含该推理 worker 所需的运行时资源。
 
-### 语义相似度引擎
+## 构建与验证
 
-**架构**：
+- `pnpm build` 构建共享包、本地服务、扩展和桌面前端。
+- `pnpm run build:release` 构建 Rust/WASM SIMD 包，并在工作区构建前复制生成的 worker 文件。
+- `.github/workflows/ci.yml` 执行类型检查、lint、单元/集成测试、构建和本地服务请求准入检查。真实 Chrome smoke test 需要在已准备好的 Windows runner 上手动触发。
 
-- **模型支持**：BGE-small-en-v1.5、E5-small-v2、Universal Sentence Encoder
-- **执行环境**：Web Workers 用于非阻塞处理
-- **优化**：向量运算的 SIMD 加速
-- **缓存**：嵌入和分词的 LRU 缓存
+## 源码索引
 
-**性能优化**：
-
-```typescript
-// SIMD 加速的余弦相似度
-const similarity = await simdMath.cosineSimilarity(vecA, vecB);
-
-// 批处理提高效率
-const similarities = await simdMath.batchSimilarity(vectors, query, dimension);
-
-// 内存高效的矩阵运算
-const matrix = await simdMath.similarityMatrix(vectorsA, vectorsB, dimension);
-```
-
-### 向量数据库 (hnswlib-wasm)
-
-**特性**：
-
-- **算法**：分层导航小世界 (HNSW)
-- **实现**：WebAssembly 实现接近原生性能
-- **持久化**：IndexedDB 存储，自动清理
-- **可扩展性**：高效处理 10,000+ 文档
-
-**配置**：
-
-```typescript
-const config: VectorDatabaseConfig = {
-  dimension: 384, // 模型嵌入维度
-  maxElements: 10000, // 最大文档数
-  efConstruction: 200, // 构建时精度
-  M: 16, // 连接参数
-  efSearch: 100, // 搜索时精度
-  enableAutoCleanup: true, // 自动清理旧数据
-  maxRetentionDays: 30, // 数据保留期
-};
-```
-
-## ⚡ 性能优化
-
-### 1. SIMD 加速
-
-**Rust 实现**：
-
-```rust
-use wide::f32x4;
-
-fn cosine_similarity_simd(&self, vec_a: &[f32], vec_b: &[f32]) -> f32 {
-    let len = vec_a.len();
-    let simd_lanes = 4;
-    let simd_len = len - (len % simd_lanes);
-
-    let mut dot_sum_simd = f32x4::ZERO;
-    let mut norm_a_sum_simd = f32x4::ZERO;
-    let mut norm_b_sum_simd = f32x4::ZERO;
-
-    for i in (0..simd_len).step_by(simd_lanes) {
-        let a_chunk = f32x4::new(vec_a[i..i+4].try_into().unwrap());
-        let b_chunk = f32x4::new(vec_b[i..i+4].try_into().unwrap());
-
-        dot_sum_simd = a_chunk.mul_add(b_chunk, dot_sum_simd);
-        norm_a_sum_simd = a_chunk.mul_add(a_chunk, norm_a_sum_simd);
-        norm_b_sum_simd = b_chunk.mul_add(b_chunk, norm_b_sum_simd);
-    }
-
-    // 计算最终相似度
-    let dot_product = dot_sum_simd.reduce_add();
-    let norm_a = norm_a_sum_simd.reduce_add().sqrt();
-    let norm_b = norm_b_sum_simd.reduce_add().sqrt();
-
-    dot_product / (norm_a * norm_b)
-}
-```
-
-### 2. 内存管理
-
-**策略**：
-
-- **对象池**：重用 Float32Array 缓冲区
-- **延迟加载**：按需加载 AI 模型
-- **缓存管理**：嵌入的 LRU 淘汰
-- **垃圾回收**：显式清理大对象
-
-### 3. 并发处理
-
-**Web Workers**：
-
-- **AI 处理**：模型推理的独立 worker
-- **内容索引**：后台标签页内容索引
-- **网络捕获**：并行请求处理
-
-## 🔧 扩展点
-
-### 添加新工具
-
-1. **定义模式** 在 `packages/shared/src/tools.ts`
-2. **实现工具** 继承 `BaseBrowserToolExecutor`
-3. **注册工具** 在工具索引中
-4. **添加测试** 用于功能测试
-
-### 自定义 AI 模型
-
-1. **模型集成** 在 `SemanticSimilarityEngine`
-2. **Worker 支持** 用于处理
-3. **配置** 在模型预设中
-4. **性能测试** 使用基准测试
-
-### 协议扩展
-
-1. **MCP 扩展** 用于自定义功能
-2. **传输层** 用于不同通信方法
-3. **身份验证** 用于安全连接
-4. **监控** 用于性能指标
-
-此架构使 Chrome MCP Server 能够在保持安全性和可扩展性的同时，提供高性能的浏览器自动化和先进的 AI 功能。
+| 职责                    | 目录或文件                                           |
+| ----------------------- | ---------------------------------------------------- |
+| MCP HTTP/SSE 路由和状态 | `app/native-server/src/server/`                      |
+| MCP 工具注册和权限      | `app/native-server/src/mcp/`                         |
+| Native Messaging 桥接   | `app/native-server/src/native-messaging-host.ts`     |
+| 扩展工具实现            | `app/chrome-extension/entrypoints/background/tools/` |
+| 页面注入辅助脚本        | `app/chrome-extension/inject-scripts/`               |
+| 共享工具 schema         | `packages/shared/src/tools.ts`                       |
+| 桌面端进程集成          | `app/desktop-client/src-tauri/src/`                  |

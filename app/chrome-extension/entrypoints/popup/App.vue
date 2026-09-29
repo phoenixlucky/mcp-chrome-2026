@@ -1098,14 +1098,9 @@
 
 <script lang="ts" setup>
 import { computed, onBeforeUpdate, onMounted, onUnmounted, onUpdated, reactive, ref } from 'vue';
-import {
-  PREDEFINED_MODELS,
-  type ModelPreset,
-  getModelInfo,
-  getCacheStats,
-  clearModelCache,
-  cleanupModelCache,
-} from '@/utils/semantic-similarity-engine';
+import { getModelInfo, getCacheStats, clearModelCache } from '@/utils/semantic-similarity-engine';
+import { cleanupModelCache } from '@/utils/model-cache-lifecycle';
+import { PREDEFINED_MODELS, type ModelPreset } from '@/utils/semantic-models';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { WEB_EDITOR_V3_ACTIONS } from '@/common/web-editor-types';
 import { LINKS, PROXY_COUNTRIES, STORAGE_KEYS } from '@/common/constants';

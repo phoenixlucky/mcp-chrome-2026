@@ -156,7 +156,13 @@ export default defineConfig({
             dest: '.',
           },
           {
-            src: ['workers/*'],
+            src: [
+              'workers/similarity.worker.js',
+              'workers/ort-wasm-simd-threaded.mjs',
+              'workers/ort-wasm-simd-threaded.wasm',
+              'workers/simd_math.js',
+              'workers/simd_math_bg.wasm',
+            ],
             dest: '.',
           },
           {

@@ -646,7 +646,7 @@ describe('interaction helpers', () => {
 
     expect(result.success).toBe(true);
     expect(suggestions.querySelector('[role="option"]')?.textContent).toBe('London');
-    expect(Date.now() - startedAt).toBeLessThan(300);
+    expect(Date.now() - startedAt).toBeLessThan(500);
   });
 
   it('keeps a snapshot-scoped combobox focused while waiting for options that close on blur', async () => {

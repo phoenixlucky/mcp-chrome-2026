@@ -28,10 +28,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-      - run: cargo install wasm-pack --locked
+      - uses: actions/cache@v4
+        id: wasm-pack-cache
+        with:
+          path: ~/.cargo/bin/wasm-pack
+          key: ${{ runner.os }}-wasm-pack-0.15.0
+      - run: cargo install wasm-pack --locked --version 0.15.0
+        if: steps.wasm-pack-cache.outputs.cache-hit != 'true'
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:release
       - run: pnpm --filter @ethanwilkins/chrome-mcp-server-2026 zip
+      - run: pnpm check:extension-package
       - uses: actions/upload-artifact@v4
         with:
           name: chrome-mcp-server

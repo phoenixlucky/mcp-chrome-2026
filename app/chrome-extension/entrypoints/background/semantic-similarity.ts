@@ -1,8 +1,9 @@
-import type { ModelPreset } from '@/utils/semantic-similarity-engine';
+import type { ModelPreset } from '@/utils/semantic-models';
 import { OffscreenManager } from '@/utils/offscreen-manager';
 import { BACKGROUND_MESSAGE_TYPES, OFFSCREEN_MESSAGE_TYPES } from '@/common/message-types';
 import { STORAGE_KEYS, ERROR_MESSAGES } from '@/common/constants';
-import { hasAnyModelCache, PREDEFINED_MODELS } from '@/utils/semantic-similarity-engine';
+import { hasAnyModelCache } from '@/utils/model-cache-lifecycle';
+import { PREDEFINED_MODELS } from '@/utils/semantic-models';
 
 /**
  * Model configuration state management interface
@@ -337,36 +338,33 @@ function analyzeErrorType(errorMessage: string): 'network' | 'file' | 'unknown' 
   return 'unknown';
 }
 
-/**
- * Initialize semantic similarity module message listeners
- */
-export const initSemanticSimilarityListener = () => {
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message.type === BACKGROUND_MESSAGE_TYPES.SWITCH_SEMANTIC_MODEL) {
-      handleModelSwitch(
-        message.modelPreset,
+/** Execute a semantic request after the lightweight service-worker router loads this module. */
+export function handleSemanticBackgroundMessage(message: {
+  type: string;
+  modelPreset?: ModelPreset;
+  modelVersion?: 'full' | 'quantized' | 'compressed';
+  modelDimension?: number;
+  previousDimension?: number;
+  modelState?: any;
+}): Promise<any> {
+  switch (message.type) {
+    case BACKGROUND_MESSAGE_TYPES.SWITCH_SEMANTIC_MODEL:
+      return handleModelSwitch(
+        message.modelPreset!,
         message.modelVersion,
         message.modelDimension,
         message.previousDimension,
-      )
-        .then((result: { success: boolean; error?: string }) => sendResponse(result))
-        .catch((error: any) => sendResponse({ success: false, error: error.message }));
-      return true;
-    } else if (message.type === BACKGROUND_MESSAGE_TYPES.GET_MODEL_STATUS) {
-      handleGetModelStatus()
-        .then((result: { success: boolean; status?: any; error?: string }) => sendResponse(result))
-        .catch((error: any) => sendResponse({ success: false, error: error.message }));
-      return true;
-    } else if (message.type === BACKGROUND_MESSAGE_TYPES.UPDATE_MODEL_STATUS) {
-      handleUpdateModelStatus(message.modelState)
-        .then((result: { success: boolean; error?: string }) => sendResponse(result))
-        .catch((error: any) => sendResponse({ success: false, error: error.message }));
-      return true;
-    } else if (message.type === BACKGROUND_MESSAGE_TYPES.INITIALIZE_SEMANTIC_ENGINE) {
-      initializeDefaultSemanticEngine()
-        .then(() => sendResponse({ success: true }))
-        .catch((error: any) => sendResponse({ success: false, error: error.message }));
-      return true;
-    }
-  });
-};
+      );
+    case BACKGROUND_MESSAGE_TYPES.GET_MODEL_STATUS:
+      return handleGetModelStatus();
+    case BACKGROUND_MESSAGE_TYPES.UPDATE_MODEL_STATUS:
+      return handleUpdateModelStatus(message.modelState);
+    case BACKGROUND_MESSAGE_TYPES.INITIALIZE_SEMANTIC_ENGINE:
+      return initializeDefaultSemanticEngine().then(() => ({ success: true }));
+    default:
+      return Promise.resolve({
+        success: false,
+        error: `Unknown semantic message: ${message.type}`,
+      });
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridge-monorepo-2026",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "private": true,
   "packageManager": "pnpm@12.4.1+sha512.2e81e399d73fe8390dab25e06aa788ab7a5908248d2f5a370f82b481147a6a7a367bf8048f9a6fdb6460f21a66f0542dedb8b94ca2c8723596741920b1656d4c",
   "engines": {
@@ -30,9 +30,11 @@
     "sync:version": "node scripts/sync-versions.mjs",
     "sync:tool-docs": "node scripts/sync-tool-docs.mjs",
     "test:chrome-smoke": "node scripts/chrome-smoke.mjs",
+    "test:clean-script": "node --test scripts/clean.test.mjs",
     "test:coverage": "pnpm --filter @ethanwilkins/mcp-chrome-bridge-2026 test:coverage",
     "test:phase8": "pnpm run check:phase8",
     "check:phase8": "pnpm run build:native && node scripts/phase8-gates.mjs",
+    "check:phase8:built": "node scripts/phase8-gates.mjs",
     "lint:fix": "pnpm -r lint:fix",
     "format": "pnpm -r format",
     "clean:dist": "node scripts/clean.mjs --dist",
@@ -43,7 +45,9 @@
     "typecheck:native": "pnpm exec tsc --noEmit -p app/native-server/tsconfig.json",
     "typecheck:extension": "pnpm --filter @ethanwilkins/chrome-mcp-server-2026 run typecheck",
     "typecheck:desktop": "pnpm --filter @ethanwilkins/chrome-mcp-desktop-2026 run typecheck",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:extension-package": "node scripts/check-extension-package.mjs",
+    "test:extension-package": "node --test scripts/check-extension-package.test.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

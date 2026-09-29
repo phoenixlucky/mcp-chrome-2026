@@ -194,7 +194,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { ModelPreset } from '@/utils/semantic-similarity-engine';
+import type { ModelPreset } from '@/utils/semantic-models';
 import { getMessage } from '@/utils/i18n';
 import ProgressIndicator from './ProgressIndicator.vue';
 import ModelCacheManagement from './ModelCacheManagement.vue';

@@ -13,7 +13,8 @@ if (!['--dist', '--modules'].includes(mode)) {
     ...(await workspaceDirectories(path.join(root, 'app'))),
     ...(await workspaceDirectories(path.join(root, 'packages'))),
   ];
-  const targets = mode === '--dist' ? ['dist', '.turbo'] : ['node_modules'];
+  const targets =
+    mode === '--dist' ? ['dist', '.output', '.turbo', '.windows-stage'] : ['node_modules'];
 
   for (const directory of workspaceDirs) {
     for (const target of targets) {

@@ -26,7 +26,16 @@ let workerStats = {
 
 // 配置 ONNX Runtime 环境 (仅一次)
 function configureOrtEnv(numThreads = 1, executionProviders = ['wasm']) {
+  const wasmModule = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]);
+  if (typeof WebAssembly !== 'object' || !WebAssembly.validate(wasmModule)) {
+    throw new Error('WebAssembly is required for local semantic search in this extension.');
+  }
+
+  if (executionProviders.some((provider) => provider !== 'wasm')) {
+    throw new Error('Only the wasm execution provider is supported by this extension package.');
+  }
   if (ortEnvConfigured) return;
+
   try {
     ort.env.wasm.numThreads = numThreads;
     ort.env.wasm.simd = true; // 尽可能启用SIMD
@@ -35,7 +44,7 @@ function configureOrtEnv(numThreads = 1, executionProviders = ['wasm']) {
     ortEnvConfigured = true;
 
     sessionOptions = {
-      executionProviders: executionProviders,
+      executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
       enableCpuMemArena: true,
       enableMemPattern: true,

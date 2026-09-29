@@ -5,7 +5,7 @@
 
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
-import { ContentIndexer } from '@/utils/content-indexer';
+import type { ContentIndexer } from '@/utils/content-indexer';
 import { LIMITS, ERROR_MESSAGES } from '@/common/constants';
 import type { SearchResult } from '@/utils/vector-database';
 
@@ -24,21 +24,24 @@ interface VectorSearchResult {
  */
 class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
   name = 'search_tabs_content';
-  private contentIndexer: ContentIndexer;
+  private contentIndexer: ContentIndexer | null = null;
   private isInitialized = false;
 
-  constructor() {
-    super();
-    this.contentIndexer = new ContentIndexer({
-      autoIndex: false,
-      maxChunksPerPage: LIMITS.MAX_SEARCH_RESULTS,
-      skipDuplicates: true,
-    });
+  private async getContentIndexer(): Promise<ContentIndexer> {
+    if (!this.contentIndexer) {
+      const { ContentIndexer } = await import('@/utils/content-indexer');
+      this.contentIndexer = new ContentIndexer({
+        autoIndex: false,
+        maxChunksPerPage: LIMITS.MAX_SEARCH_RESULTS,
+        skipDuplicates: true,
+      });
+    }
+    return this.contentIndexer;
   }
 
-  private async initializeIndexer(): Promise<void> {
+  private async initializeIndexer(contentIndexer: ContentIndexer): Promise<void> {
     try {
-      await this.contentIndexer.initialize();
+      await contentIndexer.initialize();
       this.isInitialized = true;
       console.log('VectorSearchTabsContentTool: Content indexer initialized successfully');
     } catch (error) {
@@ -66,19 +69,21 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
 
       console.log(`VectorSearchTabsContentTool: Starting vector search with query: "${query}"`);
 
+      const contentIndexer = await this.getContentIndexer();
+
       // Check semantic engine status
-      if (!this.contentIndexer.isSemanticEngineReady()) {
-        if (this.contentIndexer.isSemanticEngineInitializing()) {
+      if (!contentIndexer.isSemanticEngineReady()) {
+        if (contentIndexer.isSemanticEngineInitializing()) {
           return createErrorResponse(
             'Vector search engine is still initializing (model downloading). Please wait a moment and try again.',
           );
         } else {
           // Try to initialize
           console.log('VectorSearchTabsContentTool: Initializing content indexer...');
-          await this.initializeIndexer();
+          await this.initializeIndexer(contentIndexer);
 
           // Check semantic engine status again
-          if (!this.contentIndexer.isSemanticEngineReady()) {
+          if (!contentIndexer.isSemanticEngineReady()) {
             return createErrorResponse('Failed to initialize vector search engine');
           }
         }
@@ -97,7 +102,7 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
       await this.ensureTabsIndexed(indexableTabs);
 
       // Get extra chunks before deduplicating results by tab.
-      const searchResults = await this.contentIndexer.searchContent(query, limit * 5);
+      const searchResults = await contentIndexer.searchContent(query, limit * 5);
 
       // Convert search results format
       const vectorSearchResults = this.convertSearchResults(searchResults);
@@ -111,7 +116,7 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
         .slice(0, limit);
 
       // Get index statistics
-      const stats = this.contentIndexer.getStats();
+      const stats = contentIndexer.getStats();
 
       const result = {
         success: true,
@@ -161,11 +166,12 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
    * Ensure all tabs are indexed
    */
   private async ensureTabsIndexed(tabs: chrome.tabs.Tab[]): Promise<void> {
+    const contentIndexer = await this.getContentIndexer();
     const indexPromises = tabs
       .filter((tab) => tab.id)
       .map(async (tab) => {
         try {
-          await this.contentIndexer.indexTabContent(tab.id!);
+          await contentIndexer.indexTabContent(tab.id!);
         } catch (error) {
           console.warn(`VectorSearchTabsContentTool: Failed to index tab ${tab.id}:`, error);
         }
@@ -255,20 +261,21 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
         semanticEngineInitializing: false,
       };
     }
-    return this.contentIndexer.getStats();
+    return this.contentIndexer?.getStats();
   }
 
   /**
    * Manually rebuild index
    */
   public async rebuildIndex(): Promise<void> {
+    const contentIndexer = await this.getContentIndexer();
     if (!this.isInitialized) {
-      await this.initializeIndexer();
+      await this.initializeIndexer(contentIndexer);
     }
 
     try {
       // Clear existing indexes
-      await this.contentIndexer.clearAllIndexes();
+      await contentIndexer.clearAllIndexes();
 
       // Get all tabs and reindex
       const windows = await chrome.windows.getAll({ populate: true });
@@ -303,21 +310,19 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
    * Manually index specified tab
    */
   public async indexTab(tabId: number): Promise<void> {
+    const contentIndexer = await this.getContentIndexer();
     if (!this.isInitialized) {
-      await this.initializeIndexer();
+      await this.initializeIndexer(contentIndexer);
     }
 
-    await this.contentIndexer.indexTabContent(tabId);
+    await contentIndexer.indexTabContent(tabId);
   }
 
   /**
    * Remove index for specified tab
    */
   public async removeTabIndex(tabId: number): Promise<void> {
-    if (!this.isInitialized) {
-      return;
-    }
-
+    if (!this.isInitialized || !this.contentIndexer) return;
     await this.contentIndexer.removeTabIndex(tabId);
   }
 }
