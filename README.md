@@ -27,7 +27,7 @@
 
 ---
 
-## 📢 v2.8.1 更新内容
+## 📢 v2.8.2 更新内容
 
 > **页面采集与审查能力增强** — 更适合处理多页面内容、评论线程和长列表数据。
 >
@@ -36,7 +36,7 @@
 > - 📊 **长列表采集增强** — 虚拟列表、分页提取和多标签页采集支持独立状态、进度快照与诊断信息。
 > - 🧭 **审查工具增强** — 页面审查摘要和分段展开流程支持更细的停止条件与可控点击次数。
 > - 🖥️ **桌面助手与运行时改进** — 改进附件处理、运行时注册和桌面端交互稳定性。
-> - 🔧 所有发布包版本统一为 v2.8.1
+> - 🔧 所有发布包版本统一为 v2.8.2
 
 > 查看 [完整更新日志](docs/CHANGELOG.md) 了解所有版本变更。
 
@@ -87,13 +87,13 @@
 
 ## 🖥️ Windows 桌面客户端
 
-`chrome-mcp-desktop-2.8.1-win-x64.exe` 是随项目发布的 Windows 便携版桌面管理器（Tauri 2 + Vue）。它内置桥接运行时，双击即可启动或复用本机的 Chrome MCP 服务，不需要单独安装 Node.js；Chrome 扩展仍需按上面的步骤先安装并连接。
+`chrome-mcp-desktop-2.8.2-win-x64.exe` 是随项目发布的 Windows 便携版桌面管理器（Tauri 2 + Vue）。它内置桥接运行时，双击即可启动或复用本机的 Chrome MCP 服务，不需要单独安装 Node.js；Chrome 扩展仍需按上面的步骤先安装并连接。
 
 ![Chrome MCP Bridge Windows 桌面客户端](screenshots/desktop-client.webp)
 
 ### 下载与使用
 
-1. 从 [v2.8.1 Release][release-v2.8.1] 下载 [`chrome-mcp-desktop-2.8.1-win-x64.exe`][desktop-v2.8.1]，将文件放到可写目录后直接双击运行。
+1. 从 [v2.8.2 Release][release-v2.8.2] 下载 [`chrome-mcp-desktop-2.8.2-win-x64.exe`][desktop-v2.8.2]，将文件放到可写目录后直接双击运行。
 2. 客户端会自动启动或复用 `http://127.0.0.1:12306` 上的本机桥接服务；如果状态显示“等待连接”，请确认 Chrome 扩展已加载并点击扩展中的连接按钮。
 3. 在控制台中可查看服务状态、Chrome 扩展连接、Native Host 连接、MCP 会话、可用工具、运行中的任务、服务入口和错误诊断；点击“刷新状态”或“健康检查”可重新探测。
 4. 关闭窗口会将客户端最小化到系统托盘。托盘菜单可以重新显示客户端、立即健康检查，或选择“退出客户端（停止服务）”彻底退出并停止由客户端拥有的服务。
@@ -105,11 +105,11 @@
 | Streamable HTTP（兼容版） | `http://127.0.0.1:12306/mcp`                             |
 | Streamable HTTP（无会话） | `http://127.0.0.1:12306/mcp-new`                         |
 | SSE（旧版）               | `http://127.0.0.1:12306/sse`                             |
-| STDIO                     | 使用独立的 `chrome-mcp-bridge-2.8.1-win-x64.exe --stdio` |
+| STDIO                     | 使用独立的 `chrome-mcp-bridge-2.8.2-win-x64.exe --stdio` |
 
-> 注意：`chrome-mcp-desktop-2.8.1-win-x64.exe` 是图形化管理客户端，不要把它直接作为 STDIO MCP `command`。需要 STDIO 时，请使用桥接运行时 EXE 并传入 `--stdio`；需要管理服务时再打开桌面客户端。
+> 注意：`chrome-mcp-desktop-2.8.2-win-x64.exe` 是图形化管理客户端，不要把它直接作为 STDIO MCP `command`。需要 STDIO 时，请使用桥接运行时 EXE 并传入 `--stdio`；需要管理服务时再打开桌面客户端。
 
-[desktop-v2.8.1]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.1/chrome-mcp-desktop-2.8.1-win-x64.exe
+[desktop-v2.8.2]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.2/chrome-mcp-desktop-2.8.2-win-x64.exe
 
 ## ✨ 核心特性
 
@@ -139,7 +139,7 @@
 
 ### 1️⃣ 安装 Chrome 扩展
 
-1. 从 [v2.8.1 Release][release-v2.8.1] 下载 [Chrome 插件包][extension-v2.8.1]。
+1. 从 [v2.8.2 Release][release-v2.8.2] 下载 [Chrome 插件包][extension-v2.8.2]。
 2. 解压下载的 `.zip` 文件。
 3. 在 Chrome 地址栏打开 `chrome://extensions/`，开启右上角的 **开发者模式**。
 4. 点击 **加载已解压的扩展程序**，选择刚才解压出来的文件夹。
@@ -147,14 +147,14 @@
 
 看到扩展显示已连接后，保持 Chrome 开着，继续下一步。
 
-[release-v2.8.1]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.8.1
-[extension-v2.8.1]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.1/chrome-mcp-server-2.8.1-chrome.zip
+[release-v2.8.2]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.8.2
+[extension-v2.8.2]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.2/chrome-mcp-server-2.8.2-chrome.zip
 
 ### 2️⃣ 启动本地服务（二选一）
 
 #### Windows：使用桌面客户端（推荐）
 
-1. 下载 [`chrome-mcp-desktop-2.8.1-win-x64.exe`][desktop-v2.8.1]。
+1. 下载 [`chrome-mcp-desktop-2.8.2-win-x64.exe`][desktop-v2.8.2]。
 2. 双击 EXE 文件，客户端会自动启动或复用本机服务。
 3. 打开客户端后，看到“服务状态：运行中”和“Chrome 扩展：已连接”即可。
 
@@ -200,7 +200,7 @@ npm 安装完成后会自动注册 Chrome 需要的 Native Host。服务启动�
 {
   "mcpServers": {
     "chrome-mcp-bridge": {
-      "command": "D:\\path\\chrome-mcp-bridge-2.8.1-win-x64.exe",
+      "command": "D:\\path\\chrome-mcp-bridge-2.8.2-win-x64.exe",
       "args": ["--stdio"]
     }
   }
