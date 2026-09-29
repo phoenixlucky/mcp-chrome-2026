@@ -7,10 +7,6 @@ const os = require('node:os');
 const path = require('node:path');
 const { createRequire } = require('node:module');
 const childProcess = require('node:child_process');
-const { createHash } = require('node:crypto');
-const { getAsset } = require('node:sea');
-
-let bundle;
 const stdioLaunch = process.argv.some((argument) => argument === '--stdio' || argument === '--mcp-stdio');
 const nativeMessagingLaunch = process.argv.some(
   (argument) => argument.startsWith('chrome-extension://') || argument === '--parent-window=0',
@@ -21,15 +17,10 @@ const nativeMessagingLaunch = process.argv.some(
 const standaloneLaunch = !stdioLaunch && !nativeMessagingLaunch && process.argv.length <= 2;
 const defaultConfig = {
   version: 'dev',
-  payloadRevision: '2026-09-02-1',
   extensionId: 'djclnaepokchbblcnepfempfdhejjdml',
   hostName: 'com.chromemcp.nativehost',
   port: 12306,
 };
-
-function sleep(milliseconds) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
-}
 
 function dataRoot() {
   return process.env.LOCALAPPDATA || process.env.TEMP || os.tmpdir();
@@ -37,15 +28,6 @@ function dataRoot() {
 
 function logPath() {
   return path.join(dataRoot(), 'mcp-chrome-bridge', 'logs', 'portable-launcher.log');
-}
-
-function canRun(command, args) {
-  try {
-    childProcess.execFileSync(command, args, { stdio: 'ignore', windowsHide: true });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function showWindowsMessage(title, message, icon = 'Error') {
@@ -86,9 +68,6 @@ function runEnvironmentChecks() {
     failures.push(`本地应用数据目录不可写：${localAppData}（${error.message}）`);
   }
 
-  const hasTar = canRun('tar.exe', ['--version']);
-  const hasPowerShell = canRun('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'exit 0']);
-  if (!hasTar && !hasPowerShell) failures.push('系统中没有可用的 tar.exe 或 PowerShell，无法解压内嵌运行时。');
   if (!process.env.APPDATA) warnings.push('未找到 APPDATA，Chrome Native Messaging 注册可能需要手动配置。');
 
   return { failures, warnings };
@@ -150,135 +129,16 @@ function readConfig(root) {
   return { ...defaultConfig, ...JSON.parse(fs.readFileSync(configPath, 'utf8')) };
 }
 
-function isProcessAlive(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error && error.code === 'EPERM';
-  }
-}
-
-function getLockInfo(lockPath) {
-  try {
-    const stat = fs.statSync(lockPath);
-    const content = fs.readFileSync(lockPath, 'utf8').trim().split(/\s+/);
-    const pid = Number.parseInt(content[0], 10);
-    return { pid, ageMs: Math.max(0, Date.now() - stat.mtimeMs) };
-  } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    return { pid: 0, ageMs: Number.POSITIVE_INFINITY };
-  }
-}
-
-function recoverStaleExtractionLock(lockPath) {
-  const info = getLockInfo(lockPath);
-  if (!info) return true;
-
-  const stale = info.pid > 0 ? !isProcessAlive(info.pid) : info.ageMs > 60_000;
-  if (!stale) return false;
-
-  try {
-    fs.rmSync(lockPath, { force: true });
-    writeLog(`已清理残留运行时解压锁：${lockPath}（pid=${info.pid || 'unknown'}）`);
-    return true;
-  } catch (error) {
-    if (error.code === 'ENOENT') return true;
-    return false;
-  }
-}
-
-function waitForExtractionLock(lockPath, markerPath) {
-  for (let attempt = 0; attempt < 600; attempt += 1) {
-    try {
-      const fd = fs.openSync(lockPath, 'wx');
-      fs.writeFileSync(fd, `${process.pid}\n${Date.now()}`);
-      return fd;
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw error;
-      if (fs.existsSync(markerPath)) return null;
-      recoverStaleExtractionLock(lockPath);
-      sleep(100);
-    }
-  }
-  const info = getLockInfo(lockPath);
-  const owner = info?.pid ? `持锁进程 PID=${info.pid}（${isProcessAlive(info.pid) ? '仍在运行' : '已退出'}）` : '无法读取持锁进程信息';
-  throw new Error(`等待运行时解压锁超时：${lockPath}；${owner}。请关闭残留的 Chrome MCP Bridge 进程后重试。`);
-}
-
 function extractPayload() {
-  const localAppData = dataRoot();
-  if (!bundle) throw new Error('内嵌运行时资源无法读取，EXE 文件可能已损坏。');
-
-  // A version-only cache key can keep an older payload forever when an EXE is
-  // rebuilt without changing the public package version. Include the embedded
-  // bundle hash so every changed binary gets a fresh extraction directory.
-  const bundleHash = createHash('sha256').update(bundle).digest('hex').slice(0, 12);
-
-  const root = path.join(
-    localAppData,
-    'mcp-chrome-bridge',
-    'portable',
-    `${defaultConfig.version}-${defaultConfig.payloadRevision}-${bundleHash}`,
-  );
-  const markerPath = path.join(root, '.complete');
-  const lockPath = `${root}.lock`;
-  if (fs.existsSync(markerPath)) return root;
-
-  fs.mkdirSync(path.dirname(root), { recursive: true });
-  const lockFd = waitForExtractionLock(lockPath, markerPath);
-  if (lockFd === null) return root;
-
-  const temporaryRoot = `${root}.tmp-${process.pid}`;
-  const temporaryZip = path.join(path.dirname(root), `bundle-${process.pid}.zip`);
-  try {
-    if (fs.existsSync(temporaryRoot)) fs.rmSync(temporaryRoot, { recursive: true, force: true });
-    fs.mkdirSync(temporaryRoot, { recursive: true });
-    fs.writeFileSync(temporaryZip, bundle);
-
-    let tarError;
-    try {
-      childProcess.execFileSync('tar.exe', ['-xf', temporaryZip, '-C', temporaryRoot], {
-        stdio: 'ignore',
-        windowsHide: true,
-      });
-    } catch (error) {
-      tarError = error;
-      const escapedZip = temporaryZip.replaceAll("'", "''");
-      const escapedDestination = temporaryRoot.replaceAll("'", "''");
-      try {
-        childProcess.execFileSync(
-          'powershell.exe',
-          [
-            '-NoProfile',
-            '-NonInteractive',
-            '-Command',
-            `Expand-Archive -LiteralPath '${escapedZip}' -DestinationPath '${escapedDestination}' -Force`,
-          ],
-          { stdio: 'ignore', windowsHide: true },
-        );
-      } catch (powershellError) {
-        throw new Error(
-          `运行时解压失败。tar.exe：${tarError.message}；PowerShell：${powershellError.message}`,
-        );
-      }
-    }
-
-    if (fs.existsSync(root)) fs.rmSync(root, { recursive: true, force: true });
-    fs.renameSync(temporaryRoot, root);
-    fs.writeFileSync(markerPath, defaultConfig.version, 'utf8');
-    return root;
-  } finally {
-    if (fs.existsSync(temporaryZip)) fs.rmSync(temporaryZip, { force: true });
-    if (fs.existsSync(temporaryRoot)) fs.rmSync(temporaryRoot, { recursive: true, force: true });
-    try { fs.closeSync(lockFd); } catch {}
-    try { fs.rmSync(lockPath, { force: true }); } catch {}
+  const root = process.env.CHROME_MCP_PAYLOAD_ROOT;
+  if (!root || !fs.existsSync(path.join(root, '.complete'))) {
+    throw new Error('便携启动器没有提供有效的运行时缓存目录。');
   }
+  return root;
 }
 
 function registerNativeMessagingHost(config) {
-  const executablePath = process.execPath;
+  const executablePath = process.env.CHROME_MCP_LAUNCHER_PATH || process.execPath;
   const appData = process.env.APPDATA;
   if (!appData) return ['未找到 APPDATA，已跳过 Chrome Native Messaging 注册。'];
   const warnings = [];
@@ -323,6 +183,27 @@ function writeLog(message) {
   } catch {}
 }
 
+function isProcessAlive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error && error.code === 'EPERM';
+  }
+}
+
+function getLockInfo(lockPath) {
+  try {
+    const stat = fs.statSync(lockPath);
+    const pid = Number.parseInt(fs.readFileSync(lockPath, 'utf8').trim().split(/\s+/)[0], 10);
+    return { pid, ageMs: Math.max(0, Date.now() - stat.mtimeMs) };
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    return { pid: 0, ageMs: Number.POSITIVE_INFINITY };
+  }
+}
+
 function managerLockPath() {
   return path.join(dataRoot(), 'mcp-chrome-bridge', 'desktop-manager.lock');
 }
@@ -351,7 +232,7 @@ function releaseManagerLock(lock) {
   try { fs.rmSync(lock.lockPath, { force: true }); } catch {}
 }
 
-function launchDesktopManager(config, port) {
+function launchDesktopManager(config, port, payloadRoot) {
   const lock = acquireManagerLock();
   if (!lock) {
     showWindowsMessage(
@@ -367,8 +248,8 @@ function launchDesktopManager(config, port) {
   const iconPath = path.join(uiDirectory, 'chrome-mcp-icon.ico');
   try {
     fs.mkdirSync(uiDirectory, { recursive: true });
-    const script = Buffer.from(getAsset('chrome-mcp-desktop-ui.ps1'));
-    const icon = Buffer.from(getAsset('chrome-mcp-icon.ico'));
+    const script = fs.readFileSync(path.join(payloadRoot, 'desktop-ui.ps1'));
+    const icon = fs.readFileSync(path.join(payloadRoot, 'chrome-mcp-icon.ico'));
     // Windows PowerShell 5.1 needs a UTF-8 BOM to read non-ASCII UI text.
     fs.writeFileSync(uiScriptPath, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), script]));
     fs.writeFileSync(iconPath, icon);
@@ -526,14 +407,16 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
 
 (async () => {
   try {
-    bundle = Buffer.from(getAsset('chrome-mcp-bundle.zip'));
-
     const environment = runEnvironmentChecks();
     if (environment.failures.length > 0) {
       throw new Error(`启动前环境检查失败：\n${environment.failures.join('\n')}`);
     }
 
     const payloadRoot = extractPayload();
+    if (process.argv.includes('--validate-payload')) {
+      validatePayload(payloadRoot);
+      return;
+    }
     const config = readConfig(payloadRoot);
     const portValue = process.env.CHROME_MCP_PORT || process.env.MCP_HTTP_PORT;
     const configuredPort = Number.parseInt(portValue || config.port || defaultConfig.port, 10);
@@ -573,7 +456,7 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
     }
 
     if (standaloneLaunch) {
-      launchDesktopManager(config, port);
+      launchDesktopManager(config, port, payloadRoot);
       return;
     }
 

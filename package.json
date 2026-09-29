@@ -47,7 +47,8 @@
     "typecheck:desktop": "pnpm --filter @ethanwilkins/chrome-mcp-desktop-2026 run typecheck",
     "prepare": "husky",
     "check:extension-package": "node scripts/check-extension-package.mjs",
-    "test:extension-package": "node --test scripts/check-extension-package.test.mjs"
+    "test:extension-package": "node --test scripts/check-extension-package.test.mjs",
+    "test:portable-launcher": "node --test scripts/portable-launcher-format.test.mjs && cargo test --manifest-path scripts/portable-launcher/Cargo.toml --target-dir .windows-stage/portable-launcher-test-target"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

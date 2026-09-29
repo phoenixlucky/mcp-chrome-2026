@@ -61,3 +61,4 @@ app/desktop-client/src-tauri/target/
 # Build temp caches
 .build-temp/
 .windows-stage/
+scripts/portable-launcher/target/

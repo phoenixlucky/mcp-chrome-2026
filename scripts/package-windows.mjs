@@ -4,6 +4,7 @@ import { promises as fs, existsSync, realpathSync, readFileSync, lstatSync } fro
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createPortableFooter } from './portable-launcher-format.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
@@ -14,9 +15,7 @@ const stageRoot = process.env.MCP_WINDOWS_STAGE_DIR || path.join(root, '.windows
 const stageDir = path.join(stageRoot, `chrome-mcp-bridge-stage-${version}-${process.pid}`);
 const payloadDir = path.join(stageDir, 'payload');
 const bundleZip = path.join(stageDir, `chrome-mcp-bundle-${version}.zip`);
-const seaConfigPath = path.join(stageDir, 'sea-config.json');
-const seaBlobPath = path.join(stageDir, 'sea-prep.blob');
-const seaStubPath = path.join(stageDir, 'ChromeMcpBridge.exe');
+const launcherExePath = path.join(stageDir, 'ChromeMcpBridge.exe');
 const outputExe = path.join(releaseDir, `chrome-mcp-bridge-${version}-win-x64.exe`);
 
 function run(command, args) {
@@ -198,6 +197,7 @@ async function main() {
   const nativeDist = path.join(nativeDir, 'dist');
   const extensionDist = path.join(root, 'app', 'chrome-extension', '.output', 'chrome-mv3');
   const iconSource = path.join(root, 'app', 'chrome-extension', 'public', 'icon', 'catgirl.ico');
+  const desktopUiSource = path.join(root, 'scripts', 'desktop-ui.ps1');
   const sourceNodeModules = path.join(nativeDir, 'node_modules');
   const stageNativeDir = path.join(payloadDir, 'app', 'native-server');
   const stageNodeModules = path.join(stageNativeDir, 'node_modules');
@@ -208,6 +208,10 @@ async function main() {
   if (!existsSync(sourceNodeModules)) throw new Error('Native server dependencies are missing.');
 
   await fs.copyFile(process.execPath, path.join(payloadDir, 'node.exe'));
+  await fs.copyFile(iconSource, path.join(payloadDir, 'chrome-mcp-icon.ico'));
+  await fs.copyFile(desktopUiSource, path.join(payloadDir, 'desktop-ui.ps1'));
+  await fs.mkdir(path.join(payloadDir, 'scripts'), { recursive: true });
+  await fs.copyFile(path.join(root, 'scripts', 'sea-launcher.cjs'), path.join(payloadDir, 'scripts', 'sea-launcher.cjs'));
   await fs.cp(nativeDist, path.join(stageNativeDir, 'dist'), { recursive: true });
   await fs.copyFile(path.join(nativeDir, 'package.json'), path.join(stageNativeDir, 'package.json'));
   await fs.cp(extensionDist, path.join(payloadDir, 'app', 'chrome-extension', '.output', 'chrome-mv3'), { recursive: true });
@@ -254,35 +258,16 @@ async function main() {
   console.log('Compressing embedded runtime...');
   await compressBundle();
 
-  const launcherSource = path.join(root, 'scripts', 'sea-launcher.cjs');
-  const launcherPath = path.join(stageDir, 'sea-launcher.cjs');
-  await fs.copyFile(launcherSource, launcherPath);
-  const iconAssetPath = path.join(stageDir, 'chrome-mcp-icon.ico');
-  await fs.copyFile(iconSource, iconAssetPath);
-  const desktopUiSource = path.join(root, 'scripts', 'desktop-ui.ps1');
-  const desktopUiAssetPath = path.join(stageDir, 'desktop-ui.ps1');
-  await fs.copyFile(desktopUiSource, desktopUiAssetPath);
-  await fs.writeFile(
-    seaConfigPath,
-    JSON.stringify(
-      {
-        main: launcherPath,
-        output: seaBlobPath,
-        disableExperimentalSEAWarning: true,
-        useCodeCache: false,
-        assets: {
-          'chrome-mcp-bundle.zip': bundleZip,
-          'chrome-mcp-desktop-ui.ps1': desktopUiAssetPath,
-          'chrome-mcp-icon.ico': iconAssetPath,
-        },
-      },
-      null,
-      2,
-    ),
-  );
-
-  run(process.execPath, [`--experimental-sea-config=${seaConfigPath}`]);
-  await fs.copyFile(process.execPath, seaStubPath);
+  run('cargo.exe', [
+    'build',
+    '--release',
+    '--manifest-path',
+    path.join(root, 'scripts', 'portable-launcher', 'Cargo.toml'),
+    '--target-dir',
+    path.join(stageDir, 'rust-target'),
+  ]);
+  const rustLauncherPath = path.join(stageDir, 'rust-target', 'release', 'chrome-mcp-portable-launcher.exe');
+  await fs.copyFile(rustLauncherPath, launcherExePath);
   run('powershell.exe', [
     '-NoProfile',
     '-NonInteractive',
@@ -291,32 +276,28 @@ async function main() {
     '-File',
     path.join(root, 'scripts', 'set-windows-icon.ps1'),
     '-ExePath',
-    seaStubPath,
+    launcherExePath,
     '-IconPath',
-    iconAssetPath,
+    iconSource,
   ]);
-  run('pnpm.cmd', [
-    'dlx',
-    'postject@1.0.0-alpha.6',
-    seaStubPath,
-    'NODE_SEA_BLOB',
-    seaBlobPath,
-    '--sentinel-fuse',
-    'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2',
-  ]);
+  const bundleBytes = await fs.readFile(bundleZip);
+  await fs.appendFile(launcherExePath, bundleBytes);
+  await fs.appendFile(launcherExePath, createPortableFooter(bundleBytes));
 
   let publishedExe = outputExe;
   try {
-    await fs.copyFile(seaStubPath, outputExe);
+    await fs.copyFile(launcherExePath, outputExe);
   } catch (error) {
     if (!['EBUSY', 'EPERM', 'EACCES'].includes(error?.code)) throw error;
     publishedExe = outputExe.replace(/\.exe$/i, '.new.exe');
-    await fs.copyFile(seaStubPath, publishedExe);
+    await fs.copyFile(launcherExePath, publishedExe);
     console.warn(`发布文件正在被运行中的客户端占用，已改写入：${publishedExe}`);
     console.warn('关闭旧客户端后，可将该 .new.exe 改名为原文件名。');
   }
   console.log(`\n完成：${publishedExe}`);
   console.log(`大小：${( (await fs.stat(publishedExe)).size / 1024 / 1024 ).toFixed(1)} MB`);
+  run(publishedExe, ['--verify-package']);
+  console.log('发行包完整性检查通过。');
 }
 
 try {
