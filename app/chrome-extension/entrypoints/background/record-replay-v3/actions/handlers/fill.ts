@@ -15,25 +15,30 @@ import type { ActionHandler } from '../types';
 import {
   ensureElementVisible,
   logSelectorFallback,
+  resolveActionTarget,
   resolveString,
   selectorLocator,
   sendMessageToTab,
-  toSelectorTarget,
 } from './common';
 
 export const fillHandler: ActionHandler<'fill'> = {
   type: 'fill',
 
   validate: (action) => {
-    const target = action.params.target as { ref?: string; candidates?: unknown[] };
+    const target = action.params.target as {
+      ref?: string;
+      markerId?: string;
+      candidates?: unknown[];
+    };
     const hasRef = typeof target?.ref === 'string' && target.ref.trim().length > 0;
+    const hasMarker = typeof target?.markerId === 'string' && target.markerId.trim().length > 0;
     const hasCandidates = Array.isArray(target?.candidates) && target.candidates.length > 0;
     const hasValue = action.params.value !== undefined;
 
     if (!hasValue) {
       return invalid('Missing value parameter');
     }
-    if (!hasRef && !hasCandidates) {
+    if (!hasRef && !hasMarker && !hasCandidates) {
       return invalid('Missing target selector or ref');
     }
     return ok();
@@ -64,17 +69,16 @@ export const fillHandler: ActionHandler<'fill'> = {
     const value = valueResolved.value;
 
     // Locate target element
-    const { selectorTarget, firstCandidateType, firstCssOrAttr } = toSelectorTarget(
-      action.params.target,
-      vars,
-    );
+    const target = await resolveActionTarget(tabId, action.params.target, vars, ctx.frameId);
+    if (!target.ok) return failed('TARGET_NOT_FOUND', target.error);
+    const { selectorTarget, firstCandidateType, firstCssOrAttr } = target.value;
 
     const located = await selectorLocator.locate(tabId, selectorTarget, {
-      frameId: ctx.frameId,
+      frameId: target.value.frameId,
       preferRef: false,
     });
 
-    const frameId = located?.frameId ?? ctx.frameId;
+    const frameId = located?.frameId ?? target.value.frameId;
     const refToUse = located?.ref ?? selectorTarget.ref;
     // Keep the original CSS/attribute selector alongside a fresh ref. The
     // ref may become stale when React replaces the input before the fill

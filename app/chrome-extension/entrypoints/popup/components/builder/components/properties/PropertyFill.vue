@@ -1,6 +1,7 @@
 <template>
   <div>
     <SelectorEditor :node="node" :allowPick="true" />
+    <MarkerTargetPicker :node="node" />
     <div class="form-section">
       <div class="form-group" data-field="fill.value">
         <label class="form-label">输入值</label>
@@ -11,11 +12,11 @@
 </template>
 
 <script lang="ts" setup>
-
 import { computed } from 'vue';
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 import type { VariableOption } from '@/entrypoints/popup/components/builder/model/variables';
 import SelectorEditor from './SelectorEditor.vue';
+import MarkerTargetPicker from './MarkerTargetPicker.vue';
 import VarInput from '@/entrypoints/popup/components/builder/widgets/VarInput.vue';
 
 const props = defineProps<{ node: NodeBase; variables?: VariableOption[] }>();

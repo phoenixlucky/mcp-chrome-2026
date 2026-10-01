@@ -9,6 +9,8 @@
  */
 
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
+import { getMarkerById } from '@/entrypoints/background/element-marker/element-marker-storage';
+import { getElementMarkerMembers, type ElementMarkerMember } from '@/common/element-marker-types';
 import {
   createChromeSelectorLocator,
   type SelectorCandidate as SharedSelectorCandidate,
@@ -24,6 +26,124 @@ import type { ActionExecutionContext, ElementTarget, Resolvable, VariableStore }
 // ================================
 
 export const selectorLocator = createChromeSelectorLocator();
+
+export type ResolvedActionTarget = ConvertedSelectorTarget & { frameId?: number };
+
+/** Resolve a persisted iframe ancestry to the current transient Chrome frame ID. */
+export async function resolveMarkerFrame(
+  tabId: number,
+  member: ElementMarkerMember,
+): Promise<{ ok: true; frameId?: number } | { ok: false; error: string }> {
+  const path = member.framePath || [];
+  if (!path.length) return { ok: true };
+  let parentFrameId = 0;
+  for (const segment of path) {
+    let iframeInfo: { src: string; count: number } | undefined;
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId, frameIds: [parentFrameId] },
+        world: 'ISOLATED',
+        func: (selector: string) => {
+          const matches = Array.from(document.querySelectorAll(selector));
+          const iframe = matches.length === 1 ? matches[0] : undefined;
+          return {
+            count: matches.length,
+            src: iframe instanceof HTMLIFrameElement ? iframe.src : '',
+          };
+        },
+        args: [segment.selector],
+      });
+      iframeInfo = results[0]?.result as { src: string; count: number } | undefined;
+    } catch {
+      return { ok: false, error: `Cannot inspect iframe selector: ${segment.selector}` };
+    }
+    if (!iframeInfo || iframeInfo.count !== 1 || !iframeInfo.src) {
+      return { ok: false, error: `Iframe selector is missing or ambiguous: ${segment.selector}` };
+    }
+
+    let frames: chrome.webNavigation.GetAllFrameResultDetails[];
+    try {
+      frames = (await chrome.webNavigation.getAllFrames({ tabId })) || [];
+    } catch {
+      return { ok: false, error: 'Cannot list page frames' };
+    }
+    let sourceUrl: URL;
+    let observedUrl: URL | undefined;
+    try {
+      sourceUrl = new URL(iframeInfo.src);
+      observedUrl = segment.url ? new URL(segment.url, iframeInfo.src) : undefined;
+    } catch {
+      return { ok: false, error: `Invalid iframe URL for selector: ${segment.selector}` };
+    }
+    const children = frames.filter((frame) => {
+      if (frame.parentFrameId !== parentFrameId) return false;
+      try {
+        const frameUrl = new URL(frame.url);
+        const matchesSrc =
+          frameUrl.origin === sourceUrl.origin && frameUrl.pathname === sourceUrl.pathname;
+        const matchesObserved =
+          !observedUrl ||
+          (frameUrl.origin === observedUrl.origin && frameUrl.pathname === observedUrl.pathname);
+        return observedUrl ? matchesObserved : matchesSrc;
+      } catch {
+        return false;
+      }
+    });
+    if (children.length !== 1) {
+      return {
+        ok: false,
+        error: children.length
+          ? 'Iframe locator matches multiple frames'
+          : 'Saved iframe is unavailable',
+      };
+    }
+    parentFrameId = children[0].frameId;
+  }
+  return { ok: true, frameId: parentFrameId };
+}
+
+/** Resolve a marker-backed target immediately before an action runs. */
+export async function resolveActionTarget(
+  tabId: number,
+  target: ElementTarget,
+  vars: VariableStore,
+  contextFrameId?: number,
+  requireMember = true,
+): Promise<{ ok: true; value: ResolvedActionTarget } | { ok: false; error: string }> {
+  if (!target.markerId) {
+    return { ok: true, value: { ...toSelectorTarget(target, vars), frameId: contextFrameId } };
+  }
+  const marker = await getMarkerById(target.markerId);
+  if (!marker) return { ok: false, error: `Saved marker not found: ${target.markerId}` };
+  const members = getElementMarkerMembers(marker);
+  const member = target.memberId
+    ? members.find((item) => item.id === target.memberId)
+    : members.length === 1 || !requireMember
+      ? members[0]
+      : undefined;
+  if (!member) {
+    return { ok: false, error: `Choose a member from marker "${marker.name}"` };
+  }
+  const frame = await resolveMarkerFrame(tabId, member);
+  if (!frame.ok) return { ok: false, error: `${marker.name}: ${frame.error}` };
+  const selectorTarget: SelectorTarget = {
+    candidates: [
+      member.selectorType === 'xpath'
+        ? { type: 'xpath', value: member.selector, weight: 1000 }
+        : { type: 'css', value: member.selector, weight: 1000 },
+    ],
+    ...(member.tagName ? { tagName: member.tagName } : {}),
+  };
+  return {
+    ok: true,
+    value: {
+      selectorTarget,
+      firstCandidateType: member.selectorType || 'css',
+      firstCssOrAttr: member.selectorType === 'xpath' ? undefined : member.selector,
+      frameId: frame.frameId ?? contextFrameId,
+    },
+  };
+}
 
 // ================================
 // String Resolution Utilities

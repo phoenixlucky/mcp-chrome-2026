@@ -314,6 +314,10 @@ export interface TargetHint {
 export interface ElementTargetBase {
   frame?: FrameTarget;
   hint?: TargetHint;
+  /** Stable reference to a saved element marker. Resolved at execution time. */
+  markerId?: string;
+  /** Required for click/fill when the marker contains multiple members. */
+  memberId?: string;
 }
 
 export type ElementTarget =
@@ -424,6 +428,10 @@ export type ExtractParams =
       mode: 'selector';
       selector: Resolvable<string>;
       attr?: Resolvable<string>; // "text" | "textContent" | attribute name
+      markerId?: string;
+      memberId?: string;
+      extractAllMembers?: boolean;
+      markerValueType?: 'text' | 'href' | 'src' | 'value';
       saveAs: VariableName;
     }
   | {

@@ -2035,15 +2035,25 @@
 
                     if (data.success) {
                       const frameRect = frameEl.getBoundingClientRect();
+                      const offsetCenter = (center) =>
+                        center
+                          ? {
+                              x: Math.round(frameRect.left + center.x),
+                              y: Math.round(frameRect.top + center.y),
+                            }
+                          : undefined;
                       sendResponse({
                         success: true,
                         ref: data.ref,
-                        center: data.center
+                        center: offsetCenter(data.center),
+                        ...(Array.isArray(data.elements)
                           ? {
-                              x: Math.round(frameRect.left + data.center.x),
-                              y: Math.round(frameRect.top + data.center.y),
+                              elements: data.elements.map((item) => ({
+                                ...item,
+                                center: offsetCenter(item.center),
+                              })),
                             }
-                          : undefined,
+                          : {}),
                         href: data.href,
                       });
                     } else {
@@ -2680,6 +2690,39 @@
             const limitTag = String(tagName || '')
               .trim()
               .toUpperCase();
+            if (data.allowMultiple && !useText) {
+              const result = queryAllElementsBySelector(sel, isXPath ? 'xpath' : 'css');
+              const matches = result.elements.filter(
+                (item) => !limitTag || item.tagName.toUpperCase() === limitTag,
+              );
+              if (result.error || !matches.length) {
+                respond({
+                  success: false,
+                  error: result.error || `Selector "${sel}" not found in child frame`,
+                });
+                return;
+              }
+              const elements = matches.map((item) => {
+                const ref = ensureRefForElement(item);
+                const rect = item.getBoundingClientRect();
+                return {
+                  ref,
+                  selector: generateSelector(item),
+                  center: {
+                    x: Math.round(rect.left + rect.width / 2),
+                    y: Math.round(rect.top + rect.height / 2),
+                  },
+                };
+              });
+              respond({
+                success: true,
+                ref: elements[0].ref,
+                center: elements[0].center,
+                elements,
+                href: String(location && location.href ? location.href : ''),
+              });
+              return;
+            }
             let el = null;
             if (useText && sel) {
               const normalize = (s) =>

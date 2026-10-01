@@ -1,5 +1,15 @@
 <template>
   <div class="form-section">
+    <MarkerTargetPicker :node="node" targetKey="target" allowAll />
+    <div class="form-group">
+      <label class="form-label">标注提取内容</label>
+      <select class="form-input" v-model="(node as any).config.markerValueType">
+        <option value="text">文字</option>
+        <option value="href">链接</option>
+        <option value="src">图片地址</option>
+        <option value="value">输入值</option>
+      </select>
+    </div>
     <div class="form-group">
       <label class="form-label">元素选择器（可选）</label>
       <input class="form-input" v-model="(node as any).config.selector" placeholder="CSS 选择器" />
@@ -29,8 +39,8 @@
 </template>
 
 <script lang="ts" setup>
-
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
+import MarkerTargetPicker from './MarkerTargetPicker.vue';
 defineProps<{ node: NodeBase }>();
 </script>
 

@@ -11,11 +11,7 @@
 import { handleCallTool } from '@/entrypoints/background/tools';
 import { TOOL_NAMES } from '@ethanwilkins/chrome-mcp-shared-2026';
 import { ENGINE_CONSTANTS } from '../constants';
-import {
-  maybeQuickWaitForNav,
-  waitForNavigationDone,
-  waitForNetworkIdle,
-} from '../policies/wait';
+import { maybeQuickWaitForNav, waitForNavigationDone, waitForNetworkIdle } from '../policies/wait';
 import { failed, invalid, ok } from '../registry';
 import type {
   Action,
@@ -28,8 +24,8 @@ import {
   ensureElementVisible,
   logSelectorFallback,
   readTabUrl,
+  resolveActionTarget,
   selectorLocator,
-  toSelectorTarget,
 } from './common';
 
 /**
@@ -53,18 +49,17 @@ async function executeClick<T extends 'click' | 'dblclick'>(
 
   // Only read beforeUrl if we need to do nav-wait
   const beforeUrl = skipNavWait ? '' : await readTabUrl(tabId);
-  const { selectorTarget, firstCandidateType, firstCssOrAttr } = toSelectorTarget(
-    action.params.target,
-    vars,
-  );
+  const target = await resolveActionTarget(tabId, action.params.target, vars, ctx.frameId);
+  if (!target.ok) return failed('TARGET_NOT_FOUND', target.error);
+  const { selectorTarget, firstCandidateType, firstCssOrAttr } = target.value;
 
   // Locate element using shared selector locator
   const located = await selectorLocator.locate(tabId, selectorTarget, {
-    frameId: ctx.frameId,
+    frameId: target.value.frameId,
     preferRef: false,
   });
 
-  const frameId = located?.frameId ?? ctx.frameId;
+  const frameId = located?.frameId ?? target.value.frameId;
   const refToUse = located?.ref ?? selectorTarget.ref;
   const selectorToUse = !located?.ref ? firstCssOrAttr : undefined;
 
@@ -143,12 +138,14 @@ async function executeClick<T extends 'click' | 'dblclick'>(
  */
 function validateClickTarget(target: {
   ref?: string;
+  markerId?: string;
   candidates?: unknown[];
 }): { ok: true } | { ok: false; errors: [string, ...string[]] } {
   const hasRef = typeof target?.ref === 'string' && target.ref.trim().length > 0;
+  const hasMarker = typeof target?.markerId === 'string' && target.markerId.trim().length > 0;
   const hasCandidates = Array.isArray(target?.candidates) && target.candidates.length > 0;
 
-  if (hasRef || hasCandidates) {
+  if (hasRef || hasMarker || hasCandidates) {
     return ok();
   }
   return invalid('Missing target selector or ref');
@@ -158,7 +155,9 @@ export const clickHandler: ActionHandler<'click'> = {
   type: 'click',
 
   validate: (action) =>
-    validateClickTarget(action.params.target as { ref?: string; candidates?: unknown[] }),
+    validateClickTarget(
+      action.params.target as { ref?: string; markerId?: string; candidates?: unknown[] },
+    ),
 
   describe: (action) => {
     const target = action.params.target;
@@ -177,7 +176,9 @@ export const dblclickHandler: ActionHandler<'dblclick'> = {
   type: 'dblclick',
 
   validate: (action) =>
-    validateClickTarget(action.params.target as { ref?: string; candidates?: unknown[] }),
+    validateClickTarget(
+      action.params.target as { ref?: string; markerId?: string; candidates?: unknown[] },
+    ),
 
   describe: (action) => {
     const target = action.params.target;

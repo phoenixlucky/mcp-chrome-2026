@@ -1,6 +1,22 @@
 // Element marker types shared across background, content scripts, and popup
 
 export type UrlMatchType = 'exact' | 'prefix' | 'host';
+export type ElementMarkerSelectorType = 'css' | 'xpath';
+export type ElementMarkerValidationState = 'normal' | 'multiple' | 'invalid';
+
+export interface ElementMarkerFrameSegment {
+  selector: string;
+  url?: string;
+}
+
+export interface ElementMarkerMember {
+  id: string;
+  name: string;
+  selector: string;
+  selectorType?: ElementMarkerSelectorType;
+  framePath?: ElementMarkerFrameSegment[];
+  tagName?: string;
+}
 
 export interface ElementMarker {
   id: string;
@@ -17,6 +33,10 @@ export interface ElementMarker {
   selectorType?: 'css' | 'xpath'; // Default: css
   listMode?: boolean; // Whether this marker was created in list mode (allows multiple matches)
   action?: 'click' | 'fill' | 'custom'; // Intended action hint (optional)
+  groupId?: string;
+  groupName?: string;
+  tags?: string[];
+  members?: ElementMarkerMember[];
 
   createdAt: number;
   updatedAt: number;
@@ -31,6 +51,35 @@ export interface UpsertMarkerRequest {
   listMode?: boolean;
   matchType?: UrlMatchType;
   action?: 'click' | 'fill' | 'custom';
+  groupId?: string;
+  groupName?: string;
+  tags?: string[];
+  members?: ElementMarkerMember[];
+}
+
+export interface ElementMarkerMemberValidation {
+  memberId: string;
+  matchCount: number;
+  state: ElementMarkerValidationState;
+  error?: string;
+}
+
+export interface ElementMarkerValidationSummary {
+  markerId: string;
+  state: ElementMarkerValidationState;
+  members: ElementMarkerMemberValidation[];
+}
+
+export function getElementMarkerMembers(marker: ElementMarker): ElementMarkerMember[] {
+  if (Array.isArray(marker.members) && marker.members.length) return marker.members;
+  return [
+    {
+      id: marker.id,
+      name: marker.name,
+      selector: marker.selector,
+      selectorType: marker.selectorType || 'css',
+    },
+  ];
 }
 
 // Validation actions for MCP-integrated verification

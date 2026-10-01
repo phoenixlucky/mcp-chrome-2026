@@ -72,6 +72,31 @@
               </svg>
             </button>
           </div>
+          <select v-model="groupFilter" class="em-filter-select" aria-label="按分组筛选">
+            <option value="">所有分组</option>
+            <option v-for="group in markerGroups" :key="group.id" :value="group.id">
+              {{ group.name }}
+            </option>
+          </select>
+          <select v-model="tagFilter" class="em-filter-select" aria-label="按标签筛选">
+            <option value="">所有标签</option>
+            <option v-for="tag in markerTags" :key="tag" :value="tag">{{ tag }}</option>
+          </select>
+          <select v-model="markerExtractType" class="em-filter-select" aria-label="提取类型">
+            <option value="text">提取文字</option>
+            <option value="href">提取链接</option>
+            <option value="src">提取图片地址</option>
+            <option value="value">提取输入值</option>
+          </select>
+          <button
+            class="em-add-btn em-check-btn"
+            type="button"
+            :disabled="markerChecking || !currentPageTabId"
+            title="检查当前页的标注定位"
+            @click="validateCurrentPageMarkers"
+          >
+            {{ markerChecking ? '检查中…' : '检查定位' }}
+          </button>
           <button class="em-add-btn" @click="openMarkerEditor()" title="新增标注">
             <svg viewBox="0 0 20 20" width="18" height="18">
               <path
@@ -105,6 +130,25 @@
                     class="em-input"
                     placeholder="例如: 登录按钮"
                     required
+                  />
+                </div>
+              </div>
+
+              <div class="em-form-row em-form-row-multi">
+                <div class="em-field">
+                  <label class="em-field-label">分组</label>
+                  <input
+                    v-model="markerForm.groupName"
+                    class="em-input"
+                    placeholder="例如：登录、商品列表、订单操作"
+                  />
+                </div>
+                <div class="em-field">
+                  <label class="em-field-label">标签</label>
+                  <input
+                    v-model="markerTagsInput"
+                    class="em-input"
+                    placeholder="用逗号分隔，例如：读取,回归"
                   />
                 </div>
               </div>
@@ -217,7 +261,7 @@
                           <button
                             class="em-action-btn em-action-verify"
                             @click="validateMarker(marker)"
-                            title="验证"
+                            title="检查并定位"
                           >
                             <svg viewBox="0 0 24 24" width="14" height="14">
                               <path
@@ -226,6 +270,21 @@
                                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                               />
                             </svg>
+                          </button>
+                          <button
+                            class="em-action-btn em-action-extract"
+                            type="button"
+                            title="提取并下载 CSV"
+                            @click="extractMarker(marker)"
+                          >
+                            CSV
+                          </button>
+                          <button
+                            class="em-action-btn em-action-repair"
+                            @click="repairMarker(marker, marker.members?.[0]?.id || marker.id)"
+                            title="重新选择定位"
+                          >
+                            重选
                           </button>
                           <button
                             class="em-action-btn em-action-edit"
@@ -255,6 +314,31 @@
                           </button>
                         </div>
                       </div>
+                      <div
+                        v-for="member in getElementMarkerMembers(marker)"
+                        :key="member.id"
+                        class="em-marker-member-row"
+                      >
+                        <span class="em-marker-member-name">{{ member.name }}</span>
+                        <code class="em-marker-selector" :title="member.selector">{{
+                          member.selector
+                        }}</code>
+                        <span
+                          :class="[
+                            'em-validation-state',
+                            `is-${memberStatus(marker.id, member.id)}`,
+                          ]"
+                        >
+                          {{ markerStatusLabel(marker.id, member.id) }}
+                        </span>
+                        <button
+                          class="em-action-btn em-action-repair"
+                          type="button"
+                          @click="repairMarker(marker, member.id)"
+                        >
+                          重选
+                        </button>
+                      </div>
                       <div class="em-marker-row-bottom">
                         <code class="em-marker-selector" :title="marker.selector">{{
                           marker.selector
@@ -262,6 +346,9 @@
                         <div class="em-marker-tags">
                           <span class="em-tag">{{ marker.selectorType || 'css' }}</span>
                           <span class="em-tag">{{ marker.matchType }}</span>
+                          <span :class="['em-validation-state', `is-${markerStatus(marker.id)}`]">
+                            {{ markerStatusLabel(marker.id) }}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -296,7 +383,13 @@
 import { computed, onMounted, ref, onUnmounted, watch } from 'vue';
 import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import { STORAGE_KEYS } from '@/common/constants';
-import type { ElementMarker, UpsertMarkerRequest } from '@/common/element-marker-types';
+import type {
+  ElementMarker,
+  ElementMarkerValidationState,
+  ElementMarkerValidationSummary,
+  UpsertMarkerRequest,
+} from '@/common/element-marker-types';
+import { getElementMarkerMembers } from '@/common/element-marker-types';
 import AgentChat from './components/AgentChat.vue';
 import SidepanelNavigator from './components/SidepanelNavigator.vue';
 import { WorkflowsView } from './components/workflows';
@@ -337,7 +430,10 @@ const openRunId = ref<string | null>(null);
 
 // Element markers state
 const currentPageUrl = ref('');
+const currentPageTabId = ref<number | null>(null);
 const markers = ref<ElementMarker[]>([]);
+const markerValidation = ref<Record<string, ElementMarkerValidationSummary>>({});
+const markerChecking = ref(false);
 const editingMarkerId = ref<string | null>(null);
 const markerForm = ref<UpsertMarkerRequest>({
   url: '',
@@ -348,17 +444,54 @@ const markerForm = ref<UpsertMarkerRequest>({
 });
 const expandedDomains = ref<Set<string>>(new Set());
 const markerSearch = ref('');
+const groupFilter = ref('');
+const tagFilter = ref('');
+const markerTagsInput = ref('');
+const markerExtractType = ref<'text' | 'href' | 'src' | 'value'>('text');
 const markerEditorOpen = ref(false);
+
+const markerGroups = computed(() => {
+  const groups = new Map<string, string>();
+  for (const marker of markers.value) {
+    if (!marker.groupName) continue;
+    groups.set(marker.groupId || `name:${marker.groupName}`, marker.groupName);
+  }
+  return Array.from(groups, ([id, name]) => ({ id, name })).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+});
+
+const markerTags = computed(() =>
+  Array.from(new Set(markers.value.flatMap((marker) => marker.tags || []))).sort((a, b) =>
+    a.localeCompare(b),
+  ),
+);
 
 // Filter markers based on search term
 const filteredMarkers = computed(() => {
   const query = markerSearch.value.trim().toLowerCase();
-  if (!query) return markers.value;
   return markers.value.filter((m) => {
+    const markerGroupId = m.groupId || (m.groupName ? `name:${m.groupName}` : '');
+    if (groupFilter.value && markerGroupId !== groupFilter.value) return false;
+    if (tagFilter.value && !(m.tags || []).includes(tagFilter.value)) return false;
+    if (!query) return true;
     const name = (m.name || '').toLowerCase();
     const selector = (m.selector || '').toLowerCase();
     const url = (m.url || '').toLowerCase();
-    return name.includes(query) || selector.includes(query) || url.includes(query);
+    const groupName = (m.groupName || '').toLowerCase();
+    const tags = (m.tags || []).join(' ').toLowerCase();
+    const members = (m.members || [])
+      .map((member) => `${member.name} ${member.selector}`)
+      .join(' ')
+      .toLowerCase();
+    return (
+      name.includes(query) ||
+      selector.includes(query) ||
+      url.includes(query) ||
+      groupName.includes(query) ||
+      tags.includes(query) ||
+      members.includes(query)
+    );
   });
 });
 
@@ -514,7 +647,12 @@ function openMarkerEditor(marker?: ElementMarker) {
       listMode: marker.listMode,
       matchType: marker.matchType || 'prefix',
       action: marker.action,
+      groupId: marker.groupId,
+      groupName: marker.groupName || '',
+      tags: marker.tags || [],
+      members: marker.members,
     };
+    markerTagsInput.value = (marker.tags || []).join(', ');
   } else {
     resetForm();
   }
@@ -533,7 +671,10 @@ function resetForm() {
     selector: '',
     selectorType: 'css',
     matchType: 'prefix',
+    groupName: '',
+    tags: [],
   };
+  markerTagsInput.value = '';
   editingMarkerId.value = null;
 }
 
@@ -542,6 +683,7 @@ async function loadMarkers() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
     currentPageUrl.value = String(tab?.url || '');
+    currentPageTabId.value = typeof tab?.id === 'number' ? tab.id : null;
 
     // Only update form URL when not editing - prevents polluting edited marker's URL
     if (!editingMarkerId.value) {
@@ -555,10 +697,55 @@ async function loadMarkers() {
 
     if (res?.success) {
       markers.value = res.markers || [];
+      if (activeTab.value === 'element-markers') await validateCurrentPageMarkers();
     }
   } catch (e) {
     console.error('Failed to load markers:', e);
   }
+}
+
+async function validateCurrentPageMarkers() {
+  if (typeof currentPageTabId.value !== 'number') return;
+  markerChecking.value = true;
+  try {
+    const res: any = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_CHECK,
+      tabId: currentPageTabId.value,
+    });
+    if (!res?.success) throw new Error(res?.error || '检查标注失败');
+    const next: Record<string, ElementMarkerValidationSummary> = {};
+    for (const summary of res.summaries || []) next[summary.markerId] = summary;
+    markerValidation.value = next;
+  } catch (error) {
+    console.warn('Failed to validate markers:', error);
+  } finally {
+    markerChecking.value = false;
+  }
+}
+
+function memberStatus(
+  markerId: string,
+  memberId: string,
+): ElementMarkerValidationState | 'unknown' {
+  return (
+    markerValidation.value[markerId]?.members.find((member) => member.memberId === memberId)
+      ?.state || 'unknown'
+  );
+}
+
+function markerStatus(markerId: string): ElementMarkerValidationState | 'unknown' {
+  return markerValidation.value[markerId]?.state || 'unknown';
+}
+
+function markerStatusLabel(markerId: string, memberId?: string) {
+  const status = memberId ? memberStatus(markerId, memberId) : markerStatus(markerId);
+  return status === 'normal'
+    ? '正常'
+    : status === 'multiple'
+      ? '多个匹配'
+      : status === 'invalid'
+        ? '已失效'
+        : '未检查';
 }
 
 async function saveMarker() {
@@ -566,6 +753,24 @@ async function saveMarker() {
     if (!markerForm.value.selector) return;
 
     const isEditing = !!editingMarkerId.value;
+    const groupName = String(markerForm.value.groupName || '').trim();
+    const tags = Array.from(
+      new Set(
+        markerTagsInput.value
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      ),
+    );
+    markerForm.value.groupName = groupName;
+    markerForm.value.tags = tags;
+    if (groupName && !markerForm.value.groupId) {
+      const existingGroup = markerGroups.value.find((group) => group.name === groupName);
+      markerForm.value.groupId =
+        existingGroup && !existingGroup.id.startsWith('name:')
+          ? existingGroup.id
+          : globalThis.crypto?.randomUUID?.() || `group_${Date.now()}`;
+    }
 
     // Only set URL for new markers, not when editing existing ones
     if (!isEditing) {
@@ -587,6 +792,13 @@ async function saveMarker() {
           type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_UPDATE,
           marker: updatedMarker,
         });
+        if (existingMarker.groupId) {
+          await chrome.runtime.sendMessage({
+            type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_UPDATE_GROUP,
+            groupId: existingMarker.groupId,
+            metadata: { groupName, tags },
+          });
+        }
       } else {
         // Fallback to SAVE if existing marker not found in local state
         console.warn('Editing marker not found in local state, falling back to SAVE');
@@ -640,20 +852,76 @@ async function deleteMarker(marker: ElementMarker) {
 
 async function validateMarker(marker: ElementMarker) {
   try {
-    const res: any = await chrome.runtime.sendMessage({
-      type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_VALIDATE,
-      selector: marker.selector,
-      selectorType: marker.selectorType || 'css',
-      action: 'hover',
-      listMode: !!marker.listMode,
-    } as any);
-
-    // Trigger highlight in the page
-    if (res?.tool?.ok !== false) {
-      await highlightInTab(marker);
-    }
+    await validateCurrentPageMarkers();
+    if (markerStatus(marker.id) !== 'invalid') await highlightInTab(marker);
   } catch (e) {
     console.error('Failed to validate marker:', e);
+  }
+}
+
+async function repairMarker(marker: ElementMarker, memberId = marker.id) {
+  try {
+    const tabId = currentPageTabId.value;
+    if (typeof tabId !== 'number') throw new Error('请先切换到要修复标注的页面');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        files: ['inject-scripts/element-marker.js'],
+        world: 'ISOLATED',
+      });
+    } catch {}
+    await chrome.tabs.sendMessage(tabId, { action: 'element_marker_start' });
+    await chrome.tabs.sendMessage(tabId, {
+      action: 'element_marker_reselect',
+      markerId: marker.id,
+      memberId,
+    });
+  } catch (error) {
+    console.warn('Failed to start marker repair:', error);
+  }
+}
+
+async function extractMarker(marker: ElementMarker) {
+  try {
+    const tabId = currentPageTabId.value;
+    if (typeof tabId !== 'number' || !markerValidation.value[marker.id]) {
+      throw new Error('请在标注对应的页面上执行提取');
+    }
+    await chrome.scripting.executeScript({
+      target: { tabId, allFrames: true },
+      files: ['inject-scripts/element-marker.js'],
+      world: 'ISOLATED',
+    });
+    const response: any = await chrome.tabs.sendMessage(
+      tabId,
+      {
+        action: 'element_marker_extract_members',
+        members: getElementMarkerMembers(marker),
+        valueType: markerExtractType.value,
+      },
+      { frameId: 0 },
+    );
+    if (!response?.success) throw new Error(response?.error || '提取失败');
+    const rows = response.rows || [];
+    const escape = (value: unknown) => {
+      const text = String(value ?? '');
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const csv = [
+      ['标注名称', '页面/Frame', '结果', '错误'],
+      ...rows.map((row: any) => [marker.name, row.frame, row.value, row.error]),
+    ]
+      .map((row) => row.map(escape).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = `${marker.name.replace(/[\\/:*?"<>|]/g, '_') || 'element-marker'}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.warn('Failed to extract marker data:', error);
   }
 }
 
@@ -696,10 +964,8 @@ async function highlightInTab(marker: ElementMarker) {
 
     // Send highlight message to content script
     await chrome.tabs.sendMessage(tabId, {
-      action: 'element_marker_highlight',
-      selector: marker.selector,
-      selectorType: marker.selectorType || 'css',
-      listMode: !!marker.listMode,
+      action: 'element_marker_highlight_members',
+      members: getElementMarkerMembers(marker),
     });
   } catch (e) {
     // Ignore errors (tab might not support content scripts)
@@ -725,6 +991,26 @@ watch(activeTab, async (newTab, oldTab) => {
   }
 });
 
+function handleMarkerTabActivated() {
+  if (activeTab.value === 'element-markers') loadMarkers();
+}
+
+function handleMarkerTabUpdated(tabId: number, changeInfo: chrome.tabs.TabChangeInfo) {
+  if (
+    tabId === currentPageTabId.value &&
+    changeInfo.status === 'complete' &&
+    activeTab.value === 'element-markers'
+  ) {
+    loadMarkers();
+  }
+}
+
+function handleMarkerChanged(message: { type?: string }) {
+  if (message?.type === BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_CHANGED) {
+    loadMarkers();
+  }
+}
+
 // Auto-expand domains when search matches
 watch(markerSearch, (query) => {
   if (!query.trim()) return;
@@ -737,6 +1023,9 @@ watch(markerSearch, (query) => {
 });
 
 onMounted(async () => {
+  chrome.tabs.onActivated.addListener(handleMarkerTabActivated);
+  chrome.tabs.onUpdated.addListener(handleMarkerTabUpdated);
+  chrome.runtime.onMessage.addListener(handleMarkerChanged);
   await loadHiddenInterfaceState();
   // Initialize theme
   await initTheme();
@@ -770,6 +1059,9 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  chrome.tabs.onActivated.removeListener(handleMarkerTabActivated);
+  chrome.tabs.onUpdated.removeListener(handleMarkerTabUpdated);
+  chrome.runtime.onMessage.removeListener(handleMarkerChanged);
   // V3 workflows cleanup is handled by useWorkflowsV3 composable
   // No additional cleanup needed
 });
@@ -960,9 +1252,21 @@ onUnmounted(() => {
 /* Toolbar */
 .em-toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
   align-items: center;
+}
+
+.em-filter-select {
+  max-width: 150px;
+  height: 40px;
+  padding: 0 7px;
+  border: 1px solid var(--ac-border, #e5e5e5);
+  border-radius: var(--ac-radius-button, 8px);
+  background: var(--ac-surface, #ffffff);
+  color: var(--ac-text, #404040);
+  font-size: 11px;
 }
 
 .em-search-wrapper {
@@ -1040,6 +1344,18 @@ onUnmounted(() => {
   background: var(--ac-accent-hover, #c4664a);
   transform: translateY(-1px);
   box-shadow: var(--ac-shadow-float, 0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.em-check-btn {
+  width: auto;
+  padding: 0 10px;
+  background: var(--ac-surface-muted, #f5f5f5);
+  color: var(--ac-text, #404040);
+  font-size: 12px;
+}
+
+.em-check-btn:hover {
+  background: var(--ac-hover-bg, #e5e5e5);
 }
 
 /* Modal */
@@ -1303,6 +1619,69 @@ onUnmounted(() => {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+.em-marker-member-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  padding: 5px 6px;
+  border-radius: 5px;
+  background: var(--ac-surface-muted, #f5f5f5);
+}
+
+.em-marker-member-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.em-validation-state {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.em-validation-state.is-normal {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.em-validation-state.is-multiple {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.em-validation-state.is-invalid {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.em-validation-state.is-unknown {
+  background: #e5e7eb;
+  color: #525252;
+}
+
+.em-action-repair {
+  width: auto;
+  min-width: 34px;
+  padding: 0 6px;
+  background: var(--ac-surface-muted, #f5f5f5);
+  color: var(--ac-text-muted, #737373);
+  font-size: 10px;
+}
+
+.em-action-extract {
+  width: auto;
+  padding: 0 6px;
+  background: var(--ac-surface-muted, #f5f5f5);
+  color: var(--ac-text-muted, #737373);
+  font-size: 10px;
 }
 
 .em-action-btn {

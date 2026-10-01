@@ -417,6 +417,152 @@
         margin-bottom: 8px;
       }
 
+      .em-selection-list {
+        margin-bottom: 12px;
+        padding: 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fafafa;
+      }
+
+      .em-selection-list[hidden] {
+        display: none;
+      }
+
+      .em-selection-list-header,
+      .em-selection-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .em-selection-list-header {
+        margin-bottom: 6px;
+        color: #404040;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .em-selection-items {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 112px;
+        overflow-y: auto;
+      }
+
+      .em-similar-preview-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 7px;
+      }
+
+      .em-similar-preview-status {
+        min-height: 16px;
+        margin-bottom: 6px;
+        color: #2563eb;
+        font-size: 11px;
+      }
+
+      .em-selection-member {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .em-selection-name-input {
+        width: 100%;
+        min-width: 0;
+        padding: 3px 5px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+      }
+
+      .em-selection-name-input:focus {
+        border-color: #93c5fd;
+        background: #ffffff;
+        outline: none;
+      }
+
+      .em-selection-item {
+        min-height: 28px;
+        padding: 4px 6px;
+        border-radius: 5px;
+        background: #ffffff;
+        color: #525252;
+        font-size: 11px;
+      }
+
+      .em-selection-item-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .em-selection-remove,
+      .em-selection-clear {
+        flex: 0 0 auto;
+        padding: 2px 5px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #737373;
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .em-selection-remove:hover,
+      .em-selection-clear:hover {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+
+      .em-selection-hint {
+        margin: 7px 0 0;
+        color: #737373;
+        font-size: 11px;
+      }
+
+      .em-extract-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 8px 0 12px;
+      }
+
+      .em-extract-controls[hidden] {
+        display: none;
+      }
+
+      .em-extract-controls .em-select {
+        flex: 1;
+      }
+
+      .em-extract-result {
+        max-height: 100px;
+        margin: 0 0 12px;
+        padding: 8px;
+        overflow: auto;
+        border-radius: 6px;
+        background: #f5f5f5;
+        color: #404040;
+        font-size: 11px;
+        white-space: pre-wrap;
+      }
+
+      .em-extract-result[hidden] {
+        display: none;
+      }
+
       @media (max-width: 700px) {
         .em-panel {
           width: min(400px, calc(100vw - 24px));
@@ -953,14 +1099,48 @@
 
         <!-- Annotation content -->
         <div class="em-content" id="__em_tab_attributes">
+          <div class="em-similar-preview-controls">
+            <span class="em-section-title" style="margin: 0;">Shift 多选范围</span>
+            <select class="em-select" id="__em_selection_scope" aria-label="相似元素范围">
+              <option value="region">当前表格/列表/区域</option>
+              <option value="page">当前页面</option>
+            </select>
+          </div>
+          <div class="em-similar-preview-status" id="__em_similar_preview_status"></div>
+          <div class="em-selection-list" id="__em_selection_list" hidden>
+            <div class="em-selection-list-header" id="__em_selection_count"></div>
+            <div class="em-selection-list-header em-selection-list-actions">
+              <button class="em-selection-clear" id="__em_clear_selection" type="button">清空</button>
+            </div>
+            <div class="em-selection-items" id="__em_selection_items"></div>
+            <p class="em-selection-hint">这些元素会作为一个分组标注保存</p>
+          </div>
+          <div class="em-extract-controls" id="__em_extract_controls" hidden>
+            <select class="em-select" id="__em_extract_type" aria-label="提取数据类型">
+              <option value="text">文字</option>
+              <option value="href">链接地址</option>
+              <option value="src">图片地址</option>
+              <option value="value">输入值</option>
+            </select>
+            <button class="em-selection-remove" id="__em_extract_selected" type="button">提取</button>
+            <button class="em-selection-remove" id="__em_copy_extract" type="button" hidden>复制表格</button>
+            <button class="em-selection-remove" id="__em_download_extract" type="button" hidden>导出 CSV</button>
+          </div>
+          <pre class="em-extract-result" id="__em_extract_result" hidden></pre>
           <div class="em-annotation-layout">
             <section>
               <h3 class="em-section-title">已选元素</h3>
               <div class="em-attributes">
                 <div class="em-attribute">
-                  <div class="em-attribute-label">名称</div>
+                  <div class="em-attribute-label" id="__em_name_label">名称</div>
                   <div class="em-attribute-value editable">
                     <input class="em-input" id="__em_name" placeholder="元素名称" />
+                  </div>
+                </div>
+                <div class="em-attribute">
+                  <div class="em-attribute-label">标签</div>
+                  <div class="em-attribute-value editable">
+                    <input class="em-input" id="__em_tags" placeholder="用逗号分隔标签" />
                   </div>
                 </div>
                 <div class="em-attribute">
@@ -1115,13 +1295,14 @@
 
         <div class="em-actions em-save-actions">
           <button class="em-btn em-btn-success" id="__em_save">保存标记</button>
+          <button class="em-btn em-btn-ghost" id="__em_save_separate" hidden>分别命名保存</button>
           <button class="em-btn em-btn-ghost" id="__em_export">导出定位</button>
           <button class="em-btn em-btn-ghost" id="__em_cancel">取消</button>
         </div>
 
         <!-- Footer -->
         <div class="em-footer">
-          点击元素，或按 <kbd>空格</kbd> 标记；框选按钮可拖动定位
+          点击或按 <kbd>空格</kbd> 标记；<kbd>Ctrl</kbd> 任意多选，<kbd>Shift</kbd> 同类多选；框选按钮可拖动定位
         </div>
 
         <div class="em-code-dialog" id="__em_code_dialog" role="dialog" aria-modal="true" aria-label="元素定位代码">
@@ -1723,7 +1904,7 @@
 
   function generateListSelector(target) {
     const list = computeElementList(target);
-    const selected = list?.[0] || target;
+    const selected = list?.find((item) => item === target || item.contains(target)) || target;
     const parent = selected.parentElement;
 
     if (!parent) return generateSelector(target);
@@ -1743,7 +1924,7 @@
 
   function generateListXPath(target) {
     const list = computeElementList(target);
-    const selected = list?.[0] || target;
+    const selected = list?.find((item) => item === target || item.contains(target)) || target;
     const parent = selected.parentElement;
     if (!parent) return generateXPath(target);
 
@@ -1898,7 +2079,7 @@
       Array.isArray(containers) && containers.length ? containers : computeElementList(target);
     if (!Array.isArray(list) || list.length === 0) return [target];
 
-    const container = list[0];
+    const container = list.find((item) => item === target || item.contains(target));
     if (!(container instanceof Element) || !container.contains(target) || container === target) {
       return list.filter((item) => item instanceof Element);
     }
@@ -2022,6 +2203,14 @@
     hoverEl: null,
     selectedEl: null,
     selectedElements: [],
+    remoteSelectedMembers: [],
+    memberNames: new Map(),
+    similarScope: 'region',
+    previewElements: [],
+    pendingMemberQueries: new Map(),
+    repairTarget: null,
+    extractionRows: [],
+    selectionMode: null,
     box: null,
     highlighter: null,
     listenersAttached: false,
@@ -2120,7 +2309,11 @@
     if (STATE.highlighter) STATE.highlighter.style.display = 'none';
     // Only clear hover rects, not verify rects
     if (!STATE.verifyRectsActive) {
-      clearRects();
+      if (STATE.selectionMode === 'manual' && STATE.selectedElements.length > 1) {
+        drawRects(STATE.selectedElements, CONFIG.COLORS.PRIMARY, false);
+      } else {
+        clearRects();
+      }
     }
   }
 
@@ -2360,18 +2553,60 @@
     const target = getDeepPageTarget(ev) || rawTarget;
     STATE.hoverEl = target;
 
+    const previewing = !!ev?.shiftKey;
+
     // Get current listMode
     let listMode = false;
     try {
-      listMode = !!StateStore.get('listMode');
+      listMode = !!StateStore.get('listMode') && STATE.selectionMode !== 'manual';
     } catch {}
 
     // Skip update if target and mode haven't changed
     const last = STATE.lastHoverTarget;
-    if (last && last.element === target && last.listMode === listMode) {
+    if (
+      last &&
+      last.element === target &&
+      last.listMode === listMode &&
+      last.previewing === previewing &&
+      last.scope === STATE.similarScope
+    ) {
       return;
     }
-    STATE.lastHoverTarget = { element: target, listMode };
+    STATE.lastHoverTarget = { element: target, listMode, previewing, scope: STATE.similarScope };
+
+    if (previewing) {
+      STATE.previewElements = resolveSimilarTargets(target);
+      const rects = STATE.previewElements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+      });
+      if (!IS_MAIN) {
+        window.parent.postMessage(
+          {
+            type: 'em_hover',
+            rects,
+            preview: true,
+            previewCount: STATE.previewElements.length,
+            scope: STATE.similarScope,
+          },
+          '*',
+        );
+      } else {
+        drawRects(STATE.previewElements, CONFIG.COLORS.HOVER, true);
+        const status = STATE.box?.querySelector('#__em_similar_preview_status');
+        if (status) {
+          const scope = STATE.similarScope === 'page' ? '当前页面' : '当前区域';
+          status.textContent = `Shift 点击将选择 ${STATE.previewElements.length} 项（${scope}）`;
+        }
+      }
+      return;
+    }
+
+    STATE.previewElements = [];
+    if (IS_MAIN) {
+      const status = STATE.box?.querySelector('#__em_similar_preview_status');
+      if (status) status.textContent = '';
+    }
 
     if (!IS_MAIN) {
       try {
@@ -2382,7 +2617,7 @@
         });
 
         // Performance: Don't generate selector on hover (defer to click)
-        window.top.postMessage({ type: 'em_hover', rects }, '*');
+        window.parent.postMessage({ type: 'em_hover', rects }, '*');
       } catch {}
       return;
     }
@@ -2507,6 +2742,438 @@
     }
   }
 
+  function selectTarget(target, modifiers = {}) {
+    if (modifiers.ctrlKey || modifiers.metaKey) {
+      const selected = STATE.selectedElements.filter((element) => element.isConnected);
+      const next = selected.includes(target)
+        ? selected.filter((element) => element !== target)
+        : [...selected, target];
+      StateStore.set({ listMode: next.length > 1 });
+      return setSelection(next.at(-1) || null, next, 'manual');
+    } else if (modifiers.shiftKey) {
+      const selected = STATE.selectedElements.filter((element) => element.isConnected);
+      const similar = resolveSimilarTargets(target);
+      const next = [...new Set([...selected, ...similar])];
+      StateStore.set({ listMode: true });
+      return setSelection(target, next, 'manual');
+    } else {
+      if (STATE.selectionMode === 'manual') StateStore.set({ listMode: false });
+      if (IS_MAIN) STATE.remoteSelectedMembers = [];
+      return setSelection(target);
+    }
+  }
+
+  function createMemberId() {
+    return (
+      globalThis.crypto?.randomUUID?.() ||
+      `member_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    );
+  }
+
+  function getLocalMemberKey(member) {
+    return JSON.stringify([member.framePath || [], member.selectorType || 'css', member.selector]);
+  }
+
+  function getLocalSelectedMembers() {
+    const elements =
+      STATE.selectionMode === 'manual' && STATE.selectedElements.length
+        ? STATE.selectedElements
+        : STATE.selectedEl
+          ? [STATE.selectedEl]
+          : [];
+    const selectorType = StateStore.get('selectorType');
+    return elements.map((element) => {
+      const member = {
+        id: createMemberId(),
+        name: getElementName(element),
+        selector: selectorType === 'xpath' ? generateXPath(element) : generateSelector(element),
+        selectorType,
+        tagName: element.tagName.toLowerCase(),
+      };
+      member.key = getLocalMemberKey(member);
+      return member;
+    });
+  }
+
+  function getSelectedMarkerMembers() {
+    const local = getLocalSelectedMembers();
+    const all = [...local, ...STATE.remoteSelectedMembers];
+    const seen = new Set();
+    return all
+      .filter((member) => {
+        const key = getLocalMemberKey(member);
+        if (!member.selector || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((member) => ({
+        id: member.id || createMemberId(),
+        name: STATE.memberNames.get(getLocalMemberKey(member)) || member.name || member.selector,
+        selector: member.selector,
+        selectorType: member.selectorType || 'css',
+        ...(member.framePath?.length ? { framePath: member.framePath } : {}),
+        ...(member.tagName ? { tagName: member.tagName } : {}),
+      }));
+  }
+
+  function reportFrameSelection(target, selector, modifiers = {}) {
+    const isManual = !!(modifiers.ctrlKey || modifiers.metaKey || modifiers.shiftKey);
+    const members = isManual
+      ? STATE.selectedElements.map((element) => ({
+          id: createMemberId(),
+          name: getElementName(element),
+          selector:
+            StateStore.get('selectorType') === 'xpath'
+              ? generateXPath(element)
+              : generateSelector(element),
+          selectorType: StateStore.get('selectorType'),
+          tagName: element.tagName.toLowerCase(),
+        }))
+      : [
+          {
+            id: createMemberId(),
+            name: getElementName(target),
+            selector,
+            selectorType: StateStore.get('selectorType'),
+            tagName: target.tagName.toLowerCase(),
+          },
+        ];
+    window.parent.postMessage(
+      {
+        type: 'em_selection_update',
+        selectionMode: isManual ? 'manual' : 'single',
+        members,
+      },
+      '*',
+    );
+  }
+
+  function postToChildFrames(message) {
+    for (const frame of Array.from(document.querySelectorAll('iframe, frame'))) {
+      try {
+        frame.contentWindow?.postMessage(message, '*');
+      } catch {}
+    }
+  }
+
+  function resolveSimilarTargets(target, scope = STATE.similarScope) {
+    const all = resolveListTargets(target).slice(0, 100);
+    if (scope === 'page') return all;
+    const region = target.closest(
+      'table, ul, ol, [role="list"], [role="listbox"], [role="grid"], main, article, form, fieldset',
+    );
+    if (!region) return all;
+    const withinRegion = all.filter((element) => region.contains(element));
+    return withinRegion.includes(target) ? withinRegion : [target];
+  }
+
+  function buildCompositeMemberSelector(member) {
+    return [...(member.framePath || [])]
+      .reverse()
+      .reduce((selector, segment) => `${segment.selector} |> ${selector}`, member.selector);
+  }
+
+  async function locateMember(member) {
+    const result = await highlightSelectorExternal({
+      selector: buildCompositeMemberSelector(member),
+      selectorType: member.selectorType || 'css',
+    });
+    if (!result?.success) {
+      StateStore.set({
+        validation: { status: 'failure', message: result?.error || '无法定位该元素' },
+      });
+    }
+    return result;
+  }
+
+  function receiveFrameSelection(data, framePath) {
+    const frameKey = JSON.stringify(framePath);
+    const incoming = (Array.isArray(data.members) ? data.members : []).map((member) => {
+      const frameMember = { ...member, framePath };
+      const key = getLocalMemberKey(frameMember);
+      const existing = STATE.remoteSelectedMembers.find((item) => getLocalMemberKey(item) === key);
+      return { ...frameMember, id: existing?.id || createMemberId(), key };
+    });
+
+    if (data.selectionMode !== 'manual') {
+      STATE.selectedElements = [];
+      STATE.selectedEl = null;
+      STATE.remoteSelectedMembers = incoming;
+    } else {
+      STATE.remoteSelectedMembers = STATE.remoteSelectedMembers.filter(
+        (member) => JSON.stringify(member.framePath) !== frameKey,
+      );
+      STATE.remoteSelectedMembers.push(...incoming);
+    }
+    STATE.selectionMode =
+      data.selectionMode === 'manual' || STATE.remoteSelectedMembers.length ? 'manual' : null;
+    const last = incoming.at(-1);
+    const selector = last ? buildCompositeMemberSelector(last) : '';
+    const selectorText = STATE.box?.querySelector('#__em_selector');
+    const selectorDisplay = STATE.box?.querySelector('#__em_selector_text');
+    const inputName = STATE.box?.querySelector('#__em_name');
+    if (selectorText) selectorText.textContent = selector || '-';
+    if (selectorDisplay) selectorDisplay.textContent = selector || '点击页面元素进行标记';
+    if (inputName && last) inputName.value = last.name || '元素';
+    StateStore.set({ listMode: STATE.remoteSelectedMembers.length > 1 });
+    renderSelectionList();
+    return incoming;
+  }
+
+  async function completeMarkerRepair(member) {
+    const repair = STATE.repairTarget;
+    if (!repair || !member?.selector) return;
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'element_marker_update_member',
+        markerId: repair.markerId,
+        memberId: repair.memberId,
+        locator: {
+          selector: member.selector,
+          selectorType: member.selectorType || 'css',
+          framePath: member.framePath || [],
+          tagName: member.tagName,
+        },
+      });
+      StateStore.set({
+        validation: response?.success
+          ? { status: 'success', message: `✓ 已更新“${member.name || '元素'}”的定位` }
+          : { status: 'failure', message: response?.error || '更新定位失败' },
+      });
+      if (response?.success) STATE.repairTarget = null;
+    } catch (error) {
+      StateStore.set({
+        validation: { status: 'failure', message: error?.message || '更新定位失败' },
+      });
+    }
+  }
+
+  function renderSelectionList() {
+    const host = STATE.box;
+    const list = host?.querySelector('#__em_selection_list');
+    const count = host?.querySelector('#__em_selection_count');
+    const items = host?.querySelector('#__em_selection_items');
+    const saveButton = host?.querySelector('#__em_save');
+    const saveSeparateButton = host?.querySelector('#__em_save_separate');
+    const nameLabel = host?.querySelector('#__em_name_label');
+    const nameInput = host?.querySelector('#__em_name');
+    const previewStatus = host?.querySelector('#__em_similar_preview_status');
+    const extractControls = host?.querySelector('#__em_extract_controls');
+    const extractResult = host?.querySelector('#__em_extract_result');
+    const copyExtract = host?.querySelector('#__em_copy_extract');
+    const downloadExtract = host?.querySelector('#__em_download_extract');
+    if (!list || !count || !items) return;
+
+    const selectedMembers = getSelectedMarkerMembers();
+    const isManualSelection = STATE.selectionMode === 'manual' && selectedMembers.length > 0;
+    list.hidden = !isManualSelection;
+    if (extractControls) extractControls.hidden = selectedMembers.length === 0;
+    if (extractResult) extractResult.hidden = true;
+    if (copyExtract) copyExtract.hidden = true;
+    if (downloadExtract) downloadExtract.hidden = true;
+    STATE.extractionRows = [];
+    items.replaceChildren();
+
+    if (!isManualSelection) {
+      if (saveButton) saveButton.textContent = '保存标记';
+      if (saveSeparateButton) saveSeparateButton.hidden = true;
+      if (nameLabel) nameLabel.textContent = '名称';
+      if (nameInput) nameInput.placeholder = '元素名称';
+      if (previewStatus) previewStatus.textContent = '';
+      if (extractResult) extractResult.hidden = true;
+      return;
+    }
+
+    count.textContent = `已选择 ${selectedMembers.length} 项`;
+    if (saveSeparateButton) saveSeparateButton.hidden = selectedMembers.length < 2;
+    for (const member of selectedMembers) {
+      const row = document.createElement('div');
+      row.className = 'em-selection-item';
+      row.dataset.memberKey = getLocalMemberKey(member);
+
+      const memberContent = document.createElement('div');
+      memberContent.className = 'em-selection-member';
+
+      const nameInput = document.createElement('input');
+      nameInput.className = 'em-selection-name-input';
+      nameInput.value = STATE.memberNames.get(getLocalMemberKey(member)) || member.name;
+      nameInput.title = member.framePath?.length
+        ? `iframe：${member.framePath.map((segment) => segment.selector).join(' → ')}`
+        : member.tagName || '当前页面';
+      nameInput.setAttribute('aria-label', `元素名称：${member.name}`);
+      nameInput.addEventListener('input', () => {
+        STATE.memberNames.set(getLocalMemberKey(member), nameInput.value.trim());
+      });
+      memberContent.append(nameInput);
+
+      const locate = document.createElement('button');
+      locate.className = 'em-selection-remove';
+      locate.type = 'button';
+      locate.textContent = '定位';
+      locate.setAttribute('aria-label', `定位 ${member.name}`);
+      locate.addEventListener('click', () => locateMember(member));
+
+      const remove = document.createElement('button');
+      remove.className = 'em-selection-remove';
+      remove.type = 'button';
+      remove.textContent = '移除';
+      remove.setAttribute('aria-label', `移除 ${member.name}`);
+      remove.addEventListener('click', () => removeSelectedMember(member));
+
+      row.append(memberContent, locate, remove);
+      items.append(row);
+    }
+
+    if (saveButton) saveButton.textContent = `保存分组（${selectedMembers.length}项）`;
+    if (nameLabel) nameLabel.textContent = '分组名称';
+    if (nameInput) nameInput.placeholder = '给这组元素命名';
+  }
+
+  function removeSelectedMember(member) {
+    const key = getLocalMemberKey(member);
+    STATE.memberNames.delete(key);
+    if (member.framePath?.length) {
+      STATE.remoteSelectedMembers = STATE.remoteSelectedMembers.filter(
+        (item) => getLocalMemberKey(item) !== key,
+      );
+    } else {
+      STATE.selectedElements = STATE.selectedElements.filter((element) => {
+        const selector =
+          member.selectorType === 'xpath' ? generateXPath(element) : generateSelector(element);
+        return selector !== member.selector;
+      });
+      STATE.selectedEl = STATE.selectedElements.at(-1) || null;
+    }
+    StateStore.set({
+      listMode: STATE.selectedElements.length + STATE.remoteSelectedMembers.length > 1,
+    });
+    if (STATE.selectedElements.length === 0 && STATE.remoteSelectedMembers.length === 0) {
+      STATE.selectionMode = null;
+      setSelection(null, [], 'manual');
+    } else {
+      STATE.selectionMode = 'manual';
+      if (STATE.selectedEl) {
+        setSelection(STATE.selectedEl, STATE.selectedElements, 'manual');
+      } else {
+        const firstRemote = STATE.remoteSelectedMembers[0];
+        const selectorText = STATE.box?.querySelector('#__em_selector');
+        const selectorDisplay = STATE.box?.querySelector('#__em_selector_text');
+        if (firstRemote) {
+          const selector = buildCompositeMemberSelector(firstRemote);
+          if (selectorText) selectorText.textContent = selector;
+          if (selectorDisplay) selectorDisplay.textContent = selector;
+        }
+        renderSelectionList();
+      }
+    }
+  }
+
+  function removeSelectedElement(element) {
+    const next = STATE.selectedElements.filter((item) => item !== element && item.isConnected);
+    StateStore.set({ listMode: next.length > 1 });
+    setSelection(next.at(-1) || null, next, 'manual');
+  }
+
+  function clearSelectedElements() {
+    STATE.remoteSelectedMembers = [];
+    STATE.memberNames.clear();
+    StateStore.set({ listMode: false });
+    setSelection(null, [], 'manual');
+  }
+
+  async function extractSelectedMembers() {
+    const members = getSelectedMarkerMembers().slice(0, 100);
+    if (!members.length) return;
+    const valueType = STATE.box?.querySelector('#__em_extract_type')?.value || 'text';
+    const extractButton = STATE.box?.querySelector('#__em_extract_selected');
+    if (extractButton) {
+      extractButton.disabled = true;
+      extractButton.textContent = '提取中…';
+    }
+    try {
+      STATE.extractionRows = await Promise.all(
+        members.map(async (member) => {
+          const result = await runMemberOperation(member, 'value', valueType);
+          return {
+            name: member.name,
+            frame: member.framePath?.map((segment) => segment.selector).join(' → ') || '当前页面',
+            value: result?.success ? result.value : '',
+            error: result?.success ? '' : result?.error || '读取失败',
+          };
+        }),
+      );
+      const preview = STATE.box?.querySelector('#__em_extract_result');
+      if (preview) {
+        preview.textContent = [
+          '名称\t页面/Frame\t结果',
+          ...STATE.extractionRows.map(
+            (row) => `${row.name}\t${row.frame}\t${row.value || row.error}`,
+          ),
+        ].join('\n');
+        preview.hidden = false;
+      }
+      const copyButton = STATE.box?.querySelector('#__em_copy_extract');
+      const downloadButton = STATE.box?.querySelector('#__em_download_extract');
+      if (copyButton) copyButton.hidden = false;
+      if (downloadButton) downloadButton.hidden = false;
+    } catch (error) {
+      StateStore.set({
+        validation: { status: 'failure', message: error?.message || '批量提取失败' },
+      });
+    } finally {
+      if (extractButton) {
+        extractButton.disabled = false;
+        extractButton.textContent = '提取';
+      }
+    }
+  }
+
+  function escapeCsvField(value) {
+    const text = String(value ?? '');
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  }
+
+  async function copyExtractionRows() {
+    if (!STATE.extractionRows.length) return;
+    const tsv = [
+      ['名称', '页面/Frame', '结果'],
+      ...STATE.extractionRows.map((row) => [row.name, row.frame, row.error || row.value]),
+    ]
+      .map((row) => row.map(escapeCsvField).join('\t'))
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(tsv);
+      StateStore.set({ validation: { status: 'success', message: '✓ 已复制为表格' } });
+    } catch {
+      StateStore.set({ validation: { status: 'failure', message: '复制失败，请使用 CSV 导出' } });
+    }
+  }
+
+  function downloadExtractionCsv() {
+    if (!STATE.extractionRows.length) return;
+    const csv = [
+      ['名称', '页面/Frame', '结果'],
+      ...STATE.extractionRows.map((row) => [row.name, row.frame, row.error || row.value]),
+    ]
+      .map((row) => row.map(escapeCsvField).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'element-marker-data.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function syncSimilarScope() {
+    const scope =
+      STATE.box?.querySelector('#__em_selection_scope')?.value === 'page' ? 'page' : 'region';
+    STATE.similarScope = scope;
+    postToChildFrames({ type: 'em-similar-scope', scope });
+    STATE.lastHoverTarget = null;
+  }
+
   function onClick(ev) {
     if (!STATE.active) return;
 
@@ -2549,30 +3216,23 @@
 
     if (!IS_MAIN) {
       try {
-        const selectorType =
-          StateStore.get('selectorType') === 'xpath' && target.getRootNode() instanceof ShadowRoot
-            ? 'css'
-            : StateStore.get('selectorType');
-        const listMode = StateStore.get('listMode');
-
-        const sel = listMode
-          ? selectorType === 'xpath'
-            ? generateListXPath(target)
-            : generateListSelector(target)
-          : selectorType === 'xpath'
-            ? generateXPath(target)
-            : generateSelector(target);
-
-        window.top.postMessage(
-          { type: 'em_click', innerSel: sel, name: getElementName(target), selectorType },
-          '*',
-        );
+        const sel = selectTarget(target, ev);
+        reportFrameSelection(target, sel, ev);
         if (StateStore.get('replaySiteClick')) replayPageClick(target, ev);
       } catch {}
       return;
     }
 
-    setSelection(target);
+    selectTarget(target, ev);
+    if (IS_MAIN && STATE.repairTarget) {
+      const selectorType = StateStore.get('selectorType');
+      completeMarkerRepair({
+        name: getElementName(target),
+        selector: selectorType === 'xpath' ? generateXPath(target) : generateSelector(target),
+        selectorType,
+        tagName: target.tagName.toLowerCase(),
+      });
+    }
     if (StateStore.get('replaySiteClick')) replayPageClick(target, ev);
   }
 
@@ -2631,9 +3291,13 @@
   }
 
   function onBoxSelectionStart(event) {
-    if (!STATE.active || !StateStore.get('boxSelect') || event.button !== 0) return;
+    if (!STATE.active || event.button !== 0) return;
     if (isExternalPickerActive()) return;
     if (isInsidePanel(event.target)) return;
+    if (!StateStore.get('boxSelect')) {
+      if (event.ctrlKey || event.metaKey || event.shiftKey) event.preventDefault();
+      return;
+    }
 
     event.preventDefault();
     event.stopPropagation();
@@ -2706,7 +3370,10 @@
     } else if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
       const t = STATE.hoverEl || STATE.selectedEl;
-      if (t) setSelection(t);
+      if (t) {
+        const sel = selectTarget(t, e);
+        if (!IS_MAIN) reportFrameSelection(t, sel, e);
+      }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       const base = STATE.selectedEl || STATE.hoverEl;
@@ -2718,19 +3385,25 @@
     }
   }
 
-  function setSelection(el, selectedElements = null) {
-    if (!(el instanceof Element)) return;
+  function setSelection(el, selectedElements = null, selectionMode = null) {
+    if (!(el instanceof Element) && !Array.isArray(selectedElements)) return;
 
-    STATE.selectedEl = el;
     const elements = Array.isArray(selectedElements)
       ? selectedElements
       : StateStore.get('listMode')
         ? resolveListTargets(el)
         : [el];
-    STATE.selectedElements = filterOverlayElements(elements);
+    STATE.selectedElements = [...new Set(filterOverlayElements(elements))];
+    STATE.selectedEl = STATE.selectedElements.includes(el)
+      ? el
+      : STATE.selectedElements.at(-1) || null;
+    STATE.selectionMode = selectionMode;
 
     let selectorType = StateStore.get('selectorType');
-    if (selectorType === 'xpath' && el.getRootNode() instanceof ShadowRoot) {
+    if (
+      selectorType === 'xpath' &&
+      STATE.selectedElements.some((element) => element.getRootNode() instanceof ShadowRoot)
+    ) {
       selectorType = 'css';
       StateStore.set({ selectorType });
       const typeSelect = STATE.box?.querySelector('#__em_selector_type');
@@ -2738,15 +3411,22 @@
     }
     const listMode = StateStore.get('listMode');
 
-    const sel = listMode
-      ? selectorType === 'xpath'
-        ? generateListXPath(el)
-        : generateListSelector(el)
-      : selectorType === 'xpath'
-        ? generateXPath(el)
-        : generateSelector(el);
+    const sel =
+      selectionMode === 'manual'
+        ? STATE.selectedElements
+            .map((element) =>
+              selectorType === 'xpath' ? generateXPath(element) : generateSelector(element),
+            )
+            .join(selectorType === 'xpath' ? ' | ' : ', ')
+        : listMode
+          ? selectorType === 'xpath'
+            ? generateListXPath(el)
+            : generateListSelector(el)
+          : selectorType === 'xpath'
+            ? generateXPath(el)
+            : generateSelector(el);
 
-    const name = getElementName(el);
+    const name = STATE.selectedEl ? getElementName(STATE.selectedEl) : '';
 
     const selectorText = STATE.box?.querySelector('#__em_selector');
     const inputName = STATE.box?.querySelector('#__em_name');
@@ -2760,14 +3440,30 @@
       selectorDisplay.textContent = sel;
       selectorDisplay.title = sel;
     }
-    if (inputName && (STATE.nameElement !== el || !inputName.value)) inputName.value = name;
-    STATE.nameElement = el;
+    if (inputName && (STATE.nameElement !== STATE.selectedEl || !inputName.value)) {
+      inputName.value = name;
+    }
+    STATE.nameElement = STATE.selectedEl;
 
-    moveHighlighterTo(el);
+    if (STATE.selectedElements.length > 1) {
+      drawRects(STATE.selectedElements, CONFIG.COLORS.PRIMARY, false);
+    } else {
+      clearRects();
+    }
+    if (STATE.selectedEl) moveHighlighterTo(STATE.selectedEl);
+    else clearHighlighter();
+    renderSelectionList();
+    return sel;
   }
 
   function refreshSelectedSelector() {
-    if (STATE.selectedEl) setSelection(STATE.selectedEl);
+    if (STATE.selectedEl) {
+      setSelection(
+        STATE.selectedEl,
+        STATE.selectionMode === 'manual' ? STATE.selectedElements : null,
+        STATE.selectionMode,
+      );
+    }
   }
 
   // ============================================================================
@@ -3221,25 +3917,156 @@
     return message;
   }
 
+  function countLocalSelectorMatches(selector, selectorType) {
+    if (selectorType === 'xpath') return evaluateXPathAll(selector).length;
+    return queryAllDeep(selector).length;
+  }
+
+  async function countMemberMatches(member) {
+    const framePath = Array.isArray(member.framePath) ? member.framePath : [];
+    if (!framePath.length) {
+      return {
+        success: true,
+        matchCount: countLocalSelectorMatches(member.selector, member.selectorType),
+      };
+    }
+
+    const [segment, ...remainingPath] = framePath;
+    const frames = queryAllDeep(segment.selector).filter(
+      (element) => element instanceof HTMLIFrameElement || element instanceof HTMLFrameElement,
+    );
+    if (frames.length > 1) return { success: true, matchCount: frames.length };
+    const frame = frames[0];
+    if (!frame?.contentWindow) {
+      return { success: false, matchCount: 0, error: 'iframe 定位已失效' };
+    }
+    if (segment.url && frame.getAttribute('src')) {
+      try {
+        if (new URL(frame.getAttribute('src'), location.href).href !== segment.url) {
+          return { success: false, matchCount: 0, error: 'iframe 页面地址已变化' };
+        }
+      } catch {
+        return { success: false, matchCount: 0, error: 'iframe 页面地址无效' };
+      }
+    }
+
+    const reqId = `em_count_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        STATE.pendingMemberQueries.delete(reqId);
+        resolve({ success: false, matchCount: 0, error: 'iframe 无法访问或响应超时' });
+      }, 2500);
+      STATE.pendingMemberQueries.set(reqId, {
+        source: frame.contentWindow,
+        timer,
+        resolve,
+      });
+      frame.contentWindow.postMessage(
+        {
+          type: 'em-member-count-request',
+          reqId,
+          member: { ...member, framePath: remainingPath },
+        },
+        '*',
+      );
+    });
+  }
+
+  function getMemberElementValue(element, valueType) {
+    if (!element) return '';
+    if (valueType === 'href') return element.href || element.getAttribute('href') || '';
+    if (valueType === 'src') return element.src || element.getAttribute('src') || '';
+    if (valueType === 'value') return element.value ?? element.getAttribute('value') ?? '';
+    return String(element.innerText || element.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function queryLocalMemberValue(member, valueType) {
+    const element =
+      member.selectorType === 'xpath'
+        ? evaluateXPathAll(member.selector)[0]
+        : queryAllDeep(member.selector)[0];
+    if (!element) return { success: false, value: '', error: '未找到元素' };
+    return { success: true, value: String(getMemberElementValue(element, valueType)) };
+  }
+
+  async function requestFrameMemberOperation(member, operation, valueType) {
+    const [segment, ...remainingPath] = member.framePath || [];
+    const frames = segment
+      ? queryAllDeep(segment.selector).filter(
+          (element) => element instanceof HTMLIFrameElement || element instanceof HTMLFrameElement,
+        )
+      : [];
+    if (frames.length !== 1 || !frames[0]?.contentWindow) {
+      return { success: false, value: '', error: 'iframe 定位无效或匹配不唯一' };
+    }
+    const frame = frames[0];
+    if (segment.url && frame.getAttribute('src')) {
+      try {
+        if (new URL(frame.getAttribute('src'), location.href).href !== segment.url) {
+          return { success: false, value: '', error: 'iframe 页面地址已变化' };
+        }
+      } catch {
+        return { success: false, value: '', error: 'iframe 页面地址无效' };
+      }
+    }
+    const reqId = `em_query_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        STATE.pendingMemberQueries.delete(reqId);
+        resolve({ success: false, value: '', error: 'iframe 查询超时' });
+      }, 2500);
+      STATE.pendingMemberQueries.set(reqId, { source: frame.contentWindow, timer, resolve });
+      frame.contentWindow.postMessage(
+        {
+          type: 'em-member-operation-request',
+          reqId,
+          operation,
+          valueType,
+          member: { ...member, framePath: remainingPath },
+        },
+        '*',
+      );
+    });
+  }
+
+  async function runMemberOperation(member, operation, valueType) {
+    if (Array.isArray(member.framePath) && member.framePath.length) {
+      return requestFrameMemberOperation(member, operation, valueType);
+    }
+    if (operation === 'count') {
+      return {
+        success: true,
+        matchCount: countLocalSelectorMatches(member.selector, member.selectorType),
+      };
+    }
+    return queryLocalMemberValue(member, valueType);
+  }
+
   function getMarkerData() {
-    const name = STATE.box?.querySelector('#__em_name')?.value?.trim();
-    const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
-    if (!selector || selector === '-') return null;
+    const nameInput = STATE.box?.querySelector('#__em_name');
+    const name = nameInput?.value?.trim();
+    const members = getSelectedMarkerMembers();
+    const selector = members[0] ? buildCompositeMemberSelector(members[0]) : '';
+    if (!selector) return null;
 
-    const selectorType = StateStore.get('selectorType');
-    const listMode = StateStore.get('listMode');
-
-    const selected = STATE.selectedEl;
+    const selectorType = members[0]?.selectorType || StateStore.get('selectorType');
+    const tags = (STATE.box?.querySelector('#__em_tags')?.value || '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const hasGroup = members.length > 1 || STATE.selectionMode === 'manual';
+    const groupId = hasGroup ? createMemberId() : undefined;
     return {
-      name: name || selector,
+      name: name || (hasGroup ? `元素分组（${members.length}项）` : selector),
       url: location.href,
       selector,
       selectorType,
-      listMode,
-      locator: {
-        preferred: { type: selectorType, value: selector },
-        ...(selected ? { css: generateSelector(selected), xpath: generateXPath(selected) } : {}),
-      },
+      listMode: members.length > 1 || StateStore.get('listMode'),
+      ...(tags.length ? { tags: [...new Set(tags)] } : {}),
+      ...(hasGroup ? { groupId, groupName: name || `元素分组（${members.length}项）` } : {}),
+      ...(members.length > 1 || members[0]?.framePath?.length ? { members } : {}),
     };
   }
 
@@ -3307,7 +4134,7 @@
     StateStore.set({ validation: { status: 'success', message: '✓ 定位代码已复制到剪贴板' } });
   }
 
-  async function save() {
+  async function save(saveMode = 'group') {
     try {
       const marker = getMarkerData();
       if (!marker) {
@@ -3316,13 +4143,45 @@
         });
         return;
       }
-      const response = await chrome.runtime.sendMessage({
-        type: 'element_marker_save',
-        marker,
-      });
+      let response;
+      if (saveMode === 'separate' && Array.isArray(marker.members) && marker.members.length > 1) {
+        const groupId = marker.groupId || createMemberId();
+        const responses = await Promise.all(
+          marker.members.map((member) =>
+            chrome.runtime.sendMessage({
+              type: 'element_marker_save',
+              marker: {
+                url: marker.url,
+                name: member.name,
+                selector: member.framePath?.length
+                  ? buildCompositeMemberSelector(member)
+                  : member.selector,
+                selectorType: member.selectorType,
+                listMode: false,
+                groupId,
+                groupName: marker.groupName || marker.name,
+                tags: marker.tags,
+                ...(member.framePath?.length ? { members: [member] } : {}),
+              },
+            }),
+          ),
+        );
+        const failedCount = responses.filter((item) => !item?.success).length;
+        response = failedCount
+          ? { success: false, error: `${failedCount} 个元素保存失败` }
+          : { success: true };
+      } else {
+        response = await chrome.runtime.sendMessage({
+          type: 'element_marker_save',
+          marker,
+        });
+      }
       StateStore.set({
         validation: response?.success
-          ? { status: 'success', message: '✓ 标记已保存' }
+          ? {
+              status: 'success',
+              message: saveMode === 'separate' ? '✓ 已分别保存并加入同一分组' : '✓ 标记已保存',
+            }
           : { status: 'failure', message: response?.error || '保存失败' },
       });
     } catch (error) {
@@ -3351,11 +4210,13 @@
     attachPointerListeners();
     attachKeyboardListener();
     syncInteractionMode();
+    if (IS_MAIN) postToChildFrames({ type: 'em-activate' });
   }
 
   function stop() {
     STATE.active = false;
     StateStore.set({ boxSelect: false });
+    if (STATE.selectionMode === 'manual') StateStore.set({ listMode: false });
 
     detachPointerListeners();
     detachKeyboardListener();
@@ -3381,6 +4242,7 @@
     STATE.hoverEl = null;
     STATE.selectedEl = null;
     STATE.selectedElements = [];
+    STATE.selectionMode = null;
     STATE.nameElement = null;
     STATE.lastHoverTarget = null;
     STATE.verifyRectsActive = false;
@@ -3407,7 +4269,13 @@
     host.querySelector('#__em_cancel')?.addEventListener('click', stop);
 
     // Save
-    host.querySelector('#__em_save')?.addEventListener('click', save);
+    host.querySelector('#__em_save')?.addEventListener('click', () => save('group'));
+    host.querySelector('#__em_save_separate')?.addEventListener('click', () => save('separate'));
+    host.querySelector('#__em_clear_selection')?.addEventListener('click', clearSelectedElements);
+    host.querySelector('#__em_selection_scope')?.addEventListener('change', syncSimilarScope);
+    host.querySelector('#__em_extract_selected')?.addEventListener('click', extractSelectedMembers);
+    host.querySelector('#__em_copy_extract')?.addEventListener('click', copyExtractionRows);
+    host.querySelector('#__em_download_extract')?.addEventListener('click', downloadExtractionCsv);
     host.querySelector('#__em_export')?.addEventListener('click', exportMarker);
     host.querySelector('#__em_code_close')?.addEventListener('click', () => {
       host.querySelector('#__em_code_dialog')?.classList.remove('open');
@@ -3449,7 +4317,7 @@
 
       // Regenerate selector for the currently selected element
       if (STATE.selectedEl) {
-        setSelection(STATE.selectedEl);
+        refreshSelectedSelector();
       }
       // Note: If no selectedEl (e.g., iframe selections or manual input),
       // preserve existing selector text instead of clearing it
@@ -3460,11 +4328,9 @@
       const listMode = StateStore.get('listMode');
       const newListMode = !listMode;
 
-      if (newListMode) {
-        StateStore.set({ listMode: true });
-      } else {
-        StateStore.set({ listMode: false });
-      }
+      StateStore.set({ listMode: newListMode });
+      STATE.selectionMode = null;
+      STATE.remoteSelectedMembers = [];
 
       // Update button active state
       const btn = e.currentTarget;
@@ -3656,8 +4522,90 @@
         const data = ev?.data;
         if (!data) return;
 
+        if (data.type === 'em-member-count-result') {
+          const pending = STATE.pendingMemberQueries.get(data.reqId);
+          if (pending && ev.source === pending.source) {
+            clearTimeout(pending.timer);
+            STATE.pendingMemberQueries.delete(data.reqId);
+            pending.resolve(data.result);
+          }
+          return;
+        }
+        if (data.type === 'em-member-operation-result') {
+          const pending = STATE.pendingMemberQueries.get(data.reqId);
+          if (pending && ev.source === pending.source) {
+            clearTimeout(pending.timer);
+            STATE.pendingMemberQueries.delete(data.reqId);
+            pending.resolve(data.result);
+          }
+          return;
+        }
+        if (data.type === 'em-member-operation-request' && ev.source === window.parent) {
+          runMemberOperation(data.member, data.operation, data.valueType)
+            .then((result) =>
+              window.parent.postMessage(
+                {
+                  type: 'em-member-operation-result',
+                  reqId: data.reqId,
+                  result,
+                },
+                '*',
+              ),
+            )
+            .catch((error) =>
+              window.parent.postMessage(
+                {
+                  type: 'em-member-operation-result',
+                  reqId: data.reqId,
+                  result: { success: false, value: '', error: error?.message || '查询失败' },
+                },
+                '*',
+              ),
+            );
+          return;
+        }
+        if (data.type === 'em-member-count-request' && ev.source === window.parent) {
+          countMemberMatches(data.member)
+            .then((result) =>
+              window.parent.postMessage(
+                {
+                  type: 'em-member-count-result',
+                  reqId: data.reqId,
+                  result,
+                },
+                '*',
+              ),
+            )
+            .catch((error) =>
+              window.parent.postMessage(
+                {
+                  type: 'em-member-count-result',
+                  reqId: data.reqId,
+                  result: {
+                    success: false,
+                    matchCount: 0,
+                    error: error?.message || '标注检查失败',
+                  },
+                },
+                '*',
+              ),
+            );
+          return;
+        }
+
+        if (data.type === 'em-activate' && ev.source === window.parent && !IS_MAIN) {
+          start();
+          postToChildFrames({ type: 'em-activate' });
+          return;
+        }
+        if (data.type === 'em-similar-scope' && ev.source === window.parent) {
+          STATE.similarScope = data.scope === 'page' ? 'page' : 'region';
+          postToChildFrames(data);
+          return;
+        }
+
         // Handle iframe highlight request (works even when overlay is inactive)
-        if (data.type === 'em-highlight-request') {
+        if (data.type === 'em-highlight-request' && ev.source === window.parent) {
           highlightSelectorExternal({
             selector: data.selector,
             selectorType: data.selectorType || 'css',
@@ -3689,9 +4637,6 @@
         // Following messages only relevant when overlay is active
         if (!STATE.active) return;
 
-        // Only main frame handles these overlay-related messages
-        if (!IS_MAIN) return;
-
         const iframes = Array.from(document.querySelectorAll('iframe'));
         const host = iframes.find((f) => {
           try {
@@ -3704,36 +4649,45 @@
         if (!host) return;
 
         const base = host.getBoundingClientRect();
+        const frameSegment = { selector: generateSelector(host) };
+        try {
+          const src = host.getAttribute('src');
+          if (src) frameSegment.url = new URL(src, location.href).href;
+        } catch {}
+        const framePath = [frameSegment, ...(Array.isArray(data.framePath) ? data.framePath : [])];
 
         if (data.type === 'em_hover' && Array.isArray(data.rects)) {
-          // Use pooled rect boxes for better performance
-          drawRectBoxes(data.rects, {
-            offsetX: base.left,
-            offsetY: base.top,
-            color: CONFIG.COLORS.HOVER,
-            dashed: true,
-          });
-        } else if (data.type === 'em_click' && data.innerSel) {
-          const frameSel = generateSelector(host);
-          const composite = frameSel ? `${frameSel} |> ${data.innerSel}` : data.innerSel;
-          const selectorText = STATE.box?.querySelector('#__em_selector');
-          const selectorDisplay = STATE.box?.querySelector('#__em_selector_text');
-          const inputName = STATE.box?.querySelector('#__em_name');
-          if (selectorText) {
-            selectorText.textContent = composite;
-            selectorText.title = composite;
+          const rects = data.rects.map((rect) => ({
+            ...rect,
+            x: rect.x + base.left,
+            y: rect.y + base.top,
+          }));
+          if (IS_MAIN) {
+            drawRectBoxes(rects, {
+              color: CONFIG.COLORS.HOVER,
+              dashed: true,
+            });
+            if (!data.preview) {
+              const status = STATE.box?.querySelector('#__em_similar_preview_status');
+              if (status) status.textContent = '';
+            }
+            if (data.preview) {
+              const status = STATE.box?.querySelector('#__em_similar_preview_status');
+              if (status) {
+                const scope = data.scope === 'page' ? '当前页面' : '当前区域';
+                status.textContent = `Shift 点击将选择 ${data.previewCount || rects.length} 项（${scope}）`;
+              }
+            }
+          } else {
+            window.parent.postMessage({ ...data, rects, framePath }, '*');
           }
-          if (selectorDisplay) {
-            selectorDisplay.textContent = composite;
-            selectorDisplay.title = composite;
-          }
-          if (inputName) inputName.value = data.name || '元素';
-          if (data.selectorType) {
-            StateStore.set({ selectorType: data.selectorType });
-            const typeSelect = STATE.box?.querySelector('#__em_selector_type');
-            if (typeSelect) typeSelect.value = data.selectorType;
-          }
-          STATE.nameElement = null;
+        } else if (data.type === 'em_selection_update') {
+          if (IS_MAIN) {
+            const incoming = receiveFrameSelection(data, framePath);
+            if (STATE.repairTarget && incoming.at(-1)) {
+              completeMarkerRepair(incoming.at(-1));
+            }
+          } else window.parent.postMessage({ ...data, framePath }, '*');
         }
       } catch {}
     },
@@ -3752,6 +4706,59 @@
     } else if (request?.action === 'element_marker_ping') {
       sendResponse({ status: 'pong' });
       return false;
+    } else if (request?.action === 'element_marker_count_matches') {
+      countMemberMatches(request.member)
+        .then((result) => sendResponse(result))
+        .catch((error) =>
+          sendResponse({
+            success: false,
+            matchCount: 0,
+            error: error?.message || '标注检查失败',
+          }),
+        );
+      return true;
+    } else if (request?.action === 'element_marker_extract_members') {
+      const members = Array.isArray(request.members) ? request.members.slice(0, 100) : [];
+      Promise.all(
+        members.map(async (member) => {
+          const result = await runMemberOperation(member, 'value', request.valueType || 'text');
+          return {
+            memberId: member.id,
+            name: member.name,
+            frame: member.framePath?.map((segment) => segment.selector).join(' → ') || '当前页面',
+            value: result?.success ? result.value : '',
+            error: result?.success ? '' : result?.error || '读取失败',
+          };
+        }),
+      )
+        .then((rows) => sendResponse({ success: true, rows }))
+        .catch((error) => sendResponse({ success: false, error: error?.message || '提取失败' }));
+      return true;
+    } else if (request?.action === 'element_marker_reselect' && IS_MAIN) {
+      STATE.repairTarget = {
+        markerId: String(request.markerId || ''),
+        memberId: String(request.memberId || request.markerId || ''),
+      };
+      StateStore.set({
+        activeTab: 'attributes',
+        validation: { status: 'idle', message: '请在页面上点击新的元素定位' },
+      });
+      sendResponse({ success: true });
+      return true;
+    } else if (request?.action === 'element_marker_highlight_members') {
+      const members = Array.isArray(request.members) ? request.members.slice(0, 100) : [];
+      Promise.all(members.map((member) => locateMember(member)))
+        .then((results) => {
+          const failed = results.filter((result) => !result?.success);
+          const response = {
+            success: failed.length === 0,
+            results,
+            ...(failed.length ? { error: `${failed.length} 个标注元素无法定位` } : {}),
+          };
+          sendResponse(response);
+        })
+        .catch((error) => sendResponse({ success: false, error: error?.message || String(error) }));
+      return true;
     } else if (request?.action === 'element_marker_highlight') {
       highlightSelectorExternal({
         selector: request.selector,

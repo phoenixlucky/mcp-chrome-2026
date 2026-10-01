@@ -8,6 +8,9 @@
 
 import { failed, invalid, ok, tryResolveString } from '../registry';
 import type { ActionHandler, BrowserWorld, JsonValue, VariableStore } from '../types';
+import { getMarkerById } from '@/entrypoints/background/element-marker/element-marker-storage';
+import { getElementMarkerMembers } from '@/common/element-marker-types';
+import { resolveMarkerFrame } from './common';
 
 /** Default attribute to extract */
 const DEFAULT_EXTRACT_ATTR = 'textContent';
@@ -21,6 +24,7 @@ async function executeExtraction(
   mode: 'selector' | 'js',
   params: {
     selector?: string;
+    selectorType?: 'css' | 'xpath';
     attr?: string;
     code?: string;
     world?: BrowserWorld;
@@ -34,8 +38,17 @@ async function executeExtraction(
       const injected = await chrome.scripting.executeScript({
         target: { tabId, frameIds } as chrome.scripting.InjectionTarget,
         world,
-        func: (selector: string, attr: string) => {
-          const el = document.querySelector(selector);
+        func: (selector: string, selectorType: 'css' | 'xpath', attr: string) => {
+          const el =
+            selectorType === 'xpath'
+              ? (document.evaluate(
+                  selector,
+                  document,
+                  null,
+                  XPathResult.FIRST_ORDERED_NODE_TYPE,
+                  null,
+                ).singleNodeValue as Element | null)
+              : document.querySelector(selector);
           if (!el) {
             return { success: false, error: `Element not found: ${selector}` };
           }
@@ -68,7 +81,7 @@ async function executeExtraction(
 
           return { success: true, value };
         },
-        args: [params.selector!, params.attr!],
+        args: [params.selector!, params.selectorType || 'css', params.attr!],
       });
 
       const result = Array.isArray(injected) ? injected[0]?.result : undefined;
@@ -152,12 +165,30 @@ function resolveExtractParams(
     mode: 'selector' | 'js';
     selector?: unknown;
     attr?: unknown;
+    markerId?: string;
+    memberId?: string;
+    extractAllMembers?: boolean;
+    markerValueType?: 'text' | 'href' | 'src' | 'value';
     code?: string;
     world?: BrowserWorld;
     saveAs: string;
   };
 
   if (p.mode === 'selector') {
+    if (p.markerId) {
+      return {
+        ok: true,
+        mode: 'selector',
+        resolved: {
+          selector: '',
+          attr: p.markerValueType || 'text',
+          saveAs: p.saveAs,
+          markerId: p.markerId,
+          memberId: p.memberId,
+          extractAllMembers: p.extractAllMembers === true,
+        },
+      };
+    }
     const selectorResult = tryResolveString(p.selector as string, vars);
     if (!selectorResult.ok) return selectorResult;
     const selector = selectorResult.value.trim();
@@ -192,7 +223,14 @@ function resolveExtractParams(
 }
 
 type ResolvedParams =
-  | { selector: string; attr: string; saveAs: string }
+  | {
+      selector: string;
+      attr: string;
+      saveAs: string;
+      markerId?: string;
+      memberId?: string;
+      extractAllMembers?: boolean;
+    }
   | { code: string; world?: BrowserWorld; saveAs: string };
 
 export const extractHandler: ActionHandler<'extract'> = {
@@ -204,6 +242,7 @@ export const extractHandler: ActionHandler<'extract'> = {
       selector?: unknown;
       code?: string;
       saveAs?: string;
+      markerId?: string;
     };
 
     if (params.mode !== 'selector' && params.mode !== 'js') {
@@ -214,7 +253,7 @@ export const extractHandler: ActionHandler<'extract'> = {
       return invalid('Extract action requires a non-empty saveAs variable name');
     }
 
-    if (params.mode === 'selector' && params.selector === undefined) {
+    if (params.mode === 'selector' && !params.markerId && params.selector === undefined) {
       return invalid('Selector mode requires a selector');
     }
 
@@ -252,6 +291,42 @@ export const extractHandler: ActionHandler<'extract'> = {
             code: (resolved.resolved as { code: string }).code,
             world: (resolved.resolved as { world?: BrowserWorld }).world,
           };
+
+    const markerParams = resolved.resolved as Extract<ResolvedParams, { selector: string }>;
+    if (resolved.mode === 'selector' && markerParams.markerId) {
+      const marker = await getMarkerById(markerParams.markerId);
+      if (!marker)
+        return failed('TARGET_NOT_FOUND', `Saved marker not found: ${markerParams.markerId}`);
+      const members = getElementMarkerMembers(marker);
+      const oneMember =
+        members.find((member) => member.id === markerParams.memberId) ||
+        (members.length === 1 && !markerParams.memberId ? members[0] : undefined);
+      const selected = markerParams.extractAllMembers ? members : oneMember ? [oneMember] : [];
+      if (!selected.length) {
+        return failed('TARGET_NOT_FOUND', `Choose a member from marker "${marker.name}"`);
+      }
+      const rows: JsonValue[] = [];
+      for (const member of selected) {
+        const frame = await resolveMarkerFrame(tabId, member);
+        if (!frame.ok) {
+          rows.push({ marker: marker.name, member: member.name, value: '', error: frame.error });
+          continue;
+        }
+        const extracted = await executeExtraction(tabId, frame.frameId, 'selector', {
+          selector: member.selector,
+          selectorType: member.selectorType || 'css',
+          attr: markerParams.attr,
+        });
+        rows.push(
+          extracted.ok
+            ? { marker: marker.name, member: member.name, value: extracted.value }
+            : { marker: marker.name, member: member.name, value: '', error: extracted.error },
+        );
+      }
+      const value: JsonValue = markerParams.extractAllMembers ? rows : (rows[0] as JsonValue);
+      ctx.vars[markerParams.saveAs] = value;
+      return { status: 'success', output: { value } };
+    }
 
     const result = await executeExtraction(tabId, ctx.frameId, resolved.mode, extractParams);
 

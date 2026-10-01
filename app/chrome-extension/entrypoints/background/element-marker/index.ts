@@ -2,14 +2,20 @@ import { BACKGROUND_MESSAGE_TYPES } from '@/common/message-types';
 import type {
   UpsertMarkerRequest,
   ElementMarker,
+  ElementMarkerMember,
+  ElementMarkerValidationSummary,
   MarkerValidationRequest,
   MarkerValidationAction,
 } from '@/common/element-marker-types';
+import { getElementMarkerMembers } from '@/common/element-marker-types';
 import {
   deleteMarker,
   listAllMarkers,
   listMarkersForUrl,
+  getMarkerById,
   saveMarker,
+  updateGroupMetadata,
+  updateMarkerMember,
   updateMarker,
 } from './element-marker-storage';
 import { computerTool } from '@/entrypoints/background/tools/browser/computer';
@@ -256,6 +262,13 @@ export function initElementMarkerListeners() {
             .catch((e) => sendResponse({ success: false, error: e?.message || String(e) }));
           return true;
         }
+        case BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_GET: {
+          const id = String(message.id || '');
+          getMarkerById(id)
+            .then((marker) => sendResponse({ success: !!marker, marker }))
+            .catch((e) => sendResponse({ success: false, error: e?.message || String(e) }));
+          return true;
+        }
         case BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_SAVE: {
           const req = message.marker as UpsertMarkerRequest;
           saveMarker(req)
@@ -268,6 +281,105 @@ export function initElementMarkerListeners() {
           updateMarker(marker)
             .then(() => sendResponse({ success: true }))
             .catch((e) => sendResponse({ success: false, error: e?.message || String(e) }));
+          return true;
+        }
+        case BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_UPDATE_MEMBER: {
+          const { markerId, memberId, locator } = message as {
+            markerId: string;
+            memberId: string;
+            locator: Pick<
+              ElementMarkerMember,
+              'selector' | 'selectorType' | 'framePath' | 'tagName'
+            >;
+          };
+          updateMarkerMember(String(markerId || ''), String(memberId || ''), locator)
+            .then((marker) => {
+              chrome.runtime
+                .sendMessage({ type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_CHANGED })
+                .catch(() => {});
+              sendResponse({ success: true, marker });
+            })
+            .catch((e) => sendResponse({ success: false, error: e?.message || String(e) }));
+          return true;
+        }
+        case BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_UPDATE_GROUP: {
+          const { groupId, metadata } = message as {
+            groupId: string;
+            metadata: { groupName?: string; tags?: string[] };
+          };
+          updateGroupMetadata(String(groupId || ''), metadata || {})
+            .then((updatedCount) => sendResponse({ success: true, updatedCount }))
+            .catch((e) => sendResponse({ success: false, error: e?.message || String(e) }));
+          return true;
+        }
+        case BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_CHECK: {
+          (async () => {
+            let tabId = typeof message.tabId === 'number' ? message.tabId : sender.tab?.id;
+            if (typeof tabId !== 'number') {
+              const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+              tabId = activeTab?.id;
+            }
+            if (typeof tabId !== 'number') throw new Error('active tab not found');
+            const tab = await chrome.tabs.get(tabId);
+            const url = String(tab.url || '');
+            if (!url) throw new Error('active tab URL is unavailable');
+
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId, allFrames: true },
+                files: ['inject-scripts/element-marker.js'],
+                world: 'ISOLATED',
+              });
+            } catch {}
+
+            const markers = await listMarkersForUrl(url);
+            const summaries: ElementMarkerValidationSummary[] = await Promise.all(
+              markers.map(async (marker) => {
+                const members = getElementMarkerMembers(marker).slice(0, 100);
+                const results = await Promise.all(
+                  members.map(async (member) => {
+                    try {
+                      const result = await chrome.tabs.sendMessage(
+                        tabId!,
+                        { action: 'element_marker_count_matches', member },
+                        { frameId: 0 },
+                      );
+                      const matchCount = Number(result?.matchCount) || 0;
+                      return {
+                        memberId: member.id,
+                        matchCount,
+                        state:
+                          !result?.success || matchCount === 0
+                            ? ('invalid' as const)
+                            : matchCount > 1
+                              ? ('multiple' as const)
+                              : ('normal' as const),
+                        ...(!result?.success && result?.error
+                          ? { error: String(result.error) }
+                          : {}),
+                      };
+                    } catch (error) {
+                      return {
+                        memberId: member.id,
+                        matchCount: 0,
+                        state: 'invalid' as const,
+                        error: error instanceof Error ? error.message : String(error),
+                      };
+                    }
+                  }),
+                );
+                const state = results.some((result) => result.state === 'invalid')
+                  ? 'invalid'
+                  : results.some((result) => result.state === 'multiple')
+                    ? 'multiple'
+                    : 'normal';
+                return { markerId: marker.id, state, members: results };
+              }),
+            );
+            sendResponse({ success: true, summaries });
+          })().catch((error) =>
+            sendResponse({ success: false, error: error?.message || String(error) }),
+          );
           return true;
         }
         case BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_DELETE: {
@@ -345,6 +457,7 @@ export function initElementMarkerListeners() {
                       ? 'ensureRefForSelector'
                       : 'locateElement',
                   selector,
+                  selectorType,
                   ...(isCompositeSelector ? { isXPath: false } : {}),
                   allowMultiple: !!req.listMode,
                   scrollIntoView: true,
