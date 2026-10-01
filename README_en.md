@@ -26,7 +26,7 @@
 
 ---
 
-## 📢 What's New in v2.8.3
+## 📢 What's New in v2.8.4
 
 > **Stronger page collection and review workflows** — Better support for multi-page content, comment threads, and long lists.
 >
@@ -35,7 +35,7 @@
 > - 📊 **Stronger long-list collection** — Virtual-list, paginated, and multi-tab collection workflows expose independent state, progress snapshots, and diagnostics.
 > - 🧭 **Improved review tools** — Page review summaries and expandable sections support finer stop conditions and bounded clicks.
 > - 🖥️ **Desktop assistant and runtime improvements** — Better attachment handling, runtime registration, and desktop interaction stability.
-> - 🔧 All release packages bumped to v2.8.3
+> - 🔧 All release packages bumped to v2.8.4
 
 > See the [full changelog](docs/CHANGELOG.md) for all version changes.
 
@@ -110,10 +110,10 @@
 
 ### 1️⃣ Install the Chrome Extension
 
-Download the [Chrome extension package][extension-v2.8.3] from the [v2.8.3 Release][release-v2.8.3].
+Download the [Chrome extension package][extension-v2.8.4] from the [v2.8.4 Release][release-v2.8.4].
 
-[release-v2.8.3]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.8.3
-[extension-v2.8.3]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.3/chrome-mcp-server-2.8.3-chrome.zip
+[release-v2.8.4]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/tag/v2.8.4
+[extension-v2.8.4]: https://github.com/phoenixlucky/mcp-chrome-2026/releases/download/v2.8.4/chrome-mcp-server-2.8.4-chrome.zip
 
 Open `chrome://extensions/` → enable **Developer mode** → drag & drop the `.zip` to install.
 
