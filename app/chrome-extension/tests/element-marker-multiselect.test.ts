@@ -170,10 +170,13 @@ describe('element marker modifier selection', () => {
     click(frameDocument.querySelector('#first')!);
     click(frameDocument.querySelector('#second')!, { ctrlKey: true });
 
-    const message = postMessage.mock.lastCall?.[0] as Record<string, unknown>;
-    expect(message.listMode).toBe(true);
+    const message = postMessage.mock.lastCall?.[0] as {
+      selectionMode: string;
+      members: Array<{ selector: string }>;
+    };
+    expect(message.selectionMode).toBe('manual');
     expect(
-      Array.from(frameDocument.querySelectorAll(message.innerSel as string)).map((el) => el.id),
+      message.members.map((member) => frameDocument.querySelector(member.selector)?.id),
     ).toEqual(['first', 'second']);
   });
 
@@ -212,10 +215,13 @@ describe('element marker modifier selection', () => {
       }),
     );
 
-    const message = postMessage.mock.lastCall?.[0] as Record<string, unknown>;
-    expect(message.listMode).toBe(true);
+    const message = postMessage.mock.lastCall?.[0] as {
+      selectionMode: string;
+      members: Array<{ selector: string }>;
+    };
+    expect(message.selectionMode).toBe('manual');
     expect(
-      Array.from(child.document.querySelectorAll(message.innerSel as string)).map((el) => el.id),
+      message.members.map((member) => child.document.querySelector(member.selector)?.id),
     ).toEqual(['first', 'second']);
   });
 
@@ -226,7 +232,11 @@ describe('element marker modifier selection', () => {
     const fromFrame = (innerSel: string) =>
       window.dispatchEvent(
         new MessageEvent('message', {
-          data: { type: 'em_click', innerSel, listMode: !!innerSel },
+          data: {
+            type: 'em_selection_update',
+            selectionMode: 'manual',
+            members: innerSel ? [{ selector: innerSel, name: 'First', selectorType: 'css' }] : [],
+          },
           source: frame.contentWindow,
         }),
       );
@@ -234,7 +244,7 @@ describe('element marker modifier selection', () => {
     fromFrame('#first');
     expect(shadow.querySelector('#__em_selector')?.textContent).toContain('#first');
     fromFrame('');
-    expect(shadow.querySelector('#__em_selector')?.textContent).toBe('');
+    expect(shadow.querySelector('#__em_selector')?.textContent).toBe('-');
   });
 
   it('prevents native text range selection while Shift-selecting page elements', () => {
