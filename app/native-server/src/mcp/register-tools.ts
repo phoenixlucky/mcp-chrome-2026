@@ -129,25 +129,21 @@ export function isArtifactResponse(response: unknown): response is {
   sha256?: string;
   url?: string;
 } {
-  return Boolean(
-    response &&
-    typeof response === 'object' &&
-    (response as Record<string, unknown>).type === 'artifact' &&
-    typeof (response as Record<string, unknown>).artifactId === 'string',
-  );
+  if (!response || typeof response !== 'object') return false;
+  // Native responses arrive as parsed JSON objects; one scoped cast keeps the guard readable.
+  const value = response as Record<string, unknown>;
+  return value.type === 'artifact' && typeof value.artifactId === 'string';
 }
 
 export function formatNativeToolFailure(response: unknown): string {
   if (response && typeof response === 'object') {
     const value = response as Record<string, unknown>;
     if (typeof value.error === 'string' && value.error.trim()) return value.error;
-    if (
-      value.error &&
-      typeof value.error === 'object' &&
-      typeof (value.error as Record<string, unknown>).message === 'string' &&
-      ((value.error as Record<string, unknown>).message as string).trim()
-    ) {
-      return (value.error as Record<string, unknown>).message as string;
+    if (value.error && typeof value.error === 'object') {
+      const nested = value.error as Record<string, unknown>;
+      if (typeof nested.message === 'string' && nested.message.trim()) {
+        return nested.message;
+      }
     }
     if (typeof value.message === 'string' && value.message.trim()) return value.message;
     if (typeof value.status === 'string') {
@@ -194,7 +190,7 @@ function drainToolCallQueue(): void {
   while (activeToolCallCount < MAX_CONCURRENT_TOOL_CALLS && queuedToolCount()) {
     const waiter = nextQueuedTool();
     if (!waiter) return;
-    if (waiter.timeoutId) clearTimeout(waiter.timeoutId);
+    clearTimeout(waiter.timeoutId);
     waiter.signal?.removeEventListener('abort', waiter.onAbort);
     if (waiter.signal?.aborted) {
       queueCancelCount += 1;
@@ -245,41 +241,41 @@ export function acquireToolCallSlot(
     );
   }
 
-  return new Promise((resolve, reject) => {
-    const waiter: QueuedToolCall = {
-      signal,
-      profileId,
-      kind,
-      enqueuedAt: Date.now(),
-      deadlineAt,
-      resolve,
-      reject,
-      onAbort: () => {
-        queueCancelCount += 1;
-        if (waiter.timeoutId) clearTimeout(waiter.timeoutId);
-        const index = queuedToolCalls[kind].indexOf(waiter);
-        if (index >= 0) queuedToolCalls[kind].splice(index, 1);
-        reject(new Error('Request cancelled'));
-      },
-    };
-    if (deadlineAt !== undefined) {
-      const remaining = deadlineAt - Date.now();
-      if (remaining <= 0) {
-        reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
-        return;
-      }
-      waiter.timeoutId = setTimeout(() => {
-        const index = queuedToolCalls[kind].indexOf(waiter);
-        if (index < 0) return;
-        queuedToolCalls[kind].splice(index, 1);
-        signal?.removeEventListener('abort', waiter.onAbort);
-        queueTimeoutCount += 1;
-        reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
-      }, remaining);
+  const { promise, resolve, reject } = Promise.withResolvers<() => void>();
+  const waiter: QueuedToolCall = {
+    signal,
+    profileId,
+    kind,
+    enqueuedAt: Date.now(),
+    deadlineAt,
+    resolve,
+    reject,
+    onAbort: () => {
+      queueCancelCount += 1;
+      clearTimeout(waiter.timeoutId);
+      const index = queuedToolCalls[kind].indexOf(waiter);
+      if (index >= 0) queuedToolCalls[kind].splice(index, 1);
+      reject(new Error('Request cancelled'));
+    },
+  };
+  if (deadlineAt !== undefined) {
+    const remaining = deadlineAt - Date.now();
+    if (remaining <= 0) {
+      reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
+      return promise;
     }
-    signal?.addEventListener('abort', waiter.onAbort, { once: true });
-    queuedToolCalls[kind].push(waiter);
-  });
+    waiter.timeoutId = setTimeout(() => {
+      const index = queuedToolCalls[kind].indexOf(waiter);
+      if (index < 0) return;
+      queuedToolCalls[kind].splice(index, 1);
+      signal?.removeEventListener('abort', waiter.onAbort);
+      queueTimeoutCount += 1;
+      reject(new NativeProtocolError('DEADLINE_EXCEEDED', 'Request deadline exceeded in queue'));
+    }, remaining);
+  }
+  signal?.addEventListener('abort', waiter.onAbort, { once: true });
+  queuedToolCalls[kind].push(waiter);
+  return promise;
 }
 
 export function getToolAdmissionStats(): {
@@ -316,7 +312,9 @@ export function getToolAdmissionStats(): {
 
 export function getToolDeadlineAt(meta: unknown): number | undefined {
   if (!meta || typeof meta !== 'object') return undefined;
-  const value = (meta as Record<string, unknown>)[TOOL_DEADLINE_META_KEY];
+  // MCP request metadata is a JSON object keyed by arbitrary names.
+  const record = meta as Record<string, unknown>;
+  const value = record[TOOL_DEADLINE_META_KEY];
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
@@ -331,18 +329,30 @@ export async function listDynamicFlowTools(): Promise<Tool[]> {
     );
     if (response && response.status === 'success' && Array.isArray(response.items)) {
       const tools: Tool[] = [];
-      for (const item of response.items) {
+      for (const rawItem of response.items) {
+        const item = rawItem as {
+          slug?: string;
+          description?: string;
+          meta?: { tool?: { description?: string } };
+          variables?: Array<{
+            key?: string;
+            label?: string;
+            type?: string;
+            default?: unknown;
+            rules?: { enum?: unknown[]; required?: boolean };
+          }>;
+        };
         const name = `flow.${item.slug}`;
         const description =
           (item.meta && item.meta.tool && item.meta.tool.description) ||
           item.description ||
           'Recorded flow';
-        const properties: Record<string, any> = {};
+        const properties: Record<string, Record<string, unknown>> = {};
         const required: string[] = [];
         for (const v of item.variables || []) {
-          const desc = v.label || v.key;
+          const desc = v.label || v.key || '';
           const typ = (v.type || 'string').toLowerCase();
-          const prop: any = { description: desc };
+          const prop: Record<string, unknown> = { description: desc };
           if (typ === 'boolean') prop.type = 'boolean';
           else if (typ === 'number') prop.type = 'number';
           else if (typ === 'enum') {
@@ -356,8 +366,8 @@ export async function listDynamicFlowTools(): Promise<Tool[]> {
             prop.type = 'string';
           }
           if (v.default !== undefined) prop.default = v.default;
-          if (v.rules && v.rules.required) required.push(v.key);
-          properties[v.key] = prop;
+          if (v.rules && v.rules.required && v.key) required.push(v.key);
+          if (v.key) properties[v.key] = prop;
         }
         // Run options
         properties['tabTarget'] = { type: 'string', enum: ['current', 'new'], default: 'current' };
@@ -449,7 +459,7 @@ function timeoutUntilDeadline(fallbackMs: number, deadlineAt?: number): number {
   return Math.max(250, Math.min(fallbackMs, remaining));
 }
 
-function timeoutFor(name: string, args: any, deadlineAt?: number): number {
+function timeoutFor(name: string, args: Record<string, unknown>, deadlineAt?: number): number {
   const ceiling = MAX_TOOL_TRANSPORT_TIMEOUT_MS;
   const requested = Number(args.timeoutMs ?? args.timeout);
   const timeout = Number.isFinite(requested)
@@ -465,7 +475,7 @@ function timeoutFor(name: string, args: any, deadlineAt?: number): number {
 
 function serialByTab<T>(
   name: string,
-  args: any,
+  args: Record<string, unknown>,
   task: () => Promise<T>,
   onStart?: () => void,
   signal?: AbortSignal,
@@ -507,36 +517,39 @@ function waitForTabQueueTurn(
     return Promise.reject(new Error('Request deadline exceeded while queued'));
 
   let timer: NodeJS.Timeout | undefined;
-  let onAbort: (() => void) | undefined;
   let settled = false;
 
-  return new Promise<void>((resolve, reject) => {
-    const finish = (fn: () => void) => {
-      if (settled) return;
-      settled = true;
-      if (timer) clearTimeout(timer);
-      if (signal && onAbort) signal.removeEventListener('abort', onAbort);
-      fn();
-    };
+  const { promise, resolve, reject } = Promise.withResolvers<void>();
+  const finish = (fn: () => void) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
+    fn();
+  };
+  const onAbort = () => finish(() => reject(new Error('Tool call cancelled while queued')));
 
-    previous.then(
-      () => finish(resolve),
-      () => finish(resolve),
+  previous.then(
+    () => finish(resolve),
+    () => finish(resolve),
+  );
+
+  signal?.addEventListener('abort', onAbort, { once: true });
+
+  if (typeof deadlineAt === 'number') {
+    timer = setTimeout(
+      () => finish(() => reject(new Error('Request deadline exceeded while queued'))),
+      Math.max(1, deadlineAt - Date.now()),
     );
-
-    onAbort = () => finish(() => reject(new Error('Tool call cancelled while queued')));
-    signal?.addEventListener('abort', onAbort, { once: true });
-
-    if (typeof deadlineAt === 'number') {
-      timer = setTimeout(
-        () => finish(() => reject(new Error('Request deadline exceeded while queued'))),
-        Math.max(1, deadlineAt - Date.now()),
-      );
-    }
-  });
+  }
+  return promise;
 }
 
-async function resolveWriteTab(args: any, signal?: AbortSignal, deadlineAt?: number): Promise<any> {
+async function resolveWriteTab(
+  args: Record<string, unknown>,
+  signal?: AbortSignal,
+  deadlineAt?: number,
+): Promise<Record<string, unknown>> {
   if (typeof args.tabId === 'number' || args.newWindow) return args;
   const response = await nativeMessagingHostInstance.sendRequestToExtensionAndWait(
     { name: 'chrome_get_tab_url', args: { windowId: args.windowId } },
@@ -560,11 +573,11 @@ function getRecentTargetTabId(excludeRequestId: string): number | undefined {
 }
 
 async function resolveRecentOrActiveTab(
-  args: any,
+  args: Record<string, unknown>,
   signal: AbortSignal | undefined,
   excludeRequestId: string,
   deadlineAt?: number,
-): Promise<any> {
+): Promise<Record<string, unknown>> {
   if (typeof args.tabId === 'number' || args.newWindow || Array.isArray(args.tabIds)) return args;
 
   // A URL-backed web fetch resolves its own URL in the extension. Injecting
@@ -666,10 +679,10 @@ async function handleBatchTool(
   const stopOnError = args.stopOnError !== false;
   const results: Array<{ name: string; result: CallToolResult }> = [];
   for (const item of args.calls) {
-    if (!item || typeof item !== 'object' || typeof (item as any).name !== 'string') {
+    const call = item as { name?: unknown; arguments?: unknown };
+    if (!call || typeof call !== 'object' || typeof call.name !== 'string') {
       throw new Error('Each batch call requires a tool name');
     }
-    const call = item as { name: string; arguments?: unknown };
     if (call.name === TOOL_NAMES.BROWSER.BATCH)
       throw new Error('Nested chrome_batch calls are not supported');
     const callArgs =
@@ -689,7 +702,7 @@ async function handleBatchTool(
 
 export const handleToolCall = async (
   name: string,
-  args: any,
+  args: Record<string, unknown>,
   signal?: AbortSignal,
   reportProgress?: ToolProgressReporter,
   deadlineAt?: number,
@@ -762,7 +775,7 @@ export const handleToolCall = async (
       args = await resolveRecentOrActiveTab(args, signal, activity.requestId, deadlineAt);
     if (WRITE_TOOL.test(name) && !name.startsWith('flow.') && !SELF_RESOLVING_WRITE_TOOLS.has(name))
       args = await resolveWriteTab(args, signal, deadlineAt);
-    activity.tabId = args.tabId;
+    if (typeof args.tabId === 'number') activity.tabId = args.tabId;
     // If calling a dynamic flow tool (name starts with flow.), proxy to common flow-run tool
     if (name && name.startsWith('flow.')) {
       // We need to resolve flow by slug to ID
@@ -779,7 +792,9 @@ export const handleToolCall = async (
         timings.native_roundtrip += Math.max(0, Date.now() - nativeStartedAt);
         const items = (resp && resp.items) || [];
         const slug = name.slice('flow.'.length);
-        const match = items.find((it: any) => it.slug === slug);
+        const match = items
+          .map((it) => it as { slug?: string; id?: string })
+          .find((it) => it.slug === slug);
         if (!match) throw new Error(`Flow not found for tool ${name}`);
         const flowArgs = { flowId: match.id, args };
         const queuedAt = Date.now();
@@ -811,7 +826,9 @@ export const handleToolCall = async (
         );
         if (proxyRes?.status === 'success') {
           activity.outcome = 'success';
-          return proxyRes.data;
+          // Successful extension calls always carry a CallToolResult-shaped payload.
+          const toolResult = proxyRes.data as CallToolResult | undefined;
+          return toolResult ?? { content: [] };
         }
         if (isArtifactResponse(proxyRes)) {
           activity.outcome = 'success';
@@ -828,21 +845,22 @@ export const handleToolCall = async (
           ],
           isError: true,
         };
-      } catch (err: any) {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
         activity.outcome = 'error';
-        activity.error = err?.message || String(err);
+        activity.error = message;
         return {
           content: [
             {
               type: 'text',
-              text: `Error resolving dynamic flow tool: ${err?.message || String(err)}`,
+              text: `Error resolving dynamic flow tool: ${message}`,
             },
           ],
           isError: true,
         };
       }
     }
-    // 发送请求到Chrome扩展并等待响应
+    // Send the request to the Chrome extension and wait for the response
     const queuedAt = Date.now();
     const response = await serialByTab(
       name,
@@ -872,7 +890,9 @@ export const handleToolCall = async (
     );
     if (response?.status === 'success') {
       activity.outcome = 'success';
-      return response.data;
+      // Successful extension calls always carry a CallToolResult-shaped payload.
+      const toolResult = response.data as CallToolResult | undefined;
+      return toolResult ?? { content: [] };
     }
     if (isArtifactResponse(response)) {
       activity.outcome = 'success';
@@ -890,16 +910,15 @@ export const handleToolCall = async (
       ],
       isError: true,
     };
-  } catch (error: any) {
+  } catch (error) {
     const normalizedError = isMcpToolTimeout(error) ? toMcpToolTimeout(error) : error;
     const code = normalizedError instanceof NativeProtocolError ? normalizedError.code : undefined;
     if (normalizedError instanceof McpToolTimeout || code === 'DEADLINE_EXCEEDED') {
       queueTimeoutCount += 1;
     }
-    activity.outcome =
-      code === 'CANCELED' || /cancel/i.test(normalizedError?.message || '') ? 'cancelled' : 'error';
     const errorMessage =
       normalizedError instanceof Error ? normalizedError.message : String(normalizedError);
+    activity.outcome = code === 'CANCELED' || /cancel/i.test(errorMessage) ? 'cancelled' : 'error';
     activity.error = code ? `${code}: ${errorMessage}` : errorMessage;
     return {
       content: [

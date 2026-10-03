@@ -1118,99 +1118,136 @@ When the MCP request includes `_meta.progressToken` and the client supports `not
 
 > This section is generated from the shared tool schema.
 
+### `chrome_userscript`
+
+Manage browser userscripts: create, inspect, enable, disable, update, remove, export, or send commands to installed scripts. This is high-risk and requires explicit approval when the approval policy is enabled.
+
+**Parameters**:
+
+- `action` (string, required): `create`, `list`, `get`, `enable`, `disable`, `update`, `remove`, `send_command`, or `export`
+- `args` (object, optional): Action-specific values such as `script`, `id`, `matches`, `world`, `mode`, `payload`, and `tabId`
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `chrome_crawl_links`
+
+Recursively visit discovered page links with depth and node limits, returning successful pages and partial failures.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_thread`
+
+Extract replies or comments from a root content area with scrolling, nested-item exclusion, and match-based stopping.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_error_logs`
+
+Read or clear the raw error logs retained by the browser extension for desktop diagnostics.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
 ### `capture_debug_bundle`
 
-将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。
+Save a failure snapshot to Downloads containing a screenshot, DOM, console logs, a redacted network summary, and metadata.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `resume_tab_task`
 
-保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。
+Save, read, or clear caller state for a normal browser tab; it never creates an incognito window or reads cookies.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_find_and_click`
 
-在可选作用域内依次尝试 CSS、XPath 或文本候选项，点击第一个可见且可用的匹配元素。
+Try CSS, XPath, and text candidates within an optional scope, then click the first visible and enabled match.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_expand_section`
 
-Expand a collapsible section and wait for its content selector; supports multiple triggers, repeated clicks, a click limit, and per-click wait conditions.
+Expand a collapsible section and wait for its content selector to appear.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_scan_for_section`
 
-滚动查找指定区域，可选择向上复扫；仅返回遍历状态，不包含平台业务规则。
+Scroll to find a target section, optionally rescanning upward, and return traversal state only.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_paginate_extract`
 
-先抽取当前页，再点击指定的下一页候选项；仅在卡片 HTML 发生变化后继续。
+Extract the current page, click the requested next-page candidate, and continue only after the card HTML changes.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_extract_records`
 
-从卡片中抽取调用方指定的原始字段，并按不区分大小写的文本规则排除记录。
+Extract caller-selected raw fields from cards and exclude records using case-insensitive text rules.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_extract_review_summary`
 
-提取商品详情页 Reviews 区域的商品 ID、评分和评论数。评论数明确为 0 时返回 empty，并标记为可终止结果，不应继续切换入口或重试；同时支持 /12345/product.html 路径和 productId 查询参数。
+Extract the product ID, rating, and review count from a product page Reviews section. A confirmed zero review count is a valid terminal result and must not trigger retries.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `detect_empty_state`
 
-根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。
+Classify a region as has_content, empty, or loading_or_unknown from selectors and text markers; confirmed zero counts are terminal empty results.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `merge_records`
 
-按调用方提供的身份字段和数据源优先级纯数据合并；不读取浏览器状态，也不持久化。
+Merge records using caller-provided identity fields and source priority without reading or persisting browser state.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_list_frames`
 
-列出标签页中的框架，以便作用域操作通过 frameId 定位同源或跨域 iframe。
+List frames in a tab so scoped actions can target same-origin or cross-origin iframes by frameId.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_diagnostic_snapshot`
 
-返回标签页的一组诊断信息：视口截图、DOM 快照、控制台缓冲和当前网络捕获摘要。
+Return a diagnostic snapshot containing a viewport screenshot, DOM snapshot, console buffer, and network-capture summary.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_proxy_diagnostics`
 
-读取代理配置及 Chrome 接管状态；action 为 test 时还会验证代理出口。不会返回用户名或密码。
+Read proxy configuration and Chrome takeover state; action=test also verifies the proxy exit IP without returning credentials.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_proxy_rotate`
 
-当调用方确认当前标签页异常时，轮换代理会话并重新加载该页面。需要已启用代理；不会返回用户名或密码。
+Rotate the proxy session and reload the tab after the caller confirms the current page is abnormal.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_scoped_action`
 
-在一个语义作用域内点击、抽取或分页；支持开放的 Shadow DOM，并可用 frameId 指定同源或跨域 iframe。
+Click, extract, or paginate within a semantic scope, including open Shadow DOM and iframe targeting by frameId.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_task_context`
 
-创建隔离的无痕任务窗口，并在 MCP 重启后保存其标签页和调用方定义的抓取状态。
+Create an isolated incognito task window and persist its tabs and caller-defined extraction state across MCP restarts.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
@@ -1282,13 +1319,13 @@ Publish one text post on an already signed-in X/Twitter page. The tool waits for
 
 ### `chrome_network_capture`
 
-统一网络捕获工具。action="start" 开始，action="stop" 停止并返回结果；needResponseBody=true 时通过 Debugger API 获取响应体（可能与 DevTools 冲突），默认 webRequest 模式较轻量但不含响应体。
+Capture network requests with start and stop actions; optionally collect response bodies through the Debugger API.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
 ### `chrome_block_resources`
 
-在一个标签页中拦截指定资源类型或 URL 模式。请在导航或刷新前启动；停止后恢复加载。
+Block selected resource types or URL patterns in a tab until blocking is stopped.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 
@@ -1360,44 +1397,7 @@ Click a CSS-selected element, then wait for another selector to reach the reques
 
 ### `chrome_paste_text`
 
-Paste multi-paragraph text into a rich-text editor via a synthesized ClipboardEvent("paste") carrying a DataTransfer (built for Draft.js editors such as Zhihu and Medium). The editor receives the text through its native paste path, so every paragraph is kept, and no window focus or system clipboard is required. Use this instead of chrome_computer type (breaks with newlines), execCommand("insertText") (keeps only the last paragraph), or the Clipboard API (rejected without focus). After pasting, reload the page to verify the draft, then click the publish button.
-
-> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
-
-## 🔄 Schema Catalog Additions
-
-> This section is generated from the shared tool schema.
-
-### `chrome_userscript`
-
-Manage browser userscripts: create, inspect, enable, disable, update, remove, export, or send commands to installed scripts. This is high-risk and requires explicit approval when the approval policy is enabled.
-
-**Parameters**:
-
-- `action` (string, required): `create`, `list`, `get`, `enable`, `disable`, `update`, `remove`, `send_command`, or `export`
-- `args` (object, optional): Action-specific values such as `script`, `id`, `matches`, `world`, `mode`, `payload`, and `tabId`
-
-> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
-
-## 🔄 Schema Catalog Additions
-
-> This section is generated from the shared tool schema.
-
-### `chrome_crawl_links`
-
-Recursively visit discovered page links with depth and node limits, returning successful pages and partial failures.
-
-> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
-
-### `chrome_extract_thread`
-
-Extract replies or comments from a root content area with scrolling, nested-item exclusion, and match-based stopping.
-
-> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
-
-### `chrome_error_logs`
-
-Read or clear the raw error logs retained by the browser extension for desktop diagnostics.
+Paste multi-paragraph text into a rich-text editor (Draft.js such as Zhihu/Medium) by dispatching a synthesized ClipboardEvent("paste") with a DataTransfer, so the editor receives it via its native paste path without needing window focus.
 
 > The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
 

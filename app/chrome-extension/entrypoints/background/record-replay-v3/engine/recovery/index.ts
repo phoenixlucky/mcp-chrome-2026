@@ -1,6 +1,6 @@
 /**
  * @fileoverview Recovery module exports
- * @description 崩溃恢复模块导出
+ * @description Crash recovery module exports
  */
 
 export * from './recovery-coordinator';

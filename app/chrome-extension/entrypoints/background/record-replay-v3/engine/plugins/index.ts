@@ -1,5 +1,5 @@
 /**
- * @fileoverview 插件系统导出入口
+ * @fileoverview Plugin system export entry
  */
 
 export * from './types';

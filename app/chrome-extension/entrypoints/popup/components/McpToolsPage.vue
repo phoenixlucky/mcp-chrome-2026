@@ -73,7 +73,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { TOOL_SCHEMAS, TOOL_SCHEMAS_EN } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { TOOL_SCHEMAS, TOOL_SCHEMAS_ZH } from '@ethanwilkins/chrome-mcp-shared-2026';
 import PopupIcon from './PopupIcon.vue';
 
 defineEmits<{ (e: 'back'): void }>();
@@ -81,11 +81,11 @@ defineEmits<{ (e: 'back'): void }>();
 const query = ref('');
 type Locale = 'zh' | 'en';
 
-const locale = ref<Locale>(localStorage.getItem('mcp-tools-locale') === 'en' ? 'en' : 'zh');
-// Keep the page's shape and fallback text on the complete English catalog.
-const toolSchemas = TOOL_SCHEMAS_EN;
-const zhToolSchemas = new Map(TOOL_SCHEMAS.map((tool) => [tool.name, tool]));
-const zhToolDescriptions = new Map(TOOL_SCHEMAS.map((tool) => [tool.name, tool.description]));
+const locale = ref<Locale>(localStorage.getItem('mcp-tools-locale') === 'zh' ? 'zh' : 'en');
+// English drives the page shape; zh mode falls back to the Chinese catalog.
+const toolSchemas = TOOL_SCHEMAS;
+const zhToolSchemas = new Map(TOOL_SCHEMAS_ZH.map((tool) => [tool.name, tool]));
+const zhToolDescriptions = new Map(TOOL_SCHEMAS_ZH.map((tool) => [tool.name, tool.description]));
 const messages = {
   zh: {
     back: '返回',
@@ -103,7 +103,7 @@ const messages = {
     back: 'Back',
     backTitle: 'Back to home',
     title: 'MCP Tools',
-    languageTitle: '切换为中文',
+    languageTitle: 'Switch to Chinese',
     searchPlaceholder: 'Search tool names or descriptions',
     tools: 'tools',
     required: 'required',
@@ -431,7 +431,7 @@ const zhParameterDescriptions: Record<string, string> = {
 };
 
 const enToolParameterDescriptions = new Map<string, string>();
-for (const t of TOOL_SCHEMAS_EN) {
+for (const t of TOOL_SCHEMAS) {
   const props = (t.inputSchema.properties || {}) as Record<string, PropertySchema>;
   for (const [name, schema] of Object.entries(props)) {
     if (schema.description)
@@ -601,12 +601,12 @@ const toolBadges = (name: string) => {
     {
       kind: 'ease',
       icon: '⚡',
-      label: `${zh ? '易用' : 'Ease'}：${advanced ? (zh ? '中' : 'Medium') : zh ? '高' : 'High'}`,
+      label: `${zh ? '易用：' : 'Ease: '}${advanced ? (zh ? '中' : 'Medium') : zh ? '高' : 'High'}`,
     },
     {
       kind: 'usage',
       icon: '★',
-      label: `${zh ? '常用' : 'Use'}：${common ? (zh ? '高' : 'High') : advanced ? (zh ? '低' : 'Low') : zh ? '中' : 'Medium'}`,
+      label: `${zh ? '常用：' : 'Use: '}${common ? (zh ? '高' : 'High') : advanced ? (zh ? '低' : 'Low') : zh ? '中' : 'Medium'}`,
     },
     {
       kind: advanced ? 'advanced' : 'recommended',

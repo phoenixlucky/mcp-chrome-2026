@@ -1,6 +1,6 @@
 /**
- * @fileoverview FlowV3 持久化
- * @description 实现 Flow 的 CRUD 操作
+ * @fileoverview FlowV3 persistence
+ * @description Implements Flow CRUD operations
  */
 
 import type { FlowId } from '../domain/ids';
@@ -11,10 +11,10 @@ import type { FlowsStore } from '../engine/storage/storage-port';
 import { RR_V3_STORES, withTransaction } from './db';
 
 /**
- * 校验 Flow 结构
+ * Validate the Flow structure
  */
 function validateFlow(flow: FlowV3): void {
-  // 校验 schema 版本
+  // Validate the schema version
   if (flow.schemaVersion !== FLOW_SCHEMA_VERSION) {
     throw createRRError(
       RR_ERROR_CODES.VALIDATION_ERROR,
@@ -22,7 +22,7 @@ function validateFlow(flow: FlowV3): void {
     );
   }
 
-  // 校验必填字段
+  // Validate required fields
   if (!flow.id) {
     throw createRRError(RR_ERROR_CODES.VALIDATION_ERROR, 'Flow id is required');
   }
@@ -33,7 +33,7 @@ function validateFlow(flow: FlowV3): void {
     throw createRRError(RR_ERROR_CODES.VALIDATION_ERROR, 'Flow entryNodeId is required');
   }
 
-  // 校验 entryNodeId 存在
+  // Validate that entryNodeId exists
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
   if (!nodeIds.has(flow.entryNodeId)) {
     throw createRRError(
@@ -42,7 +42,7 @@ function validateFlow(flow: FlowV3): void {
     );
   }
 
-  // 校验边引用
+  // Validate edge references
   for (const edge of flow.edges) {
     if (!nodeIds.has(edge.from)) {
       throw createRRError(
@@ -61,7 +61,10 @@ function validateFlow(flow: FlowV3): void {
   for (const [subflowId, subflow] of Object.entries(flow.subflows || {})) {
     const subNodeIds = new Set(subflow.nodes.map((node) => node.id));
     if (!subflowId || !subNodeIds.has(subflow.entryNodeId)) {
-      throw createRRError(RR_ERROR_CODES.VALIDATION_ERROR, `Invalid subflow "${subflowId}" entry node`);
+      throw createRRError(
+        RR_ERROR_CODES.VALIDATION_ERROR,
+        `Invalid subflow "${subflowId}" entry node`,
+      );
     }
     for (const edge of subflow.edges) {
       if (!subNodeIds.has(edge.from) || !subNodeIds.has(edge.to)) {
@@ -75,7 +78,7 @@ function validateFlow(flow: FlowV3): void {
 }
 
 /**
- * 创建 FlowsStore 实现
+ * Create the FlowsStore implementation
  */
 export function createFlowsStore(): FlowsStore {
   return {
@@ -102,7 +105,7 @@ export function createFlowsStore(): FlowsStore {
     },
 
     async save(flow: FlowV3): Promise<void> {
-      // 校验
+      // Validate
       validateFlow(flow);
 
       return withTransaction(RR_V3_STORES.FLOWS, 'readwrite', async (stores) => {

@@ -55,7 +55,7 @@
             <input
               v-model="markerSearch"
               class="em-search-input"
-              placeholder="搜索标注名称、选择器..."
+              placeholder="Search marker name, selector..."
               type="text"
             />
             <button
@@ -72,32 +72,32 @@
               </svg>
             </button>
           </div>
-          <select v-model="groupFilter" class="em-filter-select" aria-label="按分组筛选">
-            <option value="">所有分组</option>
+          <select v-model="groupFilter" class="em-filter-select" aria-label="Filter by group">
+            <option value="">All groups</option>
             <option v-for="group in markerGroups" :key="group.id" :value="group.id">
               {{ group.name }}
             </option>
           </select>
-          <select v-model="tagFilter" class="em-filter-select" aria-label="按标签筛选">
-            <option value="">所有标签</option>
+          <select v-model="tagFilter" class="em-filter-select" aria-label="Filter by tag">
+            <option value="">All tags</option>
             <option v-for="tag in markerTags" :key="tag" :value="tag">{{ tag }}</option>
           </select>
-          <select v-model="markerExtractType" class="em-filter-select" aria-label="提取类型">
-            <option value="text">提取文字</option>
-            <option value="href">提取链接</option>
-            <option value="src">提取图片地址</option>
-            <option value="value">提取输入值</option>
+          <select v-model="markerExtractType" class="em-filter-select" aria-label="Extract type">
+            <option value="text">Extract text</option>
+            <option value="href">Extract link</option>
+            <option value="src">Extract image URL</option>
+            <option value="value">Extract input value</option>
           </select>
           <button
             class="em-add-btn em-check-btn"
             type="button"
             :disabled="markerChecking || !currentPageTabId"
-            title="检查当前页的标注定位"
+            title="Check marker locators on the current page"
             @click="validateCurrentPageMarkers"
           >
-            {{ markerChecking ? '检查中…' : '检查定位' }}
+            {{ markerChecking ? 'Checking...' : 'Check locators' }}
           </button>
-          <button class="em-add-btn" @click="openMarkerEditor()" title="新增标注">
+          <button class="em-add-btn" @click="openMarkerEditor()" title="Add marker">
             <svg viewBox="0 0 20 20" width="18" height="18">
               <path
                 fill="currentColor"
@@ -111,7 +111,7 @@
         <div v-if="markerEditorOpen" class="em-modal-overlay" @click.self="closeMarkerEditor">
           <div class="em-modal">
             <div class="em-modal-header">
-              <h3 class="em-modal-title">{{ editingMarkerId ? '编辑标注' : '新增标注' }}</h3>
+              <h3 class="em-modal-title">{{ editingMarkerId ? 'Edit marker' : 'Add marker' }}</h3>
               <button class="em-modal-close" @click="closeMarkerEditor">
                 <svg viewBox="0 0 20 20" width="18" height="18">
                   <path
@@ -124,11 +124,11 @@
             <form @submit.prevent="saveMarker" class="em-form">
               <div class="em-form-row">
                 <div class="em-field">
-                  <label class="em-field-label">名称</label>
+                  <label class="em-field-label">Name</label>
                   <input
                     v-model="markerForm.name"
                     class="em-input"
-                    placeholder="例如: 登录按钮"
+                    placeholder="e.g. Login button"
                     required
                   />
                 </div>
@@ -136,26 +136,26 @@
 
               <div class="em-form-row em-form-row-multi">
                 <div class="em-field">
-                  <label class="em-field-label">分组</label>
+                  <label class="em-field-label">Group</label>
                   <input
                     v-model="markerForm.groupName"
                     class="em-input"
-                    placeholder="例如：登录、商品列表、订单操作"
+                    placeholder="e.g. Login, Product list, Order actions"
                   />
                 </div>
                 <div class="em-field">
-                  <label class="em-field-label">标签</label>
+                  <label class="em-field-label">Tags</label>
                   <input
                     v-model="markerTagsInput"
                     class="em-input"
-                    placeholder="用逗号分隔，例如：读取,回归"
+                    placeholder="Comma separated, e.g. read,regression"
                   />
                 </div>
               </div>
 
               <div class="em-form-row em-form-row-multi">
                 <div class="em-field">
-                  <label class="em-field-label">选择器类型</label>
+                  <label class="em-field-label">Selector type</label>
                   <div class="em-select-wrapper">
                     <select v-model="markerForm.selectorType" class="em-select">
                       <option value="css">CSS Selector</option>
@@ -164,12 +164,12 @@
                   </div>
                 </div>
                 <div class="em-field">
-                  <label class="em-field-label">匹配类型</label>
+                  <label class="em-field-label">Match type</label>
                   <div class="em-select-wrapper">
                     <select v-model="markerForm.matchType" class="em-select">
-                      <option value="prefix">路径前缀</option>
-                      <option value="exact">精确匹配</option>
-                      <option value="host">域名</option>
+                      <option value="prefix">Path prefix</option>
+                      <option value="exact">Exact match</option>
+                      <option value="host">Domain</option>
                     </select>
                   </div>
                 </div>
@@ -177,11 +177,11 @@
 
               <div class="em-form-row">
                 <div class="em-field">
-                  <label class="em-field-label">选择器</label>
+                  <label class="em-field-label">Selector</label>
                   <textarea
                     v-model="markerForm.selector"
                     class="em-textarea"
-                    placeholder="CSS 选择器或 XPath"
+                    placeholder="CSS selector or XPath"
                     rows="3"
                     required
                   ></textarea>
@@ -190,10 +190,10 @@
 
               <div class="em-modal-actions">
                 <button type="button" class="em-btn em-btn-ghost" @click="closeMarkerEditor">
-                  取消
+                  Cancel
                 </button>
                 <button type="submit" class="em-btn em-btn-primary">
-                  {{ editingMarkerId ? '更新' : '保存' }}
+                  {{ editingMarkerId ? 'Update' : 'Save' }}
                 </button>
               </div>
             </form>
@@ -206,12 +206,12 @@
           <div class="em-stats-bar">
             <span class="em-stats-text">
               <template v-if="markerSearch">
-                筛选出 <strong>{{ filteredMarkers.length }}</strong> 个标注 （共
-                {{ markers.length }} 个，{{ groupedMarkers.length }} 个域名）
+                Matched <strong>{{ filteredMarkers.length }}</strong> of
+                {{ markers.length }} markers in {{ groupedMarkers.length }} domains
               </template>
               <template v-else>
-                共 <strong>{{ markers.length }}</strong> 个标注，
-                <strong>{{ groupedMarkers.length }}</strong> 个域名
+                <strong>{{ markers.length }}</strong> markers in
+                <strong>{{ groupedMarkers.length }}</strong> domains
               </template>
             </span>
           </div>
@@ -235,7 +235,7 @@
                   <path fill="currentColor" d="M6 8l4 4 4-4" />
                 </svg>
                 <h3 class="em-domain-name">{{ domainGroup.domain }}</h3>
-                <span class="em-domain-count">{{ domainGroup.count }} 个标注</span>
+                <span class="em-domain-count">{{ domainGroup.count }} markers</span>
               </div>
             </div>
 
@@ -261,7 +261,7 @@
                           <button
                             class="em-action-btn em-action-verify"
                             @click="validateMarker(marker)"
-                            title="检查并定位"
+                            title="Check and locate"
                           >
                             <svg viewBox="0 0 24 24" width="14" height="14">
                               <path
@@ -274,7 +274,7 @@
                           <button
                             class="em-action-btn em-action-extract"
                             type="button"
-                            title="提取并下载 CSV"
+                            title="Extract and download CSV"
                             @click="extractMarker(marker)"
                           >
                             CSV
@@ -282,14 +282,14 @@
                           <button
                             class="em-action-btn em-action-repair"
                             @click="repairMarker(marker, marker.members?.[0]?.id || marker.id)"
-                            title="重新选择定位"
+                            title="Pick the locator again"
                           >
-                            重选
+                            Reselect
                           </button>
                           <button
                             class="em-action-btn em-action-edit"
                             @click="editMarker(marker)"
-                            title="编辑"
+                            title="Edit"
                           >
                             <svg viewBox="0 0 24 24" width="14" height="14">
                               <path
@@ -302,7 +302,7 @@
                           <button
                             class="em-action-btn em-action-delete"
                             @click="deleteMarker(marker)"
-                            title="删除"
+                            title="Delete"
                           >
                             <svg viewBox="0 0 24 24" width="14" height="14">
                               <path
@@ -336,7 +336,7 @@
                           type="button"
                           @click="repairMarker(marker, member.id)"
                         >
-                          重选
+                          Reselect
                         </button>
                       </div>
                       <div class="em-marker-row-bottom">
@@ -361,17 +361,17 @@
 
         <!-- No search results -->
         <div v-else-if="markers.length > 0 && filteredMarkers.length === 0" class="em-empty">
-          <p>未找到匹配的标注</p>
+          <p>No matching markers</p>
           <button class="em-btn em-btn-ghost em-empty-btn" @click="markerSearch = ''">
-            清除搜索
+            Clear search
           </button>
         </div>
 
         <!-- Empty state -->
         <div v-else class="em-empty">
-          <p>暂无标注元素</p>
+          <p>No markers yet</p>
           <button class="em-btn em-btn-primary em-empty-btn" @click="openMarkerEditor()">
-            新增标注
+            Add marker
           </button>
         </div>
       </div>
@@ -501,8 +501,8 @@ const groupedMarkers = computed(() => {
 
   for (const marker of filteredMarkers.value) {
     // Use pre-normalized fields from storage instead of reparsing URLs
-    const domain = marker.host || '(本地文件)';
-    const fullUrl = marker.url || '(未知URL)';
+    const domain = marker.host || '(local file)';
+    const fullUrl = marker.url || '(unknown URL)';
 
     if (!groups.has(domain)) {
       groups.set(domain, new Map());
@@ -584,12 +584,12 @@ async function exportFlow(id: string) {
 
 function createTrigger() {
   // V3 Trigger management not yet implemented
-  alert('V3 Trigger 管理尚未实现，暂时无法创建触发器');
+  alert('V3 Trigger management is not implemented yet; cannot create a trigger');
 }
 
 function editTrigger(_id: string) {
   // V3 Trigger management not yet implemented
-  alert('V3 Trigger 管理尚未实现，暂时无法编辑触发器');
+  alert('V3 Trigger management is not implemented yet; cannot edit a trigger');
 }
 
 async function removeTrigger(id: string) {
@@ -603,25 +603,25 @@ function toggleRun(id: string) {
 async function run(id: string) {
   try {
     const result = await workflowsV3.runFlow(id);
-    if (!result) console.warn('回放失败');
+    if (!result) console.warn('Replay failed');
   } catch {}
 }
 
 function edit(id: string) {
   // V3 Builder not yet implemented - show message
-  alert('V3 Builder 尚未实现，暂时无法编辑工作流');
+  alert('V3 Builder is not implemented yet; cannot edit a workflow');
   // TODO: openBuilder({ flowId: id });
 }
 
 function createFlow() {
   // V3 Builder not yet implemented - show message
-  alert('V3 Builder 尚未实现，暂时无法创建工作流');
+  alert('V3 Builder is not implemented yet; cannot create a workflow');
   // TODO: openBuilder({ newFlow: true });
 }
 
 async function remove(id: string) {
   try {
-    const ok = confirm('确认删除该工作流？此操作不可恢复');
+    const ok = confirm('Delete this workflow? This cannot be undone');
     if (!ok) return;
     await workflowsV3.deleteFlow(id);
   } catch {}
@@ -712,7 +712,7 @@ async function validateCurrentPageMarkers() {
       type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_CHECK,
       tabId: currentPageTabId.value,
     });
-    if (!res?.success) throw new Error(res?.error || '检查标注失败');
+    if (!res?.success) throw new Error(res?.error || 'Failed to check markers');
     const next: Record<string, ElementMarkerValidationSummary> = {};
     for (const summary of res.summaries || []) next[summary.markerId] = summary;
     markerValidation.value = next;
@@ -740,12 +740,12 @@ function markerStatus(markerId: string): ElementMarkerValidationState | 'unknown
 function markerStatusLabel(markerId: string, memberId?: string) {
   const status = memberId ? memberStatus(markerId, memberId) : markerStatus(markerId);
   return status === 'normal'
-    ? '正常'
+    ? 'Valid'
     : status === 'multiple'
-      ? '多个匹配'
+      ? 'Multiple matches'
       : status === 'invalid'
-        ? '已失效'
-        : '未检查';
+        ? 'Invalid'
+        : 'Unchecked';
 }
 
 async function saveMarker() {
@@ -834,7 +834,7 @@ function cancelEdit() {
 
 async function deleteMarker(marker: ElementMarker) {
   try {
-    const confirmed = confirm(`确定要删除标注 "${marker.name}" 吗?`);
+    const confirmed = confirm(`Delete marker "${marker.name}"?`);
     if (!confirmed) return;
 
     const res: any = await chrome.runtime.sendMessage({
@@ -862,7 +862,7 @@ async function validateMarker(marker: ElementMarker) {
 async function repairMarker(marker: ElementMarker, memberId = marker.id) {
   try {
     const tabId = currentPageTabId.value;
-    if (typeof tabId !== 'number') throw new Error('请先切换到要修复标注的页面');
+    if (typeof tabId !== 'number') throw new Error("Switch to the marker's page before repairing");
     try {
       await chrome.scripting.executeScript({
         target: { tabId, allFrames: true },
@@ -885,7 +885,7 @@ async function extractMarker(marker: ElementMarker) {
   try {
     const tabId = currentPageTabId.value;
     if (typeof tabId !== 'number' || !markerValidation.value[marker.id]) {
-      throw new Error('请在标注对应的页面上执行提取');
+      throw new Error('Run the extraction on the page the marker belongs to');
     }
     await chrome.scripting.executeScript({
       target: { tabId, allFrames: true },
@@ -901,14 +901,14 @@ async function extractMarker(marker: ElementMarker) {
       },
       { frameId: 0 },
     );
-    if (!response?.success) throw new Error(response?.error || '提取失败');
+    if (!response?.success) throw new Error(response?.error || 'Extraction failed');
     const rows = response.rows || [];
     const escape = (value: unknown) => {
       const text = String(value ?? '');
       return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
     };
     const csv = [
-      ['标注名称', '页面/Frame', '结果', '错误'],
+      ['Marker name', 'Page/Frame', 'Result', 'Error'],
       ...rows.map((row: any) => [marker.name, row.frame, row.value, row.error]),
     ]
       .map((row) => row.map(escape).join(','))

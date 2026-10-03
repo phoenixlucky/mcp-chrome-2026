@@ -1,6 +1,6 @@
 /**
- * @fileoverview DAG 遍历和校验
- * @description 提供 Flow DAG 的校验、遍历和下一节点查找功能
+ * @fileoverview DAG traversal and validation
+ * @description Provides Flow DAG validation, traversal and next-node lookup
  */
 
 import type { NodeId, EdgeLabel } from '../../domain/ids';
@@ -9,20 +9,20 @@ import { EDGE_LABELS } from '../../domain/ids';
 import { RR_ERROR_CODES, createRRError, type RRError } from '../../domain/errors';
 
 /**
- * DAG 校验结果
+ * DAG validation result
  */
 export type ValidateFlowDAGResult = { ok: true } | { ok: false; errors: RRError[] };
 
 /**
- * 校验 Flow DAG 结构
- * @param flow Flow 定义
- * @returns 校验结果
+ * Validate the Flow DAG structure
+ * @param flow Flow definition
+ * @returns Validation result
  */
 export function validateFlowDAG(flow: FlowV3): ValidateFlowDAGResult {
   const errors: RRError[] = [];
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
 
-  // 检查 entryNodeId 是否存在
+  // Check that entryNodeId exists
   if (!nodeIds.has(flow.entryNodeId)) {
     errors.push(
       createRRError(
@@ -32,7 +32,7 @@ export function validateFlowDAG(flow: FlowV3): ValidateFlowDAGResult {
     );
   }
 
-  // 检查边引用的节点是否存在
+  // Check that nodes referenced by edges exist
   for (const edge of flow.edges) {
     if (!nodeIds.has(edge.from)) {
       errors.push(
@@ -52,7 +52,7 @@ export function validateFlowDAG(flow: FlowV3): ValidateFlowDAGResult {
     }
   }
 
-  // 检查循环
+  // Check for cycles
   const cycle = detectCycle(flow);
   if (cycle) {
     errors.push(
@@ -64,9 +64,9 @@ export function validateFlowDAG(flow: FlowV3): ValidateFlowDAGResult {
 }
 
 /**
- * 检测 DAG 中的循环
- * @param flow Flow 定义
- * @returns 循环路径（如果存在）或 null
+ * Detect a cycle in the DAG
+ * @param flow Flow definition
+ * @returns Cycle path (if any) or null
  */
 export function detectCycle(flow: FlowV3): NodeId[] | null {
   const adjacency = buildAdjacencyMap(flow);
@@ -86,10 +86,10 @@ export function detectCycle(flow: FlowV3): NodeId[] | null {
           return true;
         }
       } else if (recursionStack.has(neighbor)) {
-        // 找到循环
+        // Cycle found
         const cycleStart = path.indexOf(neighbor);
-        path.push(neighbor); // 闭合循环
-        path.splice(0, cycleStart); // 移除循环前的节点
+        path.push(neighbor); // Close the cycle
+        path.splice(0, cycleStart); // Remove nodes before the cycle
         return true;
       }
     }
@@ -111,11 +111,11 @@ export function detectCycle(flow: FlowV3): NodeId[] | null {
 }
 
 /**
- * 查找下一个节点
- * @param flow Flow 定义
- * @param currentNodeId 当前节点 ID
- * @param label 边标签（可选，默认使用 default）
- * @returns 下一个节点 ID 或 null（如果没有后续节点）
+ * Find the next node
+ * @param flow Flow definition
+ * @param currentNodeId Current node ID
+ * @param label Edge label (optional, defaults to default)
+ * @returns Next node ID or null (if there is no subsequent node)
  */
 export function findNextNode(
   flow: FlowV3,
@@ -128,7 +128,7 @@ export function findNextNode(
     return null;
   }
 
-  // 如果指定了 label，优先匹配
+  // If a label is specified, match it first
   if (label) {
     const matchedEdge = outEdges.find((e) => e.label === label);
     if (matchedEdge) {
@@ -136,7 +136,7 @@ export function findNextNode(
     }
   }
 
-  // 否则使用 default 边
+  // Otherwise use the default edge
   const defaultEdge = outEdges.find(
     (e) => e.label === EDGE_LABELS.DEFAULT || e.label === undefined,
   );
@@ -144,7 +144,7 @@ export function findNextNode(
     return defaultEdge.to;
   }
 
-  // 如果只有一条边，使用它
+  // If there is exactly one edge, use it
   if (outEdges.length === 1) {
     return outEdges[0].to;
   }
@@ -153,7 +153,7 @@ export function findNextNode(
 }
 
 /**
- * 查找指定标签的边
+ * Find the edge with the given label
  */
 export function findEdgeByLabel(
   flow: FlowV3,
@@ -164,21 +164,21 @@ export function findEdgeByLabel(
 }
 
 /**
- * 获取节点的所有出边
+ * Get all out-edges of a node
  */
 export function getOutEdges(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
   return flow.edges.filter((e) => e.from === nodeId);
 }
 
 /**
- * 获取节点的所有入边
+ * Get all in-edges of a node
  */
 export function getInEdges(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
   return flow.edges.filter((e) => e.to === nodeId);
 }
 
 /**
- * 构建邻接表
+ * Build the adjacency map
  */
 function buildAdjacencyMap(flow: FlowV3): Map<NodeId, NodeId[]> {
   const map = new Map<NodeId, NodeId[]>();
@@ -198,7 +198,7 @@ function buildAdjacencyMap(flow: FlowV3): Map<NodeId, NodeId[]> {
 }
 
 /**
- * 获取从入口节点可达的所有节点
+ * Get all nodes reachable from the entry node
  */
 export function getReachableNodes(flow: FlowV3): Set<NodeId> {
   const reachable = new Set<NodeId>();
@@ -219,7 +219,7 @@ export function getReachableNodes(flow: FlowV3): Set<NodeId> {
 }
 
 /**
- * 检查节点是否可达
+ * Check whether a node is reachable
  */
 export function isNodeReachable(flow: FlowV3, nodeId: NodeId): boolean {
   return getReachableNodes(flow).has(nodeId);

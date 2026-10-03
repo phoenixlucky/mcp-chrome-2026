@@ -391,14 +391,14 @@ function createPositionIcon(position: PositionValue): SVGElement {
 
   switch (position) {
     case 'static':
-      // 三条水平线表示正常文档流
+      // Three horizontal lines represent normal document flow
       addLine(3.5, 4.5, 8);
       addLine(3.5, 7.5, 8);
       addLine(3.5, 10.5, 8);
       break;
 
     case 'relative': {
-      // 虚线框表示原位置，实心块表示偏移后的位置
+      // Dashed box shows the original position, solid block shows the offset position
       const ghost = document.createElementNS(SVG_NS, 'rect');
       ghost.setAttribute('x', '3.5');
       ghost.setAttribute('y', '3.5');
@@ -411,37 +411,37 @@ function createPositionIcon(position: PositionValue): SVGElement {
       ghost.setAttribute('fill', 'none');
       ghost.setAttribute('opacity', '0.5');
       svg.append(ghost);
-      // 偏移后的实心块
+      // Solid block after the offset
       addBlock(7.5, 7.5, 4, 4);
-      // 连接箭头
+      // Connector arrow
       addPath('M5.5 7.5L7.5 9.5');
       break;
     }
 
     case 'absolute':
-      // 定位参考线（从容器边缘到元素）
+      // Position guides (from the container edge to the element)
       addPath('M3 5.5H6M8 3V6', '0.8');
-      // 元素块在右下角
+      // Element block in the bottom-right corner
       addBlock(6, 6, 5, 5);
       break;
 
     case 'fixed': {
-      // 图钉形状表示固定
+      // Pin shape represents fixed
       const pin = document.createElementNS(SVG_NS, 'circle');
       pin.setAttribute('cx', '7.5');
       pin.setAttribute('cy', '4');
       pin.setAttribute('r', '1.5');
       pin.setAttribute('fill', 'currentColor');
       svg.append(pin);
-      // 图钉针
+      // Pin needle
       addPath('M7.5 5.5V8');
-      // 固定的元素
+      // The fixed element
       addBlock(4.5, 8, 6, 4);
       break;
     }
 
     case 'sticky': {
-      // 顶部吸附线
+      // Top stick line
       const stickyLine = document.createElementNS(SVG_NS, 'rect');
       stickyLine.setAttribute('x', '3');
       stickyLine.setAttribute('y', '3');
@@ -451,7 +451,7 @@ function createPositionIcon(position: PositionValue): SVGElement {
       stickyLine.setAttribute('fill', 'currentColor');
       stickyLine.setAttribute('opacity', '0.4');
       svg.append(stickyLine);
-      // 吸附的元素
+      // The sticking element
       addBlock(4.5, 5, 6, 6);
       break;
     }
@@ -483,7 +483,7 @@ function createRotateIcon(): SVGElement {
 function createFlipXIcon(): SVGElement {
   const svg = createBaseIconSvg();
 
-  // 左侧镜像块（半透明表示原始）
+  // Left mirrored block (translucent = original)
   const leftBlock = document.createElementNS(SVG_NS, 'rect');
   leftBlock.setAttribute('x', '3.5');
   leftBlock.setAttribute('y', '5');
@@ -493,7 +493,7 @@ function createFlipXIcon(): SVGElement {
   leftBlock.setAttribute('fill', 'currentColor');
   leftBlock.setAttribute('opacity', '0.4');
 
-  // 右侧镜像块（实心表示翻转后）
+  // Right mirrored block (solid = after flip)
   const rightBlock = document.createElementNS(SVG_NS, 'rect');
   rightBlock.setAttribute('x', '8.5');
   rightBlock.setAttribute('y', '5');
@@ -502,7 +502,7 @@ function createFlipXIcon(): SVGElement {
   rightBlock.setAttribute('rx', '0.5');
   rightBlock.setAttribute('fill', 'currentColor');
 
-  // 中间镜像轴线
+  // Center mirror axis
   const axis = document.createElementNS(SVG_NS, 'path');
   axis.setAttribute('d', 'M7.5 3V12');
   axis.setAttribute('stroke', 'currentColor');
@@ -518,7 +518,7 @@ function createFlipXIcon(): SVGElement {
 function createFlipYIcon(): SVGElement {
   const svg = createBaseIconSvg();
 
-  // 上方镜像块（半透明表示原始）
+  // Top mirrored block (translucent = original)
   const topBlock = document.createElementNS(SVG_NS, 'rect');
   topBlock.setAttribute('x', '5');
   topBlock.setAttribute('y', '3.5');
@@ -528,7 +528,7 @@ function createFlipYIcon(): SVGElement {
   topBlock.setAttribute('fill', 'currentColor');
   topBlock.setAttribute('opacity', '0.4');
 
-  // 下方镜像块（实心表示翻转后）
+  // Bottom mirrored block (solid = after flip)
   const bottomBlock = document.createElementNS(SVG_NS, 'rect');
   bottomBlock.setAttribute('x', '5');
   bottomBlock.setAttribute('y', '8.5');
@@ -537,7 +537,7 @@ function createFlipYIcon(): SVGElement {
   bottomBlock.setAttribute('rx', '0.5');
   bottomBlock.setAttribute('fill', 'currentColor');
 
-  // 中间镜像轴线
+  // Center mirror axis
   const axis = document.createElementNS(SVG_NS, 'path');
   axis.setAttribute('d', 'M3 7.5H12');
   axis.setAttribute('stroke', 'currentColor');

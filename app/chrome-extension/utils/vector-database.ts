@@ -759,15 +759,15 @@ export class VectorDatabase {
     let totalSize = 0;
 
     try {
-      // 1. 计算文档映射的大小
+      // 1. Calculate the size of the document map
       const documentsSize = this.calculateDocumentMappingsSize();
       totalSize += documentsSize;
 
-      // 2. 计算向量数据的大小
+      // 2. Calculate the size of the vector data
       const vectorsSize = this.calculateVectorsSize();
       totalSize += vectorsSize;
 
-      // 3. 估算索引结构的大小
+      // 3. Estimate the size of the index structure
       const indexStructureSize = this.calculateIndexStructureSize();
       totalSize += indexStructureSize;
 
@@ -776,8 +776,8 @@ export class VectorDatabase {
       );
     } catch (error) {
       console.warn('VectorDatabase: Failed to calculate storage size:', error);
-      // 返回一个基于文档数量的估算值
-      totalSize = this.documents.size * 1024; // 每个文档估算1KB
+      // Return an estimate based on the document count
+      totalSize = this.documents.size * 1024; // Estimate 1KB per document
     }
 
     return totalSize;
@@ -1107,7 +1107,7 @@ export class VectorDatabase {
     }
   }
 
-  // 私有辅助方法
+  // Private helper methods
 
   private generateDocumentId(tabId: number, chunkIndex: number): string {
     return `tab_${tabId}_chunk_${chunkIndex}_${Date.now()}`;

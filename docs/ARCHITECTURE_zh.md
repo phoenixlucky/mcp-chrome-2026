@@ -1,81 +1,81 @@
-# 项目架构
+# Architecture
 
-Chrome MCP Bridge 通过本地服务和 Manifest V3 扩展，把 MCP 客户端连接到用户现有的 Chrome 配置。扩展负责浏览器访问；本地 Node.js 进程提供 MCP 传输，并通过 Chrome Native Messaging 转发浏览器工具调用。
+Chrome MCP Bridge connects an MCP client to the user's existing Chrome profile through a local service and a Manifest V3 extension. The extension owns browser access; the local Node.js process exposes the MCP transports and forwards browser tool calls over Chrome Native Messaging.
 
-## 运行组件
+## Runtime components
 
 ```mermaid
 flowchart LR
-  Client[MCP 客户端] -->|HTTP /mcp、/mcp-new、/sse 或 STDIO| Server[本地服务]
-  Server -->|Native Messaging| Worker[扩展 service worker]
-  Worker -->|Chrome API 和标签页消息| Browser[Chrome 标签页与 API]
-  Worker --> Content[内容脚本]
-  Popup[弹窗和选项页] -->|runtime 消息| Worker
-  Sidepanel[侧边栏和 Builder] -->|runtime 消息| Worker
-  Desktop[Tauri 桌面端] -->|本地 HTTP 和进程管理| Server
+  Client[MCP client] -->|HTTP /mcp, /mcp-new, /sse or STDIO| Server[Native server]
+  Server -->|Native Messaging| Worker[Extension service worker]
+  Worker -->|Chrome APIs and tab messages| Browser[Chrome tabs and APIs]
+  Worker --> Content[Content scripts]
+  Popup[Popup and options UI] -->|runtime messages| Worker
+  Sidepanel[Side panel and builder] -->|runtime messages| Worker
+  Desktop[Tauri desktop manager] -->|local HTTP and process control| Server
 ```
 
-### 本地服务（`app/native-server/`）
+### Native server (`app/native-server/`)
 
-- `src/server/index.ts` 创建 Fastify 服务，并提供健康状态、诊断和 MCP 路由。
-- `src/mcp/` 实现协议传输、工具注册、权限过滤和请求排队。
-- `src/native-messaging-host.ts` 通过 Chrome Native Messaging 连接扩展。
-- `src/agent/` 包含可选的本地助手、不同引擎、会话服务和 SQLite 持久化。
+- `src/server/index.ts` creates the Fastify server and exposes health, status, diagnostics, and MCP routes.
+- `src/mcp/` owns protocol transports, tool registration, permission filtering, and request admission.
+- `src/native-messaging-host.ts` connects the local process to the extension using Chrome Native Messaging.
+- `src/agent/` contains the optional local assistant, its provider engines, session services, and SQLite persistence.
 
-### Chrome 扩展（`app/chrome-extension/`）
+### Chrome extension (`app/chrome-extension/`)
 
-- `entrypoints/background/` 是 Manifest V3 service worker，注册 runtime 监听器，并将工具调用路由到浏览器 API、内容脚本或页面辅助脚本。
-- `entrypoints/`、`inject-scripts/` 和 `shared/` 实现页面交互与复用 UI 行为。
-- `entrypoints/popup/`、`options/`、`sidepanel/` 和 `builder/` 提供扩展界面；需要特权浏览器 API 的操作通过 service worker 消息完成。
-- `entrypoints/offscreen/` 提供需要文档环境的任务，包括 GIF 编码和本地语义推理。
+- `entrypoints/background/` is the Manifest V3 service worker. It registers runtime listeners and routes tools to browser APIs, content scripts, and page-side helpers.
+- `entrypoints/`, `inject-scripts/`, and `shared/` implement page interaction and reusable UI behavior.
+- `entrypoints/popup/`, `options/`, `sidepanel/`, and `builder/` provide extension interfaces; messages that need privileged browser APIs go through the service worker.
+- `entrypoints/offscreen/` hosts work that needs a document context, including GIF encoding and local semantic inference.
 
-### 共享契约（`packages/shared/`）
+### Shared contracts (`packages/shared/`)
 
-`src/tools.ts` 与 `src/tools-en.ts` 定义浏览器工具的 schema 和描述。本地服务与扩展共用这些契约，确保 MCP 工具名称和输入结构一致。
+`src/tools.ts` defines the canonical English browser tool schemas; `src/tools-zh.ts` keeps the Chinese descriptions the extension zh mode reads. The native server and extension consume these contracts so the MCP names and input shapes stay aligned.
 
-### 桌面端（`app/desktop-client/`）
+### Desktop client (`app/desktop-client/`)
 
-Tauri + Vue 客户端负责管理本地服务生命周期，并展示服务健康状态和诊断信息。它不替代 Chrome 扩展；Chrome 仍需安装并连接扩展。
+The Tauri + Vue client manages the local service lifecycle and presents its health and diagnostic status. It does not replace the extension: Chrome must still have the extension installed and connected.
 
-## 浏览器工具调用流程
+## Browser tool request flow
 
 ```mermaid
 sequenceDiagram
-  participant AI as MCP 客户端
-  participant NS as 本地服务
-  participant NH as Native Host 桥接
-  participant SW as 扩展 service worker
-  participant Tab as Chrome 标签页 / 内容脚本
+  participant AI as MCP client
+  participant NS as Native server
+  participant NH as Native host bridge
+  participant SW as Extension service worker
+  participant Tab as Chrome tab / content script
   AI->>NS: tools/call(name, arguments)
-  NS->>NH: Native 请求
-  NH->>SW: runtime 消息
-  SW->>Tab: Chrome API 或标签页消息
-  Tab-->>SW: 执行结果
-  SW-->>NH: 工具结果
-  NH-->>NS: Native 响应
-  NS-->>AI: MCP 结果
+  NS->>NH: native request
+  NH->>SW: runtime message
+  SW->>Tab: Chrome API or tab message
+  Tab-->>SW: result
+  SW-->>NH: tool result
+  NH-->>NS: native response
+  NS-->>AI: MCP result
 ```
 
-`/mcp` 为客户端维护会话；`/mcp-new` 无状态；`/sse` 保留旧传输。STDIO 客户端使用桥接可执行文件，该程序运行相同的本地服务和 MCP 协议实现。
+The `/mcp` endpoint maintains client sessions; `/mcp-new` is stateless; `/sse` preserves the legacy transport. STDIO clients use the bridge executable, which runs the same native server and protocol implementation.
 
-## 可选的本地语义搜索
+## Optional local semantic search
 
-语义搜索是可选的扩展功能。模型文件保存在浏览器 Cache API，向量和索引数据保存在 IndexedDB。service worker 启动时会检查模型缓存，只有缓存已有模型或收到语义操作消息时才初始化推理流程。推理在 offscreen 文档创建的 worker 中运行；模型文件按需下载。扩展包包含该推理 worker 所需的运行时资源。
+Semantic search is an optional extension feature. The extension stores downloaded model data in the browser Cache API and vector/index data in IndexedDB. The service worker checks for an existing model cache at startup and only initializes the inference path when a cached model exists or a semantic message arrives. Inference runs in a worker hosted by the offscreen document; model files are fetched on demand. The extension package also includes the runtime assets needed by that inference worker.
 
-## 构建与验证
+## Build and verification
 
-- `pnpm build` 构建共享包、本地服务、扩展和桌面前端。
-- `pnpm run build:release` 构建 Rust/WASM SIMD 包，并在工作区构建前复制生成的 worker 文件。
-- `.github/workflows/ci.yml` 执行类型检查、lint、单元/集成测试、构建和本地服务请求准入检查。真实 Chrome smoke test 需要在已准备好的 Windows runner 上手动触发。
+- `pnpm build` builds the shared package, native server, extension, and desktop frontend.
+- `pnpm run build:release` builds the Rust/WASM SIMD package and copies its generated worker files before the workspace build.
+- `.github/workflows/ci.yml` runs type checking, lint, unit/integration tests, builds, and a native-server admission gate. The real Chrome smoke test is a manually dispatched acceptance job on a prepared Windows runner.
 
-## 源码索引
+## Source map
 
-| 职责                    | 目录或文件                                           |
-| ----------------------- | ---------------------------------------------------- |
-| MCP HTTP/SSE 路由和状态 | `app/native-server/src/server/`                      |
-| MCP 工具注册和权限      | `app/native-server/src/mcp/`                         |
-| Native Messaging 桥接   | `app/native-server/src/native-messaging-host.ts`     |
-| 扩展工具实现            | `app/chrome-extension/entrypoints/background/tools/` |
-| 页面注入辅助脚本        | `app/chrome-extension/inject-scripts/`               |
-| 共享工具 schema         | `packages/shared/src/tools.ts`                       |
-| 桌面端进程集成          | `app/desktop-client/src-tauri/src/`                  |
+| Concern                               | Source                                               |
+| ------------------------------------- | ---------------------------------------------------- |
+| MCP HTTP/SSE routes and status        | `app/native-server/src/server/`                      |
+| MCP tool registration and permissions | `app/native-server/src/mcp/`                         |
+| Native messaging bridge               | `app/native-server/src/native-host/`                 |
+| Extension tool implementations        | `app/chrome-extension/entrypoints/background/tools/` |
+| Page injection helpers                | `app/chrome-extension/inject-scripts/`               |
+| Shared tool schemas                   | `packages/shared/src/tools.ts`                       |
+| Desktop process integration           | `app/desktop-client/src-tauri/src/`                  |

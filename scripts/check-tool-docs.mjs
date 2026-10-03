@@ -43,14 +43,14 @@ function readHeadings(file) {
 }
 
 const current = readCurrentToolNames('packages/shared/src/tools.ts');
-const currentEnglish = readCurrentToolNames(
-  'packages/shared/src/tools-en.ts',
+const currentChinese = readCurrentToolNames(
+  'packages/shared/src/tools-zh.ts',
   'packages/shared/src/tools.ts',
 );
 const failures = [];
 const languageDrift = [
-  ...[...current].filter((name) => !currentEnglish.has(name)),
-  ...[...currentEnglish].filter((name) => !current.has(name)),
+  ...[...current].filter((name) => !currentChinese.has(name)),
+  ...[...currentChinese].filter((name) => !current.has(name)),
 ];
 if (languageDrift.length) {
   failures.push(`shared tool schema differs between languages: ${languageDrift.join(', ')}`);

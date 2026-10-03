@@ -137,15 +137,21 @@ function normalizeLaunchArgs(args: unknown): string[] {
 }
 
 async function reservePort(): Promise<number> {
-  return await new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      const port = typeof address === 'object' && address ? address.port : 0;
-      server.close((error) => (error ? reject(error) : resolve(port)));
-    });
+  const { promise, resolve, reject } = Promise.withResolvers<number>();
+  const server = net.createServer();
+  server.once('error', reject);
+  server.listen(0, '127.0.0.1', () => {
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    server.close((error) => (error ? reject(error) : resolve(port)));
   });
+  return promise;
+}
+
+function delay(ms: number): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  setTimeout(resolve, ms);
+  return promise;
 }
 
 function validFile(pathValue: string | undefined): string | undefined {
@@ -260,13 +266,12 @@ async function waitForMcp(port: number, timeoutMs = 15_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const status = await fetchJson(`http://127.0.0.1:${port}/status?probe=1`, 1_000);
-    if (
-      status?.probe &&
-      typeof status.probe === 'object' &&
-      (status.probe as Record<string, unknown>).ok === true
-    )
-      return true;
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    if (status?.probe && typeof status.probe === 'object') {
+      // The probe payload is a parsed JSON object; only its ok flag matters here.
+      const probe = status.probe as Record<string, unknown>;
+      if (probe.ok === true) return true;
+    }
+    await delay(250);
   }
   return false;
 }
@@ -567,22 +572,24 @@ export class BrowserProfileManager {
   async clearErrorLogs(profileId?: string): Promise<string[]> {
     const profiles = await this.load();
     const targets = profileId ? profiles.filter((profile) => profile.id === profileId) : profiles;
-    if (profileId && targets.length === 0) return [`终端不存在：${profileId}`];
+    if (profileId && targets.length === 0) return [`Terminal does not exist: ${profileId}`];
 
     const errorsByProfile = await Promise.all(
       targets.map(async (profile): Promise<string[]> => {
         const active = this.running.get(profile.id);
         if (!active?.mcpReady || !active.mcpPort) {
-          return profileId ? [`终端未运行或扩展未连接：${profile.name}`] : [];
+          return profileId
+            ? [`Terminal is not running or the extension is not connected: ${profile.name}`]
+            : [];
         }
         try {
           active.connection ||= new ProfileMcpConnection(active.mcpPort);
           const result = await active.connection.callTool('chrome_error_logs', { action: 'clear' });
-          if (result.isError) throw new Error('插件返回了清除失败结果');
+          if (result.isError) throw new Error('The extension returned a clear failure result');
           return [];
         } catch (error) {
           return [
-            `${profile.name} 错误日志清除失败：${error instanceof Error ? error.message : String(error)}`,
+            `Failed to clear error logs for ${profile.name}: ${error instanceof Error ? error.message : String(error)}`,
           ];
         }
       }),
@@ -594,7 +601,7 @@ export class BrowserProfileManager {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       if (await fetchJson(`http://127.0.0.1:${port}/json/version`)) return true;
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await delay(200);
     }
     return false;
   }
@@ -608,7 +615,7 @@ export class BrowserProfileManager {
       return;
     }
     child.kill('SIGTERM');
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await delay(500);
     if (child.exitCode === null) child.kill('SIGKILL');
   }
 }

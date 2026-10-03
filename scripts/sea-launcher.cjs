@@ -55,8 +55,8 @@ function runEnvironmentChecks() {
   const failures = [];
   const warnings = [];
 
-  if (process.platform !== 'win32') failures.push('当前系统不是 Windows。');
-  if (process.arch !== 'x64') failures.push(`当前架构为 ${process.arch}，此文件只支持 Windows x64。`);
+  if (process.platform !== 'win32') failures.push('The current system is not Windows.');
+  if (process.arch !== 'x64') failures.push(`Current architecture is ${process.arch}; this file only supports Windows x64.`);
 
   const localAppData = dataRoot();
   try {
@@ -65,10 +65,10 @@ function runEnvironmentChecks() {
     fs.writeFileSync(probePath, 'ok', 'utf8');
     fs.rmSync(probePath, { force: true });
   } catch (error) {
-    failures.push(`本地应用数据目录不可写：${localAppData}（${error.message}）`);
+    failures.push(`The local app data directory is not writable: ${localAppData} (${error.message})`);
   }
 
-  if (!process.env.APPDATA) warnings.push('未找到 APPDATA，Chrome Native Messaging 注册可能需要手动配置。');
+  if (!process.env.APPDATA) warnings.push('APPDATA was not found; Chrome Native Messaging registration may need manual configuration.');
 
   return { failures, warnings };
 }
@@ -100,7 +100,7 @@ function waitForHttpServer(port, timeoutMs = 30_000) {
     const attempt = () => {
       if (settled) return;
       if (Date.now() >= deadline) {
-        finish(new Error(`等待 MCP HTTP 服务就绪超时（http://127.0.0.1:${port}/mcp）。请先启动独立版 EXE，或检查端口是否被其他程序占用。`));
+        finish(new Error(`Timed out waiting for the MCP HTTP service to become ready (http://127.0.0.1:${port}/mcp). Start the standalone EXE first, or check whether another program is using the port.`));
         return;
       }
 
@@ -132,7 +132,7 @@ function readConfig(root) {
 function extractPayload() {
   const root = process.env.CHROME_MCP_PAYLOAD_ROOT;
   if (!root || !fs.existsSync(path.join(root, '.complete'))) {
-    throw new Error('便携启动器没有提供有效的运行时缓存目录。');
+    throw new Error('The portable launcher did not provide a valid runtime cache directory.');
   }
   return root;
 }
@@ -140,7 +140,7 @@ function extractPayload() {
 function registerNativeMessagingHost(config) {
   const executablePath = process.env.CHROME_MCP_LAUNCHER_PATH || process.execPath;
   const appData = process.env.APPDATA;
-  if (!appData) return ['未找到 APPDATA，已跳过 Chrome Native Messaging 注册。'];
+  if (!appData) return ['APPDATA was not found; skipped Chrome Native Messaging registration.'];
   const warnings = [];
 
   const manifest = JSON.stringify(
@@ -167,7 +167,7 @@ function registerNativeMessagingHost(config) {
         windowsHide: true,
       });
     } catch (error) {
-      const message = `Native Messaging 注册 ${browser} 失败：${error.message}`;
+      const message = `Failed to register Native Messaging for ${browser}: ${error.message}`;
       warnings.push(message);
       writeLog(message);
     }
@@ -237,7 +237,7 @@ function launchDesktopManager(config, port, payloadRoot) {
   if (!lock) {
     showWindowsMessage(
       'Chrome MCP Bridge',
-      '客户端已经在运行中。请从系统托盘打开已有窗口，不要重复启动。',
+      'The client is already running. Open the existing window from the system tray instead of starting it again.',
       'Information',
     );
     return null;
@@ -283,11 +283,11 @@ function launchDesktopManager(config, port, payloadRoot) {
       { stdio: 'ignore', windowsHide: false },
     );
     uiProcess.once('error', (error) => {
-      writeLog(`桌面管理器启动失败：${error.message}`);
+      writeLog(`Failed to start the desktop manager: ${error.message}`);
       releaseManagerLock(lock);
       try { fs.rmSync(uiScriptPath, { force: true }); } catch {}
       try { fs.rmSync(iconPath, { force: true }); } catch {}
-      showWindowsMessage('Chrome MCP Bridge 启动失败', `桌面管理器启动失败：${error.message}`);
+      showWindowsMessage('Chrome MCP Bridge failed to start', `Failed to start the desktop manager: ${error.message}`);
       process.exitCode = 1;
     });
     uiProcess.once('exit', (code) => {
@@ -315,7 +315,7 @@ function validatePayload(payloadRoot) {
   ];
   const missing = requiredPaths.filter((filePath) => !fs.existsSync(filePath));
   if (missing.length > 0) {
-    throw new Error(`内嵌运行时文件不完整，缺少：${missing.map((filePath) => path.relative(payloadRoot, filePath)).join('、')}`);
+    throw new Error(`The embedded runtime is incomplete; missing: ${missing.map((filePath) => path.relative(payloadRoot, filePath)).join(', ')}`);
   }
 
   const entryPath = path.join(payloadRoot, 'app', 'native-server', 'dist', 'index.js');
@@ -323,7 +323,7 @@ function validatePayload(payloadRoot) {
   try {
     requireFromEntry('better-sqlite3');
   } catch (error) {
-    throw new Error(`关键原生依赖 better-sqlite3 加载失败（${process.arch}）：${error.message}`);
+    throw new Error(`Failed to load the critical native dependency better-sqlite3 (${process.arch}): ${error.message}`);
   }
   return entryPath;
 }
@@ -331,7 +331,7 @@ function validatePayload(payloadRoot) {
 function getStdioEntry(payloadRoot) {
   const entryPath = path.join(payloadRoot, 'app', 'native-server', 'dist', 'mcp', 'mcp-server-stdio.js');
   if (!fs.existsSync(entryPath)) {
-    throw new Error('内嵌运行时不包含 MCP stdio 入口文件，请重新下载完整 EXE。');
+    throw new Error('The embedded runtime does not contain the MCP stdio entry file; download the full EXE again.');
   }
   return entryPath;
 }
@@ -356,11 +356,11 @@ async function ensureEmbeddedHttpServer(payloadRoot, port, portAvailable) {
     stdio: 'ignore',
     windowsHide: true,
   });
-  embeddedServerChild.once('error', (error) => writeLog(`MCP stdio 内嵌 HTTP 服务启动失败：${error.message}`));
+  embeddedServerChild.once('error', (error) => writeLog(`Failed to start the MCP stdio embedded HTTP service: ${error.message}`));
   embeddedServerChild.once('exit', (code, signal) => {
     if (!embeddedServerChild) return;
     if (code !== 0 && signal === null) {
-      writeLog(`MCP stdio 内嵌 HTTP 服务提前退出：code=${code}`);
+      writeLog(`The MCP stdio embedded HTTP service exited early: code=${code}`);
     }
   });
 
@@ -388,9 +388,9 @@ function printStartupInfo(config, port) {
   process.stdout.write(
     [
       `Chrome MCP Bridge ${config.version}`,
-      `扩展 ID：${config.extensionId}`,
-      `Native Messaging 主机：${config.hostName}`,
-      `服务地址：http://127.0.0.1:${port}`,
+      `Extension ID: ${config.extensionId}`,
+      `Native Messaging host: ${config.hostName}`,
+      `Service URL: http://127.0.0.1:${port}`,
       '',
     ].join('\n'),
   );
@@ -398,7 +398,7 @@ function printStartupInfo(config, port) {
 
 function waitForUserBeforeExit() {
   if (!standaloneLaunch) return;
-  process.stderr.write('\n按 Enter 退出...\n');
+  process.stderr.write('\nPress Enter to exit...\n');
   process.stdin.resume();
   process.stdin.once('data', () => process.exit(1));
 }
@@ -409,7 +409,7 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
   try {
     const environment = runEnvironmentChecks();
     if (environment.failures.length > 0) {
-      throw new Error(`启动前环境检查失败：\n${environment.failures.join('\n')}`);
+      throw new Error(`Pre-launch environment check failed:\n${environment.failures.join('\n')}`);
     }
 
     const payloadRoot = extractPayload();
@@ -426,7 +426,7 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
     const portStatus = await checkPort(port);
     const warnings = [...environment.warnings];
     if (!portStatus.available) {
-      warnings.push(`端口 ${port} 当前已被占用，可能已有服务在运行；如果 Chrome 仍无法连接，请先关闭占用该端口的程序。`);
+      warnings.push(`Port ${port} is already in use; a service may already be running. If Chrome still cannot connect, close the program occupying the port first.`);
     }
     warnings.push(...registerNativeMessagingHost(config));
 
@@ -446,13 +446,13 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
       const warningText = [
         ...warnings,
         '',
-        `服务仍会尝试启动。诊断日志：${logPath()}`,
+        `The service will still try to start. Diagnostic log: ${logPath()}`,
       ].join('\n');
-      writeLog(`启动前提醒：\n${warningText}`);
+      writeLog(`Pre-launch warnings:\n${warningText}`);
       // The desktop manager displays warnings in its status panel. A modal
       // message box here would block the manager whenever Native Host already
       // owns the expected port, which is the normal Chrome-connected state.
-      if (!standaloneLaunch) showWindowsMessage('Chrome MCP Bridge 环境提醒', warningText, 'Warning');
+      if (!standaloneLaunch) showWindowsMessage('Chrome MCP Bridge environment warning', warningText, 'Warning');
     }
 
     if (standaloneLaunch) {
@@ -467,13 +467,13 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
     const userMessage = [
       detail,
       '',
-      `系统：${process.platform} ${process.arch}`,
-      `Node：${process.version}`,
-      `日志：${logPath()}`,
+      `System: ${process.platform} ${process.arch}`,
+      `Node: ${process.version}`,
+      `Log: ${logPath()}`,
     ].join('\n');
-    process.stderr.write(`Chrome MCP Bridge 启动失败：${fullError}\n`);
-    writeLog(`启动失败：\n${fullError}\n环境：${userMessage}`);
-    showWindowsMessage('Chrome MCP Bridge 启动失败', userMessage);
+    process.stderr.write(`Chrome MCP Bridge failed to start: ${fullError}\n`);
+    writeLog(`Startup failed:\n${fullError}\nEnvironment: ${userMessage}`);
+    showWindowsMessage('Chrome MCP Bridge failed to start', userMessage);
     if (standaloneLaunch) waitForUserBeforeExit();
     else process.exitCode = 1;
   }

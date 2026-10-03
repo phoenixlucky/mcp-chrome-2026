@@ -123,7 +123,7 @@ async function openDocs(): Promise<void> {
             </div>
             <div class="min-w-0">
               <h1 class="welcome-title text-lg font-medium tracking-tight truncate">
-                猫娘 Chrome MCP Server
+                Catgirl Chrome MCP Server
               </h1>
               <p class="welcome-muted text-sm truncate">{{ t('subtitle') }}</p>
             </div>

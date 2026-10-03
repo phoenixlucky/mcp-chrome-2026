@@ -583,7 +583,8 @@ export class ContentIndexer {
           title: response.title || '',
         };
       } else {
-        const error = response?.error || response?.selectorError || '页面没有可提取的文本';
+        const error =
+          response?.error || response?.selectorError || 'No extractable text on the page';
         console.error(`ContentIndexer: Failed to extract content from tab ${tabId}:`, error);
         return null;
       }

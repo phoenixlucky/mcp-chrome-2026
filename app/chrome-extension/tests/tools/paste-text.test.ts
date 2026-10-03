@@ -53,7 +53,7 @@ describe('paste-text tool', () => {
     });
 
     const result = await pasteTextTool.execute({
-      text: '第一段\n\n第二段',
+      text: 'First paragraph\n\nSecond paragraph',
       tabId: 12,
     });
 
@@ -61,9 +61,9 @@ describe('paste-text tool', () => {
     expect(expression).toContain("new ClipboardEvent('paste'");
     expect(expression).toContain("dt.setData('text/plain'");
     expect(expression).toContain('[contenteditable="true"]');
-    // 文本以 JSON 转义嵌入，避免拼接注入
-    expect(expression).toContain(JSON.stringify('第一段\n\n第二段'));
-    expect(expression).not.toContain('第一段\n\n第二段'); // 原始换行不直接出现
+    // Text is embedded JSON-escaped to avoid interpolation injection
+    expect(expression).toContain(JSON.stringify('First paragraph\n\nSecond paragraph'));
+    expect(expression).not.toContain('First paragraph\n\nSecond paragraph'); // raw newlines do not appear directly
 
     expect(JSON.parse(text(result))).toMatchObject({
       success: true,
@@ -83,7 +83,7 @@ describe('paste-text tool', () => {
     });
 
     await pasteTextTool.execute({
-      text: '一\n\n二\n\n三',
+      text: 'One\n\nTwo\n\nThree',
       selector: '.DraftEditor-root [contenteditable="true"]',
       tabId: 12,
     });
@@ -102,7 +102,7 @@ describe('paste-text tool', () => {
       ]);
 
     const result = await pasteTextTool.execute({
-      text: '喵',
+      text: 'Meow',
       selector: '[contenteditable="true"]',
       tabId: 12,
     });

@@ -10,74 +10,76 @@ export function validateNode(n: NodeBase): string[] {
     case STEP_TYPES.DBLCLICK:
     case 'fill': {
       const hasCandidate = !!c?.target?.candidates?.length;
-      if (!hasCandidate) errs.push('缺少目标选择器候选');
-      if (n.type === 'fill' && (!('value' in c) || c.value === undefined)) errs.push('缺少输入值');
+      if (!hasCandidate) errs.push('Missing target selector candidate');
+      if (n.type === 'fill' && (!('value' in c) || c.value === undefined))
+        errs.push('Missing input value');
       break;
     }
     case STEP_TYPES.WAIT: {
-      if (!c?.condition) errs.push('缺少等待条件');
+      if (!c?.condition) errs.push('Missing wait condition');
       break;
     }
     case STEP_TYPES.ASSERT: {
-      if (!c?.assert) errs.push('缺少断言条件');
+      if (!c?.assert) errs.push('Missing assert condition');
       break;
     }
     case STEP_TYPES.NAVIGATE: {
-      if (!c?.url) errs.push('缺少 URL');
+      if (!c?.url) errs.push('Missing URL');
       break;
     }
     case STEP_TYPES.HTTP: {
-      if (!c?.url) errs.push('HTTP: 缺少 URL');
+      if (!c?.url) errs.push('HTTP: missing URL');
       if (c?.assign && typeof c.assign === 'object') {
         const pathRe = /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+|\[\d+\])*$/;
         for (const v of Object.values(c.assign)) {
           const s = String(v);
-          if (!pathRe.test(s)) errs.push(`Assign: 路径非法 ${s}`);
+          if (!pathRe.test(s)) errs.push(`Assign: invalid path ${s}`);
         }
       }
       break;
     }
     case STEP_TYPES.HANDLE_DOWNLOAD: {
-      // filenameContains 可选
+      // filenameContains is optional
       break;
     }
     case STEP_TYPES.EXTRACT: {
-      if (!c?.saveAs) errs.push('Extract: 需填写保存变量名');
-      if (!c?.selector && !c?.js) errs.push('Extract: 需提供 selector 或 js');
+      if (!c?.saveAs) errs.push('Extract: save variable name is required');
+      if (!c?.selector && !c?.js) errs.push('Extract: provide selector or js');
       break;
     }
     case STEP_TYPES.SWITCH_TAB: {
       if (!c?.tabId && !c?.urlContains && !c?.titleContains)
-        errs.push('SwitchTab: 需提供 tabId 或 URL/标题包含');
+        errs.push('SwitchTab: provide tabId or URL/title contains');
       break;
     }
     case STEP_TYPES.SCREENSHOT: {
-      // selector 可空（全页/可视区），不强制
+      // selector may be empty (full page/viewport), not required
       break;
     }
     case STEP_TYPES.TRIGGER_EVENT: {
       const hasCandidate = !!c?.target?.candidates?.length;
-      if (!hasCandidate) errs.push('缺少目标选择器候选');
-      if (!String(c?.event || '').trim()) errs.push('需提供事件类型');
+      if (!hasCandidate) errs.push('Missing target selector candidate');
+      if (!String(c?.event || '').trim()) errs.push('Event type is required');
       break;
     }
     case STEP_TYPES.IF: {
       const arr = Array.isArray(c?.branches) ? c.branches : [];
-      if (arr.length === 0) errs.push('需添加至少一个条件分支');
+      if (arr.length === 0) errs.push('Add at least one conditional branch');
       for (let i = 0; i < arr.length; i++) {
-        if (!String(arr[i]?.expr || '').trim()) errs.push(`分支${i + 1}: 需填写条件表达式`);
+        if (!String(arr[i]?.expr || '').trim())
+          errs.push(`Branch ${i + 1}: condition expression is required`);
       }
       break;
     }
     case STEP_TYPES.SET_ATTRIBUTE: {
       const hasCandidate = !!c?.target?.candidates?.length;
-      if (!hasCandidate) errs.push('缺少目标选择器候选');
-      if (!String(c?.name || '').trim()) errs.push('需提供属性名');
+      if (!hasCandidate) errs.push('Missing target selector candidate');
+      if (!String(c?.name || '').trim()) errs.push('Attribute name is required');
       break;
     }
     case STEP_TYPES.LOOP_ELEMENTS: {
-      if (!String(c?.selector || '').trim()) errs.push('需提供元素选择器');
-      if (!String(c?.subflowId || '').trim()) errs.push('需提供子流 ID');
+      if (!String(c?.selector || '').trim()) errs.push('Element selector is required');
+      if (!String(c?.subflowId || '').trim()) errs.push('Subflow ID is required');
       break;
     }
     case STEP_TYPES.SWITCH_FRAME: {
@@ -85,23 +87,23 @@ export function validateNode(n: NodeBase): string[] {
       break;
     }
     case STEP_TYPES.EXECUTE_FLOW: {
-      if (!String(c?.flowId || '').trim()) errs.push('需选择要执行的工作流');
+      if (!String(c?.flowId || '').trim()) errs.push('Select a workflow to execute');
       break;
     }
     case STEP_TYPES.CLOSE_TAB: {
-      // 允许空（关闭当前标签页），不强制
+      // Empty is allowed (closes the current tab), not required
       break;
     }
     case STEP_TYPES.SCRIPT: {
-      // 若配置了 saveAs/assign，应提供 code
+      // If saveAs/assign is configured, code should be provided
       const hasAssign = c?.assign && Object.keys(c.assign).length > 0;
       if ((c?.saveAs || hasAssign) && !String(c?.code || '').trim())
-        errs.push('Script: 配置了保存/映射但缺少代码');
+        errs.push('Script: save/assign configured but code is missing');
       if (hasAssign) {
         const pathRe = /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+|\[\d+\])*$/;
         for (const v of Object.values(c.assign || {})) {
           const s = String(v);
-          if (!pathRe.test(s)) errs.push(`Assign: 路径非法 ${s}`);
+          if (!pathRe.test(s)) errs.push(`Assign: invalid path ${s}`);
         }
       }
       break;

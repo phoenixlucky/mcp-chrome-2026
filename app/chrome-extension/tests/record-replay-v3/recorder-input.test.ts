@@ -28,7 +28,7 @@ describe('page recorder input', () => {
     const input = document.createElement('textarea');
     document.body.append(input);
     input.dispatchEvent(new Event('focusin', { bubbles: true }));
-    input.value = '你好啊';
+    input.value = 'hello';
     input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     await new Promise<void>((resolve) =>
       listener({ action: 'rr_recorder_control', cmd: 'stop' }, {}, () => resolve()),
@@ -39,6 +39,6 @@ describe('page recorder input', () => {
         (message) => message.type === 'rr_recorder_event' && message.payload?.kind === 'steps',
       )
       .flatMap((message) => message.payload.steps);
-    expect(steps).toContainEqual(expect.objectContaining({ type: 'fill', value: '你好啊' }));
+    expect(steps).toContainEqual(expect.objectContaining({ type: 'fill', value: 'hello' }));
   });
 });

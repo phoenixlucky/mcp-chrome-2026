@@ -1,28 +1,53 @@
 import { describe, expect, test, afterAll, beforeAll, jest } from '@jest/globals';
 import supertest from 'supertest';
-import Server from './index';
+import Server, { type ActiveMcpRequest, type McpRequestRecord } from './index';
 import { ERROR_MESSAGES, isAllowedCorsOrigin, MCP_API_KEY_ENV } from '../constant';
 import nativeMessagingHostInstance from '../native-messaging-host';
 
-function parseMcpResponse(response: { body?: any; text?: string }): any {
-  if (response.body?.jsonrpc) return response.body;
-  const dataLine = response.text?.split(/\r?\n/).find((line) => line.startsWith('data:'));
-  if (!dataLine) throw new Error('MCP response did not contain a JSON body');
-  return JSON.parse(dataLine.slice('data:'.length).trim());
+interface JsonRpcResponse {
+  jsonrpc?: string;
+  result: { tools?: unknown; [key: string]: unknown };
+  [key: string]: unknown;
 }
 
-describe('服务器测试', () => {
-  // 启动服务器测试实例
+// Server keeps these fields private; the tests drive them directly.
+interface ServerInternals {
+  statelessMcpRequests: Map<string, ActiveMcpRequest>;
+  mcpRequests: Map<string, ActiveMcpRequest>;
+  recentMcpRequests: McpRequestRecord[];
+  finishMcpRequest: (
+    activeRequest: ActiveMcpRequest,
+    status: 'success' | 'error' | 'cancelled',
+    error?: string | null,
+  ) => void;
+}
+
+const serverInternals = Server as unknown as ServerInternals;
+
+function parseMcpResponse(response: { body?: unknown; text?: string }): JsonRpcResponse {
+  const body = response.body;
+  if (body && typeof body === 'object' && 'jsonrpc' in body) {
+    // supertest parsed the JSON body; the MCP shape is checked by the assertions.
+    return body as JsonRpcResponse;
+  }
+  const dataLine = response.text?.split(/\r?\n/).find((line) => line.startsWith('data:'));
+  if (!dataLine) throw new Error('MCP response did not contain a JSON body');
+  // The JSON-RPC payload travels in the SSE data line.
+  return JSON.parse(dataLine.slice('data:'.length).trim()) as JsonRpcResponse;
+}
+
+describe('Server tests', () => {
+  // Start the server test instance
   beforeAll(async () => {
     await Server.getInstance().ready();
   });
 
-  // 关闭服务器
+  // Close the server
   afterAll(async () => {
     await Server.stop();
   });
 
-  test('GET /ping 应返回正确响应', async () => {
+  test('GET /ping should return the correct response', async () => {
     const response = await supertest(Server.getInstance().server)
       .get('/ping')
       .expect(200)
@@ -34,7 +59,7 @@ describe('服务器测试', () => {
     });
   });
 
-  test('GET /status 应返回可诊断状态', async () => {
+  test('GET /status should return a diagnosable status', async () => {
     const response = await supertest(Server.getInstance().server)
       .get('/status')
       .set('Origin', 'http://127.0.0.1:1420')
@@ -71,7 +96,7 @@ describe('服务器测试', () => {
     );
   });
 
-  test('兼容版 Streamable HTTP 应保留会话生命周期', async () => {
+  test('Legacy Streamable HTTP should preserve the session lifecycle', async () => {
     Server.serviceEnabled = true;
     let sessionId: string | undefined;
     try {
@@ -128,7 +153,7 @@ describe('服务器测试', () => {
           ],
           isError: false,
         },
-      } as any);
+      });
     let sessionId: string | undefined;
 
     try {
@@ -209,7 +234,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('STDIO 代理应标记为 STDIO 连接', async () => {
+  test('STDIO proxies should be marked as STDIO connections', async () => {
     Server.serviceEnabled = true;
     let sessionId: string | undefined;
     try {
@@ -250,7 +275,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('Streamable HTTP（尝鲜版）无会话请求应返回工具列表', async () => {
+  test('Stateless Streamable HTTP (preview) requests should return the tool list', async () => {
     Server.serviceEnabled = true;
     try {
       const response = await supertest(Server.getInstance().server)
@@ -301,8 +326,8 @@ describe('服务器测试', () => {
     }
   });
 
-  test('无会话活动请求应支持按 ID 中断', async () => {
-    const server = Server as any;
+  test('Stateless active requests should be cancellable by ID', async () => {
+    const server = serverInternals;
     let cancelCalls = 0;
     server.statelessMcpRequests.set('request-under-test', {
       requestId: 'request-under-test',
@@ -347,11 +372,11 @@ describe('服务器测试', () => {
     }
   });
 
-  test('MCP 请求完成后应进入最近历史并保留 20 条', () => {
-    const server = Server as any;
+  test('Completed MCP requests should enter recent history capped at 20', () => {
+    const server = serverInternals;
     const previousHistory = [...server.recentMcpRequests];
     const previousActive = new Map(server.mcpRequests);
-    const makeRequest = (requestId: string, method = 'tools/call') => ({
+    const makeRequest = (requestId: string, method = 'tools/call'): ActiveMcpRequest => ({
       requestId,
       method,
       toolName: method === 'tools/call' ? 'chrome_wait' : null,
@@ -425,7 +450,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('兼容版无效协议请求应记录为失败请求', async () => {
+  test('Legacy invalid protocol requests should be recorded as failed', async () => {
     Server.serviceEnabled = true;
     try {
       const response = await supertest(Server.getInstance().server)
@@ -451,7 +476,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('智能助手设置允许跨域 PUT 保存', async () => {
+  test('Agent settings allow cross-origin PUT saves', async () => {
     const response = await supertest(Server.getInstance().server)
       .options('/agent/settings/deepseek')
       .set('Origin', 'chrome-extension://test')
@@ -461,14 +486,14 @@ describe('服务器测试', () => {
     expect(response.headers['access-control-allow-methods']).toContain('PUT');
   });
 
-  test('CORS 不接受伪造的本地 Origin', () => {
+  test('CORS rejects a forged local Origin', () => {
     expect(isAllowedCorsOrigin('http://127.0.0.1:5173')).toBe(true);
     expect(isAllowedCorsOrigin('chrome-extension://test-extension')).toBe(true);
     expect(isAllowedCorsOrigin('http://127.0.0.1.evil.example')).toBe(false);
     expect(isAllowedCorsOrigin('https://127.0.0.1')).toBe(false);
   });
 
-  test('MCP 拒绝没有 Origin 且没有 API Key 的请求', async () => {
+  test('MCP rejects requests without Origin and without an API Key', async () => {
     const previousKey = process.env[MCP_API_KEY_ENV];
     delete process.env[MCP_API_KEY_ENV];
     try {
@@ -481,7 +506,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('MCP API Key 允许无 Origin 的受保护请求并拒绝错误 Key', async () => {
+  test('MCP API Key allows protected requests without Origin and rejects a wrong Key', async () => {
     const previousKey = process.env[MCP_API_KEY_ENV];
     process.env[MCP_API_KEY_ENV] = 'server-test-key';
     try {
@@ -511,7 +536,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('Agent 私有接口统一遵守 Origin 和 API Key 认证', async () => {
+  test('Agent private endpoints uniformly enforce Origin and API Key auth', async () => {
     const previousKey = process.env[MCP_API_KEY_ENV];
     delete process.env[MCP_API_KEY_ENV];
     try {
@@ -551,7 +576,7 @@ describe('服务器测试', () => {
     }
   });
 
-  test('运行时控制接口受保护并返回脱敏任务列表', async () => {
+  test('Runtime control endpoints are protected and return a redacted task list', async () => {
     const previousKey = process.env[MCP_API_KEY_ENV];
     delete process.env[MCP_API_KEY_ENV];
     try {

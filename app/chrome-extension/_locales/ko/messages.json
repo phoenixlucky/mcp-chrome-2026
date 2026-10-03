@@ -85,6 +85,14 @@
     "message": "연결됨, 서비스 시작되지 않음",
     "description": "연결되었지만 서비스가 시작되지 않은 상태"
   },
+  "startServiceButton": {
+    "message": "서비스 시작",
+    "description": "서비스 시작 버튼 텍스트"
+  },
+  "serviceNotStartedTip": {
+    "message": "네이티브 호스트에 연결되었습니다. HTTP 서비스 시작을 기다리는 중입니다. 상태를 새로고침하거나 네이티브 호스트 상태를 확인하세요.",
+    "description": "서비스가 시작되지 않은 경우 팁 텍스트"
+  },
   "mcpServerConfigLabel": {
     "message": "MCP 서버 설정",
     "description": "MCP 서버 설정 섹션 레이블"
@@ -442,5 +450,177 @@
   "pagesUnit": {
     "message": "페이지",
     "description": "페이지 수 단위"
+  },
+  "userscriptsManagerTitle": {
+    "message": "유저스크립트 관리자",
+    "description": "옵션 페이지 제목"
+  },
+  "emergencySwitchLabel": {
+    "message": "비상 스위치",
+    "description": "전역 비활성화 스위치"
+  },
+  "createRunSectionTitle": {
+    "message": "생성 / 실행",
+    "description": "생성 및 실행 섹션 제목"
+  },
+  "nameLabel": {
+    "message": "이름",
+    "description": "이름 입력 레이블"
+  },
+  "runAtLabel": {
+    "message": "실행 시점",
+    "description": "runAt 선택 레이블"
+  },
+  "runAtAuto": {
+    "message": "자동",
+    "description": "runAt auto"
+  },
+  "runAtDocumentStart": {
+    "message": "document_start",
+    "description": "runAt document_start"
+  },
+  "runAtDocumentEnd": {
+    "message": "document_end",
+    "description": "runAt document_end"
+  },
+  "runAtDocumentIdle": {
+    "message": "document_idle",
+    "description": "runAt document_idle"
+  },
+  "worldLabel": {
+    "message": "실행 월드",
+    "description": "world 선택 레이블"
+  },
+  "worldAuto": {
+    "message": "자동",
+    "description": "world auto"
+  },
+  "worldIsolated": {
+    "message": "격리된 월드 (ISOLATED)",
+    "description": "ISOLATED world"
+  },
+  "worldMain": {
+    "message": "메인 월드 (MAIN)",
+    "description": "MAIN world"
+  },
+  "modeLabel": {
+    "message": "모드",
+    "description": "모드 선택 레이블"
+  },
+  "modeAuto": {
+    "message": "자동",
+    "description": "mode auto"
+  },
+  "modePersistent": {
+    "message": "영구",
+    "description": "mode persistent"
+  },
+  "modeCss": {
+    "message": "CSS 전용",
+    "description": "mode css"
+  },
+  "modeOnce": {
+    "message": "1회 실행 (CDP)",
+    "description": "mode once"
+  },
+  "allFramesLabel": {
+    "message": "모든 프레임",
+    "description": "allFrames 체크박스"
+  },
+  "persistLabel": {
+    "message": "영구 유지",
+    "description": "persist 체크박스"
+  },
+  "dnrFallbackLabel": {
+    "message": "DNR 폴백",
+    "description": "DNR fallback 체크박스"
+  },
+  "matchesInputLabel": {
+    "message": "일치 패턴 (쉼표 구분)",
+    "description": "matches 항목"
+  },
+  "excludesInputLabel": {
+    "message": "제외 패턴 (쉼표 구분)",
+    "description": "excludes 항목"
+  },
+  "tagsInputLabel": {
+    "message": "태그 (쉼표 구분)",
+    "description": "tags 항목"
+  },
+  "scriptLabel": {
+    "message": "스크립트",
+    "description": "스크립트 텍스트 영역 레이블"
+  },
+  "applyButton": {
+    "message": "적용",
+    "description": "적용 버튼 텍스트"
+  },
+  "runOnceButton": {
+    "message": "1회 실행 (CDP)",
+    "description": "1회 실행 버튼 텍스트"
+  },
+  "listSectionTitle": {
+    "message": "목록",
+    "description": "목록 섹션 제목"
+  },
+  "queryLabel": {
+    "message": "검색",
+    "description": "검색 입력 레이블"
+  },
+  "statusAll": {
+    "message": "전체",
+    "description": "상태 전체"
+  },
+  "statusEnabled": {
+    "message": "활성화됨",
+    "description": "상태 활성화됨"
+  },
+  "statusDisabled": {
+    "message": "비활성화됨",
+    "description": "상태 비활성화됨"
+  },
+  "domainLabel": {
+    "message": "도메인",
+    "description": "도메인 필터 레이블"
+  },
+  "exportAllButton": {
+    "message": "모두 내보내기",
+    "description": "내보내기 버튼 텍스트"
+  },
+  "tableHeaderName": {
+    "message": "이름",
+    "description": "테이블 헤더 이름"
+  },
+  "tableHeaderWorld": {
+    "message": "월드",
+    "description": "테이블 헤더 World"
+  },
+  "tableHeaderRunAt": {
+    "message": "실행 시점",
+    "description": "테이블 헤더 RunAt"
+  },
+  "tableHeaderUpdated": {
+    "message": "업데이트됨",
+    "description": "테이블 헤더 업데이트됨"
+  },
+  "deleteButton": {
+    "message": "삭제",
+    "description": "삭제 버튼 텍스트"
+  },
+  "placeholderOptional": {
+    "message": "선택사항",
+    "description": "일반 선택사항 플레이스홀더"
+  },
+  "placeholderMatchesExample": {
+    "message": "예: https://*.example.com/*",
+    "description": "일치 패턴 예시 플레이스홀더"
+  },
+  "placeholderScriptHint": {
+    "message": "여기에 JS/CSS/TM 붙여넣기",
+    "description": "스크립트 텍스트 영역 플레이스홀더"
+  },
+  "placeholderDomainHint": {
+    "message": "example.com",
+    "description": "도메인 필터 플레이스홀더"
   }
 }

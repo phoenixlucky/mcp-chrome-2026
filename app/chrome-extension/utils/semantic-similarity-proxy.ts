@@ -133,7 +133,7 @@ export class SemanticSimilarityEngineProxy {
    * Send message to offscreen document with retry mechanism and auto-reinitialization
    */
   private async sendMessageToOffscreen(message: any, maxRetries: number = 3): Promise<any> {
-    // 确保offscreen document存在
+    // Make sure the offscreen document exists
     await this.offscreenManager.ensureOffscreenDocument();
 
     let lastError: Error | null = null;

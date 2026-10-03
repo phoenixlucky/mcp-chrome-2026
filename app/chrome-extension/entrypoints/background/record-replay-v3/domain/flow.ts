@@ -1,6 +1,6 @@
 /**
- * @fileoverview Flow 类型定义
- * @description 定义 Record-Replay V3 中的 Flow IR（中间表示）
+ * @fileoverview Flow type definitions
+ * @description Defines the Record-Replay V3 Flow IR (intermediate representation)
  */
 
 import type { ISODateTimeString, JsonObject } from './json';
@@ -8,49 +8,49 @@ import type { EdgeId, EdgeLabel, FlowId, NodeId } from './ids';
 import type { FlowPolicy, NodePolicy } from './policy';
 import type { VariableDefinition } from './variables';
 
-/** Flow Schema 版本 */
+/** Flow Schema version */
 export const FLOW_SCHEMA_VERSION = 3 as const;
 
 /**
  * Edge V3
- * @description DAG 中的边，连接两个节点
+ * @description An edge in the DAG, connecting two nodes
  */
 export interface EdgeV3 {
-  /** Edge 唯一标识符 */
+  /** Unique Edge identifier */
   id: EdgeId;
-  /** 源节点 ID */
+  /** Source node ID */
   from: NodeId;
-  /** 目标节点 ID */
+  /** Target node ID */
   to: NodeId;
-  /** 边标签（用于条件分支和错误处理） */
+  /** Edge label (used for conditional branching and error handling) */
   label?: EdgeLabel;
 }
 
-/** 节点类型（可扩展） */
+/** Node kind (extensible) */
 export type NodeKind = string;
 
 /**
  * Node V3
- * @description DAG 中的节点，代表一个可执行的操作
+ * @description A node in the DAG, representing an executable operation
  */
 export interface NodeV3 {
-  /** Node 唯一标识符 */
+  /** Unique Node identifier */
   id: NodeId;
-  /** 节点类型 */
+  /** Node kind */
   kind: NodeKind;
-  /** 节点名称（用于显示） */
+  /** Node name (for display) */
   name?: string;
-  /** 是否禁用 */
+  /** Whether disabled */
   disabled?: boolean;
-  /** 节点级策略 */
+  /** Node-level policy */
   policy?: NodePolicy;
-  /** 节点配置（类型由 kind 决定） */
+  /** Node config (type determined by kind) */
   config: JsonObject;
-  /** UI 布局信息 */
+  /** UI layout info */
   ui?: { x: number; y: number };
 }
 
-/** 可被 foreach/while 原生调用的局部 DAG。 */
+/** Local DAG that can be natively invoked by foreach/while. */
 export interface SubflowV3 {
   entryNodeId: NodeId;
   nodes: NodeV3[];
@@ -58,8 +58,8 @@ export interface SubflowV3 {
 }
 
 /**
- * Flow 元数据绑定
- * @description 定义 Flow 与特定域名/路径/URL 的关联
+ * Flow metadata binding
+ * @description Defines the association between a Flow and a specific domain/path/URL
  */
 export interface FlowBinding {
   kind: 'domain' | 'path' | 'url';
@@ -68,61 +68,61 @@ export interface FlowBinding {
 
 /**
  * Flow V3
- * @description 完整的 Flow 定义，包含节点、边和配置
+ * @description Complete Flow definition, including nodes, edges and config
  */
 export interface FlowV3 {
-  /** Schema 版本 */
+  /** Schema version */
   schemaVersion: typeof FLOW_SCHEMA_VERSION;
-  /** Flow 唯一标识符 */
+  /** Unique Flow identifier */
   id: FlowId;
-  /** Flow 名称 */
+  /** Flow name */
   name: string;
-  /** Flow 描述 */
+  /** Flow description */
   description?: string;
-  /** 创建时间 */
+  /** Creation time */
   createdAt: ISODateTimeString;
-  /** 更新时间 */
+  /** Update time */
   updatedAt: ISODateTimeString;
 
-  /** 入口节点 ID（显式指定，不依赖入度推断） */
+  /** Entry node ID (explicitly specified, not inferred from in-degree) */
   entryNodeId: NodeId;
-  /** 节点列表 */
+  /** Node list */
   nodes: NodeV3[];
-  /** 边列表 */
+  /** Edge list */
   edges: EdgeV3[];
 
-  /** 命名子流程；子流程本身仍是无环 DAG。 */
+  /** Named subflows; each subflow is still a cycle-free DAG. */
   subflows?: Record<string, SubflowV3>;
 
-  /** 变量定义 */
+  /** Variable definitions */
   variables?: VariableDefinition[];
-  /** Flow 级策略 */
+  /** Flow-level policy */
   policy?: FlowPolicy;
-  /** 元数据 */
+  /** Metadata */
   meta?: {
-    /** 标签 */
+    /** Tags */
     tags?: string[];
-    /** 绑定规则 */
+    /** Binding rules */
     bindings?: FlowBinding[];
   };
 }
 
 /**
- * 根据 ID 查找节点
+ * Find a node by ID
  */
 export function findNodeById(flow: FlowV3, nodeId: NodeId): NodeV3 | undefined {
   return flow.nodes.find((n) => n.id === nodeId);
 }
 
 /**
- * 查找从指定节点出发的所有边
+ * Find all edges starting from the given node
  */
 export function findEdgesFrom(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
   return flow.edges.filter((e) => e.from === nodeId);
 }
 
 /**
- * 查找指向指定节点的所有边
+ * Find all edges pointing to the given node
  */
 export function findEdgesTo(flow: FlowV3, nodeId: NodeId): EdgeV3[] {
   return flow.edges.filter((e) => e.to === nodeId);

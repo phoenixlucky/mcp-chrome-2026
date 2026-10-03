@@ -31,7 +31,7 @@ flowchart LR
 
 ### Shared contracts (`packages/shared/`)
 
-`src/tools.ts` and `src/tools-en.ts` define the browser tool schemas and descriptions. The native server and extension consume these contracts so the MCP names and input shapes stay aligned.
+`src/tools.ts` defines the canonical English browser tool schemas; `src/tools-zh.ts` keeps the Chinese descriptions the extension zh mode reads. The native server and extension consume these contracts so the MCP names and input shapes stay aligned.
 
 ### Desktop client (`app/desktop-client/`)
 

@@ -28,7 +28,7 @@ import {
 } from './rpc';
 
 /**
- * RPC Server 配置
+ * RPC Server config
  */
 export interface RpcServerConfig {
   storage: StoragePort;
@@ -37,14 +37,14 @@ export interface RpcServerConfig {
   runners?: RunnerRegistry;
   scheduler?: RunScheduler;
   triggerManager?: TriggerManager;
-  /** ID 生成器（用于测试注入） */
+  /** ID generator (for test injection) */
   generateRunId?: () => RunId;
-  /** 时间源（用于测试注入） */
+  /** Time source (for test injection) */
   now?: () => number;
 }
 
 /**
- * 活跃的 Port 连接
+ * Active Port connection
  */
 interface PortConnection {
   port: chrome.runtime.Port;
@@ -52,7 +52,7 @@ interface PortConnection {
 }
 
 /**
- * 默认 RunId 生成器
+ * Default RunId generator
  */
 function defaultGenerateRunId(): RunId {
   return `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -60,7 +60,7 @@ function defaultGenerateRunId(): RunId {
 
 /**
  * RPC Server
- * @description 处理来自 UI 的 RPC 请求
+ * @description Handles RPC requests from the UI
  */
 export class RpcServer {
   private readonly storage: StoragePort;
@@ -86,7 +86,7 @@ export class RpcServer {
   }
 
   /**
-   * 启动 RPC Server
+   * Start the RPC Server
    */
   start(): void {
     chrome.runtime.onConnect.addListener(this.handleConnect);
@@ -98,7 +98,7 @@ export class RpcServer {
   }
 
   /**
-   * 停止 RPC Server
+   * Stop the RPC Server
    */
   stop(): void {
     chrome.runtime.onConnect.removeListener(this.handleConnect);
@@ -116,7 +116,7 @@ export class RpcServer {
   }
 
   /**
-   * 处理新连接
+   * Handle a new connection
    */
   private handleConnect = (port: chrome.runtime.Port): void => {
     if (port.name !== RR_V3_PORT_NAME) return;
@@ -134,7 +134,7 @@ export class RpcServer {
   };
 
   /**
-   * 处理消息
+   * Handle a message
    */
   private handleMessage = async (connId: string, msg: unknown): Promise<void> => {
     if (!isRpcRequest(msg)) return;
@@ -152,14 +152,14 @@ export class RpcServer {
   };
 
   /**
-   * 处理断开连接
+   * Handle a disconnect
    */
   private handleDisconnect = (connId: string): void => {
     this.connections.delete(connId);
   };
 
   /**
-   * 广播事件
+   * Broadcast an event
    */
   private broadcastEvent(event: RunEvent): void {
     const message = createRpcEventMessage(event);
@@ -181,8 +181,8 @@ export class RpcServer {
   // ===== Queue Management Handlers =====
 
   /**
-   * 处理 enqueueRun 请求
-   * @description 委托给共享的 enqueueRun 服务
+   * Handle the enqueueRun request
+   * @description Delegates to the shared enqueueRun service
    */
   private async handleEnqueueRun(params: JsonObject | undefined): Promise<JsonValue> {
     const result = await enqueueRun(
@@ -208,13 +208,13 @@ export class RpcServer {
   }
 
   /**
-   * 处理 listQueue 请求
-   * @description 列出队列项，按 priority DESC + createdAt ASC 排序
+   * Handle the listQueue request
+   * @description Lists queue items, sorted by priority DESC + createdAt ASC
    */
   private async handleListQueue(params: JsonObject | undefined): Promise<JsonValue> {
     const rawStatus = params?.status;
 
-    // 校验 status 白名单
+    // Validate the status whitelist
     let status: QueueItemStatus | undefined;
     if (rawStatus !== undefined) {
       if (rawStatus !== 'queued' && rawStatus !== 'running' && rawStatus !== 'paused') {
@@ -225,7 +225,7 @@ export class RpcServer {
 
     const items = await this.storage.queue.list(status);
 
-    // 按 priority DESC + createdAt ASC 排序
+    // Sort by priority DESC + createdAt ASC
     items.sort((a, b) => {
       if (a.priority !== b.priority) {
         return b.priority - a.priority; // DESC
@@ -237,9 +237,9 @@ export class RpcServer {
   }
 
   /**
-   * 处理 cancelQueueItem 请求
-   * @description 取消排队中的队列项，更新 Run 状态，发布 run.canceled 事件
-   * @note 仅允许取消 status=queued 的项；running/paused 需使用 rr_v3.cancelRun
+   * Handle the cancelQueueItem request
+   * @description Cancels a queued item, updates the Run status and publishes a run.canceled event
+   * @note Only items with status=queued may be canceled; running/paused requires rr_v3.cancelRun
    */
   private async handleCancelQueueItem(params: JsonObject | undefined): Promise<JsonValue> {
     const runId = params?.runId as RunId | undefined;
@@ -248,30 +248,30 @@ export class RpcServer {
     const reason = params?.reason as string | undefined;
     const now = this.now();
 
-    // 1. 检查队列项存在
+    // 1. Check that the queue item exists
     const queueItem = await this.storage.queue.get(runId);
     if (!queueItem) {
       throw new Error(`Queue item "${runId}" not found`);
     }
 
-    // 2. 仅允许取消 queued 状态（running/paused 需使用 rr_v3.cancelRun）
+    // 2. Only the queued status may be canceled (running/paused requires rr_v3.cancelRun)
     if (queueItem.status !== 'queued') {
       throw new Error(
         `Cannot cancel queue item "${runId}" with status "${queueItem.status}"; use rr_v3.cancelRun for running/paused runs`,
       );
     }
 
-    // 3. 从队列移除
+    // 3. Remove from the queue
     await this.storage.queue.cancel(runId, now, reason);
 
-    // 4. 更新 Run 记录状态
+    // 4. Update the Run record status
     await this.storage.runs.patch(runId, {
       status: 'canceled',
       updatedAt: now,
       finishedAt: now,
     });
 
-    // 5. 发布 run.canceled 事件（通过 EventsBus 以确保广播）
+    // 5. Publish a run.canceled event (via EventsBus to ensure broadcast)
     await this.events.append({
       runId,
       type: 'run.canceled',
@@ -282,7 +282,7 @@ export class RpcServer {
   }
 
   /**
-   * 处理 RPC 请求
+   * Handle an RPC request
    */
   private async handleRequest(request: RpcRequest, conn: PortConnection): Promise<JsonValue> {
     const { method, params } = request;
@@ -416,8 +416,8 @@ export class RpcServer {
   // ===== Flow Management Handlers =====
 
   /**
-   * 处理 saveFlow 请求
-   * @description 保存或更新 Flow，执行完整的结构验证
+   * Handle the saveFlow request
+   * @description Saves or updates a Flow, performing full structural validation
    */
   private async handleSaveFlow(params: JsonObject | undefined): Promise<JsonValue> {
     const rawFlow = params?.flow;
@@ -425,37 +425,37 @@ export class RpcServer {
       throw new Error('flow is required');
     }
 
-    // 检查是否为更新现有 flow（使用 trim 后的 ID 查询）
+    // Check whether this updates an existing flow (looked up by trimmed ID)
     const rawId = (rawFlow as JsonObject).id;
     let existingFlow: FlowV3 | null = null;
     if (typeof rawId === 'string' && rawId.trim()) {
       existingFlow = await this.storage.flows.get(rawId.trim() as FlowId);
     }
 
-    // 规范化 flow，传入 existingFlow 以继承 createdAt
+    // Normalize the flow, passing existingFlow to inherit createdAt
     const flow = this.normalizeFlowSpec(rawFlow, existingFlow);
 
-    // 保存到存储（存储层会执行二次验证）
+    // Save to storage (the storage layer performs validation again)
     await this.storage.flows.save(flow);
 
     return flow as unknown as JsonValue;
   }
 
   /**
-   * 处理 deleteFlow 请求
-   * @description 删除 Flow，先检查是否有关联的 Trigger 和 queued runs
+   * Handle the deleteFlow request
+   * @description Deletes a Flow after checking for linked Triggers and queued runs
    */
   private async handleDeleteFlow(params: JsonObject | undefined): Promise<JsonValue> {
     const flowId = params?.flowId as FlowId | undefined;
     if (!flowId) throw new Error('flowId is required');
 
-    // 检查 Flow 是否存在
+    // Check that the Flow exists
     const existing = await this.storage.flows.get(flowId);
     if (!existing) {
       throw new Error(`Flow "${flowId}" not found`);
     }
 
-    // 检查是否有关联的 Trigger
+    // Check for linked Triggers
     const triggers = await this.storage.triggers.list();
     const linkedTriggers = triggers.filter((t) => t.flowId === flowId);
     if (linkedTriggers.length > 0) {
@@ -466,7 +466,7 @@ export class RpcServer {
       );
     }
 
-    // 检查是否有 queued runs（未执行的 runs 删除后会失败）
+    // Check for queued runs (deleting a run that has not executed yet would fail it)
     const queuedItems = await this.storage.queue.list('queued');
     const linkedQueuedRuns = queuedItems.filter((item) => item.flowId === flowId);
     if (linkedQueuedRuns.length > 0) {
@@ -477,17 +477,17 @@ export class RpcServer {
       );
     }
 
-    // 删除 Flow
+    // Delete the Flow
     await this.storage.flows.delete(flowId);
 
     return { ok: true, flowId };
   }
 
   /**
-   * 规范化 FlowV3 输入
-   * @description 验证并转换输入为完整的 FlowV3 结构
-   * @param value 原始输入
-   * @param existingFlow 已存在的 flow（用于继承 createdAt）
+   * Normalize the FlowV3 input
+   * @description Validates and converts the input into a full FlowV3 structure
+   * @param value Raw input
+   * @param existingFlow Existing flow (used to inherit createdAt)
    */
   private normalizeFlowSpec(value: unknown, existingFlow: FlowV3 | null = null): FlowV3 {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -495,7 +495,7 @@ export class RpcServer {
     }
     const raw = value as JsonObject;
 
-    // id 校验与生成
+    // id validation and generation
     let id: FlowId;
     if (raw.id === undefined || raw.id === null) {
       id = `flow_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` as FlowId;
@@ -506,13 +506,13 @@ export class RpcServer {
       id = raw.id.trim() as FlowId;
     }
 
-    // name 校验
+    // name validation
     if (!raw.name || typeof raw.name !== 'string' || !raw.name.trim()) {
       throw new Error('flow.name is required');
     }
     const name = raw.name.trim();
 
-    // description 校验
+    // description validation
     let description: string | undefined;
     if (raw.description !== undefined && raw.description !== null) {
       if (typeof raw.description !== 'string') {
@@ -521,19 +521,19 @@ export class RpcServer {
       description = raw.description;
     }
 
-    // entryNodeId 校验
+    // entryNodeId validation
     if (!raw.entryNodeId || typeof raw.entryNodeId !== 'string' || !raw.entryNodeId.trim()) {
       throw new Error('flow.entryNodeId is required');
     }
     const entryNodeId = raw.entryNodeId.trim() as NodeId;
 
-    // nodes 校验
+    // nodes validation
     if (!Array.isArray(raw.nodes)) {
       throw new Error('flow.nodes must be an array');
     }
     const nodes = raw.nodes.map((n, i) => this.normalizeNode(n, i));
 
-    // 验证 node ID 唯一性
+    // Validate node ID uniqueness
     const nodeIdSet = new Set<string>();
     for (const node of nodes) {
       if (nodeIdSet.has(node.id)) {
@@ -542,7 +542,7 @@ export class RpcServer {
       nodeIdSet.add(node.id);
     }
 
-    // edges 校验
+    // edges validation
     let edges: EdgeV3[] = [];
     if (raw.edges !== undefined && raw.edges !== null) {
       if (!Array.isArray(raw.edges)) {
@@ -551,7 +551,7 @@ export class RpcServer {
       edges = raw.edges.map((e, i) => this.normalizeEdge(e, i));
     }
 
-    // 验证 edge ID 唯一性
+    // Validate edge ID uniqueness
     const edgeIdSet = new Set<string>();
     for (const edge of edges) {
       if (edgeIdSet.has(edge.id)) {
@@ -560,12 +560,12 @@ export class RpcServer {
       edgeIdSet.add(edge.id);
     }
 
-    // 验证 entryNodeId 存在
+    // Validate that entryNodeId exists
     if (!nodeIdSet.has(entryNodeId)) {
       throw new Error(`Entry node "${entryNodeId}" does not exist in flow`);
     }
 
-    // 验证边引用
+    // Validate edge references
     for (const edge of edges) {
       if (!nodeIdSet.has(edge.from)) {
         throw new Error(`Edge "${edge.id}" references non-existent source node "${edge.from}"`);
@@ -575,12 +575,12 @@ export class RpcServer {
       }
     }
 
-    // 时间戳：更新时继承 existingFlow.createdAt，新建时用当前时间
+    // Timestamps: inherit existingFlow.createdAt on update, use the current time on create
     const now = new Date(this.now()).toISOString() as ISODateTimeString;
     const createdAt = existingFlow?.createdAt ?? now;
     const updatedAt = now;
 
-    // 构建完整的 FlowV3
+    // Build the full FlowV3
     const flow: FlowV3 = {
       schemaVersion: CURRENT_FLOW_SCHEMA_VERSION,
       id,
@@ -627,12 +627,12 @@ export class RpcServer {
       if (Object.keys(subflows).length) flow.subflows = subflows;
     }
 
-    // 可选字段
+    // Optional fields
     if (description !== undefined) {
       flow.description = description;
     }
 
-    // variables 验证：每项必须是 object 且有 name 字段
+    // variables validation: each entry must be an object with a name field
     if (raw.variables !== undefined && raw.variables !== null) {
       if (!Array.isArray(raw.variables)) {
         throw new Error('flow.variables must be an array');
@@ -653,7 +653,7 @@ export class RpcServer {
           throw new Error(`Duplicate variable name: "${varName}"`);
         }
         varNameSet.add(varName);
-        // 使用 trim 后的 name
+        // Use the trimmed name
         variables.push({ ...varObj, name: varName } as unknown as VariableDefinition);
       }
       if (variables.length > 0) {
@@ -678,7 +678,7 @@ export class RpcServer {
   }
 
   /**
-   * 规范化 Node 输入
+   * Normalize the Node input
    */
   private normalizeNode(value: unknown, index: number): NodeV3 {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -686,19 +686,19 @@ export class RpcServer {
     }
     const raw = value as JsonObject;
 
-    // id 校验（非空 + trim）
+    // id validation (non-empty + trim)
     if (!raw.id || typeof raw.id !== 'string' || !raw.id.trim()) {
       throw new Error(`flow.nodes[${index}].id is required`);
     }
     const nodeId = raw.id.trim() as NodeId;
 
-    // kind 校验（非空 + trim）
+    // kind validation (non-empty + trim)
     if (!raw.kind || typeof raw.kind !== 'string' || !raw.kind.trim()) {
       throw new Error(`flow.nodes[${index}].kind is required`);
     }
     const kind = raw.kind.trim();
 
-    // config 校验
+    // config validation
     if (raw.config !== undefined && raw.config !== null) {
       if (typeof raw.config !== 'object' || Array.isArray(raw.config)) {
         throw new Error(`flow.nodes[${index}].config must be an object`);
@@ -711,7 +711,7 @@ export class RpcServer {
       config: (raw.config as JsonObject) ?? {},
     };
 
-    // 可选字段
+    // Optional fields
     if (raw.name !== undefined && raw.name !== null) {
       if (typeof raw.name !== 'string') {
         throw new Error(`flow.nodes[${index}].name must be a string`);
@@ -741,7 +741,7 @@ export class RpcServer {
   }
 
   /**
-   * 规范化 Edge 输入
+   * Normalize the Edge input
    */
   private normalizeEdge(value: unknown, index: number): EdgeV3 {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -749,7 +749,7 @@ export class RpcServer {
     }
     const raw = value as JsonObject;
 
-    // id 校验或生成（非空 + trim）
+    // id validation or generation (non-empty + trim)
     let id: EdgeId;
     if (raw.id === undefined || raw.id === null) {
       id = `edge_${index}_${Math.random().toString(36).slice(2, 8)}` as EdgeId;
@@ -760,13 +760,13 @@ export class RpcServer {
       id = raw.id.trim() as EdgeId;
     }
 
-    // from 校验（非空 + trim）
+    // from validation (non-empty + trim)
     if (!raw.from || typeof raw.from !== 'string' || !raw.from.trim()) {
       throw new Error(`flow.edges[${index}].from is required`);
     }
     const from = raw.from.trim() as NodeId;
 
-    // to 校验（非空 + trim）
+    // to validation (non-empty + trim)
     if (!raw.to || typeof raw.to !== 'string' || !raw.to.trim()) {
       throw new Error(`flow.edges[${index}].to is required`);
     }
@@ -778,7 +778,7 @@ export class RpcServer {
       to,
     };
 
-    // label 可选
+    // label is optional
     if (raw.label !== undefined && raw.label !== null) {
       if (typeof raw.label !== 'string') {
         throw new Error(`flow.edges[${index}].label must be a string`);
@@ -934,7 +934,7 @@ export class RpcServer {
   }
 
   /**
-   * 规范化 TriggerSpec 输入
+   * Normalize the TriggerSpec input
    */
   private normalizeTriggerSpec(value: unknown, opts: { requireId: boolean }): TriggerSpec {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -942,19 +942,19 @@ export class RpcServer {
     }
     const raw = value as JsonObject;
 
-    // kind 校验
+    // kind validation
     const kind = raw.kind;
     if (!kind || typeof kind !== 'string') {
       throw new Error('trigger.kind is required');
     }
 
-    // flowId 校验
+    // flowId validation
     const flowId = raw.flowId;
     if (!flowId || typeof flowId !== 'string') {
       throw new Error('trigger.flowId is required');
     }
 
-    // id 校验
+    // id validation
     let id: TriggerId;
     if (raw.id === undefined || raw.id === null) {
       if (opts.requireId) {
@@ -968,7 +968,7 @@ export class RpcServer {
       id = raw.id as TriggerId;
     }
 
-    // enabled 校验
+    // enabled validation
     let enabled = true;
     if (raw.enabled !== undefined && raw.enabled !== null) {
       if (typeof raw.enabled !== 'boolean') {
@@ -977,7 +977,7 @@ export class RpcServer {
       enabled = raw.enabled;
     }
 
-    // args 校验
+    // args validation
     let args: JsonObject | undefined;
     if (raw.args !== undefined && raw.args !== null) {
       if (typeof raw.args !== 'object' || Array.isArray(raw.args)) {
@@ -986,10 +986,10 @@ export class RpcServer {
       args = raw.args as JsonObject;
     }
 
-    // 基础字段
+    // Base fields
     const base = { id, kind: kind as TriggerKind, enabled, flowId: flowId as FlowId, args };
 
-    // 根据 kind 添加特定字段
+    // Add kind-specific fields
     switch (kind) {
       case 'manual':
         return base as TriggerSpec;
@@ -1206,7 +1206,7 @@ export class RpcServer {
 }
 
 /**
- * 创建并启动 RPC Server
+ * Create and start the RPC Server
  */
 export function createRpcServer(config: RpcServerConfig): RpcServer {
   const server = new RpcServer(config);

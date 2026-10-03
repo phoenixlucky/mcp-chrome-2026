@@ -25,10 +25,35 @@ import { LocalEventWebSocketServer, type EventChannelInfo } from './event-websoc
 import { RequestStageTimings, structuredLog } from './observability.js';
 import { MAX_NATIVE_MESSAGE_SIZE_BYTES, NativeMessageFrameDecoder } from './native-frame.js';
 
+/**
+ * Payload shape of a raw native request/response. The protocol schema keeps
+ * `params`/`result` as unknown, but every consumer treats them as JSON objects.
+ */
+export interface NativePayload {
+  [key: string]: unknown;
+}
+
+/** Tool response body returned by the extension. */
+export interface NativeExtensionData {
+  content?: Array<{ type?: string; text?: string; [key: string]: unknown }>;
+  isError?: boolean;
+  [key: string]: unknown;
+}
+
+/** Generic result of a request sent to the Chrome extension. */
+export interface NativeRequestResult {
+  status?: string;
+  data?: NativeExtensionData;
+  items?: unknown[];
+  error?: unknown;
+  url?: string;
+  [key: string]: unknown;
+}
+
 interface PendingRequest {
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
-  onProgress?: (payload: any) => void | Promise<void>;
+  resolve: (value: NativeRequestResult) => void;
+  reject: (reason?: unknown) => void;
+  onProgress?: (payload: NativePayload) => void | Promise<void>;
   timeoutId: NodeJS.Timeout;
   traceId: string;
   method: string;
@@ -59,70 +84,71 @@ function resolveServerPort(requested?: unknown): number {
   return Number.isInteger(port) && port > 0 && port <= 65535 ? port : NATIVE_SERVER_PORT;
 }
 
-function isAddressInUse(error: any): boolean {
-  return error?.code === 'EADDRINUSE' || String(error?.message || '').includes('EADDRINUSE');
+function isAddressInUse(error: unknown): boolean {
+  const value = error as { code?: unknown; message?: unknown } | undefined;
+  return value?.code === 'EADDRINUSE' || String(value?.message || '').includes('EADDRINUSE');
 }
 
 function requestPortTakeover(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const request = httpRequest(
-      {
-        hostname: '127.0.0.1',
-        port,
-        path: '/__chrome_mcp_bridge/takeover',
-        method: 'POST',
-        headers: { Connection: 'close' },
-        timeout: 2_000,
-      },
-      (response) => {
-        response.resume();
-        resolve(response.statusCode === 200);
-      },
-    );
-    request.on('timeout', () => request.destroy());
-    request.on('error', () => resolve(false));
-    request.end();
-  });
+  const { promise, resolve } = Promise.withResolvers<boolean>();
+  const request = httpRequest(
+    {
+      hostname: '127.0.0.1',
+      port,
+      path: '/__chrome_mcp_bridge/takeover',
+      method: 'POST',
+      headers: { Connection: 'close' },
+      timeout: 2_000,
+    },
+    (response) => {
+      response.resume();
+      resolve(response.statusCode === 200);
+    },
+  );
+  request.on('timeout', () => request.destroy());
+  request.on('error', () => resolve(false));
+  request.end();
+  return promise;
 }
 
 function waitForPortAvailable(port: number, timeoutMs = 8_000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const deadline = Date.now() + timeoutMs;
-    let settled = false;
-    const retry = () => {
-      if (settled) return;
-      if (Date.now() >= deadline) {
+  const { promise, resolve, reject } = Promise.withResolvers<void>();
+  const deadline = Date.now() + timeoutMs;
+  let settled = false;
+  const retry = () => {
+    if (settled) return;
+    if (Date.now() >= deadline) {
+      settled = true;
+      reject(new Error(`Timed out waiting for port ${port} to be released.`));
+      return;
+    }
+    setTimeout(attempt, 100);
+  };
+  const attempt = () => {
+    if (settled) return;
+    const probe = net.createServer();
+    probe.once('listening', () => {
+      probe.close(() => {
+        if (settled) return;
         settled = true;
-        reject(new Error(`等待端口 ${port} 释放超时。`));
+        resolve();
+      });
+    });
+    probe.once('error', (error: NodeJS.ErrnoException) => {
+      probe.close();
+      if (error?.code === 'EADDRINUSE') {
+        retry();
         return;
       }
-      setTimeout(attempt, 100);
-    };
-    const attempt = () => {
-      if (settled) return;
-      const probe = net.createServer();
-      probe.once('listening', () => {
-        probe.close(() => {
-          if (settled) return;
-          settled = true;
-          resolve();
-        });
-      });
-      probe.once('error', (error: any) => {
-        probe.close();
-        if (error?.code === 'EADDRINUSE') {
-          retry();
-          return;
-        }
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
-      });
-      probe.listen({ host: '127.0.0.1', port });
-    };
-    attempt();
-  });
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    });
+    probe.listen({ host: '127.0.0.1', port });
+  };
+  attempt();
+  return promise;
 }
 
 export class NativeMessagingHost {
@@ -192,7 +218,7 @@ export class NativeMessagingHost {
       this.lastActivityAt = new Date();
       this.setupMessageHandling();
       void this.startServer(resolveServerPort(NATIVE_SERVER_PORT));
-    } catch (error: any) {
+    } catch {
       process.exit(1);
     }
   }
@@ -208,12 +234,14 @@ export class NativeMessagingHost {
           try {
             const message = JSON.parse(messageBuffer.toString());
             void this.handleMessage(message);
-          } catch (error: any) {
-            this.sendError(`Failed to parse message: ${error.message}`);
+          } catch (error) {
+            this.sendError(
+              `Failed to parse message: ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
         }
-      } catch (error: any) {
-        this.sendError(error.message);
+      } catch (error) {
+        this.sendError(error instanceof Error ? error.message : String(error));
       }
 
       // Continue on the next turn if a coalesced input contained more than
@@ -238,12 +266,13 @@ export class NativeMessagingHost {
     });
   }
 
-  private async handleMessage(message: any): Promise<void> {
+  private async handleMessage(message: unknown): Promise<void> {
     this.lastActivityAt = new Date();
     if (!message || typeof message !== 'object') {
       this.sendError('Invalid message format');
       return;
     }
+    const envelope = message as NativePayload;
     try {
       await this.handleProtocolMessage(parseNativeProtocolMessage(message));
     } catch (error) {
@@ -258,15 +287,15 @@ export class NativeMessagingHost {
       structuredLog('protocol.error', {
         code: protocolError.code,
         message: protocolError.message,
-        requestId: typeof message.requestId === 'string' ? message.requestId : undefined,
-        traceId: typeof message.traceId === 'string' ? message.traceId : undefined,
+        requestId: typeof envelope.requestId === 'string' ? envelope.requestId : undefined,
+        traceId: typeof envelope.traceId === 'string' ? envelope.traceId : undefined,
       });
-      if (typeof message.requestId === 'string' && typeof message.traceId === 'string') {
+      if (typeof envelope.requestId === 'string' && typeof envelope.traceId === 'string') {
         this.sendMessage({
           version: NATIVE_PROTOCOL_VERSION,
           type: 'response',
-          requestId: message.requestId,
-          traceId: message.traceId,
+          requestId: envelope.requestId,
+          traceId: envelope.traceId,
           ok: false,
           error: { code: protocolError.code, message: protocolError.message },
         });
@@ -317,7 +346,7 @@ export class NativeMessagingHost {
       case 'capabilities':
       case 'event':
         if (message.type === 'event' && message.requestId) {
-          this.pendingRequests.get(message.requestId)?.onProgress?.(message.data);
+          this.pendingRequests.get(message.requestId)?.onProgress?.(message.data as NativePayload);
         }
         return;
       case 'artifact':
@@ -391,7 +420,7 @@ export class NativeMessagingHost {
     pending.settled = true;
     this.pendingRequests.delete(message.requestId);
     if (message.ok) {
-      const result = message.result as Record<string, unknown> | undefined;
+      const result = message.result as NativeRequestResult | undefined;
       const artifactId = typeof result?.artifactId === 'string' ? result.artifactId : undefined;
       if (artifactId && this.failedArtifactUploads.has(artifactId)) {
         this.failedArtifactUploads.delete(artifactId);
@@ -407,7 +436,7 @@ export class NativeMessagingHost {
               ...result,
               url: `http://127.0.0.1:${resolveServerPort()}/artifacts/${artifactId}?token=${encodeURIComponent(this.artifactStore.get(artifactId)!.downloadToken)}`,
             }
-          : message.result,
+          : (result ?? {}),
       );
       this.lastSuccessAt = new Date();
     } else {
@@ -446,7 +475,7 @@ export class NativeMessagingHost {
     try {
       switch (message.method) {
         case 'native.start':
-          await this.startServer(resolveServerPort((message.params as any)?.port));
+          await this.startServer(resolveServerPort((message.params as NativePayload)?.port));
           if (controller.signal.aborted)
             throw new NativeProtocolError('CANCELED', 'Request canceled');
           this.sendProtocolResponseOnce(message, {
@@ -517,7 +546,7 @@ export class NativeMessagingHost {
     }
   }
 
-  private sendProtocolResponseOnce(request: NativeRequest, response: object): void {
+  private sendProtocolResponseOnce(request: NativeRequest, response: NativePayload): void {
     if (this.respondedProtocolRequests.has(request.requestId)) return;
     if (this.respondedProtocolRequests.size >= this.maxDeduplicatedRequests) {
       const oldest = this.respondedProtocolRequests.values().next().value;
@@ -534,144 +563,144 @@ export class NativeMessagingHost {
    * @returns Promise, resolves to Chrome's returned payload on success, rejects on failure
    */
   public sendRequestToExtensionAndWait(
-    messagePayload: any,
+    messagePayload: NativePayload,
     messageType: string = 'request_data',
     timeoutMs: number = TIMEOUTS.DEFAULT_REQUEST_TIMEOUT,
     signal?: AbortSignal,
-    onProgress?: (payload: any) => void | Promise<void>,
+    onProgress?: (payload: NativePayload) => void | Promise<void>,
     traceIdOverride?: string,
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if (!this.connected) {
-        reject(
-          new NativeProtocolError(
-            'NATIVE_DISCONNECTED',
-            'Chrome extension is not connected to the Native Host.',
-          ),
-        );
-        return;
-      }
-      const requestId = randomUUID();
-      const traceId = traceIdOverride || randomUUID();
-      const deadlineAt = Date.now() + timeoutMs;
-      const method = this.protocolMethodFor(messageType);
-      const sideEffect = this.isSideEffectRequest(method, messagePayload);
-      let settled = false;
+  ): Promise<NativeRequestResult> {
+    const { promise, resolve, reject } = Promise.withResolvers<NativeRequestResult>();
+    if (!this.connected) {
+      reject(
+        new NativeProtocolError(
+          'NATIVE_DISCONNECTED',
+          'Chrome extension is not connected to the Native Host.',
+        ),
+      );
+      return promise;
+    }
+    const requestId = randomUUID();
+    const traceId = traceIdOverride || randomUUID();
+    const deadlineAt = Date.now() + timeoutMs;
+    const method = this.protocolMethodFor(messageType);
+    const sideEffect = this.isSideEffectRequest(method, messagePayload);
+    let settled = false;
 
-      const cancel = () => {
-        const pending = this.pendingRequests.get(requestId);
-        if (!pending || pending.settled) return;
-        clearTimeout(pending.timeoutId);
-        pending.settled = true;
-        this.pendingRequests.delete(requestId);
-        this.cancelCount += 1;
-        structuredLog('request.canceled', { requestId, traceId, method });
-        this.sendMessage({
-          version: NATIVE_PROTOCOL_VERSION,
-          type: 'cancel',
-          requestId,
-          traceId,
-          reason: 'client_abort',
-        });
-        reject(
-          new NativeProtocolError(
-            sideEffect ? 'EXECUTION_UNKNOWN' : 'CANCELED',
-            sideEffect
-              ? 'Side-effect execution state is unknown after cancellation'
-              : 'Request canceled',
-          ),
-        );
-      };
-      if (signal?.aborted) {
-        reject(new NativeProtocolError('CANCELED', 'Request canceled'));
-        return;
-      }
-      signal?.addEventListener('abort', cancel, { once: true });
-
-      const timeoutId = setTimeout(() => {
-        const pending = this.pendingRequests.get(requestId);
-        if (!pending || pending.settled) return;
-        pending.settled = true;
-        this.pendingRequests.delete(requestId);
-        this.timeoutCount += 1;
-        this.lastError = `Request deadline exceeded at ${deadlineAt}`;
-        structuredLog('request.timeout', { requestId, traceId, method, deadlineAt });
-        signal?.removeEventListener('abort', cancel);
-        this.sendMessage({
-          version: NATIVE_PROTOCOL_VERSION,
-          type: 'cancel',
-          requestId,
-          traceId,
-          reason: 'deadline_exceeded',
-        });
-        reject(
-          new NativeProtocolError(
-            sideEffect ? 'EXECUTION_UNKNOWN' : 'DEADLINE_EXCEEDED',
-            sideEffect
-              ? 'Side-effect execution state is unknown after deadline cancellation'
-              : `Request deadline exceeded at ${deadlineAt}`,
-          ),
-        );
-      }, timeoutMs);
-
-      // Store request's resolve/reject functions and timeout ID
-      this.pendingRequests.set(requestId, {
-        resolve: (value) => {
-          if (settled) return;
-          settled = true;
-          signal?.removeEventListener('abort', cancel);
-          resolve(value);
-        },
-        reject: (reason) => {
-          if (settled) return;
-          settled = true;
-          signal?.removeEventListener('abort', cancel);
-          reject(reason);
-        },
-        onProgress,
-        timeoutId,
-        traceId,
-        method,
-        sideEffect,
-        settled: false,
-      });
-
-      // Send message with requestId to Chrome
-      void this.writeNativeMessage({
+    const cancel = () => {
+      const pending = this.pendingRequests.get(requestId);
+      if (!pending || pending.settled) return;
+      clearTimeout(pending.timeoutId);
+      pending.settled = true;
+      this.pendingRequests.delete(requestId);
+      this.cancelCount += 1;
+      structuredLog('request.canceled', { requestId, traceId, method });
+      this.sendMessage({
         version: NATIVE_PROTOCOL_VERSION,
-        type: 'request',
+        type: 'cancel',
+        requestId,
+        traceId,
+        reason: 'client_abort',
+      });
+      reject(
+        new NativeProtocolError(
+          sideEffect ? 'EXECUTION_UNKNOWN' : 'CANCELED',
+          sideEffect
+            ? 'Side-effect execution state is unknown after cancellation'
+            : 'Request canceled',
+        ),
+      );
+    };
+    if (signal?.aborted) {
+      reject(new NativeProtocolError('CANCELED', 'Request canceled'));
+      return promise;
+    }
+    signal?.addEventListener('abort', cancel, { once: true });
+
+    const timeoutId = setTimeout(() => {
+      const pending = this.pendingRequests.get(requestId);
+      if (!pending || pending.settled) return;
+      pending.settled = true;
+      this.pendingRequests.delete(requestId);
+      this.timeoutCount += 1;
+      this.lastError = `Request deadline exceeded at ${deadlineAt}`;
+      structuredLog('request.timeout', { requestId, traceId, method, deadlineAt });
+      signal?.removeEventListener('abort', cancel);
+      this.sendMessage({
+        version: NATIVE_PROTOCOL_VERSION,
+        type: 'cancel',
+        requestId,
+        traceId,
+        reason: 'deadline_exceeded',
+      });
+      reject(
+        new NativeProtocolError(
+          sideEffect ? 'EXECUTION_UNKNOWN' : 'DEADLINE_EXCEEDED',
+          sideEffect
+            ? 'Side-effect execution state is unknown after deadline cancellation'
+            : `Request deadline exceeded at ${deadlineAt}`,
+        ),
+      );
+    }, timeoutMs);
+
+    // Store request's resolve/reject functions and timeout ID
+    this.pendingRequests.set(requestId, {
+      resolve: (value) => {
+        if (settled) return;
+        settled = true;
+        signal?.removeEventListener('abort', cancel);
+        resolve(value);
+      },
+      reject: (reason) => {
+        if (settled) return;
+        settled = true;
+        signal?.removeEventListener('abort', cancel);
+        reject(reason);
+      },
+      onProgress,
+      timeoutId,
+      traceId,
+      method,
+      sideEffect,
+      settled: false,
+    });
+
+    // Send message with requestId to Chrome
+    void this.writeNativeMessage({
+      version: NATIVE_PROTOCOL_VERSION,
+      type: 'request',
+      requestId,
+      traceId,
+      method,
+      deadlineAt,
+      params: messagePayload,
+    }).catch((error: unknown) => {
+      const pending = this.pendingRequests.get(requestId);
+      if (!pending || pending.settled) return;
+
+      clearTimeout(pending.timeoutId);
+      pending.settled = true;
+      this.pendingRequests.delete(requestId);
+      const writeError = error instanceof Error ? error : new Error(String(error));
+      const reason = pending.sideEffect
+        ? new NativeProtocolError(
+            'EXECUTION_UNKNOWN',
+            'Side-effect execution state is unknown after native message send failure',
+          )
+        : writeError;
+      this.lastError = writeError.message;
+      structuredLog('native.request_send_error', {
         requestId,
         traceId,
         method,
-        deadlineAt,
-        params: messagePayload,
-      }).catch((error: unknown) => {
-        const pending = this.pendingRequests.get(requestId);
-        if (!pending || pending.settled) return;
-
-        clearTimeout(pending.timeoutId);
-        pending.settled = true;
-        this.pendingRequests.delete(requestId);
-        const writeError = error instanceof Error ? error : new Error(String(error));
-        const reason = pending.sideEffect
-          ? new NativeProtocolError(
-              'EXECUTION_UNKNOWN',
-              'Side-effect execution state is unknown after native message send failure',
-            )
-          : writeError;
-        this.lastError = writeError.message;
-        structuredLog('native.request_send_error', {
-          requestId,
-          traceId,
-          method,
-          error: writeError.message,
-        });
-        pending.reject(reason);
+        error: writeError.message,
       });
+      pending.reject(reason);
     });
+    return promise;
   }
 
-  private isSideEffectRequest(method: string, payload: any): boolean {
+  private isSideEffectRequest(method: string, payload: NativePayload): boolean {
     if (
       method === 'rr.runFlow' ||
       method === 'file.operation' ||
@@ -728,7 +757,7 @@ export class NativeMessagingHost {
         event: 'native.serverStarted',
         data: { port },
       });
-    } catch (error: any) {
+    } catch (error) {
       // A manually opened service instance may already own the port. Ask that
       // instance to stop, then let the Chrome-launched Native Messaging host
       // take over so HTTP requests and the native connection share one process.
@@ -752,7 +781,9 @@ export class NativeMessagingHost {
         });
         return;
       }
-      this.sendError(`Failed to start server: ${error.message}`);
+      this.sendError(
+        `Failed to start server: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -778,8 +809,10 @@ export class NativeMessagingHost {
         type: 'event',
         event: 'native.serverStopped',
       });
-    } catch (error: any) {
-      this.sendError(`Failed to stop server: ${error.message}`);
+    } catch (error) {
+      this.sendError(
+        `Failed to stop server: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -794,7 +827,7 @@ export class NativeMessagingHost {
   /**
    * Send message to Chrome extension
    */
-  private writeNativeMessage(message: any): Promise<void> {
+  private writeNativeMessage(message: NativePayload): Promise<void> {
     if (this.standaloneMode) return Promise.resolve();
 
     let frame: Buffer;
@@ -813,12 +846,12 @@ export class NativeMessagingHost {
       return Promise.reject(error instanceof Error ? error : new Error(this.lastError));
     }
 
-    return new Promise((resolve, reject) => {
-      stdout.write(frame, (error) => (error ? reject(error) : resolve()));
-    });
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    stdout.write(frame, (error) => (error ? reject(error) : resolve()));
+    return promise;
   }
 
-  public sendMessage(message: any): void {
+  public sendMessage(message: NativePayload): void {
     void this.writeNativeMessage(message).catch((error: unknown) => {
       this.lastError = error instanceof Error ? error.message : String(error);
       structuredLog('native.send_error', { error: this.lastError });

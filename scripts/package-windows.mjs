@@ -56,7 +56,7 @@ async function compressBundle() {
       run('tar.exe', ['-a', '-c', '-f', bundleZip, '-C', payloadDir, '.']);
       return;
     } catch (error) {
-      console.warn(`tar.exe 压缩失败，回退到 PowerShell Compress-Archive：${error.message}`);
+      console.warn(`tar.exe compression failed; falling back to PowerShell Compress-Archive: ${error.message}`);
       await fs.rm(bundleZip, { force: true });
     }
   }
@@ -291,13 +291,13 @@ async function main() {
     if (!['EBUSY', 'EPERM', 'EACCES'].includes(error?.code)) throw error;
     publishedExe = outputExe.replace(/\.exe$/i, '.new.exe');
     await fs.copyFile(launcherExePath, publishedExe);
-    console.warn(`发布文件正在被运行中的客户端占用，已改写入：${publishedExe}`);
-    console.warn('关闭旧客户端后，可将该 .new.exe 改名为原文件名。');
+    console.warn(`The release file is locked by a running client; wrote to ${publishedExe} instead`);
+    console.warn('After closing the old client, rename the .new.exe back to the original file name.');
   }
-  console.log(`\n完成：${publishedExe}`);
-  console.log(`大小：${( (await fs.stat(publishedExe)).size / 1024 / 1024 ).toFixed(1)} MB`);
+  console.log(`\nDone: ${publishedExe}`);
+  console.log(`Size: ${( (await fs.stat(publishedExe)).size / 1024 / 1024 ).toFixed(1)} MB`);
   run(publishedExe, ['--verify-package']);
-  console.log('发行包完整性检查通过。');
+  console.log('Release package integrity check passed.');
 }
 
 try {

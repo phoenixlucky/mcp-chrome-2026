@@ -1,18 +1,21 @@
 <template>
   <div class="form-section">
     <div class="form-group">
-      <label class="form-label">按 URL 关闭（可选）</label>
-      <input class="form-input" v-model="(node as any).config.url" placeholder="子串匹配 URL" />
+      <label class="form-label">Close by URL (optional)</label>
+      <input
+        class="form-input"
+        v-model="(node as any).config.url"
+        placeholder="Substring-match URL"
+      />
     </div>
     <div class="form-group">
-      <label class="form-label">Tab IDs（JSON 数组，可选）</label>
+      <label class="form-label">Tab IDs (JSON array, optional)</label>
       <textarea class="form-textarea" v-model="tabIdsJson" rows="2" placeholder="[1,2]"></textarea>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-
 import { computed } from 'vue';
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 

@@ -1,81 +1,81 @@
 /**
- * @fileoverview 错误类型定义
- * @description 定义 Record-Replay V3 中使用的错误码和错误类型
+ * @fileoverview Error type definitions
+ * @description Defines error codes and error types used in Record-Replay V3
  */
 
 import type { JsonValue } from './json';
 
-/** 错误码常量 */
+/** Error code constants */
 export const RR_ERROR_CODES = {
-  // ===== 验证错误 =====
-  /** 通用验证错误 */
+  // ===== Validation errors =====
+  /** Generic validation error */
   VALIDATION_ERROR: 'VALIDATION_ERROR',
-  /** 不支持的节点类型 */
+  /** Unsupported node kind */
   UNSUPPORTED_NODE: 'UNSUPPORTED_NODE',
-  /** DAG 结构无效 */
+  /** Invalid DAG structure */
   DAG_INVALID: 'DAG_INVALID',
-  /** DAG 存在循环 */
+  /** DAG contains a cycle */
   DAG_CYCLE: 'DAG_CYCLE',
 
-  // ===== 运行时错误 =====
-  /** 操作超时 */
+  // ===== Runtime errors =====
+  /** Operation timed out */
   TIMEOUT: 'TIMEOUT',
-  /** Tab 未找到 */
+  /** Tab not found */
   TAB_NOT_FOUND: 'TAB_NOT_FOUND',
-  /** Frame 未找到 */
+  /** Frame not found */
   FRAME_NOT_FOUND: 'FRAME_NOT_FOUND',
-  /** 目标元素未找到 */
+  /** Target element not found */
   TARGET_NOT_FOUND: 'TARGET_NOT_FOUND',
-  /** 元素不可见 */
+  /** Element not visible */
   ELEMENT_NOT_VISIBLE: 'ELEMENT_NOT_VISIBLE',
-  /** 导航失败 */
+  /** Navigation failed */
   NAVIGATION_FAILED: 'NAVIGATION_FAILED',
-  /** 网络请求失败 */
+  /** Network request failed */
   NETWORK_REQUEST_FAILED: 'NETWORK_REQUEST_FAILED',
 
-  // ===== 脚本/工具错误 =====
-  /** 脚本执行失败 */
+  // ===== Script/tool errors =====
+  /** Script execution failed */
   SCRIPT_FAILED: 'SCRIPT_FAILED',
-  /** 权限被拒绝 */
+  /** Permission denied */
   PERMISSION_DENIED: 'PERMISSION_DENIED',
-  /** 工具执行错误 */
+  /** Tool execution error */
   TOOL_ERROR: 'TOOL_ERROR',
 
-  // ===== 控制错误 =====
-  /** Run 被取消 */
+  // ===== Control errors =====
+  /** Run canceled */
   RUN_CANCELED: 'RUN_CANCELED',
-  /** Run 被暂停 */
+  /** Run paused */
   RUN_PAUSED: 'RUN_PAUSED',
 
-  // ===== 内部错误 =====
-  /** 内部错误 */
+  // ===== Internal errors =====
+  /** Internal error */
   INTERNAL: 'INTERNAL',
-  /** 不变量违规 */
+  /** Invariant violation */
   INVARIANT_VIOLATION: 'INVARIANT_VIOLATION',
 } as const;
 
-/** 错误码类型 */
+/** Error code type */
 export type RRErrorCode = (typeof RR_ERROR_CODES)[keyof typeof RR_ERROR_CODES];
 
 /**
- * Record-Replay 错误接口
- * @description 统一的错误表示，支持错误链和可重试标记
+ * Record-Replay error interface
+ * @description Unified error representation, supporting error chains and retryable flags
  */
 export interface RRError {
-  /** 错误码 */
+  /** Error code */
   code: RRErrorCode;
-  /** 错误消息 */
+  /** Error message */
   message: string;
-  /** 附加数据 */
+  /** Additional data */
   data?: JsonValue;
-  /** 是否可重试 */
+  /** Whether retryable */
   retryable?: boolean;
-  /** 原因错误（错误链） */
+  /** Cause error (error chain) */
   cause?: RRError;
 }
 
 /**
- * 创建 RRError 的工厂函数
+ * Factory function that creates an RRError
  */
 export function createRRError(
   code: RRErrorCode,

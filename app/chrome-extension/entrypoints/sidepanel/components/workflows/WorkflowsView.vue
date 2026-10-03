@@ -245,9 +245,9 @@
                       :style="{ color: 'var(--ac-text-muted)' }"
                     >
                       <div class="flex items-center gap-2">
-                        <span>状态: {{ getRunStatusText(run) }}</span>
+                        <span>Status: {{ getRunStatusText(run) }}</span>
                         <span v-if="run.finishedAt"
-                          >• 耗时:
+                          >• Elapsed:
                           {{
                             Math.round(
                               (new Date(run.finishedAt).getTime() -
@@ -500,12 +500,12 @@ function getRunStatusColor(run: RunLite): string {
  */
 function getRunStatusText(run: RunLite): string {
   const statusMap: Record<string, string> = {
-    queued: '排队中',
-    running: '运行中',
-    paused: '已暂停',
-    succeeded: '成功',
-    failed: '失败',
-    canceled: '已取消',
+    queued: 'Queued',
+    running: 'Running',
+    paused: 'Paused',
+    succeeded: 'Succeeded',
+    failed: 'Failed',
+    canceled: 'Canceled',
   };
   return run.status ? statusMap[run.status] || run.status : '';
 }

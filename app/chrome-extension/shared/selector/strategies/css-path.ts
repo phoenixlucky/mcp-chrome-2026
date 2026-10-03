@@ -1,6 +1,6 @@
 /**
- * CSS Path Strategy - 基于 DOM 路径的选择器策略
- * 使用 nth-of-type 生成完整的 CSS 路径
+ * CSS Path Strategy - selector strategy based on the DOM path
+ * Generates a full CSS path using nth-of-type
  */
 
 import type { SelectorCandidate, SelectorStrategy } from '../types';

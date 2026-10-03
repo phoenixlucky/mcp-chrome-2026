@@ -65,6 +65,12 @@
   "connectedServiceNotStartedStatus": {
     "message": "接続済み、サービス未起動"
   },
+  "startServiceButton": {
+    "message": "サービスを開始"
+  },
+  "serviceNotStartedTip": {
+    "message": "ネイティブホストに接続しました。HTTPサービスの起動を待機しています。ステータスを更新するか、ネイティブホストの状態を確認してください。"
+  },
   "mcpServerConfigLabel": {
     "message": "MCPサーバー設定"
   },
@@ -334,5 +340,134 @@
   },
   "pagesUnit": {
     "message": "ページ"
+  },
+  "userscriptsManagerTitle": {
+    "message": "ユーザースクリプトマネージャー"
+  },
+  "emergencySwitchLabel": {
+    "message": "緊急スイッチ"
+  },
+  "createRunSectionTitle": {
+    "message": "作成 / 実行"
+  },
+  "nameLabel": {
+    "message": "名前"
+  },
+  "runAtLabel": {
+    "message": "実行タイミング"
+  },
+  "runAtAuto": {
+    "message": "自動"
+  },
+  "runAtDocumentStart": {
+    "message": "document_start"
+  },
+  "runAtDocumentEnd": {
+    "message": "document_end"
+  },
+  "runAtDocumentIdle": {
+    "message": "document_idle"
+  },
+  "worldLabel": {
+    "message": "実行ワールド"
+  },
+  "worldAuto": {
+    "message": "自動"
+  },
+  "worldIsolated": {
+    "message": "分離ワールド (ISOLATED)"
+  },
+  "worldMain": {
+    "message": "メインワールド (MAIN)"
+  },
+  "modeLabel": {
+    "message": "モード"
+  },
+  "modeAuto": {
+    "message": "自動"
+  },
+  "modePersistent": {
+    "message": "永続"
+  },
+  "modeCss": {
+    "message": "CSSのみ"
+  },
+  "modeOnce": {
+    "message": "1回実行 (CDP)"
+  },
+  "allFramesLabel": {
+    "message": "すべてのフレーム"
+  },
+  "persistLabel": {
+    "message": "永続化"
+  },
+  "dnrFallbackLabel": {
+    "message": "DNRフォールバック"
+  },
+  "matchesInputLabel": {
+    "message": "一致パターン (カンマ区切り)"
+  },
+  "excludesInputLabel": {
+    "message": "除外パターン (カンマ区切り)"
+  },
+  "tagsInputLabel": {
+    "message": "タグ (カンマ区切り)"
+  },
+  "scriptLabel": {
+    "message": "スクリプト"
+  },
+  "applyButton": {
+    "message": "適用"
+  },
+  "runOnceButton": {
+    "message": "1回実行 (CDP)"
+  },
+  "listSectionTitle": {
+    "message": "リスト"
+  },
+  "queryLabel": {
+    "message": "検索"
+  },
+  "statusAll": {
+    "message": "すべて"
+  },
+  "statusEnabled": {
+    "message": "有効"
+  },
+  "statusDisabled": {
+    "message": "無効"
+  },
+  "domainLabel": {
+    "message": "ドメイン"
+  },
+  "exportAllButton": {
+    "message": "すべてエクスポート"
+  },
+  "tableHeaderName": {
+    "message": "名前"
+  },
+  "tableHeaderWorld": {
+    "message": "ワールド"
+  },
+  "tableHeaderRunAt": {
+    "message": "実行タイミング"
+  },
+  "tableHeaderUpdated": {
+    "message": "更新日時"
+  },
+  "deleteButton": {
+    "message": "削除"
+  },
+  "placeholderOptional": {
+    "message": "任意"
+  },
+  "placeholderMatchesExample": {
+    "message": "例: https://*.example.com/*"
+  },
+  "placeholderScriptHint": {
+    "message": "ここにJS/CSS/TMを貼り付け"
+  },
+  "placeholderDomainHint": {
+    "message": "example.com"
   }
 }

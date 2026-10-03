@@ -1,5 +1,5 @@
 /**
- * @fileoverview URL Trigger Handler 测试 (P4-03)
+ * @fileoverview URL Trigger Handler tests (P4-03)
  * @description
  * Tests for:
  * - URL matching semantics (domain, path, url prefix)

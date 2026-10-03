@@ -1,181 +1,181 @@
-# 贡献指南 🤝
+# Contributing Guide 🤝
 
-感谢您对 Chrome MCP Server 项目的贡献兴趣！本文档为贡献者提供指南和信息。
+Thank you for your interest in contributing to Chrome MCP Server! This document provides guidelines and information for contributors.
 
-## 🎯 如何贡献
+## 🎯 How to Contribute
 
-我们欢迎多种形式的贡献：
+We welcome contributions in many forms:
 
-- 🐛 错误报告和修复
-- ✨ 新功能和工具
-- 📚 文档改进
-- 🧪 测试和性能优化
-- 🌐 翻译和国际化
-- 💡 想法和建议
+- 🐛 Bug reports and fixes
+- ✨ New features and tools
+- 📚 Documentation improvements
+- 🧪 Tests and performance optimizations
+- 🌐 Translations and internationalization
+- 💡 Ideas and suggestions
 
-## 🚀 开始贡献
+## 🚀 Getting Started
 
-### 环境要求
+### Prerequisites
 
-- **Node.js 24+** 和 **pnpm 12**
-- **Chrome/Chromium** 浏览器用于测试
-- **Git** 版本控制
-- **Rust 和 wasm-pack**（发布/WASM 构建必需）
-- **TypeScript** 知识
+- **Node.js 24+** and **pnpm 12**
+- **Chrome/Chromium** browser for testing
+- **Git** for version control
+- **Rust and wasm-pack** (required for release/WASM builds)
+- **TypeScript** knowledge
 
-### 开发环境设置
+### Development Setup
 
-1. **Fork 并克隆仓库**
+1. **Fork and clone the repository**
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/chrome-mcp-server.git
 cd chrome-mcp-server
 ```
 
-2. **安装依赖**
+2. **Install dependencies**
 
 ```bash
 pnpm install
 ```
 
-3. **启动项目**
+3. **Start the project**
 
 ```bash
 pnpm dev
 ```
 
-4. **在 Chrome 中加载扩展**
-   - 打开 `chrome://extensions/`
-   - 启用"开发者模式"
-   - 点击"加载已解压的扩展程序"，选择 `your/extension/dist`
+4. **Load the extension in Chrome**
+   - Open `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select `your/extension/dist`
 
-## 🏗️ 项目结构
+## 🏗️ Project Structure
 
 ```
 chrome-mcp-server/
 ├── app/
-│   ├── chrome-extension/     # Chrome 扩展 (WXT + Vue 3)
-│   │   ├── entrypoints/      # 后台脚本、弹窗、内容脚本
-│   │   ├── utils/            # AI 模型、向量数据库、工具
-│   │   └── workers/          # 用于 AI 处理的 Web Workers
-│   └── native-server/        # 原生消息服务器 (Fastify + TypeScript)
-│       ├── src/mcp/          # MCP 协议实现
-│       └── src/server/       # HTTP 服务器和原生消息
+│   ├── chrome-extension/     # Chrome extension (WXT + Vue 3)
+│   │   ├── entrypoints/      # Background scripts, popup, content scripts
+│   │   ├── utils/            # AI models, vector database, utilities
+│   │   └── workers/          # Web Workers for AI processing
+│   └── native-server/        # Native messaging server (Fastify + TypeScript)
+│       ├── src/mcp/          # MCP protocol implementation
+│       └── src/server/       # HTTP server and native messaging
 ├── packages/
-│   ├── shared/               # 共享类型和工具
-│   └── wasm-simd/           # SIMD 优化的 WebAssembly 数学函数
-└── docs/                    # 文档
+│   ├── shared/               # Shared types and utilities
+│   └── wasm-simd/           # SIMD-optimized WebAssembly math functions
+└── docs/                    # Documentation
 ```
 
-## 🛠️ 开发工作流
+## 🛠️ Development Workflow
 
-### 添加新工具
+### Adding New Tools
 
-1. **在 `packages/shared/src/tools.ts` 中定义工具模式**：
+1. **Define the tool schema in `packages/shared/src/tools.ts`**:
 
 ```typescript
 {
   name: 'your_new_tool',
-  description: '描述您的工具功能',
+  description: 'Description of what your tool does',
   inputSchema: {
     type: 'object',
     properties: {
-      // 定义参数
+      // Define parameters
     },
     required: ['param1']
   }
 }
 ```
 
-2. **在 `app/chrome-extension/entrypoints/background/tools/browser/` 中实现工具**：
+2. **Implement the tool in `app/chrome-extension/entrypoints/background/tools/browser/`**:
 
 ```typescript
 class YourNewTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.YOUR_NEW_TOOL;
 
   async execute(args: YourToolParams): Promise<ToolResult> {
-    // 实现
+    // Implementation
   }
 }
 ```
 
-3. **在 `app/chrome-extension/entrypoints/background/tools/browser/index.ts` 中导出工具**
+3. **Export the tool in `app/chrome-extension/entrypoints/background/tools/browser/index.ts`**
 
-4. **在相应的测试目录中添加测试**
+4. **Add tests in the appropriate test directory**
 
-### 代码风格指南
+### Code Style Guidelines
 
-- **TypeScript**：使用严格的 TypeScript 和适当的类型
-- **ESLint**：遵循配置的 ESLint 规则（`pnpm lint`）
-- **Prettier**：使用 Prettier 格式化代码（`pnpm format`）
-- **命名**：使用描述性名称并遵循现有模式
-- **注释**：为公共 API 添加 JSDoc 注释
-- **错误处理**：始终优雅地处理错误
+- **TypeScript**: Use strict TypeScript with proper typing
+- **ESLint**: Follow the configured ESLint rules (`pnpm lint`)
+- **Prettier**: Format code with Prettier (`pnpm format`)
+- **Naming**: Use descriptive names and follow existing patterns
+- **Comments**: Add JSDoc comments for public APIs
+- **Error Handling**: Always handle errors gracefully
 
-## 📝 Pull Request 流程
+## 📝 Pull Request Process
 
-1. **创建功能分支**
+1. **Create a feature branch**
 
 ```bash
 git checkout -b feature/your-feature-name
 ```
 
-2. **进行更改**
-   - 遵循代码风格指南
-   - 为新功能添加测试
-   - 如需要，更新文档
+2. **Make your changes**
+   - Follow the code style guidelines
+   - Add tests for new functionality
+   - Update documentation if needed
 
-3. **测试您的更改**
-   - 确保所有现有测试通过
-   - 手动测试 Chrome 扩展
-   - 验证 MCP 协议兼容性
+3. **Test your changes**
+   - Ensure all existing tests pass
+   - Test the Chrome extension manually
+   - Verify MCP protocol compatibility
 
-4. **提交您的更改**
+4. **Commit your changes**
 
 ```bash
 git add .
-git commit -m "feat: 添加您的功能描述"
+git commit -m "feat: add your feature description"
 ```
 
-我们使用 [约定式提交](https://www.conventionalcommits.org/)：
+We use [Conventional Commits](https://www.conventionalcommits.org/):
 
-- `feat:` 用于新功能
-- `fix:` 用于错误修复
-- `docs:` 用于文档更改
-- `test:` 用于添加测试
-- `refactor:` 用于代码重构
+- `feat:` for new features
+- `fix:` for bug fixes
+- `docs:` for documentation changes
+- `test:` for adding tests
+- `refactor:` for code refactoring
 
-5. **推送并创建 Pull Request**
+5. **Push and create a Pull Request**
 
 ```bash
 git push origin feature/your-feature-name
 ```
 
-## 🐛 错误报告
+## 🐛 Bug Reports
 
-报告错误时，请包含：
+When reporting bugs, please include:
 
-- **环境**：操作系统、Chrome 版本、Node.js 版本
-- **重现步骤**：清晰的分步说明
-- **预期行为**：应该发生什么
-- **实际行为**：实际发生了什么
-- **截图/日志**：如果适用
-- **MCP 客户端**：您使用的 MCP 客户端（Claude Desktop 等）
+- **Environment**: OS, Chrome version, Node.js version
+- **Steps to reproduce**: Clear, step-by-step instructions
+- **Expected behavior**: What should happen
+- **Actual behavior**: What actually happens
+- **Screenshots/logs**: If applicable
+- **MCP client**: Which MCP client you're using (Claude Desktop, etc.)
 
-## 💡 功能请求
+## 💡 Feature Requests
 
-对于功能请求，请提供：
+For feature requests, please provide:
 
-- **用例**：为什么需要这个功能？
-- **建议解决方案**：它应该如何工作？
-- **替代方案**：考虑过的任何替代解决方案？
-- **附加上下文**：截图、示例等
+- **Use case**: Why is this feature needed?
+- **Proposed solution**: How should it work?
+- **Alternatives**: Any alternative solutions considered?
+- **Additional context**: Screenshots, examples, etc.
 
-## 🔧 开发技巧
+## 🔧 Development Tips
 
-### 使用 WASM SIMD
+### Using WASM SIMD
 
-如果您要为 WASM SIMD 包做贡献：
+If you're contributing to the WASM SIMD package:
 
 ```bash
 cd packages/wasm-simd
@@ -183,85 +183,85 @@ cd packages/wasm-simd
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install wasm-pack --locked
 
-# Windows PowerShell（替代上面的两条命令）
+# Windows PowerShell (use this instead of the two commands above)
 # winget install --id Rustlang.Rustup -e
-# 重新打开终端后执行：cargo install wasm-pack --locked
+# Restart the terminal, then run: cargo install wasm-pack --locked
 
-# 构建 WASM 包
+# Build WASM package
 pnpm build
 
-# 构建的文件将复制到 app/chrome-extension/workers/
+# The built files will be copied to app/chrome-extension/workers/
 ```
 
-### 调试 Chrome 扩展
+### Debugging Chrome Extension
 
-- 使用 Chrome DevTools 调试扩展弹窗和后台脚本
-- 检查 `chrome://extensions/` 查看扩展错误
-- 使用 `console.log` 语句进行调试
-- 在后台脚本中监控原生消息连接
+- Use Chrome DevTools for debugging extension popup and background scripts
+- Check `chrome://extensions/` for extension errors
+- Use `console.log` statements for debugging
+- Monitor the native messaging connection in the background script
 
-### 测试 MCP 协议
+### Testing MCP Protocol
 
-- 使用 MCP Inspector 进行协议调试
-- 使用不同的 MCP 客户端测试（Claude Desktop、自定义客户端）
-- 验证工具模式和响应符合 MCP 规范
+- Use MCP Inspector for protocol debugging
+- Test with different MCP clients (Claude Desktop, custom clients)
+- Verify tool schemas and responses match MCP specifications
 
-## 📚 资源
+## 📚 Resources
 
-- [模型上下文协议规范](https://modelcontextprotocol.io/)
-- [Chrome 扩展开发](https://developer.chrome.com/docs/extensions/)
-- [WXT 框架文档](https://wxt.dev/)
-- [TypeScript 手册](https://www.typescriptlang.org/docs/)
+- [Model Context Protocol Specification](https://modelcontextprotocol.io/)
+- [Chrome Extension Development](https://developer.chrome.com/docs/extensions/)
+- [WXT Framework Documentation](https://wxt.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
-## 🤝 社区
+## 🤝 Community
 
-- **GitHub Issues**：用于错误报告和功能请求
-- **GitHub Discussions**：用于问题和一般讨论
-- **Pull Requests**：用于代码贡献
+- **GitHub Issues**: For bug reports and feature requests
+- **GitHub Discussions**: For questions and general discussion
+- **Pull Requests**: For code contributions
 
-## 📄 许可证
+## 📄 License
 
-通过为 Chrome MCP Server 做贡献，您同意您的贡献将在 MIT 许可证下获得许可。
+By contributing to Chrome MCP Server, you agree that your contributions will be licensed under the MIT License.
 
-## 🎯 贡献者指南
+## 🎯 Contributor Guidelines
 
-### 新手贡献者
+### New Contributors
 
-如果您是第一次为开源项目做贡献：
+If you're contributing to an open source project for the first time:
 
-1. **从小处开始**：寻找标有 "good first issue" 的问题
-2. **阅读代码**：熟悉项目结构和编码风格
-3. **提问**：在 GitHub Discussions 中提出问题
-4. **学习工具**：了解 Git、GitHub、TypeScript 等工具
+1. **Start small**: Look for issues labeled "good first issue"
+2. **Read the code**: Familiarize yourself with the project structure and coding style
+3. **Ask questions**: Ask questions in GitHub Discussions
+4. **Learn the tools**: Get familiar with Git, GitHub, TypeScript, and other tools
 
-### 经验丰富的贡献者
+### Experienced Contributors
 
-- **架构改进**：提出系统级改进建议
-- **性能优化**：识别和修复性能瓶颈
-- **新功能**：设计和实现复杂的新功能
-- **指导新手**：帮助新贡献者入门
+- **Architecture improvements**: Propose system-level improvements
+- **Performance optimization**: Identify and fix performance bottlenecks
+- **New features**: Design and implement complex new features
+- **Mentor newcomers**: Help new contributors get started
 
-### 文档贡献
+### Documentation Contributions
 
-- **API 文档**：改进工具文档和示例
-- **教程**：创建使用指南和最佳实践
-- **翻译**：帮助翻译文档到其他语言
-- **视频内容**：创建演示视频和教程
+- **API documentation**: Improve tool documentation and examples
+- **Tutorials**: Create usage guides and best practices
+- **Translations**: Help translate documentation to other languages
+- **Video content**: Create demo videos and tutorials
 
-### 测试贡献
+### Testing Contributions
 
-- **单元测试**：为新功能编写测试
-- **集成测试**：测试组件间的交互
-- **性能测试**：基准测试和性能回归检测
-- **用户测试**：真实场景下的功能测试
+- **Unit tests**: Write tests for new features
+- **Integration tests**: Test interactions between components
+- **Performance tests**: Benchmark testing and performance regression detection
+- **User testing**: Functional testing in real-world scenarios
 
-## 🏆 贡献者认可
+## 🏆 Contributor Recognition
 
-我们重视每一个贡献，无论大小。贡献者将在以下方式获得认可：
+We value every contribution, no matter how big or small. Contributors will be recognized in the following ways:
 
-- **README 致谢**：在项目 README 中列出贡献者
-- **发布说明**：在版本发布说明中感谢贡献者
-- **贡献者徽章**：GitHub 个人资料上的贡献者徽章
-- **社区认可**：在社区讨论中的特别感谢
+- **README acknowledgments**: Contributors listed in the project README
+- **Release notes**: Contributors thanked in version release notes
+- **Contributor badges**: Contributor badges on GitHub profiles
+- **Community recognition**: Special thanks in community discussions
 
-感谢您考虑为 Chrome MCP Server 做贡献！您的参与使这个项目变得更好。
+Thank you for considering contributing to Chrome MCP Server! Your participation makes this project better.

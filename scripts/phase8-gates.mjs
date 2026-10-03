@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 async function runAdmissionLoad(total = 1_000) {
   const modulePath = path.join(root, 'app/native-server/dist/mcp/register-tools.js');
-  if (!fs.existsSync(modulePath)) throw new Error('缺少 dist；请先运行 pnpm run build:native');
+  if (!fs.existsSync(modulePath)) throw new Error('dist is missing; run pnpm run build:native first');
   const { acquireToolCallSlot, getToolAdmissionStats } = await import(pathToFileURL(modulePath).href);
   const workers = Math.max(1, Math.min(8, getToolAdmissionStats().maxActive));
   let next = 0;
@@ -24,7 +24,7 @@ async function runAdmissionLoad(total = 1_000) {
   await Promise.all(Array.from({ length: workers }, worker));
   const status = getToolAdmissionStats();
   if (completed !== total || status.active !== 0 || status.queued !== 0) {
-    throw new Error(`混合负载未归零: completed=${completed}, active=${status.active}, queued=${status.queued}`);
+    throw new Error(`mixed load did not drain: completed=${completed}, active=${status.active}, queued=${status.queued}`);
   }
   return status;
 }
@@ -40,7 +40,7 @@ async function runMemoryStress(durationMs) {
   const first = samples[0] ?? 0;
   const last = samples.at(-1) ?? first;
   const growth = first ? (last - first) / first : 0;
-  if (growth > 0.25) throw new Error(`检测到持续堆增长 ${(growth * 100).toFixed(1)}%`);
+  if (growth > 0.25) throw new Error(`persistent heap growth detected ${(growth * 100).toFixed(1)}%`);
   return { samples: samples.length, heapGrowth: growth };
 }
 

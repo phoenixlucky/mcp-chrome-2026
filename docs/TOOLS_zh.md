@@ -1,53 +1,53 @@
-# Chrome MCP Server API 参考 📚
+# Chrome MCP Server API Reference 📚
 
-所有可用工具及其参数的完整参考。
+Complete reference for all available tools and their parameters.
 
-## 📋 目录
+## 📋 Table of Contents
 
-- [浏览器管理](#浏览器管理)
-- [截图和视觉](#截图和视觉)
-- [网络监控](#网络监控)
-- [内容分析](#内容分析)
-- [交互操作](#交互操作)
-- [数据管理](#数据管理)（含 Cookie 管理）
-- [抓取与提取](#抓取与提取)
-- [响应格式](#响应格式)
+- [Browser Management](#browser-management)
+- [Screenshots & Visual](#screenshots--visual)
+- [Network Monitoring](#network-monitoring)
+- [Content Analysis](#content-analysis)
+- [Interaction](#interaction)
+- [Data Management](#data-management) (includes Cookie Management)
+- [Scraping & Extraction](#scraping--extraction)
+- [Response Format](#response-format)
 
-## 📊 浏览器管理
+## 📊 Browser Management
 
 ### `chrome_batch`
 
-按顺序执行最多 50 个浏览器工具调用，可选 `profileId` 将整组任务固定到同一个隔离 Profile。
+Run up to 50 browser tool calls sequentially as one task. Optionally pass `profileId` to pin the whole batch to one isolated Profile.
 
-**参数**：
+**Parameters**:
 
-- `calls` (对象数组，必需)：每项包含 `name` 和可选的 `arguments`
-- `stopOnError` (布尔值，可选)：遇到失败是否停止，默认 `true`
-- `profileId` (字符串，可选)：整组调用使用的 Profile
+- `calls` (object[], required): each item contains `name` and optional `arguments`
+- `stopOnError` (boolean, optional): stop after the first error; defaults to `true`
+- `profileId` (string, optional): Profile used by the whole batch
 
 ### `chrome_profile`
 
-管理隔离 Chrome Profile。省略普通浏览器工具的 `profileId` 时，仍然操作当前 Chrome。
+Manage isolated Chrome profiles. When `profileId` is omitted from normal browser tools, they continue to control the current Chrome.
 
-**参数**：
+**Parameters**:
 
-- `action` (字符串，必需)：`list`、`create`、`launch`、`stop`、`delete`、`status` 或 `diagnostics`
-- `profileId` (字符串，可选)：Profile ID；`create` 时省略会根据名称生成
-- `name` (字符串，可选)：创建 Profile 时使用的显示名称
-- `userDataDir` (字符串，可选)：独立 Chrome 的数据目录
-- `chromePath` (字符串，可选)：Chrome 可执行文件路径
-- `extensionPath` (字符串，可选)：要加载的扩展目录
-- `launchArgs` (字符串数组，可选)：额外 Chrome 启动参数
+- `action` (string, required): `list`, `create`, `launch`, `stop`, `delete`, `status`, or `diagnostics`
+- `profileId` (string, optional): Profile ID; if omitted during `create`, it is generated from the name
+- `name` (string, optional): Display name used when creating a profile
+- `userDataDir` (string, optional): Data directory for the isolated Chrome
+- `chromePath` (string, optional): Chrome executable path
+- `extensionPath` (string, optional): Extension directory to load
+- `launchArgs` (string[], optional): Additional Chrome launch arguments
 
-普通浏览器工具也支持可选的 `profileId`。首次调用时会自动启动对应的独立 Chrome；`diagnostics` 会汇总 Profile、CDP、MCP、代理和扩展状态；`delete` 只删除 Profile 配置，不会删除 `userDataDir`。
+Normal browser tools also accept an optional `profileId`. The isolated Chrome starts on the first tool call; `diagnostics` reports Profile, CDP, MCP, proxy, and extension state; `delete` removes only the profile configuration and keeps `userDataDir`.
 
-### `get_windows_and_tabs`（上线时间：2025-06-09）
+### `get_windows_and_tabs` (Launched: 2025-06-09)
 
-列出当前打开的所有浏览器窗口和标签页。
+List all currently open browser windows and tabs.
 
-**参数**：无
+**Parameters**: None
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -60,7 +60,7 @@
         {
           "tabId": 456,
           "url": "https://example.com",
-          "title": "示例页面",
+          "title": "Example Page",
           "active": true
         }
       ]
@@ -69,20 +69,22 @@
 }
 ```
 
-### `chrome_navigate`（上线时间：2025-06-09）
+### `chrome_navigate` (Launched: 2025-06-09)
 
-导航到指定 URL，可选择控制视口。
+Navigate to a URL with optional viewport control.
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，必需)：要导航到的 URL
-- `newWindow` (布尔值，可选)：创建新窗口（默认：false）
-- `width` (数字，可选)：视口宽度（像素，默认：1280）
-- `height` (数字，可选)：视口高度（像素，默认：720）
-- `waitForReady` (布尔值，可选)：是否等待标签页加载完成后返回（默认：false；慢页面建议保持 false，随后使用 URL/HTML 轮询）
-- `waitTimeoutMs` (数字，可选)：当 `waitForReady` 为 true 时的最大等待时间（毫秒，默认：15000，最大：30000）
+- `url` (string, optional): URL to navigate to (omit when `refresh=true`)
+- `newWindow` (boolean, optional): Create new window (default: false)
+- `tabId` (number, optional): Target an existing tab by ID (navigate/refresh that tab)
+- `background` (boolean, optional): Do not activate the tab or focus the window (default: true; set `false` for foreground interaction)
+- `width` (number, optional): Viewport width in pixels (default: 1280)
+- `height` (number, optional): Viewport height in pixels (default: 720)
+- `waitForReady` (boolean, optional): Wait for the tab to finish loading before returning (default: false; for slow pages, poll the URL/HTML afterwards)
+- `waitTimeoutMs` (number, optional): Maximum wait in milliseconds when `waitForReady` is true (default: 15000, maximum: 30000)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -93,16 +95,16 @@
 }
 ```
 
-### `chrome_close_tabs`（上线时间：2025-06-09）
+### `chrome_close_tabs` (Launched: 2025-06-09)
 
-关闭指定的标签页或窗口。
+Close specific tabs or windows.
 
-**参数**：
+**Parameters**:
 
-- `tabIds` (数组，可选)：要关闭的标签页 ID 数组
-- `windowIds` (数组，可选)：要关闭的窗口 ID 数组
+- `tabIds` (array, optional): Array of tab IDs to close
+- `windowIds` (array, optional): Array of window IDs to close
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -111,16 +113,16 @@
 }
 ```
 
-### `chrome_switch_tab`（上线时间：2025-07-24）
+### `chrome_switch_tab` (Launched: 2025-07-24)
 
-切换到指定的浏览器标签页。
+Switch to a specific browser tab.
 
-**参数**：
+**Parameters**:
 
-- `tabId` (数字，必需)：要切换到的标签页的 ID。
-- `windowId` (数字，可选)：该标签页所在窗口的 ID。
+- `tabId` (number, required): The ID of the tab to switch to.
+- `windowId` (number, optional): The ID of the window where the tab is located.
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -129,18 +131,18 @@
 }
 ```
 
-### `chrome_go_back_or_forward`（已弃用——请使用 `chrome_navigate`，并将 `url` 设为 `"back"` 或 `"forward"`）
+### `chrome_go_back_or_forward` (Deprecated — use `chrome_navigate` with `url: "back"` or `"forward"`)
 
-> 为旧客户端保留的兼容别名。新客户端应调用 `chrome_navigate`。
+> Compatibility alias retained for older clients. New clients should call `chrome_navigate`.
 
-浏览器历史导航。
+Navigate browser history.
 
-**参数**：
+**Parameters**:
 
-- `direction` (字符串，必需)："back" 或 "forward"
-- `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
+- `direction` (string, required): "back" or "forward"
+- `tabId` (number, optional): Specific tab ID (default: active tab)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -149,22 +151,24 @@
 }
 ```
 
-## 📸 截图和视觉
+## 📸 Screenshots & Visual
 
-### `chrome_screenshot`（上线时间：2025-06-09）
+### `chrome_screenshot` (Launched: 2025-06-09)
 
-使用各种选项进行高级截图。
+Take advanced screenshots with various options.
 
-**参数**：
+**Parameters**:
 
-- `name` (字符串，可选)：截图文件名
-- `selector` (字符串，可选)：元素截图的 CSS 选择器
-- `width` (数字，可选)：宽度（像素，默认：800）
-- `height` (数字，可选)：高度（像素，默认：600）
-- `storeBase64` (布尔值，可选)：返回 base64 数据（默认：false）
-- `fullPage` (布尔值，可选)：捕获整个页面（默认：true）
+- `name` (string, optional): Screenshot filename
+- `selector` (string, optional): CSS selector for element screenshot
+- `tabId` (number, optional): Target tab to capture (default: active tab)
+- `background` (boolean, optional): Attempt capture without bringing tab/window to foreground (viewport-only uses CDP)
+- `width` (number, optional): Width in pixels (default: 800)
+- `height` (number, optional): Height in pixels (default: 600)
+- `storeBase64` (boolean, optional): Return base64 data (default: false)
+- `fullPage` (boolean, optional): Capture full page (default: true)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -176,7 +180,7 @@
 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -189,22 +193,22 @@
 }
 ```
 
-## 🌐 网络监控
+## 🌐 Network Monitoring
 
-### `chrome_network_capture_start`（已弃用——请使用 `chrome_network_capture` 的 `action: "start"`）
+### `chrome_network_capture_start` (Deprecated — use `chrome_network_capture` with `action: "start"`)
 
-> 为旧客户端保留的兼容别名。webRequest 后端仍是 `chrome_network_capture` 的有效实现。
+> Compatibility alias retained for older clients. The webRequest backend remains an active implementation of `chrome_network_capture`.
 
-使用 webRequest API 开始捕获网络请求。
+Start capturing network requests using webRequest API.
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，可选)：要导航并捕获的 URL
-- `maxCaptureTime` (数字，可选)：最大捕获时间（毫秒，默认：30000）
-- `inactivityTimeout` (数字，可选)：无活动后停止时间（毫秒，默认：3000）
-- `includeStatic` (布尔值，可选)：包含静态资源（默认：false）
+- `url` (string, optional): URL to navigate to and capture
+- `maxCaptureTime` (number, optional): Maximum capture time in ms (default: 30000)
+- `inactivityTimeout` (number, optional): Stop after inactivity in ms (default: 3000)
+- `includeStatic` (boolean, optional): Include static resources (default: false)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -214,15 +218,15 @@
 }
 ```
 
-### `chrome_network_capture_stop`（已弃用——请使用 `chrome_network_capture` 的 `action: "stop"`）
+### `chrome_network_capture_stop` (Deprecated — use `chrome_network_capture` with `action: "stop"`)
 
-> 为旧客户端保留的兼容别名。webRequest 后端仍是 `chrome_network_capture` 的有效实现。
+> Compatibility alias retained for older clients. The webRequest backend remains an active implementation of `chrome_network_capture`.
 
-停止网络捕获并返回收集的数据。
+Stop network capture and return collected data.
 
-**参数**：无
+**Parameters**: None
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -244,34 +248,34 @@
 }
 ```
 
-### `chrome_network_debugger_start`（已弃用——请使用 `chrome_network_capture` 的 `action: "start", needResponseBody: true`）
+### `chrome_network_debugger_start` (Deprecated — use `chrome_network_capture` with `action: "start", needResponseBody: true`)
 
-> 为旧客户端保留的兼容别名。Debugger 后端仍是 `chrome_network_capture` 的有效实现。
+> Compatibility alias retained for older clients. The Debugger backend remains an active implementation of `chrome_network_capture`.
 
-使用 Chrome Debugger API 开始捕获（包含响应体）。
+Start capturing with Chrome Debugger API (includes response bodies).
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，可选)：要导航并捕获的 URL
+- `url` (string, optional): URL to navigate to and capture
 
-### `chrome_network_debugger_stop`（已弃用——请使用 `chrome_network_capture` 的 `action: "stop"`）
+### `chrome_network_debugger_stop` (Deprecated — use `chrome_network_capture` with `action: "stop"`)
 
-> 为旧客户端保留的兼容别名。Debugger 后端仍是 `chrome_network_capture` 的有效实现。
+> Compatibility alias retained for older clients. The Debugger backend remains an active implementation of `chrome_network_capture`.
 
-停止调试器捕获并返回包含响应体的数据。
+Stop debugger capture and return data with response bodies.
 
-### `chrome_network_request`（上线时间：2025-06-09）
+### `chrome_network_request` (Launched: 2025-06-09)
 
-发送自定义 HTTP 请求。
+Send custom HTTP requests.
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，必需)：请求 URL
-- `method` (字符串，可选)：HTTP 方法（默认："GET"）
-- `headers` (对象，可选)：请求头
-- `body` (字符串，可选)：请求体
+- `url` (string, required): Request URL
+- `method` (string, optional): HTTP method (default: "GET")
+- `headers` (object, optional): Request headers
+- `body` (string, optional): Request body
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -284,21 +288,21 @@
 }
 ```
 
-### `wait_extract_response`（since v2.0.2）
+### `wait_extract_response` (since v2.0.2)
 
-执行导航或点击后等待指定网络响应。可选地点击确认按钮，并返回 HTTP 状态、请求体和响应体，用于核验删除等异步操作是否真正成功；仅在需要抽取 JSON 记录时提供 `extract`。
+Wait for a network response after navigation or a click. Optionally click a confirmation control, and return HTTP status, request body, and response body so async operations (e.g. deletes) can be verified. Provide `extract` only when JSON records need to be extracted via JSONPath.
 
-**参数**：
+**Parameters**:
 
-- `action` (对象，必需)：触发网络请求的导航或点击动作
-- `confirm` (对象，可选)：可选的确认控件（如确认弹窗按钮）
-- `response` (对象，必需)：期望的响应条件（URL 模式、方法、状态等）
-- `extract` (对象，可选)：基于 JSONPath 从响应体抽取记录
-- `tabId` (数字，可选)：目标标签页 ID
-- `windowId` (数字，可选)：目标窗口 ID
-- `frameSelector` (字符串，可选)：同源 iframe 选择器
+- `action` (object, required): Navigation or click action that triggers the network request
+- `confirm` (object, optional): Optional confirmation control to click (e.g. a confirm-dialog button)
+- `response` (object, required): Expected response conditions (URL pattern, method, status, etc.)
+- `extract` (object, optional): JSONPath-based record extraction from the response body
+- `tabId` (number, optional): Target tab ID
+- `windowId` (number, optional): Target window ID
+- `frameSelector` (string, optional): Same-origin iframe selector
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -308,7 +312,7 @@
 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -320,16 +324,16 @@
 }
 ```
 
-### `chrome_block_images`（上线时间：2026-07-17）
+### `chrome_block_images` (Launched: 2026-07-17)
 
-通过 CDP 阻止标签页中的图片 HTTP 请求。适合在导航或刷新前调用，以节省带宽、加速页面加载。
+Block image HTTP requests in a tab via CDP. Useful to save bandwidth and speed up page loads when called before navigation or reload.
 
-**参数**：
+**Parameters**:
 
-- `action` (字符串，必需)：`"start"` 开始拦截，`"stop"` 停止拦截
-- `tabId` (数字，可选)：目标标签页 ID，默认当前活动标签页
+- `action` (string, required): `"start"` to begin blocking, `"stop"` to stop blocking
+- `tabId` (number, optional): Target tab ID, defaults to the active tab
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -337,25 +341,48 @@
 }
 ```
 
-## 🔍 内容分析
+## 🔍 Content Analysis
 
-### `search_tabs_content`（上线时间：2025-06-09）
+### `chrome_read_page` (Launched: 2025-10-09)
 
-跨浏览器标签页的 AI 驱动语义搜索。
+Build an accessibility-like tree of the current page (visible viewport by default) with stable `ref_*` identifiers and viewport info. Useful for semantic element discovery or agent planning.
 
-**参数**：
+Parameters:
 
-- `query` (字符串，必需)：搜索查询
+- `filter` (string, optional): `interactive` to only include interactive elements; default includes structural and labeled nodes.
+- `tabId` (number, optional): Target an existing tab by ID (default: active tab).
 
-**示例**：
+Example:
 
 ```json
 {
-  "query": "机器学习教程"
+  "filter": "interactive"
 }
 ```
 
-**响应**：
+Response contains `pageContent` (text tree), `viewport`, and a `refMapCount` summary. Use `chrome_get_interactive_elements` or your own logic to act on returned refs.
+
+### `chrome_get_action_snapshot`
+
+Capture visible actionable controls in one structured observation. The response includes a short-lived `snapshotId` and each control's frame-scoped `ref` (for example, `frame:0:ref_1`) and `frameId`. Pass all three to `chrome_click_element` or `chrome_fill_or_select`; the action is rejected if that observation is missing, expired, or its target changed. Password, file, and hidden inputs are omitted.
+
+### `search_tabs_content` (Launched: 2025-06-09)
+
+AI-powered semantic search across browser tabs.
+
+**Parameters**:
+
+- `query` (string, required): Search query
+
+**Example**:
+
+```json
+{
+  "query": "machine learning tutorials"
+}
+```
+
+**Response**:
 
 ```json
 {
@@ -372,26 +399,27 @@
     {
       "tabId": 123,
       "url": "https://example.com/ml-tutorial",
-      "title": "机器学习教程",
+      "title": "Machine Learning Tutorial",
       "semanticScore": 0.85,
-      "matchedSnippets": ["机器学习简介..."],
+      "matchedSnippets": ["Introduction to machine learning..."],
       "chunkSource": "content"
     }
   ]
 }
 ```
 
-### `chrome_get_web_content`（上线时间：2025-06-09）
+### `chrome_get_web_content` (Launched: 2025-06-09)
 
-从网页提取 HTML 或文本内容。
+Extract HTML or text content from web pages.
 
-**参数**：
+**Parameters**:
 
-- `format` (字符串，可选)："html" 或 "text"（默认："text"）
-- `selector` (字符串，可选)：特定元素的 CSS 选择器
-- `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
+- `format` (string, optional): "html" or "text" (default: "text")
+- `selector` (string, optional): CSS selector for specific elements
+- `tabId` (number, optional): Specific tab ID (default: active tab)
+- `background` (boolean, optional): Do not activate tab/focus window while fetching (default: true)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -400,56 +428,79 @@
 }
 ```
 
-### `chrome_get_interactive_elements`（已弃用——请使用 `chrome_read_page`）
+### `chrome_get_interactive_elements` (Deprecated — use `chrome_read_page`)
 
-> 为旧客户端保留的兼容别名。新客户端应使用 `chrome_read_page` 的仅交互元素选项。
+> Compatibility alias retained for older clients. New clients should use `chrome_read_page` and its interactive-only options.
 
-查找页面上可点击和交互的元素。
+Replaced by `chrome_read_page` as the primary discovery tool. The `read_page` implementation will automatically fallback to the interactive-elements logic when the accessibility tree is unavailable or too sparse. This tool is kept for backward compatibility.
 
-**参数**：
+## 🎯 Interaction
 
-- `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
+### `chrome_computer` (Launched: 2025-10-09)
 
-**响应**：
+Unified advanced interaction tool that prioritizes high-level DOM actions with CDP fallback. Supports hover, click, drag, scroll, typing, key chords, fill, wait and screenshot. If a recent screenshot was taken via `chrome_screenshot`, coordinates are auto-scaled from screenshot space to viewport space.
+
+Parameters:
+
+- `action` (string, required): `left_click` | `right_click` | `double_click` | `triple_click` | `left_click_drag` | `scroll` | `type` | `key` | `fill` | `hover` | `wait` | `screenshot`
+- `tabId` (number, optional): Target an existing tab by ID (default: active tab)
+- `background` (boolean, optional): Avoid focusing/activating tab/window for certain operations (best-effort)
+- `ref` (string, optional): element ref from `chrome_read_page` (preferred). Used for click/scroll/type/key and as drag end when provided
+- `coordinates` (object, optional): `{ "x": 100, "y": 200 }` for click/scroll or drag end
+- `startRef` (string, optional): element ref for drag start
+- `startCoordinates` (object, optional): for `left_click_drag` when no `startRef`
+- `scrollDirection` (string, optional): `up` | `down` | `left` | `right`
+- `scrollAmount` (number, optional): ticks 1–10 (default 3)
+- `text` (string, optional): for `type` (raw text) or `key` (space-separated chords/keys like `"cmd+a Enter"`)
+- `duration` (number, optional): seconds for `wait` (max 30)
+- `selector` (string, optional): for `fill` when no `ref`
+- `value` (string, optional): for `fill` value
+
+Examples:
 
 ```json
-{
-  "elements": [
-    {
-      "selector": "#submit-button",
-      "type": "button",
-      "text": "提交",
-      "visible": true,
-      "clickable": true
-    }
-  ]
-}
+{ "action": "left_click", "coordinates": { "x": 420, "y": 260 } }
 ```
 
-## 🎯 交互操作
+```json
+{ "action": "key", "text": "cmd+a Backspace" }
+```
 
-### `chrome_locate_element`（since v2.0.2）
+````json
+{ "action": "fill", "ref": "ref_7", "value": "user@example.com" }
 
-定位网页元素并返回当前有效的 ref、selector、坐标和元素信息。支持已保存的 markerId/markerName、ref、CSS/XPath、可见文本、ARIA role、aria-label、data-testid 和表单 name；定位时可自动滚动并高亮目标。返回的 ref 可直接传给 `chrome_click_element` 或 `chrome_fill_or_select`。
+```json
+{ "action": "hover", "ref": "ref_12", "duration": 0.6 }
+````
 
-**参数**：
+````
 
-- `markerId` / `markerName` (字符串，可选)：已保存的元素标记 ID/名称（来自 `chrome_read_page` 的 markedElements）
-- `ref` (字符串，可选)：来自 `chrome_read_page` 或此前定位结果的元素引用
-- `selector` (字符串，可选)：CSS 选择器或 XPath
-- `selectorType` (字符串，可选)：`css`（默认）| `xpath`
-- `text` (字符串，可选)：可见或可访问的文本，支持模糊匹配
-- `role` (字符串，可选)：ARIA 或推断出的 role，如 `button`、`textbox`、`link`
-- `ariaLabel` (字符串，可选)：要匹配的 `aria-label` 值
-- `testId` (字符串，可选)：`data-testid` / `data-test` / `data-qa` / `data-cy` 值
-- `name` (字符串，可选)：表单元素 `name` 属性
-- `allowMultiple` (布尔值，可选)：允许多个匹配并返回第一个（默认：false）
-- `scrollIntoView` (布尔值，可选)：将目标滚动到视口中央（默认：true）
-- `highlight` (布尔值，可选)：短暂高亮目标（默认：true）
-- `timeout` (数字，可选)：最大等待时间（毫秒，默认：5000）
-- `tabId` / `windowId` / `frameId` (数字，可选)：目标标签页/窗口/iframe
+```json
+{ "action": "left_click_drag", "startRef": "ref_10", "ref": "ref_15" }
+````
 
-**示例**：
+### `chrome_locate_element` (since v2.0.2)
+
+Locate a page element and return a fresh ref, selector, coordinates, and element metadata. Supports persisted marker IDs/names, refs, CSS/XPath, visible text, ARIA role, aria-label, data-testid, and form name. It can scroll to and briefly highlight the target. The returned ref can be passed directly to `chrome_click_element` or `chrome_fill_or_select`.
+
+**Parameters**:
+
+- `markerId` / `markerName` (string, optional): Persisted element marker ID/name (from `chrome_read_page` markedElements)
+- `ref` (string, optional): Element ref from `chrome_read_page` or a previous locate call
+- `selector` (string, optional): CSS selector or XPath
+- `selectorType` (string, optional): `css` (default) | `xpath`
+- `text` (string, optional): Visible or accessible element text (fuzzy matching supported)
+- `role` (string, optional): ARIA or inferred role, e.g. `button`, `textbox`, `link`
+- `ariaLabel` (string, optional): `aria-label` value to match
+- `testId` (string, optional): `data-testid` / `data-test` / `data-qa` / `data-cy` value
+- `name` (string, optional): Form element `name` attribute
+- `allowMultiple` (boolean, optional): Allow multiple matches and return the first (default: false)
+- `scrollIntoView` (boolean, optional): Scroll target to viewport center (default: true)
+- `highlight` (boolean, optional): Briefly highlight the target (default: true)
+- `timeout` (number, optional): Max wait in ms (default: 5000)
+- `tabId` / `windowId` / `frameId` (number, optional): Target tab/window/iframe
+
+**Example**:
 
 ```json
 {
@@ -459,7 +510,7 @@
 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -473,57 +524,62 @@
 }
 ```
 
-### `chrome_click_element`（上线时间：2025-06-09）
+### `chrome_click_element` (Launched: 2025-06-09)
 
-使用 CSS 选择器点击元素。
+Click elements using a ref, selector, or coordinates.
 
-**参数**：
+**Parameters**:
 
-- `selector` (字符串，必需)：目标元素的 CSS 选择器
-- `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
-- `snapshotId` (字符串，可选)：来自 `chrome_get_action_snapshot`；须与对应 ref 和 frameId 一起提供，目标过期或变化时会拒绝点击
-- `frameId` (数字，可选)：与 `snapshotId` 一起使用时必填，使用控件返回的 frame ID
+- `ref` (string, optional): Element ref from `chrome_read_page` (preferred when available)
+- `selector` (string, optional): CSS selector for target element
+- `coordinates` (object, optional): `{ "x": 120, "y": 240 }` viewport coordinates
+- `snapshotId` (string, optional): ID from `chrome_get_action_snapshot`; requires its matching `ref` and `frameId`, and rejects stale targets
+- `frameId` (number, optional): Required with `snapshotId`; use the control's returned frame ID
 
-**示例**：
+At least one of `ref`, `selector`, or `coordinates` must be provided.
+
+**Example**:
 
 ```json
 {
-  "selector": "#submit-button"
+  "ref": "ref_42"
 }
 ```
 
-### `chrome_fill_or_select`（上线时间：2025-06-09）
+### `chrome_fill_or_select` (Launched: 2025-06-09)
 
-填充表单字段或选择选项。
+Fill form fields or select options.
 
-**参数**：
+**Parameters**:
 
-- `selector` (字符串，必需)：目标元素的 CSS 选择器
-- `value` (字符串，必需)：要填充或选择的值
-- `tabId` (数字，可选)：特定标签页 ID（默认：活动标签页）
-- `snapshotId` (字符串，可选)：来自 `chrome_get_action_snapshot`；须与对应 ref 和 frameId 一起提供，目标过期或变化时会拒绝填表
-- `frameId` (数字，可选)：与 `snapshotId` 一起使用时必填，使用控件返回的 frame ID
+- `ref` (string, optional): Element ref from `chrome_read_page`
+- `selector` (string, optional): CSS selector for target element
+- `value` (string, required): Value to fill or select
+- `snapshotId` (string, optional): ID from `chrome_get_action_snapshot`; requires its matching `ref` and `frameId`, and rejects stale targets
+- `frameId` (number, optional): Required with `snapshotId`; use the control's returned frame ID
 
-**示例**：
+Provide `ref` or `selector` to identify the element.
+
+**Example**:
 
 ```json
 {
-  "selector": "#email-input",
+  "ref": "ref_7",
   "value": "user@example.com"
 }
 ```
 
-### `chrome_keyboard`（上线时间：2025-06-09）
+### `chrome_keyboard` (Launched: 2025-06-09)
 
-模拟键盘输入和快捷键。
+Simulate keyboard input and shortcuts.
 
-**参数**：
+**Parameters**:
 
-- `keys` (字符串，必需)：按键组合（如："Ctrl+C"、"Enter"）
-- `selector` (字符串，可选)：目标元素选择器
-- `delay` (数字，可选)：按键间延迟（毫秒，默认：0）
+- `keys` (string, required): Key combination (e.g., "Ctrl+C", "Enter")
+- `selector` (string, optional): Target element selector
+- `delay` (number, optional): Delay between keystrokes in ms (default: 0)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -533,21 +589,21 @@
 }
 ```
 
-## 📚 数据管理
+## 📚 Data Management
 
-### `chrome_history`（上线时间：2025-06-09）
+### `chrome_history` (Launched: 2025-06-09)
 
-使用过滤器搜索浏览器历史记录。
+Search browser history with filters.
 
-**参数**：
+**Parameters**:
 
-- `text` (字符串，可选)：在 URL/标题中搜索文本
-- `startTime` (字符串，可选)：开始日期（ISO 格式）
-- `endTime` (字符串，可选)：结束日期（ISO 格式）
-- `maxResults` (数字，可选)：最大结果数（默认：100）
-- `excludeCurrentTabs` (布尔值，可选)：排除当前标签页（默认：true）
+- `text` (string, optional): Search text in URL/title
+- `startTime` (string, optional): Start date (ISO format)
+- `endTime` (string, optional): End date (ISO format)
+- `maxResults` (number, optional): Maximum results (default: 100)
+- `excludeCurrentTabs` (boolean, optional): Exclude current tabs (default: true)
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -557,77 +613,58 @@
 }
 ```
 
-### `chrome_bookmark_search`（上线时间：2025-06-09）
+### `chrome_bookmark_search` (Launched: 2025-06-09)
 
-按关键词搜索书签。
+Search bookmarks by keywords.
 
-**参数**：
+**Parameters**:
 
-- `query` (字符串，可选)：搜索关键词
-- `maxResults` (数字，可选)：最大结果数（默认：100）
-- `folderPath` (字符串，可选)：在特定文件夹内搜索
+- `query` (string, optional): Search keywords
+- `maxResults` (number, optional): Maximum results (default: 100)
+- `folderPath` (string, optional): Search within specific folder
 
-**示例**：
+**Example**:
 
 ```json
 {
-  "query": "文档",
+  "query": "documentation",
   "maxResults": 20,
-  "folderPath": "工作/资源"
+  "folderPath": "Work/Resources"
 }
 ```
 
-### `chrome_bookmark_add`（上线时间：2025-06-09）
+### `chrome_bookmark_add` (Launched: 2025-06-09)
 
-添加支持文件夹的新书签。
+Add new bookmarks with folder support.
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，可选)：要收藏的 URL（默认：当前标签页）
-- `title` (字符串，可选)：书签标题（默认：页面标题）
-- `parentId` (字符串，可选)：父文件夹 ID 或路径
-- `createFolder` (布尔值，可选)：如果不存在则创建文件夹（默认：false）
+- `url` (string, optional): URL to bookmark (default: current tab)
+- `title` (string, optional): Bookmark title (default: page title)
+- `parentId` (string, optional): Parent folder ID or path
+- `createFolder` (boolean, optional): Create folder if not exists (default: false)
 
-**示例**：
+**Example**:
 
 ```json
 {
   "url": "https://example.com",
-  "title": "示例网站",
-  "parentId": "工作/资源",
+  "title": "Example Site",
+  "parentId": "Work/Resources",
   "createFolder": true
 }
 ```
 
-### `chrome_bookmark_delete`（上线时间：2025-06-09）
+### `chrome_bookmark_delete` (Launched: 2025-06-09)
 
-按 ID 或 URL 删除书签。
+Delete bookmarks by ID or URL.
 
-**参数**：
+**Parameters**:
 
-- `bookmarkId` (字符串，可选)：要删除的书签 ID
-- `url` (字符串，可选)：要查找并删除的 URL
+- `bookmarkId` (string, optional): Bookmark ID to delete
+- `url` (string, optional): URL to find and delete
 
-**示例**：
-
-```json
-{
-  "url": "https://example.com"
-}
-```
-
-### `chrome_cookie_get`（上线时间：2026-07-30；since v1.6.4）
-
-获取浏览器 Cookie，支持按 URL、域名、名称或存储分区过滤。
-
-**参数**：
-
-- `url` (字符串，可选)：仅返回此 URL 适用的 Cookie
-- `domain` (字符串，可选)：仅返回此域名的 Cookie
-- `name` (字符串，可选)：仅返回此名称的 Cookie
-- `storeId` (字符串，可选)：仅返回此浏览器存储分区的 Cookie
-
-**示例**：
+**Example**:
 
 ```json
 {
@@ -635,24 +672,43 @@
 }
 ```
 
-### `chrome_cookie_set`（上线时间：2026-07-30；since v1.6.4）
+### `chrome_cookie_get` (since v1.6.4; Launched: 2026-07-30)
 
-设置浏览器 Cookie。支持 HttpOnly、Secure、SameSite、path 和过期时间等选项。
+Get browser cookies, optionally filtered by URL, domain, name, or cookie store.
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，必需)：Cookie 所属域名的 URL；Chrome 要求此参数
-- `name` (字符串，必需)：Cookie 名称
-- `value` (字符串，必需)：Cookie 值
-- `domain` (字符串，可选)：Cookie 域名，必须匹配 URL 主机
-- `path` (字符串，可选)：Cookie 路径（默认：`/`）
-- `secure` (布尔值，可选)：仅通过 HTTPS 发送
-- `httpOnly` (布尔值，可选)：禁止页面 JavaScript 访问
-- `sameSite` (字符串，可选)：`no_restriction` | `lax` | `strict` | `unspecified`
-- `expirationDate` (数字，可选)：Unix 时间戳（秒），省略则为会话 Cookie
-- `storeId` (字符串，可选)：浏览器存储分区 ID
+- `url` (string, optional): Only return cookies that apply to this URL
+- `domain` (string, optional): Only return cookies for this domain
+- `name` (string, optional): Only return cookies with this name
+- `storeId` (string, optional): Only return cookies from this browser profile store
 
-**示例**：
+**Example**:
+
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+### `chrome_cookie_set` (since v1.6.4; Launched: 2026-07-30)
+
+Set a browser cookie, including HttpOnly, Secure, SameSite, path, and expiration settings.
+
+**Parameters**:
+
+- `url` (string, required): A URL on the cookie domain; required by Chrome to set the cookie
+- `name` (string, required): Cookie name
+- `value` (string, required): Cookie value
+- `domain` (string, optional): Cookie domain; it must match the URL host
+- `path` (string, optional): Cookie path (default: `/`)
+- `secure` (boolean, optional): Send only over HTTPS
+- `httpOnly` (boolean, optional): Hide from page JavaScript
+- `sameSite` (string, optional): `no_restriction` | `lax` | `strict` | `unspecified`
+- `expirationDate` (number, optional): Unix timestamp in seconds; omit for a session cookie
+- `storeId` (string, optional): Browser profile store ID
+
+**Example**:
 
 ```json
 {
@@ -665,17 +721,17 @@
 }
 ```
 
-### `chrome_cookie_delete`（上线时间：2026-07-30；since v1.6.4）
+### `chrome_cookie_delete` (since v1.6.4; Launched: 2026-07-30)
 
-删除指定的浏览器 Cookie。
+Delete a cookie identified by its URL and name.
 
-**参数**：
+**Parameters**:
 
-- `url` (字符串，必需)：要删除 Cookie 的 URL
-- `name` (字符串，必需)：Cookie 名称
-- `storeId` (字符串，可选)：浏览器存储分区 ID
+- `url` (string, required): A URL matching the cookie to delete
+- `name` (string, required): Cookie name
+- `storeId` (string, optional): Browser profile store ID
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -684,29 +740,27 @@
 }
 ```
 
-## 🕸️ 抓取与提取
+### `chrome_get_tab_url` (Launched: 2026-07-15)
 
-### `chrome_get_tab_url`（上线时间：2026-07-15）
+Get the current URL and title of a browser tab. Lightweight alternative to `get_windows_and_tabs` when only the current URL is needed.
 
-获取浏览器标签页的当前 URL 和标题。当只需要当前 URL 时，比 `get_windows_and_tabs` 更轻量快速。
+**Parameters**:
 
-**参数**：
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID to pick active tab from
 
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID，用于选取活动标签页
-
-**示例**：
+**Example**:
 
 ```json
 { "tabId": 123 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
   "url": "https://example.com/page",
-  "title": "示例页面",
+  "title": "Example Page",
   "tabId": 123,
   "windowId": 456,
   "favIconUrl": "https://example.com/favicon.ico",
@@ -715,33 +769,32 @@
 }
 ```
 
-### `chrome_scroll`（上线时间：2026-07-15）
+### `chrome_scroll` (Launched: 2026-07-15)
 
-滚动页面或可滚动容器，支持多种滚动模式。
+Scroll the page or a scrollable container with 4 modes.
 
-真人滚动可使用 `humanLazyLoad: true` 开启真人懒加载优化；每个分步滚动轮次结束后检测 DOM、布局和网络资源变化，并等待页面趋于稳定。默认关闭。
+For human scrolling, set `humanLazyLoad: true` to enable human lazy-load optimization. After each paced scroll round it watches DOM, layout, and resource changes and waits for the page to settle. Disabled by default.
 
-**参数**：
+**Parameters**:
 
-- `mode` (字符串，可选)：滚动速度模式：`fast`（默认）、`human`（标准真人）、`humanFast`（快人）或 `humanSlow`（慢人）；三种真人模式未传 `steps`/`intervalMs` 时，步数以 `amount=600` → `steps=15` 为基准按距离等比计算，步间隔恒定分别为 `50/20/80ms`（不随距离变化）
-- `humanLazyLoad` (布尔值，可选)：真人懒加载优化；仅三种真人模式生效，每个分步滚动轮次结束后检测 DOM、布局和网络资源变化并等待稳定（默认 `false`）；与 `toBottom` 配合可持续加载无限列表
-- `amount` (数字，可选)：滚动像素数（正数=下/右，负数=上/左）
-- `direction` (字符串，可选)：`down` | `up` | `left` | `right`
-- `steps` (数字，可选)：将像素滚动拆成多少步（fast 默认 `1`；真人模式 600px 基准为 `15` 步，并按 amount 等比计算；最多 `50`）；可强行传入覆盖
-- `intervalMs` (数字，可选)：每步之间等待的毫秒数（fast 默认 `0`；human、humanFast、humanSlow 未传时恒定分别为 `50/20/80ms`，不随距离变化；最多 `2000`）；可强行传入覆盖
-- `toBottom` (布尔值，可选)：滚动到容器底部；真人模式下按所选真人速度连续滚动，直到稳定到底部或本次请求达到上限
-- `toTop` (布尔值，可选)：滚动到容器顶部
-- `selector` (字符串，可选)：要滚动到视图中的元素 CSS 选择器
-- `scrollIntoView` (布尔值，可选)：使用 `scrollIntoView`（有 selector 时默认 true）
-- `block` (字符串，可选)：`start` | `center` | `end` | `nearest`（默认：`center`）
-- `behavior` (字符串，可选)：`auto` | `smooth`（默认：`auto`）
-- `containerSelector` (字符串，可选)：滚动容器的 CSS 选择器（省略时自动检测主滚动容器）
-- `anchorSelector`（字符串，可选）：嵌套或虚拟列表中内容的 CSS 选择器，用于提升自动检测准确性
-- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于在其中执行滚动
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID
+- `mode` (string, optional): Scroll speed mode: `fast` (default), `human`, `humanFast`, or `humanSlow`; for the three human modes, omitted `steps` scale proportionally from `amount=600` → `steps=15` by distance, while `intervalMs` stays constant at `50/20/80ms` per mode (independent of distance)
+- `humanLazyLoad` (boolean, optional): Human lazy-load optimization; applies to the three human modes, watching DOM, layout, and resource changes after each paced scroll round and waiting for the page to settle (default: `false`); combine with `toBottom` for infinite lists
+- `amount` (number, optional): Pixels to scroll (positive = down/right, negative = up/left)
+- `direction` (string, optional): `down` | `up` | `left` | `right`
+- `steps` (number, optional): Split pixel scrolling into this many steps (fast default: `1`; human modes default to `15` at 600px and auto-scale from amount when omitted; maximum: `50`); explicit values override the automatic value
+- `intervalMs` (number, optional): Milliseconds to wait between pixel-scroll steps (fast default: `0`; human, humanFast, and humanSlow keep a constant `50ms`, `20ms`, or `80ms` when omitted — independent of distance; maximum: `2000`); explicit values override the automatic value
+- `toBottom` (boolean, optional): Scroll to the bottom; in human modes, keep taking the selected human-paced steps until the bottom is stable or the request limit is reached
+- `toTop` (boolean, optional): Scroll to the top of the container
+- `selector` (string, optional): CSS selector of element to scroll into view
+- `scrollIntoView` (boolean, optional): Use `scrollIntoView` (default: true with selector)
+- `block` (string, optional): `start` | `center` | `end` | `nearest` (default: `center`)
+- `behavior` (string, optional): `auto` | `smooth` (default: `auto`)
+- `containerSelector` (string, optional): CSS selector of scroll container (auto-detected if omitted)
+- `anchorSelector` (string, optional): CSS selector for content inside a nested or virtualized scroll container; improves auto-detection
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID
 
-**示例**：
+**Examples**:
 
 ```json
 { "amount": 500 }
@@ -755,7 +808,7 @@
 { "selector": "#load-more-button", "block": "center" }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -767,25 +820,25 @@
 }
 ```
 
-### `chrome_get_scroll_state`（上线时间：2026-07-17）
+### `chrome_get_scroll_state` (Launched: 2026-07-17)
 
-获取页面或可滚动容器的原生滚动状态。在滚动前后调用，判断是否到达底部或顶部，适合懒加载页面分步滚动控制。
+Get the native scroll state of the page or a scrollable container. Useful to call before/after scrolling to check if the bottom or top has been reached, especially for lazy-loaded pages.
 
-**参数**：
+**Parameters**:
 
-- `containerSelector` (字符串，可选)：可滚动容器的 CSS 选择器，自动检测主容器
-- `anchorSelector`（字符串，可选）：目标滚动容器内内容的 CSS 选择器；应与 `chrome_scroll` 使用相同值
-- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID
+- `containerSelector` (string, optional): CSS selector of the scroll container. Auto-detects main container if omitted.
+- `anchorSelector` (string, optional): CSS selector for content inside the intended scroll container; use the same value as `chrome_scroll`.
+- `frameSelector` (string, optional): CSS selector for a same-origin iframe containing the scroll container.
+- `tabId` (number, optional): Target tab ID (default: active tab).
+- `windowId` (number, optional): Target window ID to pick active tab from.
 
-**示例**：
+**Example**:
 
 ```json
 {}
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -797,22 +850,21 @@
 }
 ```
 
-### `chrome_wait`（上线时间：2026-07-15）
+### `chrome_wait` (Launched: 2026-07-15)
 
-等待 DOM 元素或 JavaScript 条件变为真。以可配置的间隔轮询页面，超时不抛异常，返回 `{ found: false }`。
+Wait for a DOM element or JavaScript condition to become true. Polls the page at a configurable interval. Returns `{ found: false }` on timeout (does not throw).
 
-**参数**：
+**Parameters**:
 
-- `selector` (字符串，可选)：要等待的 CSS 选择器
-- `waitFor` (字符串，可选)：`visible`（默认）| `present` | `hidden` | `gone` | `enabled`
-- `jsCondition` (字符串，可选)：自定义 JS 表达式返回布尔值（替代 selector）
-- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于在其中评估条件
-- `timeout` (数字，可选)：最大等待时间（毫秒，默认：10000，最大：120000）
-- `pollInterval` (数字，可选)：轮询间隔（毫秒，默认：200，最小：50）
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID
+- `selector` (string, optional): CSS selector to wait for
+- `waitFor` (string, optional): `visible` (default) | `present` | `hidden` | `gone` | `enabled`
+- `jsCondition` (string, optional): Custom JS expression returning boolean (alternative to selector)
+- `timeout` (number, optional): Max wait time in ms (default: 10000, max: 120000)
+- `pollInterval` (number, optional): Poll interval in ms (default: 200, min: 50)
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID
 
-**示例**：
+**Examples**:
 
 ```json
 {
@@ -829,7 +881,7 @@
 }
 ```
 
-**响应（找到）**：
+**Response** (found):
 
 ```json
 {
@@ -842,7 +894,7 @@
 }
 ```
 
-**响应（超时）**：
+**Response** (timeout):
 
 ```json
 {
@@ -852,31 +904,29 @@
 }
 ```
 
-### `chrome_extract`（上线时间：2026-07-15）
+### `chrome_extract` (Launched: 2026-07-15)
 
-使用 CSS 选择器从网页提取结构化数据，是网页抓取的核心工具。支持嵌套字段提取、8 种提取模式、同源 iframe 定位和可配置限制。
+Extract structured data from a web page using CSS selectors. The core tool for web scraping. Supports nested field extraction, 7 extraction modes, and configurable limits.
 
-**参数**：
+**Parameters**:
 
-- `selector` (字符串，必需)：要提取元素的 CSS 选择器（每个匹配=一个结果项）
-- `fields` (数组，必需)：从每个匹配元素中提取的字段
-  - `name` (字符串，必需)：输出字段名
-  - `selector` (字符串，可选)：相对 CSS 选择器（默认：使用父元素自身）
-  - `type` (字符串，可选)：`text`（默认）| `html` | `outerHtml` | `attribute` | `number` | `href` | `src` | `table`
-    - `table` 模式会自动提取表格头部和行，支持 colspan/rowspan 展开
-  - `attribute` (字符串，可选)：当 type 为 `attribute` 时的属性名
-  - `multiple` (布尔值，可选)：返回所有匹配的数组（默认：false）
-  - `defaultValue` (任意，可选)：无匹配时的回退值（默认：null）
-- `contextSelector` (字符串，可选)：将提取范围限定到父容器
-- `frameSelector` (字符串，可选)：同一源 iframe 的 CSS 选择器，用于从中提取数据
-- `limit` (数字，可选)：最大返回条目数
-- `offset` (数字，可选)：跳过前 N 个匹配项
-- `waitForSelector` (布尔值，可选)：提取前等待选择器出现（默认：true）
-- `waitTimeout` (数字，可选)：等待超时（毫秒，默认：5000）
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID
+- `selector` (string, required): CSS selector for elements to extract (each match = one result item)
+- `fields` (array, required): Fields to extract from each matched element
+  - `name` (string, required): Output field name
+  - `selector` (string, optional): Relative CSS selector (default: use parent element)
+  - `type` (string, optional): `text` (default) | `html` | `outerHtml` | `attribute` | `number` | `href` | `src`
+  - `attribute` (string, optional): Attribute name when type is `attribute`
+  - `multiple` (boolean, optional): Return array of all matches (default: false)
+  - `defaultValue` (any, optional): Fallback value (default: null)
+- `contextSelector` (string, optional): Narrow extraction to a parent container
+- `limit` (number, optional): Max items to return
+- `offset` (number, optional): Skip first N items
+- `waitForSelector` (boolean, optional): Wait for selector before extracting (default: true)
+- `waitTimeout` (number, optional): Wait timeout in ms (default: 5000)
+- `tabId` (number, optional): Target tab ID (default: active tab)
+- `windowId` (number, optional): Target window ID
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -892,17 +942,17 @@
 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
   "items": [
     {
-      "title": "商品 A",
+      "title": "Product A",
       "price": 29.99,
       "link": "https://example.com/product-a",
       "rating": "4.5",
-      "tags": ["促销", "热门"]
+      "tags": ["sale", "popular"]
     }
   ],
   "total": 45,
@@ -911,96 +961,24 @@
 }
 ```
 
-### `chrome_get_page_text`（上线时间：2026-07-15）
+### `chrome_spa_fetch` (since v1.6.3; Launched: 2026-07-29)
 
-使用 Readability 从页面提取可读的主文章内容。返回干净文本、文章 HTML 和元数据（标题、摘要、作者、站点名称、语言、长度等）。
+A dedicated content extraction tool for SPAs (Single Page Applications). Automatically navigates to a URL, waits for JavaScript rendering, scrolls to trigger lazy-loaded content, then extracts the full rendered text. Solves the problem of fetching content from JS-heavy sites like X/Twitter and Reddit where plain HTTP requests return an empty shell.
 
-**参数**：
+Best for: extracting tweet timelines, post feeds, dynamically loaded articles, and any content that requires JS execution and scrolling.
 
-- `selector` (字符串，可选)：CSS 选择器。提供时返回该元素的文本而非 Readability 文章提取结果
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID
+**Parameters**:
 
-**示例**：
+- `url` (string, required): Target SPA URL
+- `maxScrolls` (number, optional): Maximum scroll-to-bottom passes (default: 5). For infinite-scroll feeds like Twitter timeline, set to 10–15
+- `scrollDelay` (number, optional): Delay between scroll steps in ms (default: 2000). Gives dynamic content time to render
+- `waitForSelector` (string, optional): Wait for a specific CSS selector before starting extraction. For Twitter: `[data-testid="tweet"]`
+- `waitTimeout` (number, optional): Max wait time for selector in ms (default: 20000)
+- `extractHtml` (boolean, optional): Whether to also return rendered HTML (default: false)
+- `tabId` (number, optional): Target an existing tab (default: create new tab)
+- `windowId` (number, optional): Target window ID
 
-```json
-{
-  "tabId": 123
-}
-```
-
-**响应**：
-
-```json
-{
-  "title": "文章标题",
-  "byline": "作者名",
-  "excerpt": "文章摘要...",
-  "siteName": "站点名称",
-  "lang": "zh-CN",
-  "textContent": "文章正文纯文本...",
-  "articleHtml": "<div><p>文章 HTML...</p></div>",
-  "length": 12345
-}
-```
-
-### `chrome_click_and_wait`（上线时间：2026-07-15）
-
-点击 CSS 选择器指定的元素，然后等待另一个选择器达到指定状态。将 `click` 和 `wait` 合二为一，简化交互流程。
-
-**参数**：
-
-- `selector` (字符串，必需)：要点击的元素的 CSS 选择器
-- `waitSelector` (字符串，必需)：点击后等待的 CSS 选择器
-- `waitFor` (字符串，可选)：`visible`（默认）| `present` | `hidden` | `gone` | `enabled`
-- `waitTimeout` (数字，可选)：最大等待时间（毫秒，默认：10000）
-- `tabId` (数字，可选)：目标标签页 ID（默认：活动标签页）
-- `windowId` (数字，可选)：目标窗口 ID
-- `frameId` (数字，可选)：点击的目标 frame ID
-- `frameSelector` (字符串，可选)：等待时所在的同源 iframe 选择器
-
-**示例**：
-
-```json
-{
-  "selector": "#load-more-button",
-  "waitSelector": ".new-content",
-  "waitFor": "visible",
-  "waitTimeout": 15000
-}
-```
-
-**响应**：
-
-```json
-{
-  "clicked": true,
-  "found": true,
-  "elapsedMs": 2300,
-  "count": 5,
-  "tag": "div.new-content",
-  "visible": true
-}
-```
-
-### `chrome_spa_fetch`（上线时间：2026-07-29；since v1.6.3）
-
-专为 SPA（单页应用）网站设计的内容提取工具。自动导航到目标 URL，等待 JavaScript 渲染完成，多次滚动到底部触发懒加载，然后提取完整的渲染文本。解决 X（推特）、Reddit 等 JS 重型页面用普通 HTTP 请求无法获取内容的问题。
-
-适合场景：需要从动态渲染页面提取推文时间线、帖子列表、动态加载的文章内容等。
-
-**参数**：
-
-- `url` (字符串，必需)：目标 SPA 网址
-- `maxScrolls` (数字，可选)：最大滚动次数（默认：5）。无限滚动页面（如推特时间线）建议设 10-15
-- `scrollDelay` (数字，可选)：每次滚动后等待时间，毫秒（默认：2000）。给动态内容足够的渲染时间
-- `waitForSelector` (字符串，可选)：等待特定 CSS 选择器出现后再开始提取。例如推特可以设为 `[data-testid="tweet"]`
-- `waitTimeout` (数字，可选)：等待选择器的超时时间，毫秒（默认：20000）
-- `extractHtml` (布尔值，可选)：是否同时返回渲染后的 HTML（默认：false）
-- `tabId` (数字，可选)：指定已有标签页（默认：新建标签页）
-- `windowId` (数字，可选)：目标窗口 ID
-
-**示例**：
+**Example**:
 
 ```json
 {
@@ -1011,7 +989,7 @@
 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -1020,7 +998,7 @@
   "title": "Elon Musk (@elonmusk) / X",
   "scrollsPerformed": 8,
   "reachedMaxScrolls": false,
-  "textContent": "渲染后的完整页面文本...",
+  "textContent": "Full rendered page text...",
   "article": {
     "title": "Elon Musk (@elonmusk) / X",
     "siteName": "X",
@@ -1030,24 +1008,24 @@
 }
 ```
 
-### `chrome_select_all_items`（since v2.0.2）
+### `chrome_select_all_items` (since v2.0.2)
 
-对懒加载或虚拟列表执行安全的全选：滚动到底部，等待卡片数量连续稳定若干轮，再逐个操作每张卡片内的 checkbox。不依赖页面自身可能失效的"选择全部"按钮，也不把乐观 DOM 数量当成服务端操作成功。
+Safely select all items in a lazy or virtualized list: scroll to the bottom, wait for the card count to stabilize over consecutive rounds, then toggle the checkbox inside each card. It does not rely on a broken page-level "select all" control, nor does it treat optimistic DOM counts as server-side success.
 
-**参数**：
+**Parameters**:
 
-- `cardSelector` (字符串，必需)：每个列表卡片的 CSS 选择器
-- `checkboxSelector` (字符串，必需)：卡片内部 checkbox 的 CSS 选择器，如 `input[type="checkbox"]`
-- `containerSelector` (字符串，可选)：滚动容器选择器（默认：页面滚动条）
-- `step` (数字，可选)：每轮滚动像素（默认：500）
-- `settleMs` (数字，可选)：每轮滚动后等待懒加载的毫秒数（默认：500）
-- `stableRounds` (数字，可选)：底部连续稳定轮数（默认：3）
-- `maxRounds` (数字，可选)：最大滚动轮数（默认：200）
-- `maxDurationMs` (数字，可选)：最大执行时间（默认：120000 毫秒）
-- `restoreScroll` (布尔值，可选)：完成后恢复原滚动位置（默认：false）
-- `tabId` / `windowId` (数字，可选)：目标标签页/窗口
+- `cardSelector` (string, required): CSS selector for each list card
+- `checkboxSelector` (string, required): CSS selector for the checkbox inside each card, e.g. `input[type="checkbox"]`
+- `containerSelector` (string, optional): Scroll container selector (default: page scroll)
+- `step` (number, optional): Scroll step in pixels (default: 500)
+- `settleMs` (number, optional): Wait after each scroll for lazy loading (default: 500)
+- `stableRounds` (number, optional): Consecutive stable bottom rounds (default: 3)
+- `maxRounds` (number, optional): Max scroll rounds (default: 200)
+- `maxDurationMs` (number, optional): Max runtime (default: 120000)
+- `restoreScroll` (boolean, optional): Restore original scroll position (default: false)
+- `tabId` / `windowId` (number, optional): Target tab/window
 
-**示例**：
+**Example**:
 
 ```json
 {
@@ -1058,7 +1036,7 @@
 }
 ```
 
-**响应**：
+**Response**:
 
 ```json
 {
@@ -1070,398 +1048,429 @@
 }
 ```
 
-### `collect_virtual_list`（上线时间：2026-08-10）
+### `collect_virtual_list` (since v1.8.12)
 
-边滚动边从动态或虚拟列表中提取并去重记录。支持嵌套滚动容器、自适应等待、断点续采、分批结果和进度快照。
+Collect and deduplicate records from a dynamic or virtualized list while scrolling. It supports nested scroll containers, adaptive loading waits, resumable state, optional result batches, and progress snapshots.
 
-**参数**：
+**Parameters**:
 
-- `cardSelector`、`fields`、`identityFields`（必需）：卡片选择器、字段定义和去重字段
-- `maxItems`（可选）：最多采集的记录数，默认 100
-- `containerSelector` / `anchorSelector`（可选）：直接指定滚动容器，或指定容器内的锚点内容
-- `scroll`（可选）：支持 `step`、`waitMs`、`waitTimeoutMs`、`settleMs`、`stalledLimit`、`rescanUp` 以及容器选择器
-- `state`（可选）：传入上一次返回的 `state`，从 `scrollY` 和 `seenIds` 继续采集
-- `returnBatches`、`batchSize`（可选）：返回分批结果
-- `returnProgress`、`progressEverySteps`（可选）：返回滚动进度快照
-- `stopWhen`（可选）：支持 `textMatch`、`selector`、`stable`、`networkIdle`、`networkComplete` 和 `jsCondition`，并返回停止前已采集的部分结果
-- `tabId` 或 `windowId`（可选）：指定目标标签页；`windowId` 会选择该窗口的活动标签页
+- `cardSelector` (string, required): CSS selector for each record card
+- `fields` (array, required): Fields to extract from each card
+- `identityFields` (array, required): Fields used to deduplicate records
+- `maxItems` (number, optional): Maximum records to collect (default: 100)
+- `containerSelector` / `anchorSelector` (string, optional): Identify a nested scroll container directly or through an anchor inside it
+- `scroll` (object, optional): `step`, `waitMs`, `waitTimeoutMs`, `settleMs`, `stalledLimit`, `rescanUp`, `containerSelector`, and `anchorSelector`
+- `state` (object, optional): Pass back the previous `state` response to resume from `scrollY` and `seenIds`
+- `returnBatches` (boolean, optional): Include `batches` in the final response
+- `batchSize` (number, optional): Records per batch (default: 25 when batching is enabled)
+- `returnProgress` (boolean, optional): Include per-step progress snapshots in the final response
+- `progressEverySteps` (number, optional): Store one progress snapshot every N scroll steps
+- `stopWhen` (object, optional): Stop on `textMatch`, `selector`, `stable`, `networkIdle`, `networkComplete`, or a `jsCondition` expression; results collected so far are returned
+- `tabId` or `windowId` (number, optional): Select the target tab; `windowId` selects its active tab
 
-### `collect_virtual_lists`（上线时间：2026-08-10）
+**Example**:
 
-在多个标签页或窗口中并发执行同一采集任务，并按目标返回独立的结果、状态、进度、分批数据和失败原因。
+```json
+{
+  "tabId": 123,
+  "cardSelector": ".product-card",
+  "fields": [
+    { "name": "id", "selector": "[data-id]", "type": "attribute", "attribute": "data-id" }
+  ],
+  "identityFields": ["id"],
+  "containerSelector": ".virtual-list",
+  "returnBatches": true,
+  "returnProgress": true,
+  "scroll": { "step": 500, "waitMs": 600, "rescanUp": true }
+}
+```
 
-**参数**：
+### `collect_virtual_lists` (since v1.8.12)
 
-- `targets`（必需）：目标数组，每项包含 `tabId` 或 `windowId`，也可覆盖 `frameSelector`、滚动容器、滚动参数和 `state`
-- 单标签页采集的其他参数（根级 `tabId`、`windowId`、`state` 除外）
-- `maxConcurrency`（可选）：最大并发目标数，默认 3，最大 8
-- `failFast`（可选）：首个目标失败后停止启动新目标
+Run the same collection workflow across multiple tabs or windows with bounded concurrency. Each target returns an independent result, state, progress, batches, and failure reason.
 
-调用方若在 MCP 请求的 `_meta.progressToken` 中提供令牌，且客户端支持 `notifications/progress`，采集过程中会实时收到进度通知；`returnProgress` 仍表示把进度快照放入最终结果。
+**Parameters**:
 
-## 📋 响应格式
+- `targets` (array, required): Objects containing `tabId` or `windowId`; a target may also override `frameSelector`, `containerSelector`, `anchorSelector`, `scroll`, and `state`
+- All single-target collection parameters above, except the root `tabId`, `windowId`, and `state`
+- `maxConcurrency` (number, optional): Concurrent target limit (default: 3, maximum: 8)
+- `failFast` (boolean, optional): Stop starting new targets after the first failure
 
-所有工具都返回以下格式的响应：
+When the MCP request includes `_meta.progressToken` and the client supports `notifications/progress`, the collector emits live progress notifications while it runs. `returnProgress` still controls snapshots included in the final result.
+
+**Example**:
+
+```json
+{
+  "targets": [
+    { "tabId": 101, "label": "window-a" },
+    { "tabId": 202, "label": "window-b" }
+  ],
+  "cardSelector": ".item",
+  "fields": [{ "name": "id", "selector": ".id" }],
+  "identityFields": ["id"],
+  "maxConcurrency": 2,
+  "returnBatches": true
+}
+```
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `chrome_userscript`
+
+Manage browser userscripts: create, inspect, enable, disable, update, remove, export, or send commands to installed scripts. This is high-risk and requires explicit approval when the approval policy is enabled.
+
+**Parameters**:
+
+- `action` (string, required): `create`, `list`, `get`, `enable`, `disable`, `update`, `remove`, `send_command`, or `export`
+- `args` (object, optional): Action-specific values such as `script`, `id`, `matches`, `world`, `mode`, `payload`, and `tabId`
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `chrome_crawl_links`
+
+Recursively visit discovered page links with depth and node limits, returning successful pages and partial failures.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_thread`
+
+Extract replies or comments from a root content area with scrolling, nested-item exclusion, and match-based stopping.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_error_logs`
+
+Read or clear the raw error logs retained by the browser extension for desktop diagnostics.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+## 🔄 Schema Catalog Additions
+
+> This section is generated from the shared tool schema.
+
+### `capture_debug_bundle`
+
+Save a failure snapshot to Downloads containing a screenshot, DOM, console logs, a redacted network summary, and metadata.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `resume_tab_task`
+
+Save, read, or clear caller state for a normal browser tab; it never creates an incognito window or reads cookies.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_find_and_click`
+
+Try CSS, XPath, and text candidates within an optional scope, then click the first visible and enabled match.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_expand_section`
+
+Expand a collapsible section and wait for its content selector to appear.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_scan_for_section`
+
+Scroll to find a target section, optionally rescanning upward, and return traversal state only.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_paginate_extract`
+
+Extract the current page, click the requested next-page candidate, and continue only after the card HTML changes.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_records`
+
+Extract caller-selected raw fields from cards and exclude records using case-insensitive text rules.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_extract_review_summary`
+
+Extract the product ID, rating, and review count from a product page Reviews section. A confirmed zero review count is a valid terminal result and must not trigger retries.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `detect_empty_state`
+
+Classify a region as has_content, empty, or loading_or_unknown from selectors and text markers; confirmed zero counts are terminal empty results.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `merge_records`
+
+Merge records using caller-provided identity fields and source priority without reading or persisting browser state.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_list_frames`
+
+List frames in a tab so scoped actions can target same-origin or cross-origin iframes by frameId.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_diagnostic_snapshot`
+
+Return a diagnostic snapshot containing a viewport screenshot, DOM snapshot, console buffer, and network-capture summary.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_proxy_diagnostics`
+
+Read proxy configuration and Chrome takeover state; action=test also verifies the proxy exit IP without returning credentials.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_proxy_rotate`
+
+Rotate the proxy session and reload the tab after the caller confirms the current page is abnormal.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_scoped_action`
+
+Click, extract, or paginate within a semantic scope, including open Shadow DOM and iframe targeting by frameId.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_task_context`
+
+Create an isolated incognito task window and persist its tabs and caller-defined extraction state across MCP restarts.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_create_tab`
+
+Create a browser tab with an optional URL, window, foreground/background state, and pin state.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_hover`
+
+Move the mouse over an element selected by CSS or XPath.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_print_to_pdf`
+
+Print a page to PDF with CDP Page.printToPDF, supporting CSS page size and custom paper sizes.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_get_element_info`
+
+Get an element attributes, computed styles, and bounding rectangle.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_storage_get`
+
+Read a page localStorage or sessionStorage area.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_storage_set`
+
+Write page localStorage or sessionStorage; values are serialized as JSON.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_storage_delete`
+
+Delete keys from page localStorage or sessionStorage.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `performance_start_trace`
+
+Starts a performance trace recording on the selected page. Optionally reloads the page and/or auto-stops after a short duration.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `performance_stop_trace`
+
+Stops the active performance trace recording on the selected page.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `performance_analyze_insight`
+
+Provides a lightweight summary of the last recorded trace. For deep insights (CWV, breakdowns), integrate native-side DevTools trace engine.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_post_to_x`
+
+Publish one text post on an already signed-in X/Twitter page. The tool waits for the editor, fills and read-back verifies the text, waits for an enabled submit button, clicks once, and waits for a new confirmation marker. It returns published, failed, or unknown; unknown never retries automatically to avoid duplicate posts. Custom selectors support compatible X page variants.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_network_capture`
+
+Capture network requests with start and stop actions; optionally collect response bodies through the Debugger API.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_block_resources`
+
+Block selected resource types or URL patterns in a tab until blocking is stopped.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_handle_download`
+
+Wait for a browser download and return details (id, filename, url, state, size)
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_javascript`
+
+Execute JavaScript code in a browser tab and return the result. Uses CDP Runtime.evaluate with awaitPromise and returnByValue; automatically falls back to chrome.scripting.executeScript if the debugger is busy. Output is sanitized (sensitive data redacted) and truncated by default.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_request_element_selection`
+
+Request the user to manually select one or more elements on the current page. Use this as a human-in-the-loop fallback when you cannot reliably locate the target element after approximately 3 attempts using chrome_read_page combined with chrome_click_element/chrome_fill_or_select/chrome_computer. The user will see a panel with instructions and can click on the requested elements. Returns element refs compatible with chrome_click_element/chrome_fill_or_select (including iframe frameId for cross-frame support).
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_console`
+
+Capture console output from a browser tab. Supports snapshot mode (default; one-time capture with ~2s wait) and buffer mode (persistent per-tab buffer you can read/clear instantly without waiting).
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_upload_file`
+
+Upload files to web forms with file input elements using Chrome DevTools Protocol
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_paste_image`
+
+Paste a local image or image data into a textarea, input, or contenteditable element using a synthesized paste event. It does not read the system clipboard; it uses a temporary file input, DataTransfer, and ClipboardEvent.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_get_form_value`
+
+Read the actual DOM value of a form control, including React/Vue controlled inputs and textareas; this reads the value property rather than an HTML attribute or text node.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_handle_dialog`
+
+Handle JavaScript and beforeunload dialogs (alert/confirm/prompt) via CDP
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_gif_recorder`
+
+Record browser tab activity as an animated GIF.\n\nModes:\n- Fixed FPS mode (action="start"): Captures frames at regular intervals. Good for animations/videos.\n- Auto-capture mode (action="auto_start"): Captures frames automatically when chrome_computer or chrome_navigate actions succeed. Better for interaction recordings with natural pacing.\n\nUse "stop" to end recording and save the GIF.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_get_page_text`
+
+Extract the readable main article from a page using Readability. Returns clean text, article HTML, and metadata such as title, excerpt, author, site name, language, and length.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_click_and_wait`
+
+Click a CSS-selected element, then wait for another selector to reach the requested state.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+### `chrome_paste_text`
+
+Paste multi-paragraph text into a rich-text editor (Draft.js such as Zhihu/Medium) by dispatching a synthesized ClipboardEvent("paste") with a DataTransfer, so the editor receives it via its native paste path without needing window focus.
+
+> The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.
+
+## 📋 Response Format
+
+All tools return responses in the following format:
 
 ```json
 {
   "content": [
     {
       "type": "text",
-      "text": "包含实际响应数据的 JSON 字符串"
+      "text": "JSON string containing the actual response data"
     }
   ],
   "isError": false
 }
 ```
 
-对于错误：
+For errors:
 
 ```json
 {
   "content": [
     {
       "type": "text",
-      "text": "描述出错原因的错误消息"
+      "text": "Error message describing what went wrong"
     }
   ],
   "isError": true
 }
 ```
 
-## 🔧 使用示例
+## 🔧 Usage Examples
 
-### 完整工作流示例
+### Complete Workflow Example
 
 ```javascript
-// 1. 导航到页面
+// 1. Navigate to a page
 await callTool('chrome_navigate', {
   url: 'https://example.com',
 });
 
-// 2. 截图
+// 2. Take a screenshot
 const screenshot = await callTool('chrome_screenshot', {
   fullPage: true,
   storeBase64: true,
 });
 
-// 3. 开始网络监控
+// 3. Start network monitoring
 await callTool('chrome_network_capture', {
   action: 'start',
   maxCaptureTime: 30000,
 });
 
-// 4. 与页面交互
+// 4. Interact with the page
 await callTool('chrome_click_element', {
   selector: '#load-data-button',
 });
 
-// 5. 语义搜索内容
+// 5. Search content semantically
 const searchResults = await callTool('search_tabs_content', {
-  query: '用户数据分析',
+  query: 'user data analysis',
 });
 
-// 6. 停止网络捕获
+// 6. Stop network capture
 const networkData = await callTool('chrome_network_capture', { action: 'stop' });
 
-// 7. 保存书签
+// 7. Save bookmark
 await callTool('chrome_bookmark_add', {
-  title: '数据分析页面',
-  parentId: '工作/分析',
+  title: 'Data Analysis Page',
+  parentId: 'Work/Analytics',
 });
 ```
 
-此 API 提供全面的浏览器自动化功能，具有 AI 增强的内容分析和语义搜索特性。
-
-## 🔄 Schema Catalog 补充
-
-> 该部分由共享工具 schema 自动生成。
-
-### `capture_debug_bundle`
-
-将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `resume_tab_task`
-
-保存、读取或清除正常浏览器标签页的调用方状态；不会创建无痕窗口，也不会读取 Cookie。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_find_and_click`
-
-在可选作用域内依次尝试 CSS、XPath 或文本候选项，点击第一个可见且可用的匹配元素。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_expand_section`
-
-展开通用的折叠区域，并等待指定的内容选择器出现；支持多个触发器、重复点击、点击上限和每次点击后的等待条件。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_scan_for_section`
-
-滚动查找指定区域，可选择向上复扫；仅返回遍历状态，不包含平台业务规则。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_paginate_extract`
-
-先抽取当前页，再点击指定的下一页候选项；仅在卡片 HTML 发生变化后继续。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_extract_records`
-
-从卡片中抽取调用方指定的原始字段，并按不区分大小写的文本规则排除记录。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_extract_review_summary`
-
-提取商品详情页 Reviews 区域的商品 ID、评分和评论数。评论数明确为 0 时返回 empty，并标记为可终止结果，不应继续切换入口或重试；同时支持 /12345/product.html 路径和 productId 查询参数。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `detect_empty_state`
-
-根据指定选择器和文本标记返回 has_content、empty 或 loading_or_unknown。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `merge_records`
-
-按调用方提供的身份字段和数据源优先级纯数据合并；不读取浏览器状态，也不持久化。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_list_frames`
-
-列出标签页中的框架，以便作用域操作通过 frameId 定位同源或跨域 iframe。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_diagnostic_snapshot`
-
-返回标签页的一组诊断信息：视口截图、DOM 快照、控制台缓冲和当前网络捕获摘要。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_proxy_diagnostics`
-
-读取代理配置及 Chrome 接管状态；action 为 test 时还会验证代理出口。不会返回用户名或密码。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_proxy_rotate`
-
-当调用方确认当前标签页异常时，轮换代理会话并重新加载该页面。需要已启用代理；不会返回用户名或密码。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_scoped_action`
-
-在一个语义作用域内点击、抽取或分页；支持开放的 Shadow DOM，并可用 frameId 指定同源或跨域 iframe。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_task_context`
-
-创建隔离的无痕任务窗口，并在 MCP 重启后保存其标签页和调用方定义的抓取状态。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_create_tab`
-
-新建浏览器标签页，可指定 URL、窗口、前台/后台状态和固定状态。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_hover`
-
-通过 CSS 或 XPath 选择器将鼠标悬停在页面元素上。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_print_to_pdf`
-
-使用 CDP Page.printToPDF 将页面打印为 PDF，支持页面 CSS 尺寸和自定义纸张尺寸。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_get_element_info`
-
-查询页面元素的 attributes、computed styles 和 bounding rect。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_storage_get`
-
-读取页面的 localStorage 或 sessionStorage。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_storage_set`
-
-写入页面的 localStorage 或 sessionStorage；值会按 JSON 序列化。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_storage_delete`
-
-删除页面的 localStorage 或 sessionStorage 键。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `performance_start_trace`
-
-在所选页面上开始性能追踪记录；可选自动刷新页面和/或在短暂时间后自动停止。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `performance_stop_trace`
-
-停止所选页面正在进行的性能追踪记录。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `performance_analyze_insight`
-
-提供最近一次追踪记录的轻量摘要；如需深入洞察（CWV、明细），请集成原生侧 DevTools 追踪引擎。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_read_page`
-
-获取页面上可见元素的无障碍树表示；仅返回视口中可见的元素，可选只筛选交互元素。\n提示：如果返回的元素不包含所需的具体元素，请使用 computer 工具的截图（action="screenshot"）获取该元素的屏幕坐标，再按坐标操作。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_get_action_snapshot`
-
-一次性获取当前视口中可操作控件的结构化快照。响应包含短期有效的 `snapshotId` 以及每个控件的 frame-scoped `ref`（例如 `frame:0:ref_1`）和 `frameId`。将三者一起传给 `chrome_click_element` 或 `chrome_fill_or_select`；快照缺失、过期或目标发生变化时，操作会被拒绝。密码、文件和隐藏输入框不会出现在快照中。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_computer`
-
-使用鼠标和键盘与浏览器交互，并可截图。\n* 每当要点击图标等元素时，应先通过 read_page 确定该元素的 ref，再移动光标。\n* 如果点击程序或链接后等待很久仍未加载成功，先截图，再调整点击位置，使光标尖端视觉上落在要点击的元素上。\n* 点击按钮、链接、图标等时，务必让光标尖端位于元素中心，除非被要求，否则不要点击边缘。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_post_to_x`
-
-在已登录的 X/Twitter 页面发布一条文本帖子。工具会等待编辑框、填充并回读验证文本、等待发布按钮可用、点击一次，然后等待新的成功标记。发布结果明确返回 published、failed 或 unknown；unknown 时不会自动重试，以避免重复发帖。支持自定义选择器以兼容 X 的页面变体。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_network_capture`
-
-统一网络捕获工具。action="start" 开始，action="stop" 停止并返回结果；needResponseBody=true 时通过 Debugger API 获取响应体（可能与 DevTools 冲突），默认 webRequest 模式较轻量但不含响应体。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_block_resources`
-
-在一个标签页中拦截指定资源类型或 URL 模式。请在导航或刷新前启动；停止后恢复加载。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_handle_download`
-
-等待浏览器下载完成并返回详情（id、filename、url、state、size）
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_javascript`
-
-在浏览器标签页中执行 JavaScript 代码并返回结果。使用 CDP Runtime.evaluate（awaitPromise + returnByValue）；调试器忙碌时自动回退到 chrome.scripting.executeScript。输出默认经过脱敏处理并截断。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_request_element_selection`
-
-请求用户手动选择当前页面上的一个或多个元素。当使用 chrome_read_page 配合 chrome_click_element/chrome_fill_or_select/chrome_computer 尝试约 3 次仍无法可靠定位目标元素时，作为人工介入的回退方案。用户会看到带说明的面板并点击所需元素。返回与 chrome_click_element/chrome_fill_or_select 兼容的元素引用（含跨框架的 iframe frameId）。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_console`
-
-采集浏览器标签页的控制台输出。支持快照模式（默认；一次性采集，约等待 2 秒）和缓冲模式（每个标签页的持久缓冲，可即时读取/清空，无需等待）。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_upload_file`
-
-使用 Chrome DevTools Protocol 向带文件输入控件的网页表单上传文件
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_paste_image`
-
-将本地图片或图片数据作为合成 paste 事件粘贴到 textarea、input 或 contenteditable 元素。它不读取系统剪贴板；内部使用临时 file input、DataTransfer 和 ClipboardEvent。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_get_form_value`
-
-读取表单控件的实际 DOM value，适用于 React/Vue 受控 input 和 textarea；返回值不是 HTML 属性或文本节点。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_handle_dialog`
-
-通过 CDP 处理 JavaScript 和 beforeunload 对话框（alert/confirm/prompt）
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_gif_recorder`
-
-将浏览器标签页活动录制为 GIF 动画。\n\n模式：\n- 固定帧率模式（action="start"）：按固定间隔采集帧，适合动画/视频。\n- 自动采集模式（action="auto_start"）：chrome_computer 或 chrome_navigate 操作成功时自动采集帧，适合节奏自然的交互录制。\n\n使用 "stop" 结束录制并保存 GIF。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_paste_text`
-
-向富文本编辑器合成粘贴多段文本（专治 Draft.js 系编辑器：知乎、Medium 等）。原理是给编辑器元素派发一个带 DataTransfer 的合成 ClipboardEvent("paste")，让编辑器走原生 paste 路径完整接收全部段落，且不依赖页面焦点（不读系统剪贴板）。替代 chrome_computer type（带换行会错乱）、execCommand insertText（多段只留最后一段）与剪贴板 API（无焦点被拒）。建议粘贴后刷新页面验证草稿完整，再点击发布按钮。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_userscript`
-
-管理浏览器用户脚本：创建、查询、启用、停用、更新、删除、导出脚本，或向已安装脚本发送命令。高风险工具，启用审批策略后需要显式批准。
-
-**参数**：
-
-- `action`（字符串，必需）：`create`、`list`、`get`、`enable`、`disable`、`update`、`remove`、`send_command` 或 `export`
-- `args`（对象，可选）：操作参数，例如 `script`、`id`、`matches`、`world`、`mode`、`payload` 和 `tabId`
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-## 🔄 Schema Catalog 补充
-
-> 该部分由共享工具 schema 自动生成。
-
-### `chrome_crawl_links`
-
-按深度和节点上限递归访问页面链接，并返回已成功提取的页面及失败的部分结果。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_extract_thread`
-
-从主内容区域提取回复或评论，支持滚动加载、嵌套条目排除和匹配文本停止。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-### `chrome_error_logs`
-
-读取或清除浏览器插件保留的原始错误日志，供桌面端错误诊断使用。
-
-> 规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。
-
-## 🔄 Schema Catalog 补充
-
-> 该部分由共享工具 schema 自动生成。
+This API provides comprehensive browser automation capabilities with AI-enhanced content analysis and semantic search features.

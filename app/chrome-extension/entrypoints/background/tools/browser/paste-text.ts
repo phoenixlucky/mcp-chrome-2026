@@ -1,18 +1,22 @@
 /**
- * Paste Text Tool - 合成 ClipboardEvent('paste') 粘贴多段文本到富文本编辑器
+ * Paste Text Tool - synthesizes a ClipboardEvent('paste') to paste multi-paragraph
+ * text into rich text editors
  *
- * 专治 Draft.js 系编辑器（知乎、Medium 等）的自动化输入问题：
- * - chrome_computer type / CDP Input.insertText：仅页面刚刷新、编辑器干净时有效，文本带换行会错乱覆盖
- * - execCommand('insertText')：多段文本草稿只保存最后一段
- * - 剪贴板 API：页面无焦点时被 Chrome 拒绝
+ * Built to work around automated input problems in Draft.js-based editors (Zhihu, Medium, etc.):
+ * - chrome_computer type / CDP Input.insertText: only works right after a page refresh when the
+ *   editor is clean; text with line breaks gets scrambled and overwrites content
+ * - execCommand('insertText'): only the last paragraph is kept in a multi-paragraph draft
+ * - Clipboard API: rejected by Chrome when the page has no focus
  *
- * 原理：在页面 MAIN world 构造带 DataTransfer 的合成 ClipboardEvent('paste') 并派发到编辑器，
- * 让编辑器走原生 paste 路径 —— Draft.js 会把全部文本完整解析为多个 content blocks。
- * 合成事件只构造 DataTransfer，不读取系统剪贴板，因此不受页面焦点限制。
+ * How it works: in the page's MAIN world, construct a synthetic ClipboardEvent('paste') carrying
+ * a DataTransfer and dispatch it to the editor so the editor takes its native paste path --
+ * Draft.js parses the full text into multiple content blocks.
+ * The synthetic event only builds a DataTransfer and never reads the system clipboard,
+ * so it is not restricted by page focus.
  *
- * 执行引擎（与 javascriptTool 一致）：
- * - 主路径：CDP Runtime.evaluate（MAIN world，页面上下文）
- * - fallback：chrome.scripting.executeScript + world: 'MAIN'（调试器被占用时）
+ * Execution engines (same as javascriptTool):
+ * - Primary: CDP Runtime.evaluate (MAIN world, page context)
+ * - fallback: chrome.scripting.executeScript + world: 'MAIN' (when the debugger is busy)
  */
 
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
@@ -22,16 +26,16 @@ import { cdpSessionManager } from '@/utils/cdp-session-manager';
 
 const CDP_SESSION_KEY = 'paste-text';
 
-/** 粘贴后等待 Draft.js 把剪贴板内容解析为 content blocks 的静置时间（毫秒） */
+/** Settle time (ms) after pasting to let Draft.js parse the clipboard content into content blocks */
 const SETTLE_MS = 80;
 
 const DEBUGGER_CONFLICT_RE =
   /Debugger is already attached|Another debugger is already attached|Cannot attach to this target/i;
 
 interface PasteTextParams {
-  /** 要粘贴的文本，可含换行/空行（空行会被 Draft.js 拆成独立段落） */
+  /** Text to paste; may contain line breaks/blank lines (blank lines become separate paragraphs in Draft.js) */
   text: string;
-  /** 编辑器元素 CSS 选择器；缺省自动探测 [contenteditable="true"] */
+  /** CSS selector of the editor element; auto-detects [contenteditable="true"] when omitted */
   selector?: string;
   tabId?: number;
   windowId?: number;
@@ -53,7 +57,7 @@ type EvalOutcome =
   | { ok: false; engine: Engine; error: string; debuggerConflict?: boolean };
 
 /**
- * 构建在页面 MAIN world 执行的粘贴代码。text/selector 以 JSON 字符串嵌入，避免注入。
+ * Build the paste code that runs in the page's MAIN world. text/selector are embedded as JSON strings to avoid injection.
  */
 function buildPasteScript(text: string, selector: string): string {
   const payload = JSON.stringify({ text, selector });
@@ -72,7 +76,7 @@ function buildPasteScript(text: string, selector: string): string {
       return { ok: false, error: 'No editable element found (pass a selector to target the editor)' };
     }
     if (typeof editor.focus === 'function') {
-      try { editor.focus(); } catch { /* focus 失败不阻塞粘贴 */ }
+      try { editor.focus(); } catch { /* a failed focus must not block the paste */ }
     }
     const dt = new DataTransfer();
     dt.setData('text/plain', text);
