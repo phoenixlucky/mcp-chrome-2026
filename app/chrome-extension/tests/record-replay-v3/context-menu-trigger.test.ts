@@ -1,5 +1,5 @@
 /**
- * @fileoverview ContextMenu Trigger Handler 测试 (P4-05)
+ * @fileoverview ContextMenu Trigger Handler tests (P4-05)
  * @description
  * Tests for:
  * - Menu item creation and removal

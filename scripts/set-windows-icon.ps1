@@ -54,7 +54,7 @@ public static class WindowsExeIcon {
     }
 
     private static void FailLastWin32Error(string operation) {
-        throw new InvalidOperationException(operation + " 失败，Win32 错误码：" + Marshal.GetLastWin32Error());
+        throw new InvalidOperationException(operation + " failed, Win32 error code: " + Marshal.GetLastWin32Error());
     }
 
     public static void Apply(string exePath, string iconPath) {

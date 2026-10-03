@@ -106,7 +106,7 @@ interface StatelessMcpStats {
   errorCount: number;
 }
 
-interface ActiveMcpRequest {
+export interface ActiveMcpRequest {
   requestId: string;
   method: string;
   toolName: string | null;
@@ -124,7 +124,7 @@ interface ActiveMcpRequest {
 
 type McpRequestStatus = 'running' | 'success' | 'error' | 'cancelled';
 
-interface McpRequestRecord {
+export interface McpRequestRecord {
   requestId: string;
   method: string;
   toolName: string | null;
@@ -236,7 +236,7 @@ export class Server {
   private agentStreamManager: AgentStreamManager;
   private agentChatService: AgentChatService;
   private readonly runtimeRegistry = new RuntimeRegistry();
-  /** Streamable HTTP（尝鲜版）：MCP 2026-07-28, stateless and strict. */
+  /** Streamable HTTP (preview): MCP 2026-07-28, stateless and strict. */
   private readonly modernMcpHandler = createMcpHandler(() => getModernMcpServer(), {
     legacy: 'reject',
     keepAliveMs: 15_000,
@@ -310,7 +310,7 @@ export class Server {
       if (!['/mcp', '/mcp-new', '/sse', '/messages', '/ask-extension'].includes(pathname)) return;
       if (this.serviceEnabled) return;
       reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
-        error: 'Chrome MCP Bridge 服务当前已停止，请先在客户端中启动服务。',
+        error: 'The Chrome MCP Bridge service is currently stopped; start it in the client first.',
       });
     });
   }
@@ -504,7 +504,7 @@ export class Server {
       const [currentChrome, profileTerminals] = await Promise.all([
         (async () => {
           if (!this.nativeHost?.isExtensionConnected()) {
-            return { terminal: null, error: '当前 Chrome 扩展未连接' };
+            return { terminal: null, error: 'The current Chrome extension is not connected' };
           }
           try {
             const response = await this.nativeHost.sendRequestToExtensionAndWait(
@@ -512,12 +512,12 @@ export class Server {
               NativeMessageType.CALL_TOOL,
               5_000,
             );
-            const value = response?.data?.content?.find((item: any) => item?.type === 'text')?.text;
+            const value = response?.data?.content?.find((item) => item?.type === 'text')?.text;
             const parsed = typeof value === 'string' ? JSON.parse(value) : {};
             return {
               terminal: {
                 terminalId: 'default',
-                name: '当前 Chrome',
+                name: 'Current Chrome',
                 status: 'running',
                 logs: Array.isArray(parsed?.logs) ? parsed.logs : [],
               },
@@ -526,7 +526,7 @@ export class Server {
           } catch (error) {
             return {
               terminal: null,
-              error: `当前 Chrome 错误日志读取失败：${error instanceof Error ? error.message : String(error)}`,
+              error: `Failed to read error logs from the current Chrome: ${error instanceof Error ? error.message : String(error)}`,
             };
           }
         })(),
@@ -564,22 +564,27 @@ export class Server {
       const id = taskId?.trim();
       const task = id ? this.runtimeRegistry.get(id) : null;
       if (!id || !task) {
-        return reply.status(HTTP_STATUS.NOT_FOUND).send({ error: '任务不存在或已过期。' });
+        return reply
+          .status(HTTP_STATUS.NOT_FOUND)
+          .send({ error: 'Task does not exist or has expired.' });
       }
       if (['success', 'error', 'cancelled', 'unknown'].includes(task.summary.status)) {
         return action === 'cancel'
           ? reply.status(HTTP_STATUS.OK).send({ taskId: id, status: task.summary.status })
-          : reply
-              .status(HTTP_STATUS.CONFLICT)
-              .send({ error: '任务已经结束，无法执行此操作。', taskId: id });
+          : reply.status(HTTP_STATUS.CONFLICT).send({
+              error: 'The task has already finished; this action cannot be performed.',
+              taskId: id,
+            });
       }
       if (action === 'pause' && !task.summary.pausable) {
-        return reply.status(HTTP_STATUS.CONFLICT).send({ error: '当前任务不可暂停。', taskId: id });
+        return reply
+          .status(HTTP_STATUS.CONFLICT)
+          .send({ error: 'The task cannot be paused.', taskId: id });
       }
       if (action === 'resume' && task.summary.status !== 'paused') {
         return reply
           .status(HTTP_STATUS.CONFLICT)
-          .send({ error: '当前任务不在暂停状态。', taskId: id });
+          .send({ error: 'The task is not paused.', taskId: id });
       }
       try {
         if (action === 'cancel') {
@@ -594,7 +599,7 @@ export class Server {
           } else {
             return reply
               .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
-              .send({ error: 'Chrome 扩展未连接。' });
+              .send({ error: 'The Chrome extension is not connected.' });
           }
           this.runtimeRegistry.update(id, 'cancelling', 'cancel_requested');
         } else if (action === 'pause' || action === 'resume') {
@@ -606,12 +611,12 @@ export class Server {
             if (!changed)
               return reply
                 .status(HTTP_STATUS.CONFLICT)
-                .send({ error: 'Agent 执行已结束。', taskId: id });
+                .send({ error: 'The Agent run has already finished.', taskId: id });
           } else {
             if (!this.nativeHost?.isExtensionConnected()) {
               return reply
                 .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
-                .send({ error: 'Chrome 扩展未连接。' });
+                .send({ error: 'The Chrome extension is not connected.' });
             }
             await this.nativeHost.sendRequestToExtensionAndWait(
               { runId: id },
@@ -628,12 +633,12 @@ export class Server {
           if (typeof task.summary.tabId !== 'number') {
             return reply
               .status(HTTP_STATUS.CONFLICT)
-              .send({ error: '任务没有可聚焦的标签页。', taskId: id });
+              .send({ error: 'The task has no tab to focus.', taskId: id });
           }
           if (!this.nativeHost?.isExtensionConnected()) {
             return reply
               .status(HTTP_STATUS.SERVICE_UNAVAILABLE)
-              .send({ error: 'Chrome 扩展未连接。' });
+              .send({ error: 'The Chrome extension is not connected.' });
           }
           await this.nativeHost.sendRequestToExtensionAndWait(
             { name: 'chrome_switch_tab', args: { tabId: task.summary.tabId } },
@@ -641,7 +646,9 @@ export class Server {
             5_000,
           );
         } else {
-          return reply.status(HTTP_STATUS.BAD_REQUEST).send({ error: '不支持的运行时操作。' });
+          return reply
+            .status(HTTP_STATUS.BAD_REQUEST)
+            .send({ error: 'Unsupported runtime action.' });
         }
         return reply.status(HTTP_STATUS.OK).send({
           taskId: id,
@@ -677,15 +684,15 @@ export class Server {
                 5_000,
               );
               if (response?.status !== 'success' || response.data?.isError) {
-                throw new Error('扩展返回了清除失败结果');
+                throw new Error('The extension returned a clear failure result');
               }
             } catch (error) {
               errors.push(
-                `当前 Chrome 错误日志清除失败：${error instanceof Error ? error.message : String(error)}`,
+                `Failed to clear error logs from the current Chrome: ${error instanceof Error ? error.message : String(error)}`,
               );
             }
           } else if (terminalId === 'default') {
-            errors.push('当前 Chrome 扩展未连接');
+            errors.push('The current Chrome extension is not connected');
           }
         }
         if (terminalId === 'all') {
@@ -708,7 +715,8 @@ export class Server {
       if (!this.nativeHost) {
         return reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
           status: 'not_available',
-          message: 'Chrome Native Host 尚未连接。请确认扩展已加载并重载。',
+          message:
+            'The Chrome Native Host is not connected yet. Make sure the extension is loaded and reloaded.',
         });
       }
       try {
@@ -729,7 +737,7 @@ export class Server {
       if (!this.nativeHost) {
         return reply.status(HTTP_STATUS.SERVICE_UNAVAILABLE).send({
           status: 'not_available',
-          message: 'Chrome Native Host 尚未连接。',
+          message: 'The Chrome Native Host is not connected yet.',
         });
       }
       try {
@@ -744,12 +752,14 @@ export class Server {
     });
 
     const cancelMcpRequest = async (request: FastifyRequest, reply: FastifyReply) => {
-      const requestId = (request.params as { requestId?: string }).requestId?.trim();
+      // Route params are typed by the Fastify URL pattern; narrow once.
+      const params = request.params as { requestId?: string };
+      const requestId = params.requestId?.trim();
       const activeRequest = requestId ? this.mcpRequests.get(requestId) : undefined;
       if (!activeRequest) {
         return reply.status(HTTP_STATUS.NOT_FOUND).send({
           status: 'not_found',
-          message: '请求已结束或不存在。',
+          message: 'The request has ended or does not exist.',
         });
       }
 
@@ -845,7 +855,7 @@ export class Server {
         }
       } catch {
         this.runtimeRegistry.update(record.summary.taskId, 'unknown', 'error', {
-          message: 'Chrome 扩展暂时无法报告 Workflow 状态',
+          message: 'The Chrome extension cannot report Workflow status right now',
         });
       }
     }
@@ -1034,7 +1044,9 @@ export class Server {
 
   private setupExtensionRoutes(): void {
     this.fastify.get('/artifacts/:artifactId', async (request, reply) => {
-      const artifactId = (request.params as { artifactId?: string }).artifactId;
+      // Route params are typed by the Fastify URL pattern; narrow once.
+      const params = request.params as { artifactId?: string };
+      const artifactId = params.artifactId;
       const stored = artifactId ? this.nativeHost?.getArtifactStore().get(artifactId) : undefined;
       if (!stored) return reply.status(HTTP_STATUS.NOT_FOUND).send({ error: 'Artifact not found' });
       reply.header('Cache-Control', 'private, max-age=3600');
@@ -1060,7 +1072,7 @@ export class Server {
         const requestController = createHttpAbortController(request, reply);
         try {
           const extensionResponse = await this.nativeHost.sendRequestToExtensionAndWait(
-            request.query,
+            request.query as Record<string, unknown>,
             'process_data',
             TIMEOUTS.EXTENSION_REQUEST_TIMEOUT,
             requestController.signal,
@@ -1304,7 +1316,7 @@ export class Server {
       }
     });
 
-    // Streamable HTTP（尝鲜版） handles POST, GET and DELETE on one endpoint.
+    // Streamable HTTP (preview) handles POST, GET and DELETE on one endpoint.
     this.fastify.all('/mcp-new', async (request, reply) => {
       const startedAt = Date.now();
       const activeRequest = this.trackMcpRequest(request, reply, {
@@ -1376,7 +1388,7 @@ export class Server {
 
     try {
       await this.stopService();
-      if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+      clearInterval(this.cleanupTimer ?? undefined);
       this.cleanupTimer = null;
       await this.fastify.close();
       this.isRunning = false;
@@ -1391,7 +1403,7 @@ export class Server {
 
   public async startService(): Promise<void> {
     if (!this.isRunning) {
-      throw new Error('Chrome MCP Bridge 控制服务尚未启动。');
+      throw new Error('The Chrome MCP Bridge control service has not started yet.');
     }
     this.serviceEnabled = true;
   }

@@ -120,149 +120,152 @@ function isCoordinates(value: unknown): value is { x: number; y: number } {
 
 function duration(value: unknown, fallbackMs: number): string {
   const ms = typeof value === 'number' && value >= 0 ? value : fallbackMs;
-  return `${ms / 1000} 秒`;
+  return `${ms / 1000}s`;
 }
 
 function target(args: Record<string, unknown>): string {
   const selector = compact(args.selector);
   if (selector) return selector;
   const ref = compact(args.ref);
-  if (ref) return `元素引用 ${ref}`;
+  if (ref) return `Element ref ${ref}`;
   const coordinates = args.coordinates as { x?: unknown; y?: unknown } | undefined;
   if (typeof coordinates?.x === 'number' && typeof coordinates.y === 'number')
-    return `坐标 (${coordinates.x}, ${coordinates.y})`;
-  return '当前目标';
+    return `Coordinates (${coordinates.x}, ${coordinates.y})`;
+  return 'Current target';
 }
 
 function operationDetail(param: ToolCallParam): string {
   const args = (param.args || {}) as Record<string, unknown>;
   switch (param.name) {
     case 'get_windows_and_tabs':
-      return '读取所有窗口和标签页';
+      return 'Read all windows and tabs';
     case 'chrome_create_tab':
-      return `新建标签页${compact(args.url) ? `：${compact(args.url)}` : ''}`;
+      return `Create tab${compact(args.url) ? `: ${compact(args.url)}` : ''}`;
     case 'chrome_hover':
-      return `悬停：${target(args)}`;
+      return `Hover: ${target(args)}`;
     case 'chrome_get_element_info':
-      return `查询元素：${target(args)}`;
+      return `Query element: ${target(args)}`;
     case 'chrome_print_to_pdf':
-      return '打印为 PDF';
+      return 'Print to PDF';
     case 'chrome_storage_get':
-      return '读取页面存储';
+      return 'Read page storage';
     case 'chrome_storage_set':
-      return '写入页面存储';
+      return 'Write page storage';
     case 'chrome_storage_delete':
-      return '删除页面存储';
+      return 'Delete page storage';
     case 'search_tabs_content':
-      return `搜索：${compact(args.query || args.text) || '标签页内容'}`;
+      return `Search: ${compact(args.query || args.text) || 'tab content'}`;
     case 'chrome_screenshot':
-      return args.fullPage ? '截取整页' : `截取：${target(args)}`;
+      return args.fullPage ? 'Screenshot full page' : `Screenshot: ${target(args)}`;
     case 'chrome_close_tabs':
-      return `关闭 ${Array.isArray(args.tabIds) ? args.tabIds.length : 1} 个标签页`;
+      return `Close ${Array.isArray(args.tabIds) ? args.tabIds.length : 1} tabs`;
     case 'chrome_switch_tab':
-      return `切换到标签页 #${args.tabId || '当前'}`;
+      return `Switch to tab #${args.tabId || 'current'}`;
     case 'chrome_get_web_content':
-      return `读取 ${args.htmlContent ? 'HTML' : '文本'}：${compact(args.url) || target(args)}`;
+      return `Read ${args.htmlContent ? 'HTML' : 'text'}: ${compact(args.url) || target(args)}`;
     case 'chrome_get_interactive_elements':
-      return `搜索可交互元素${compact(args.textQuery) ? `：${compact(args.textQuery)}` : ''}`;
+      return `Search interactive elements${compact(args.textQuery) ? `: ${compact(args.textQuery)}` : ''}`;
     case 'chrome_request_element_selection': {
       const names = Array.isArray(args.requests)
         ? args.requests
             .map((request: { name?: unknown }) => compact(request?.name, 30))
             .filter(Boolean)
         : [];
-      return `选择 ${names.slice(0, 3).join('、') || '页面元素'}${names.length > 3 ? ' 等' : ''}（最多 ${duration(args.timeoutMs, 180_000)}）`;
+      return `Select ${names.slice(0, 3).join(', ') || 'page elements'}${names.length > 3 ? ' and more' : ''} (up to ${duration(args.timeoutMs, 180_000)})`;
     }
     case 'chrome_click_element':
-      return `目标：${target(args)}`;
+      return `Target: ${target(args)}`;
     case 'chrome_click_and_wait':
-      return `点击：${target(args)}；等待 ${compact(args.waitSelector) || '目标元素'} ${args.waitFor || 'visible'}（最多 ${duration(args.waitTimeout, 10_000)}）`;
+      return `Click: ${target(args)}; wait ${compact(args.waitSelector) || 'target element'} ${args.waitFor || 'visible'} (up to ${duration(args.waitTimeout, 10_000)})`;
     case 'chrome_wait':
-      return `等待 ${compact(args.jsCondition) || target(args)} ${args.waitFor || 'visible'}（最多 ${duration(args.timeout, 10_000)}）`;
+      return `Wait ${compact(args.jsCondition) || target(args)} ${args.waitFor || 'visible'} (up to ${duration(args.timeout, 10_000)})`;
     case 'chrome_fill_or_select':
-      return `目标：${target(args)}`;
+      return `Target: ${target(args)}`;
     case 'chrome_keyboard':
-      return `向 ${target(args)} 发送键盘输入（内容已隐藏）`;
+      return `Type into ${target(args)} (content hidden)`;
     case 'chrome_upload_file':
-      return `上传文件到：${target(args)}`;
+      return `Upload file to: ${target(args)}`;
     case 'chrome_read_page':
-      return args.filter === 'interactive' ? '读取页面交互元素' : '读取页面可见元素';
+      return args.filter === 'interactive'
+        ? 'Read interactive page elements'
+        : 'Read visible page elements';
     case 'chrome_get_page_text':
-      return `读取正文：${target(args)}`;
+      return `Read body text: ${target(args)}`;
     case 'chrome_spa_fetch':
-      return `SPA 提取：${compact(args.url) || target(args)}（${args.maxScrolls || 5} 次滚动）`;
+      return `SPA extract: ${compact(args.url) || target(args)} (${args.maxScrolls || 5} scrolls)`;
     case 'chrome_extract':
-      return `提取范围：${target(args)}`;
+      return `Extract scope: ${target(args)}`;
     case 'chrome_scroll': {
       const container = compact(args.containerSelector);
+      const scrolled = `Scrolled ${args.direction || 'down'} by ${args.amount || 300}px`;
       return args.toBottom
-        ? `${container ? `在 ${container} 中` : ''}滚动到底部`
+        ? `${container ? `In ${container}, scrolled to bottom` : 'Scrolled to bottom'}`
         : args.toTop
-          ? `${container ? `在 ${container} 中` : ''}滚动到顶部`
+          ? `${container ? `In ${container}, scrolled to top` : 'Scrolled to top'}`
           : args.scrollIntoView
-            ? `滚动到：${target(args)}`
-            : `${container ? `在 ${container} 中` : ''}向 ${args.direction || '下'} 滚动 ${args.amount || 300}px`;
+            ? `Scrolled to: ${target(args)}`
+            : `${container ? `${scrolled} in ${container}` : scrolled}`;
     }
     case 'chrome_navigate':
-      return `前往：${compact(args.url) || '目标页面'}`;
+      return `Go to: ${compact(args.url) || 'target page'}`;
     case 'chrome_network_capture':
-      return `${args.action === 'start' ? '开始' : '停止'}网络抓包`;
+      return `${args.action === 'start' ? 'Start' : 'Stop'} network capture`;
     case 'chrome_block_images':
-      return args.action === 'start' ? '阻止图片网络请求' : '恢复图片网络请求';
+      return args.action === 'start' ? 'Block image requests' : 'Restore image requests';
     case 'chrome_network_capture_start':
     case 'chrome_network_debugger_start':
-      return '开始网络抓包';
+      return 'Start network capture';
     case 'chrome_network_capture_stop':
     case 'chrome_network_debugger_stop':
-      return '停止网络抓包';
+      return 'Stop network capture';
     case 'chrome_network_request':
-      return `发起 ${args.method || 'GET'} 网络请求`;
+      return `Send ${args.method || 'GET'} network request`;
     case 'chrome_history':
-      return `搜索历史记录${compact(args.text) ? `：${compact(args.text)}` : ''}`;
+      return `Search history${compact(args.text) ? `: ${compact(args.text)}` : ''}`;
     case 'chrome_bookmark_search':
-      return `搜索书签${compact(args.query) ? `：${compact(args.query)}` : ''}`;
+      return `Search bookmarks${compact(args.query) ? `: ${compact(args.query)}` : ''}`;
     case 'chrome_bookmark_add':
-      return '添加书签';
+      return 'Add bookmark';
     case 'chrome_bookmark_delete':
-      return '删除书签';
+      return 'Delete bookmark';
     case 'chrome_handle_dialog':
-      return args.action === 'accept' ? '确认页面对话框' : '关闭页面对话框';
+      return args.action === 'accept' ? 'Accept page dialog' : 'Dismiss page dialog';
     case 'chrome_handle_download':
-      return `处理下载${compact(args.action) ? `：${compact(args.action)}` : ''}`;
+      return `Handle download${compact(args.action) ? `: ${compact(args.action)}` : ''}`;
     case 'chrome_computer':
-      return `模拟 ${compact(args.action) || '鼠标'} 操作：${target(args)}`;
+      return `Simulate ${compact(args.action) || 'mouse'} action: ${target(args)}`;
     case 'chrome_post_to_x':
-      return `发布 X 帖子：${compact(args.text, 60) || '正文'}`;
+      return `Post to X: ${compact(args.text, 60) || 'body'}`;
     case 'chrome_javascript':
-      return '执行页面脚本（内容已隐藏）';
+      return 'Run page script (content hidden)';
     case 'chrome_paste_text':
-      return `向 ${target(args)} 合成粘贴文本`;
+      return `Synthesize paste into ${target(args)}`;
     case 'chrome_console':
-      return '读取页面控制台';
+      return 'Read page console';
     case 'chrome_userscript':
-      return `管理用户脚本：${compact(args.action) || '操作'}`;
+      return `Manage userscripts: ${compact(args.action) || 'action'}`;
     case 'performance_start_trace':
-      return args.reload ? '开始性能追踪并刷新页面' : '开始性能追踪';
+      return args.reload ? 'Start performance trace and reload page' : 'Start performance trace';
     case 'performance_stop_trace':
-      return '停止性能追踪';
+      return 'Stop performance trace';
     case 'performance_analyze_insight':
-      return '分析性能追踪结果';
+      return 'Analyze performance trace';
     case 'chrome_gif_recorder':
-      return `${compact(args.action) || '开始'} GIF 录制${args.durationMs ? `（${duration(args.durationMs, 0)}）` : ''}`;
+      return `${compact(args.action) || 'Start'} GIF recording${args.durationMs ? ` (${duration(args.durationMs, 0)})` : ''}`;
     case 'chrome_get_tab_url':
-      return '读取当前标签页地址';
+      return 'Read current tab URL';
     case 'chrome_proxy_rotate':
-      return `轮换代理并刷新页面${compact(args.reason) ? `：${compact(args.reason)}` : ''}`;
+      return `Rotate proxy and reload page${compact(args.reason) ? `: ${compact(args.reason)}` : ''}`;
     case 'chrome_get_scroll_state':
-      return '读取滚动状态';
+      return 'Read scroll state';
     case 'chrome_extract_review_summary':
-      return '提取商品评论摘要';
+      return 'Extract product review summary';
     default:
       return '';
   }
 }
 
-async function showOperation(param: ToolCallParam, state: '执行中' | '完成' | '失败') {
+async function showOperation(param: ToolCallParam, state: 'Running' | 'Done' | 'Failed') {
   const tabId = param.args?.tabId;
   let tab: chrome.tabs.Tab | undefined;
   try {
@@ -304,7 +307,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
         selector: string | null,
         ref: string | null,
         coordinates: { x: number; y: number } | null,
-        state: '执行中' | '完成' | '失败',
+        state: 'Running' | 'Done' | 'Failed',
         detail: string,
         intent: string | null,
       ) => {
@@ -333,59 +336,59 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           root.append(status);
         }
         const actionLabels: Record<string, string> = {
-          chrome_scroll: '滚动',
-          chrome_click_element: '点击',
-          chrome_click_and_wait: '点击并等待',
-          chrome_fill_or_select: '输入或选择',
-          chrome_get_interactive_elements: '搜索元素',
-          chrome_request_element_selection: '选择范围',
-          chrome_wait: '等待',
-          chrome_extract: '提取数据',
-          chrome_navigate: '打开页面',
-          get_windows_and_tabs: '读取标签页',
-          chrome_create_tab: '新建标签页',
-          chrome_hover: '悬停元素',
-          chrome_get_element_info: '查询元素',
-          chrome_print_to_pdf: '打印 PDF',
-          chrome_storage_get: '读取页面存储',
-          chrome_storage_set: '写入页面存储',
-          chrome_storage_delete: '删除页面存储',
-          search_tabs_content: '搜索内容',
-          chrome_screenshot: '截图',
-          chrome_close_tabs: '关闭标签页',
-          chrome_switch_tab: '切换标签页',
-          chrome_get_web_content: '读取网页',
-          chrome_keyboard: '键盘输入',
-          chrome_upload_file: '上传文件',
-          chrome_read_page: '读取页面',
-          chrome_get_page_text: '读取正文',
-          chrome_spa_fetch: 'SPA 提取',
-          chrome_network_capture: '网络抓包',
-          chrome_network_capture_start: '开始抓包',
-          chrome_network_capture_stop: '停止抓包',
-          chrome_network_debugger_start: '开始抓包',
-          chrome_network_debugger_stop: '停止抓包',
-          chrome_network_request: '网络请求',
-          chrome_history: '搜索历史',
-          chrome_bookmark_search: '搜索书签',
-          chrome_bookmark_add: '添加书签',
-          chrome_bookmark_delete: '删除书签',
-          chrome_handle_dialog: '处理对话框',
-          chrome_handle_download: '处理下载',
-          chrome_computer: '模拟操作',
-          chrome_post_to_x: '发布 X 帖子',
-          chrome_javascript: '执行脚本',
-          chrome_paste_text: '合成粘贴',
-          chrome_console: '读取控制台',
-          chrome_userscript: '管理用户脚本',
-          performance_start_trace: '开始性能追踪',
-          performance_stop_trace: '停止性能追踪',
-          performance_analyze_insight: '分析性能',
-          chrome_gif_recorder: 'GIF 录制',
-          chrome_get_tab_url: '读取地址',
-          chrome_proxy_rotate: '轮换 IP',
-          chrome_get_scroll_state: '读取滚动状态',
-          chrome_extract_review_summary: '提取评论摘要',
+          chrome_scroll: 'Scroll',
+          chrome_click_element: 'Click',
+          chrome_click_and_wait: 'Click and wait',
+          chrome_fill_or_select: 'Type or select',
+          chrome_get_interactive_elements: 'Search elements',
+          chrome_request_element_selection: 'Select scope',
+          chrome_wait: 'Wait',
+          chrome_extract: 'Extract data',
+          chrome_navigate: 'Open page',
+          get_windows_and_tabs: 'Read tabs',
+          chrome_create_tab: 'Create tab',
+          chrome_hover: 'Hover element',
+          chrome_get_element_info: 'Query element',
+          chrome_print_to_pdf: 'Print PDF',
+          chrome_storage_get: 'Read page storage',
+          chrome_storage_set: 'Write page storage',
+          chrome_storage_delete: 'Delete page storage',
+          search_tabs_content: 'Search content',
+          chrome_screenshot: 'Screenshot',
+          chrome_close_tabs: 'Close tabs',
+          chrome_switch_tab: 'Switch tab',
+          chrome_get_web_content: 'Read page',
+          chrome_keyboard: 'Keyboard input',
+          chrome_upload_file: 'Upload file',
+          chrome_read_page: 'Read page',
+          chrome_get_page_text: 'Read body text',
+          chrome_spa_fetch: 'SPA extract',
+          chrome_network_capture: 'Network capture',
+          chrome_network_capture_start: 'Start capture',
+          chrome_network_capture_stop: 'Stop capture',
+          chrome_network_debugger_start: 'Start capture',
+          chrome_network_debugger_stop: 'Stop capture',
+          chrome_network_request: 'Network request',
+          chrome_history: 'Search history',
+          chrome_bookmark_search: 'Search bookmarks',
+          chrome_bookmark_add: 'Add bookmark',
+          chrome_bookmark_delete: 'Delete bookmark',
+          chrome_handle_dialog: 'Handle dialog',
+          chrome_handle_download: 'Handle download',
+          chrome_computer: 'Simulate action',
+          chrome_post_to_x: 'Post to X',
+          chrome_javascript: 'Run script',
+          chrome_paste_text: 'Synthesize paste',
+          chrome_console: 'Read console',
+          chrome_userscript: 'Manage userscripts',
+          performance_start_trace: 'Start performance trace',
+          performance_stop_trace: 'Stop performance trace',
+          performance_analyze_insight: 'Analyze performance',
+          chrome_gif_recorder: 'GIF recording',
+          chrome_get_tab_url: 'Read URL',
+          chrome_proxy_rotate: 'Rotate IP',
+          chrome_get_scroll_state: 'Read scroll state',
+          chrome_extract_review_summary: 'Extract review summary',
         };
         let target: Element | null = null;
         try {
@@ -412,27 +415,32 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
           : '';
         if (elementName && (name === 'chrome_click_element' || name === 'chrome_click_and_wait')) {
           const expanded = target?.getAttribute('aria-expanded');
-          const action = expanded === 'false' ? '展开' : expanded === 'true' ? '收起' : '点击';
-          const separator = String(detail).indexOf('；');
+          const action =
+            expanded === 'false' ? 'Expand' : expanded === 'true' ? 'Collapse' : 'Click';
+          const separator = String(detail).indexOf('; ');
           const wait =
             name === 'chrome_click_and_wait' && separator >= 0
               ? String(detail).slice(separator)
               : '';
-          detail = `${action}：${elementName}${wait}`;
-        } else if (elementName && name === 'chrome_scroll' && String(detail).startsWith('滚动到')) {
-          detail = `滚动到：${elementName}`;
+          detail = `${action}: ${elementName}${wait}`;
+        } else if (
+          elementName &&
+          name === 'chrome_scroll' &&
+          String(detail).startsWith('Scrolled to')
+        ) {
+          detail = `Scrolled to: ${elementName}`;
         } else if (elementName) {
           const targetLabels: Record<string, string> = {
-            chrome_fill_or_select: '目标',
-            chrome_extract: '提取范围',
-            chrome_get_page_text: '读取正文',
-            chrome_spa_fetch: 'SPA 提取',
-            chrome_screenshot: '截取',
-            chrome_upload_file: '上传到',
+            chrome_fill_or_select: 'Target',
+            chrome_extract: 'Extract scope',
+            chrome_get_page_text: 'Read body text',
+            chrome_spa_fetch: 'SPA extract',
+            chrome_screenshot: 'Screenshot',
+            chrome_upload_file: 'Upload to',
           };
-          if (targetLabels[name]) detail = `${targetLabels[name]}：${elementName}`;
+          if (targetLabels[name]) detail = `${targetLabels[name]}: ${elementName}`;
         }
-        status.textContent = `${state}：${actionLabels[name] || String(name).replace(/^chrome_/, '')}${detail ? `\n${detail}` : ''}${intent ? `\n意图：${intent}` : ''}`;
+        status.textContent = `${state}: ${actionLabels[name] || String(name).replace(/^chrome_/, '')}${detail ? `\n${detail}` : ''}${intent ? `\nIntent: ${intent}` : ''}`;
 
         const rect = target?.getBoundingClientRect();
         const x = rect?.left ?? Number((coordinates as any)?.x);
@@ -470,7 +478,7 @@ async function showOperation(param: ToolCallParam, state: '执行中' | '完成'
             status?.remove();
             highlight?.remove();
           },
-          state === '执行中' ? 120_000 : 1_800,
+          state === 'Running' ? 120_000 : 1_800,
         );
       },
     });
@@ -526,15 +534,15 @@ export const handleCallTool = async (
         pausedTemporaryTabId = targetTabId;
       }
     }
-    if (!isBackgroundOnlyTool) await showOperation(param, '执行中');
+    if (!isBackgroundOnlyTool) await showOperation(param, 'Running');
     const actionPolicy = resolveActionPolicy(param.name, args);
     const result = await runWithActionPolicy<ToolResult>(actionPolicy, signal, () =>
       reportProgress ? tool.execute(args, signal, reportProgress) : tool.execute(args, signal),
     );
-    if (!isBackgroundOnlyTool) void showOperation(param, result.isError ? '失败' : '完成');
+    if (!isBackgroundOnlyTool) void showOperation(param, result.isError ? 'Failed' : 'Done');
     return result;
   } catch (error) {
-    if (!isBackgroundOnlyTool) void showOperation(param, '失败');
+    if (!isBackgroundOnlyTool) void showOperation(param, 'Failed');
     console.error(`Tool execution failed for ${param.name}:`, error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.TOOL_EXECUTION_FAILED,

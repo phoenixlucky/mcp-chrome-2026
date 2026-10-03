@@ -1,6 +1,6 @@
 /**
- * @fileoverview 插件类型定义
- * @description 定义 Record-Replay V3 中的节点和触发器插件接口
+ * @fileoverview Plugin type definitions
+ * @description Defines node and trigger plugin interfaces used in Record-Replay V3
  */
 
 import { z } from 'zod';
@@ -14,71 +14,71 @@ import type { FlowV3, NodeV3 } from '../../domain/flow';
 import type { TriggerKind } from '../../domain/triggers';
 
 /**
- * Schema 类型
- * @description 使用 Zod 进行配置校验
+ * Schema type
+ * @description Uses Zod for config validation
  */
 export type Schema<T> = z.ZodType<T, z.ZodTypeDef, unknown>;
 
 /**
- * 节点执行上下文
- * @description 提供给节点执行器的运行时上下文
+ * Node execution context
+ * @description Runtime context provided to node executors
  */
 export interface NodeExecutionContext {
   /** Run ID */
   runId: RunId;
-  /** Flow 定义（快照） */
+  /** Flow definition (snapshot) */
   flow: FlowV3;
-  /** 当前节点 ID */
+  /** Current node ID */
   nodeId: NodeId;
 
-  /** 绑定的 Tab ID（每 Run 独占） */
+  /** Bound Tab ID (exclusive per Run) */
   tabId: number;
-  /** Frame ID（默认 0 为主框架） */
+  /** Frame ID (defaults to 0, the main frame) */
   frameId?: number;
 
-  /** 当前变量表 */
+  /** Current variable table */
   vars: Record<string, JsonValue>;
 
   /**
-   * 日志记录
+   * Logging
    */
   log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: JsonValue) => void;
 
   /**
-   * 选择下一个边
-   * @description 用于条件分支节点
+   * Choose the next edge
+   * @description Used by conditional branching nodes
    */
   chooseNext: (label: string) => { kind: 'edgeLabel'; label: string };
 
-  /** 执行当前 Flow 中的命名子流程，变量作用域与当前节点共享。 */
+  /** Execute a named subflow of the current Flow, sharing the variable scope with the current node. */
   executeSubflow: (
     subflowId: string,
     vars: Record<string, JsonValue>,
   ) => Promise<{ ok: true } | { ok: false; error: RRError }>;
 
   /**
-   * 工件操作
+   * Artifact operations
    */
   artifacts: {
-    /** 截取当前页面截图 */
+    /** Capture a screenshot of the current page */
     screenshot: () => Promise<{ ok: true; base64: string } | { ok: false; error: RRError }>;
   };
 
   /**
-   * 持久化变量操作
+   * Persistent variable operations
    */
   persistent: {
-    /** 获取持久化变量 */
+    /** Get a persistent variable */
     get: (name: `$${string}`) => Promise<JsonValue | undefined>;
-    /** 设置持久化变量 */
+    /** Set a persistent variable */
     set: (name: `$${string}`, value: JsonValue) => Promise<void>;
-    /** 删除持久化变量 */
+    /** Delete a persistent variable */
     delete: (name: `$${string}`) => Promise<void>;
   };
 }
 
 /**
- * 变量补丁操作
+ * Variable patch operation
  */
 export interface VarsPatchOp {
   op: 'set' | 'delete';
@@ -87,16 +87,16 @@ export interface VarsPatchOp {
 }
 
 /**
- * 节点执行结果
+ * Node execution result
  */
 export type NodeExecutionResult =
   | {
       status: 'succeeded';
-      /** 下一步执行方向 */
+      /** Next execution direction */
       next?: { kind: 'edgeLabel'; label: string } | { kind: 'end' };
-      /** 输出结果 */
+      /** Output results */
       outputs?: JsonObject;
-      /** 变量修改 */
+      /** Variable changes */
       varsPatch?: VarsPatchOp[];
       error?: undefined;
     }
@@ -109,23 +109,23 @@ export type NodeExecutionResult =
     };
 
 /**
- * 节点定义
- * @description 定义一种节点类型的执行逻辑
+ * Node definition
+ * @description Defines the execution logic of a node kind
  */
 export interface NodeDefinition<
   TKind extends NodeKind = NodeKind,
   TConfig extends JsonObject = JsonObject,
 > {
-  /** 节点类型标识 */
+  /** Node kind identifier */
   kind: TKind;
-  /** 配置校验 Schema */
+  /** Config validation Schema */
   schema: Schema<TConfig>;
-  /** 默认策略 */
+  /** Default policy */
   defaultPolicy?: NodePolicy;
   /**
-   * 执行节点
-   * @param ctx 执行上下文
-   * @param node 节点定义（含配置）
+   * Execute the node
+   * @param ctx Execution context
+   * @param node Node definition (with config)
    */
   execute(
     ctx: NodeExecutionContext,
@@ -134,61 +134,61 @@ export interface NodeDefinition<
 }
 
 /**
- * 触发器安装上下文
+ * Trigger install context
  */
 export interface TriggerInstallContext<
   TKind extends TriggerKind = TriggerKind,
   TConfig extends JsonObject = JsonObject,
 > {
-  /** 触发器 ID */
+  /** Trigger ID */
   triggerId: TriggerId;
-  /** 触发器类型 */
+  /** Trigger kind */
   kind: TKind;
-  /** 是否启用 */
+  /** Whether enabled */
   enabled: boolean;
-  /** 关联的 Flow ID */
+  /** Associated Flow ID */
   flowId: FlowId;
-  /** 触发器配置 */
+  /** Trigger config */
   config: TConfig;
-  /** 传递给 Flow 的参数 */
+  /** Args passed to the Flow */
   args?: JsonObject;
 }
 
 /**
- * 触发器定义
- * @description 定义一种触发器类型的安装和卸载逻辑
+ * Trigger definition
+ * @description Defines install and uninstall logic for a trigger kind
  */
 export interface TriggerDefinition<
   TKind extends TriggerKind = TriggerKind,
   TConfig extends JsonObject = JsonObject,
 > {
-  /** 触发器类型标识 */
+  /** Trigger kind identifier */
   kind: TKind;
-  /** 配置校验 Schema */
+  /** Config validation Schema */
   schema: Schema<TConfig>;
-  /** 安装触发器 */
+  /** Install the trigger */
   install(ctx: TriggerInstallContext<TKind, TConfig>): Promise<void> | void;
-  /** 卸载触发器 */
+  /** Uninstall the trigger */
   uninstall(ctx: TriggerInstallContext<TKind, TConfig>): Promise<void> | void;
 }
 
 /**
- * 插件注册上下文
+ * Plugin registration context
  */
 export interface PluginRegistrationContext {
-  /** 注册节点定义 */
+  /** Register a node definition */
   registerNode(def: NodeDefinition): void;
-  /** 注册触发器定义 */
+  /** Register a trigger definition */
   registerTrigger(def: TriggerDefinition): void;
 }
 
 /**
- * 插件接口
- * @description Record-Replay 插件的标准接口
+ * Plugin interface
+ * @description Standard interface for Record-Replay plugins
  */
 export interface RRPlugin {
-  /** 插件名称 */
+  /** Plugin name */
   name: string;
-  /** 注册插件内容 */
+  /** Register plugin contents */
   register(ctx: PluginRegistrationContext): void;
 }

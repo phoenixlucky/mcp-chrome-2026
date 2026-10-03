@@ -2,12 +2,12 @@
   <div class="selector">
     <div class="row">
       <input class="form-input" :placeholder="placeholder" :value="text" @input="onInput" />
-      <button class="btn-mini" type="button" title="从页面拾取" @click="onPick">拾取</button>
+      <button class="btn-mini" type="button" title="Pick from page" @click="onPick">Pick</button>
       <button class="btn-mini" type="button" :disabled="validating" @click="onValidate">
-        {{ validating ? '验证中…' : '验证定位' }}
+        {{ validating ? 'Validating…' : 'Validate locator' }}
       </button>
     </div>
-    <div class="help">可输入 CSS 选择器，或点击“拾取”在页面中选择元素</div>
+    <div class="help">Enter a CSS selector, or click "Pick" to choose an element on the page</div>
     <div v-if="message" :class="validationOk ? 'success-item' : 'error-item'">{{ message }}</div>
   </div>
 </template>
@@ -36,7 +36,7 @@ async function onPick() {
     const res: any = await pickElementFromPage();
     if (!res || !res.success) {
       if (res?.cancelled) return;
-      throw new Error(res?.error || '拾取失败');
+      throw new Error(res?.error || 'Pick failed');
     }
     const candidates = Array.isArray(res.candidates) ? res.candidates : [];
     const prefer = ['css', 'attr', 'aria', 'text'];
@@ -54,7 +54,7 @@ async function onPick() {
       emit('update:modelValue', sel);
     } else {
       validationOk.value = false;
-      message.value = '未生成有效选择器，请手动输入';
+      message.value = 'No valid selector generated; enter one manually';
     }
   } catch (e: any) {
     validationOk.value = false;
@@ -67,7 +67,7 @@ async function onValidate() {
   try {
     await validatePageSelector(text.value);
     validationOk.value = true;
-    message.value = '定位成功。';
+    message.value = 'Located successfully.';
   } catch (e: any) {
     validationOk.value = false;
     message.value = e?.message || String(e);

@@ -33,11 +33,11 @@ Selections from child frames are sent to the top-frame overlay with their comple
 
 The marker manager can validate the current-page markers and displays one of three states per marker or member:
 
-- **正常:** exactly one element matches.
-- **多个匹配:** more than one element matches.
-- **已失效:** no element matches or its iframe path cannot be resolved.
+- **`normal`:** exactly one element matches.
+- **`multiple`:** more than one element matches.
+- **`invalid`:** no element matches or its iframe path cannot be resolved.
 
-Validation runs when the marker manager is opened for the current page, after the active tab URL changes, and when the user requests a manual refresh. It is not a continuous MutationObserver, avoiding repeated scans while a page is changing. Group status is `已失效` if any member is missing, otherwise `多个匹配` if any member has multiple matches, otherwise `正常`.
+Validation runs when the marker manager is opened for the current page, after the active tab URL changes, and when the user requests a manual refresh. It is not a continuous MutationObserver, avoiding repeated scans while a page is changing. Group status is `invalid` if any member is missing, otherwise `multiple` if any member has multiple matches, otherwise `normal`.
 
 The repair action starts element selection on the active page. Re-selecting a group member updates only that member's locator and preserves its member ID, name, group, and tags. Re-selecting an independent marker updates its selector in place and preserves its marker ID. A user can validate the repaired locator immediately.
 
@@ -47,7 +47,7 @@ Users can extract selected marker members or all members in a group using one of
 
 ## Groups and Tags
 
-`groupId` and `groupName` represent a user-defined collection such as “登录”, “商品列表”, or “订单操作”. `tags` is an array of free-form labels for cross-cutting uses such as “读取”, “关键路径”, or “回归”. The side panel supports group and tag filtering, keeps URL/domain filtering, and shows group membership. Renaming a group updates all independent markers that share its `groupId`; it does not alter their selectors or IDs.
+`groupId` and `groupName` represent a user-defined collection such as "Login", "Product list", or "Order actions". `tags` is an array of free-form labels for cross-cutting uses such as "read", "critical path", or "regression". The side panel supports group and tag filtering, keeps URL/domain filtering, and shows group membership. Renaming a group updates all independent markers that share its `groupId`; it does not alter their selectors or IDs.
 
 ## Workflow Integration
 

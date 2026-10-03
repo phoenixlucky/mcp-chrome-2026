@@ -85,6 +85,14 @@
     "message": "已連線，服務未啟動",
     "description": "已連線但服務未啟動狀態"
   },
+  "startServiceButton": {
+    "message": "啟動服務",
+    "description": "啟動服務按鈕"
+  },
+  "serviceNotStartedTip": {
+    "message": "Native 主機已連線，正在等待 HTTP 服務啟動。請重新整理狀態或檢查 native host 是否正常運作。",
+    "description": "服務未啟動時的提示文字"
+  },
   "mcpServerConfigLabel": {
     "message": "MCP 伺服器設定",
     "description": "MCP 伺服器設定區段標籤"
@@ -442,5 +450,177 @@
   "pagesUnit": {
     "message": "頁面",
     "description": "頁面計數單位"
+  },
+  "userscriptsManagerTitle": {
+    "message": "指令碼管理器",
+    "description": "Options 頁標題"
+  },
+  "emergencySwitchLabel": {
+    "message": "緊急開關",
+    "description": "緊急停用開關"
+  },
+  "createRunSectionTitle": {
+    "message": "建立 / 執行",
+    "description": "建立與執行區段標題"
+  },
+  "nameLabel": {
+    "message": "名稱",
+    "description": "名稱輸入標籤"
+  },
+  "runAtLabel": {
+    "message": "執行時機",
+    "description": "runAt 選擇標籤"
+  },
+  "runAtAuto": {
+    "message": "自動",
+    "description": "runAt auto"
+  },
+  "runAtDocumentStart": {
+    "message": "document_start",
+    "description": "runAt document_start"
+  },
+  "runAtDocumentEnd": {
+    "message": "document_end",
+    "description": "runAt document_end"
+  },
+  "runAtDocumentIdle": {
+    "message": "document_idle",
+    "description": "runAt document_idle"
+  },
+  "worldLabel": {
+    "message": "執行環境",
+    "description": "world 選擇標籤"
+  },
+  "worldAuto": {
+    "message": "自動",
+    "description": "world auto"
+  },
+  "worldIsolated": {
+    "message": "隔離 (ISOLATED)",
+    "description": "ISOLATED world"
+  },
+  "worldMain": {
+    "message": "頁面 (MAIN)",
+    "description": "MAIN world"
+  },
+  "modeLabel": {
+    "message": "模式",
+    "description": "模式選擇標籤"
+  },
+  "modeAuto": {
+    "message": "自動",
+    "description": "mode auto"
+  },
+  "modePersistent": {
+    "message": "持續",
+    "description": "mode persistent"
+  },
+  "modeCss": {
+    "message": "僅樣式 (CSS)",
+    "description": "mode css"
+  },
+  "modeOnce": {
+    "message": "單次執行 (CDP)",
+    "description": "mode once"
+  },
+  "allFramesLabel": {
+    "message": "所有頁框",
+    "description": "allFrames 核取方塊"
+  },
+  "persistLabel": {
+    "message": "持久化",
+    "description": "persist 核取方塊"
+  },
+  "dnrFallbackLabel": {
+    "message": "DNR 備援",
+    "description": "DNR fallback 核取方塊"
+  },
+  "matchesInputLabel": {
+    "message": "比對 (逗號分隔)",
+    "description": "matches 輸入"
+  },
+  "excludesInputLabel": {
+    "message": "排除 (逗號分隔)",
+    "description": "excludes 輸入"
+  },
+  "tagsInputLabel": {
+    "message": "標籤 (逗號分隔)",
+    "description": "tags 輸入"
+  },
+  "scriptLabel": {
+    "message": "指令碼",
+    "description": "指令碼文字標籤"
+  },
+  "applyButton": {
+    "message": "套用",
+    "description": "套用按鈕"
+  },
+  "runOnceButton": {
+    "message": "單次執行 (CDP)",
+    "description": "單次執行按鈕"
+  },
+  "listSectionTitle": {
+    "message": "指令碼清單",
+    "description": "清單區段標題"
+  },
+  "queryLabel": {
+    "message": "搜尋",
+    "description": "查詢輸入標籤"
+  },
+  "statusAll": {
+    "message": "全部",
+    "description": "狀態-全部"
+  },
+  "statusEnabled": {
+    "message": "啟用",
+    "description": "狀態-啟用"
+  },
+  "statusDisabled": {
+    "message": "停用",
+    "description": "狀態-停用"
+  },
+  "domainLabel": {
+    "message": "網域",
+    "description": "網域篩選標籤"
+  },
+  "exportAllButton": {
+    "message": "匯出全部",
+    "description": "匯出按鈕"
+  },
+  "tableHeaderName": {
+    "message": "名稱",
+    "description": "表頭-名稱"
+  },
+  "tableHeaderWorld": {
+    "message": "執行環境",
+    "description": "表頭-World"
+  },
+  "tableHeaderRunAt": {
+    "message": "執行時機",
+    "description": "表頭-RunAt"
+  },
+  "tableHeaderUpdated": {
+    "message": "更新時間",
+    "description": "表頭-更新時間"
+  },
+  "deleteButton": {
+    "message": "刪除",
+    "description": "刪除按鈕"
+  },
+  "placeholderOptional": {
+    "message": "選填",
+    "description": "通用選填預留位置"
+  },
+  "placeholderMatchesExample": {
+    "message": "例如：https://*.example.com/*",
+    "description": "比對範例預留位置"
+  },
+  "placeholderScriptHint": {
+    "message": "在此貼上 JS/CSS/TM",
+    "description": "指令碼文字區域預留位置"
+  },
+  "placeholderDomainHint": {
+    "message": "example.com",
+    "description": "網域篩選預留位置"
   }
 }

@@ -1,10 +1,10 @@
 /**
- * Element Fingerprint - 元素指纹生成和验证
+ * Element Fingerprint - element fingerprint generation and verification
  *
- * 指纹用于元素的模糊匹配和验证，特别是在以下场景：
- * - 选择器匹配到元素后，验证是否是期望的元素
- * - HMR 后元素恢复
- * - 防止"相同选择器不同元素"的误匹配
+ * Fingerprints are used for fuzzy matching and verification of elements, especially when:
+ * - Verifying that an element matched by a selector is the expected one
+ * - Recovering elements after HMR
+ * - Preventing "same selector, different element" mismatches
  */
 
 // =============================================================================
@@ -37,7 +37,7 @@ export interface FingerprintOptions {
 // =============================================================================
 
 /**
- * 标准化文本内容：合并空白字符并截取
+ * Normalize text content: collapse whitespace and truncate
  */
 function normalizeText(text: string, maxLength: number): string {
   return text.replace(/\s+/g, ' ').trim().slice(0, maxLength);
@@ -48,9 +48,9 @@ function normalizeText(text: string, maxLength: number): string {
 // =============================================================================
 
 /**
- * 为 DOM 元素计算结构化指纹
+ * Compute a structured fingerprint for a DOM element
  *
- * 指纹格式: `tag|id=xxx|class=a.b.c|text=xxx`
+ * Fingerprint format: `tag|id=xxx|class=a.b.c|text=xxx`
  *
  * @example
  * ```ts
@@ -64,23 +64,23 @@ export function computeFingerprint(element: Element, options?: FingerprintOption
 
   const parts: string[] = [];
 
-  // 1. Tag name (必须)
+  // 1. Tag name (required)
   const tag = element.tagName?.toLowerCase() ?? 'unknown';
   parts.push(tag);
 
-  // 2. ID (如果存在)
+  // 2. ID (if present)
   const id = element.id?.trim();
   if (id) {
     parts.push(`id=${id}`);
   }
 
-  // 3. Class names (最多 maxClasses 个)
+  // 3. Class names (up to maxClasses)
   const classes = Array.from(element.classList).slice(0, maxClasses);
   if (classes.length > 0) {
     parts.push(`class=${classes.join('.')}`);
   }
 
-  // 4. Text content hint (标准化后截取)
+  // 4. Text content hint (normalized then truncated)
   const text = normalizeText(element.textContent ?? '', textMaxLength);
   if (text) {
     parts.push(`text=${text}`);
@@ -90,7 +90,7 @@ export function computeFingerprint(element: Element, options?: FingerprintOption
 }
 
 /**
- * 解析指纹字符串为结构化对象
+ * Parse a fingerprint string into a structured object
  *
  * @example
  * ```ts
@@ -120,17 +120,17 @@ export function parseFingerprint(fingerprint: string): ElementFingerprint {
 }
 
 /**
- * 验证元素是否匹配给定的指纹
+ * Verify whether an element matches the given fingerprint
  *
- * 验证规则：
- * - tag 必须完全匹配
- * - 如果存储的指纹有 id，当前元素的 id 必须匹配
- * - class 和 text 不强制匹配（用于计算相似度）
+ * Verification rules:
+ * - tag must match exactly
+ * - if the stored fingerprint has an id, the current element's id must match
+ * - class and text are not required to match (used to compute similarity)
  *
  * @example
  * ```ts
  * const stored = computeFingerprint(element);
- * // ... 页面变化后
+ * // ... after the page changes
  * const stillMatches = verifyFingerprint(element, stored);
  * ```
  */
@@ -138,12 +138,12 @@ export function verifyFingerprint(element: Element, fingerprint: string): boolea
   const stored = parseFingerprint(fingerprint);
   const currentTag = element.tagName?.toLowerCase() ?? 'unknown';
 
-  // Tag 必须匹配
+  // Tag must match
   if (stored.tag !== currentTag) {
     return false;
   }
 
-  // 如果存储的指纹有 id，当前元素必须有相同的 id
+  // If the stored fingerprint has an id, the current element must have the same id
   if (stored.id) {
     const currentId = element.id?.trim();
     if (stored.id !== currentId) {
@@ -155,15 +155,15 @@ export function verifyFingerprint(element: Element, fingerprint: string): boolea
 }
 
 /**
- * 计算两个指纹之间的相似度
+ * Compute the similarity between two fingerprints
  *
- * @returns 相似度分数 0-1，1 表示完全匹配
+ * @returns Similarity score 0-1, where 1 means an exact match
  *
  * @example
  * ```ts
  * const score = fingerprintSimilarity(fpA, fpB);
  * if (score > 0.8) {
- *   // 高度相似，可能是同一个元素
+ *   // Highly similar, possibly the same element
  * }
  * ```
  */
@@ -174,17 +174,17 @@ export function fingerprintSimilarity(a: string, b: string): number {
   let score = 0;
   let weights = 0;
 
-  // Tag 匹配 (权重 0.4)
+  // Tag match (weight 0.4)
   const tagWeight = 0.4;
   weights += tagWeight;
   if (fpA.tag === fpB.tag) {
     score += tagWeight;
   } else {
-    // Tag 不匹配，直接返回 0
+    // Tag mismatch, return 0 directly
     return 0;
   }
 
-  // ID 匹配 (权重 0.3)
+  // ID match (weight 0.3)
   const idWeight = 0.3;
   if (fpA.id || fpB.id) {
     weights += idWeight;
@@ -193,7 +193,7 @@ export function fingerprintSimilarity(a: string, b: string): number {
     }
   }
 
-  // Class 匹配 (权重 0.2) - 使用 Jaccard 相似度
+  // Class match (weight 0.2) - uses Jaccard similarity
   const classWeight = 0.2;
   if ((fpA.classes?.length ?? 0) > 0 || (fpB.classes?.length ?? 0) > 0) {
     weights += classWeight;
@@ -206,12 +206,12 @@ export function fingerprintSimilarity(a: string, b: string): number {
     }
   }
 
-  // Text 匹配 (权重 0.1) - 简单包含检查
+  // Text match (weight 0.1) - simple containment check
   const textWeight = 0.1;
   if (fpA.text || fpB.text) {
     weights += textWeight;
     if (fpA.text && fpB.text) {
-      // 检查是否有重叠
+      // Check for overlap
       const textA = fpA.text.toLowerCase();
       const textB = fpB.text.toLowerCase();
       if (textA === textB) {
@@ -226,9 +226,9 @@ export function fingerprintSimilarity(a: string, b: string): number {
 }
 
 /**
- * 检查两个指纹是否表示同一个元素
+ * Check whether two fingerprints represent the same element
  *
- * 基于相似度阈值判断，默认阈值 0.7
+ * Decided by a similarity threshold, default 0.7
  */
 export function fingerprintMatches(
   a: string,

@@ -1,16 +1,16 @@
-# Native Messaging 连接问题排查
+# Native Messaging Connection Troubleshooting
 
-## 症状
+## Symptoms
 
-扩展显示"已连接，服务未启动"——native messaging 通道看似建立但 HTTP 服务器未启动。
+The extension shows "connected, service not started" — the native messaging channel appears to be established, but the HTTP server did not start.
 
-## 排查步骤
+## Troubleshooting Steps
 
-### 1. 检查扩展 ID 是否正确
+### 1. Check whether the extension ID is correct
 
-扩展的 `manifest.json` 中有 `key` 字段（base64 编码的公钥），Chrome 据此计算扩展 ID。Native host 的 `allowed_origins` 必须与之匹配。
+The extension's `manifest.json` contains a `key` field (a base64-encoded public key), and Chrome computes the extension ID from it. The Native Host's `allowed_origins` must match it.
 
-**计算扩展 ID 的算法：**
+**Algorithm for computing the extension ID:**
 
 ```js
 const crypto = require('crypto');
@@ -20,34 +20,34 @@ const hash = crypto.createHash('sha256').update(der).digest();
 const bytes = hash.slice(0, 16);
 let id = '';
 for (let i = 0; i < 16; i++) {
-  id += alphabet[bytes[i] >> 4]; // 高 4 位 => a-p
-  id += alphabet[bytes[i] & 0x0f]; // 低 4 位 => a-p
+  id += alphabet[bytes[i] >> 4]; // high 4 bits => a-p
+  id += alphabet[bytes[i] & 0x0f]; // low 4 bits => a-p
 }
-console.log(id); // 32 字符
+console.log(id); // 32 characters
 ```
 
-**需要同步修改的文件：**
+**Files that must be updated in sync:**
 
-| 文件                                        | 说明                                              |
-| ------------------------------------------- | ------------------------------------------------- |
-| `app/native-server/src/scripts/constant.ts` | `EXTENSION_ID` 常量                               |
-| Native Messaging Manifest                   | 运行 `node dist/cli.js register --force` 自动更新 |
+| File                                        | Description                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `app/native-server/src/scripts/constant.ts` | The `EXTENSION_ID` constant                                        |
+| Native Messaging Manifest                   | Run `node dist/cli.js register --force` to update it automatically |
 
-Manifest 位置：`C:\Users\<user>\AppData\Roaming\Google\Chrome\NativeMessagingHosts\com.chromemcp.nativehost.json`
+Manifest location: `C:\Users\<user>\AppData\Roaming\Google\Chrome\NativeMessagingHosts\com.chromemcp.nativehost.json`
 
-### 2. 检查是否有旧版全局安装冲突
+### 2. Check for conflicts with an older global installation
 
 ```bash
 npm ls -g mcp-chrome-bridge
 ```
 
-如果存在旧版（如 `1.0.31`），它可能注册了旧的 manifest 或生成残留的 `node_path.txt`，导致 Chrome 启动错误的 native host。
+If an older version (such as `1.0.31`) is present, it may have registered an old manifest or left behind a stale `node_path.txt`, causing Chrome to launch the wrong native host.
 
 ```bash
 npm uninstall -g mcp-chrome-bridge
 ```
 
-### 3. 重新构建并注册本地版本
+### 3. Rebuild and register the local version
 
 ```bash
 cd app/native-server
@@ -55,41 +55,41 @@ npm run build
 node dist/cli.js register --force
 ```
 
-### 4. 清理残留进程
+### 4. Clean up leftover processes
 
 ```bash
-# 杀掉所有 native host 进程
+# Kill all native host processes
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'index\\.js' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 
-# 确认端口 12306 无人占用
+# Confirm that nothing is using port 12306
 netstat -ano | findstr :12306
 ```
 
-### 5. 重启 Chrome 并重试
+### 5. Restart Chrome and retry
 
-1. 完全退出 Chrome（任务栏右键退出）
-2. 重新打开 Chrome
-3. `chrome://extensions` → 移除旧扩展 → 重新加载 `app/chrome-extension/.output/chrome-mv3`
-4. 点击扩展图标 → 连接
+1. Fully exit Chrome (right-click the taskbar icon and exit)
+2. Open Chrome again
+3. `chrome://extensions` → remove the old extension → reload `app/chrome-extension/.output/chrome-mv3`
+4. Click the extension icon → connect
 
-### 6. 检查日志
+### 6. Check the logs
 
-Native host 的日志文件位于：
+The Native Host log files are located in:
 
 ```
 %LOCALAPPDATA%\mcp-chrome-bridge\logs\
 ```
 
-- `native_host_wrapper_windows_*.log` — 启动日志（含 SCRIPT_DIR、NODE_SCRIPT 等）
-- `native_host_stderr_windows_*.log` — 错误输出
+- `native_host_wrapper_windows_*.log` — startup log (contains SCRIPT_DIR, NODE_SCRIPT, etc.)
+- `native_host_stderr_windows_*.log` — error output
 
-如果日志中 `SCRIPT_DIR` 指向全局 npm 路径而非本地构建路径，则说明 Chrome 启动的是旧版 native host。
+If `SCRIPT_DIR` in the log points to a global npm path instead of the local build path, Chrome is launching an old version of the native host.
 
-## 常见问题
+## Common Problems
 
-| 问题                         | 原因                                           | 解决                                            |
-| ---------------------------- | ---------------------------------------------- | ----------------------------------------------- |
-| "已连接"但"服务未启动"       | 扩展 ID 不匹配，`connectNative` 被 Chrome 拒绝 | 重新计算 ID 并注册                              |
-| SCRIPT_DIR 指向全局 npm 路径 | 旧版全局安装的 manifest 优先级更高             | `npm uninstall -g mcp-chrome-bridge` 后重新注册 |
-| 端口 12306 被占用            | `start-server.js` 或其他进程占用了端口         | 杀掉占用进程                                    |
-| 扩展反复断连                 | 扩展缓存了旧的 native port 状态                | 重启 Chrome，重新加载扩展                       |
+| Problem                                | Cause                                                       | Fix                                                       |
+| -------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| "Connected" but "service not started"  | Extension ID mismatch, `connectNative` rejected by Chrome   | Recompute the ID and register                             |
+| SCRIPT_DIR points to a global npm path | An older global installation's manifest has higher priority | `npm uninstall -g mcp-chrome-bridge`, then register again |
+| Port 12306 is already in use           | `start-server.js` or another process is using the port      | Kill the process using it                                 |
+| The extension keeps disconnecting      | The extension cached the old native port state              | Restart Chrome and reload the extension                   |

@@ -62,7 +62,9 @@ async function copyText(text: string): Promise<{ success: boolean; error?: strin
     textarea.select();
     const copied = document.execCommand('copy');
     textarea.remove();
-    return copied ? { success: true } : { success: false, error: '浏览器拒绝访问剪贴板。' };
+    return copied
+      ? { success: true }
+      : { success: false, error: 'The browser denied clipboard access.' };
   }
 }
 
@@ -83,9 +85,8 @@ function smartClosePopups(): number {
     '[id*="banner" i]',
     '[class*="banner" i]',
   ].join(',');
-  const strongWords = /cookie|consent|隐私|广告|advert|popup|弹窗|订阅|newsletter|banner/i;
-  const closeWords =
-    /关闭|拒绝|不同意|稍后|取消|知道了|同意|接受|close|dismiss|reject|accept|no thanks|got it/i;
+  const strongWords = /cookie|consent|privacy|advert|popup|subscribe|newsletter|banner/i;
+  const closeWords = /close|dismiss|reject|accept|cancel|later|no thanks|got it/i;
   let count = 0;
 
   for (const popup of Array.from(document.querySelectorAll(popupSelector))) {
@@ -216,14 +217,14 @@ function testValueForField(
 ): string {
   const hint = fieldHint(element);
   const type = element instanceof HTMLInputElement ? element.type.toLowerCase() : '';
-  if (type === 'email' || /邮箱|email|邮件/.test(hint)) return '测试用户@example.com';
-  if (type === 'tel' || /手机|电话|手机号|phone|tel/.test(hint)) return '13800138000';
-  if (type === 'url' || /网址|链接|url|website/.test(hint)) return 'https://example.com';
-  if (type === 'date' || /日期|生日|date/.test(hint)) return '2026-01-01';
-  if (type === 'number' || /数量|年龄|金额|价格|number|amount|price|age/.test(hint)) return '1';
-  if (/地址|address/.test(hint)) return '北京市朝阳区测试路 1 号';
-  if (/姓名|名字|name|user/.test(hint)) return '测试用户';
-  return '测试内容';
+  if (type === 'email' || /email|mail/.test(hint)) return 'test.user@example.com';
+  if (type === 'tel' || /phone|tel|mobile/.test(hint)) return '13800138000';
+  if (type === 'url' || /url|website|link/.test(hint)) return 'https://example.com';
+  if (type === 'date' || /date|birth/.test(hint)) return '2026-01-01';
+  if (type === 'number' || /number|amount|price|age|quantity/.test(hint)) return '1';
+  if (/address/.test(hint)) return '1 Test Road';
+  if (/name|user/.test(hint)) return 'Test User';
+  return 'Test Content';
 }
 
 function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {
@@ -266,7 +267,7 @@ function fillEmptyTestData(): number {
   });
   document.querySelectorAll<HTMLElement>('[contenteditable="true"]').forEach((field) => {
     if (isExtensionElement(field) || !isVisible(field) || field.textContent?.trim()) return;
-    field.textContent = '测试内容';
+    field.textContent = 'Test Content';
     field.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
     count += 1;
   });
@@ -355,12 +356,12 @@ function startColorPicker(): void {
       .find(Boolean);
     finish();
     if (!hex) {
-      showToast('未读取到有效颜色', true);
+      showToast('No valid color found', true);
       return;
     }
     void copyText(hex).then((result) =>
       showToast(
-        result.success ? `已复制颜色 ${hex}` : result.error || '颜色复制失败',
+        result.success ? `Copied color ${hex}` : result.error || 'Failed to copy color',
         !result.success,
       ),
     );
@@ -374,18 +375,18 @@ function startColorPicker(): void {
   addEventListener('click', onClick, true);
   addEventListener('keydown', onKey, true);
   colorPickerCleanup = finish;
-  showToast('取色模式已开启，点击页面元素取色；按 Esc 取消');
+  showToast('Color picker enabled; click a page element to pick its color. Press Esc to cancel');
 }
 
 export async function handlePageAction(action: string): Promise<PageActionResult> {
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.SMART_CLOSE_POPUPS) {
     const count = smartClosePopups();
-    showToast(count ? `已处理 ${count} 个弹窗` : '未找到可安全处理的弹窗', !count);
+    showToast(count ? `Handled ${count} popups` : 'No safely closable popups found', !count);
     return { success: true, count };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.RESTORE_PAGE_SCROLL) {
     restorePageScroll();
-    showToast('页面滚动已恢复');
+    showToast('Page scroll restored');
     return { success: true };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.TOGGLE_PAGE_ANIMATIONS) {
@@ -393,27 +394,27 @@ export async function handlePageAction(action: string): Promise<PageActionResult
       STYLE_IDS.animations,
       '*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}',
     );
-    showToast(enabled ? '页面动画已禁用' : '页面动画已恢复');
+    showToast(enabled ? 'Page animations disabled' : 'Page animations restored');
     return { success: true, enabled };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.EXPAND_COLLAPSED_CONTENT) {
     const count = expandCollapsedContent();
-    showToast(count ? `已展开 ${count} 个折叠内容` : '没有发现可展开内容', !count);
+    showToast(count ? `Expanded ${count} collapsed items` : 'No expandable content found', !count);
     return { success: true, count };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.FOCUS_FIRST_INPUT) {
     const success = focusFirstInput();
-    showToast(success ? '已聚焦第一个输入框' : '未找到可用输入框', !success);
+    showToast(success ? 'Focused the first input' : 'No usable input found', !success);
     return { success };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.FILL_EMPTY_TEST_DATA) {
     const count = fillEmptyTestData();
-    showToast(count ? `已填充 ${count} 个空字段` : '没有找到可填充的空字段', !count);
+    showToast(count ? `Filled ${count} empty fields` : 'No fillable empty fields found', !count);
     return { success: true, count };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.TOGGLE_ELEMENT_BORDERS) {
     const enabled = toggleElementBorders();
-    showToast(enabled ? '元素边界已显示' : '元素边界已隐藏');
+    showToast(enabled ? 'Element borders shown' : 'Element borders hidden');
     return { success: true, enabled };
   }
   if (action === CONTEXT_ACTION_MESSAGE_TYPES.START_COLOR_PICKER) {
@@ -425,8 +426,8 @@ export async function handlePageAction(action: string): Promise<PageActionResult
       STYLE_IDS.images,
       'img,picture,svg,video,[role="img"]{visibility:hidden!important;}*{background-image:none!important;}',
     );
-    showToast(enabled ? '页面图片已隐藏' : '页面图片已显示');
+    showToast(enabled ? 'Page images hidden' : 'Page images shown');
     return { success: true, enabled };
   }
-  return { success: false, error: '未知页面操作' };
+  return { success: false, error: 'Unknown page action' };
 }

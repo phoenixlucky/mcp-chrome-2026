@@ -1,6 +1,6 @@
 /**
- * Selector Locator - 元素定位器
- * 使用选择器候选列表定位 DOM 元素
+ * Selector Locator - element locator
+ * Locates DOM elements using a list of selector candidates
  */
 
 import { TOOL_MESSAGE_TYPES } from '../../common/message-types';
@@ -17,7 +17,7 @@ import {
 import { compareSelectorCandidates, withStability } from './stability';
 
 // ================================
-// 消息类型定义
+// Message type definitions
 // ================================
 
 interface EnsureRefForSelectorRequest {
@@ -55,11 +55,10 @@ interface VerifyFingerprintRequest {
 }
 
 type VerifyFingerprintResponse =
-  | { success: true; match: boolean }
-  | { success: false; error?: string };
+  { success: true; match: boolean } | { success: false; error?: string };
 
 // ================================
-// 传输层接口
+// Transport layer interface
 // ================================
 
 export interface SelectorLocatorTransport {
@@ -72,7 +71,7 @@ export interface SelectorLocatorTransport {
 }
 
 // ================================
-// 工具函数
+// Helper functions
 // ================================
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -213,7 +212,7 @@ function ariaToCssSelectors(role: string | undefined, name: string | undefined):
 }
 
 // ================================
-// SelectorLocator 类
+// SelectorLocator class
 // ================================
 
 export class SelectorLocator {
@@ -262,7 +261,7 @@ export class SelectorLocator {
   }
 
   /**
-   * 验证元素是否匹配给定的指纹
+   * Verify whether an element matches the given fingerprint
    */
   private async verifyElementFingerprint(
     tabId: number,
@@ -287,7 +286,7 @@ export class SelectorLocator {
   }
 
   /**
-   * 定位元素
+   * Locate an element
    */
   async locate(
     tabId: number,
@@ -297,13 +296,13 @@ export class SelectorLocator {
     const frameSelector = deriveFrameSelector(target);
     const allowMultiple = options.allowMultiple ?? false;
 
-    // 提取指纹验证配置
+    // Extract the fingerprint verification config
     const fingerprintToVerify =
       options.verifyFingerprint === true && typeof target.fingerprint === 'string'
         ? target.fingerprint.trim()
         : undefined;
 
-    // 优先尝试 ref
+    // Try ref first
     if (options.preferRef && target.ref) {
       const byRef = await this.resolveRef(tabId, target.ref, options.frameId);
       if (byRef) return byRef;
@@ -321,7 +320,7 @@ export class SelectorLocator {
         const mappedFrameId = await this.mapHrefToFrameId(tabId, ensured.href);
         const resolvedFrameId = mappedFrameId ?? options.frameId;
 
-        // 指纹验证：不匹配则跳过，继续尝试其他候选
+        // Fingerprint verification: skip on mismatch and keep trying other candidates
         const fingerprintOk =
           !fingerprintToVerify ||
           (await this.verifyElementFingerprint(
@@ -340,7 +339,7 @@ export class SelectorLocator {
             selectorUsed: sel,
           };
         }
-        // 指纹不匹配，继续尝试候选选择器
+        // Fingerprint mismatch, keep trying candidate selectors
       }
     }
 
@@ -358,7 +357,7 @@ export class SelectorLocator {
       );
       if (!resolved) continue;
 
-      // 指纹验证
+      // Fingerprint verification
       if (fingerprintToVerify) {
         const isMatch = await this.verifyElementFingerprint(
           tabId,
@@ -515,11 +514,11 @@ export class SelectorLocator {
 }
 
 // ================================
-// 工厂函数
+// Factory functions
 // ================================
 
 /**
- * 创建 Chrome 扩展的传输层
+ * Create the transport layer for the Chrome extension
  */
 export function createChromeSelectorLocatorTransport(): SelectorLocatorTransport {
   return {
@@ -537,7 +536,7 @@ export function createChromeSelectorLocatorTransport(): SelectorLocatorTransport
 }
 
 /**
- * 创建 Chrome 扩展的选择器定位器
+ * Create the Chrome extension selector locator
  */
 export function createChromeSelectorLocator(): SelectorLocator {
   return new SelectorLocator(createChromeSelectorLocatorTransport());

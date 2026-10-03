@@ -1,12 +1,12 @@
 <template>
   <div class="marker-picker">
-    <label class="form-label">使用已保存标注（可选）</label>
-    <select v-model="pageScope" class="form-input" aria-label="标注页面范围">
-      <option value="page">当前页面标注</option>
-      <option value="all">全部标注</option>
+    <label class="form-label">Use saved marker (optional)</label>
+    <select v-model="pageScope" class="form-input" aria-label="Marker page scope">
+      <option value="page">Markers on current page</option>
+      <option value="all">All markers</option>
     </select>
     <select class="form-input" :value="markerId" @change="selectMarker">
-      <option value="">手动选择器</option>
+      <option value="">Manual selector</option>
       <option v-for="marker in visibleMarkers" :key="marker.id" :value="marker.id">
         {{ marker.groupName ? `${marker.groupName} / ` : '' }}{{ marker.name }}
       </option>
@@ -17,13 +17,13 @@
       :value="memberId"
       @change="selectMember"
     >
-      <option value="">请选择标注元素</option>
+      <option value="">Select a marker element</option>
       <option v-for="member in selectedMarker.members" :key="member.id" :value="member.id">
         {{ member.name }}
       </option>
     </select>
     <label v-if="selectedMarker && allowAll" class="marker-all">
-      <input type="checkbox" v-model="allMembers" /> 提取分组中的全部元素
+      <input type="checkbox" v-model="allMembers" /> Extract all elements in the group
     </label>
     <div v-if="loadError" class="marker-error">{{ loadError }}</div>
   </div>
@@ -108,7 +108,7 @@ onMounted(async () => {
       chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_LIST_ALL }),
       chrome.tabs.query({ active: true, lastFocusedWindow: true }),
     ]);
-    if (!result?.success) throw new Error(result?.error || '读取标注列表失败');
+    if (!result?.success) throw new Error(result?.error || 'Failed to read marker list');
     currentPageUrl.value = String(tabs[0]?.url || '');
     markers.value = (result.markers || []).map((marker: ElementMarker) => ({
       ...marker,

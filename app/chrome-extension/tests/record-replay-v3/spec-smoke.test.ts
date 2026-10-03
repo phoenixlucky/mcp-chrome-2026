@@ -1,6 +1,6 @@
 /**
  * @fileoverview V3 Spec Smoke Test
- * @description 验证 V3 类型定义和常量可正常导入使用
+ * @description Verifies V3 type definitions and constants can be imported and used
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';

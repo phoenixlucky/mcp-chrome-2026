@@ -96,7 +96,7 @@ export function autoChainEdges(nodes: NodeBase[]): BuilderEdge[] {
 export function summarizeNode(n?: NodeBase | null): string {
   if (!n) return '';
   if (n.type === STEP_TYPES.CLICK || n.type === STEP_TYPES.FILL)
-    return n.config?.target?.candidates?.[0]?.value || '未配置选择器';
+    return n.config?.target?.candidates?.[0]?.value || 'No selector configured';
   if (n.type === STEP_TYPES.NAVIGATE) return n.config?.url || '';
   if (n.type === STEP_TYPES.KEY) return n.config?.keys || '';
   if (n.type === STEP_TYPES.DELAY) return `${Number(n.config?.ms || 0)}ms`;
@@ -110,7 +110,7 @@ export function summarizeNode(n?: NodeBase | null): string {
   if (n.type === STEP_TYPES.GET_TAB_URL) return `-> ${n.config?.saveAs || 'tabInfo'}`;
   if (n.type === STEP_TYPES.READ_PAGE) return `-> ${n.config?.saveAs || 'page'}`;
   if (n.type === STEP_TYPES.GET_WEB_CONTENT)
-    return `${n.config?.selector || '页面'} -> ${n.config?.saveAs || 'content'}`;
+    return `${n.config?.selector || 'page'} -> ${n.config?.saveAs || 'content'}`;
   if (n.type === STEP_TYPES.TRIGGER_EVENT)
     return `${n.config?.event || ''} ${n.config?.target?.candidates?.[0]?.value || ''}`;
   if (n.type === STEP_TYPES.SET_ATTRIBUTE)
@@ -130,13 +130,13 @@ export function summarizeNode(n?: NodeBase | null): string {
   if (n.type === STEP_TYPES.ASSERT) return JSON.stringify(n.config?.assert || {});
   if (n.type === STEP_TYPES.IF) {
     const cnt = Array.isArray(n.config?.branches) ? n.config.branches.length : 0;
-    return `if/else 分支数 ${cnt}${n.config?.else === false ? '' : ' + else'}`;
+    return `if/else branches ${cnt}${n.config?.else === false ? '' : ' + else'}`;
   }
   if (n.type === STEP_TYPES.SCRIPT) return (n.config?.code || '').slice(0, 30);
   if (n.type === STEP_TYPES.DRAG) {
     const a = n.config?.start?.candidates?.[0]?.value || '';
     const b = n.config?.end?.candidates?.[0]?.value || '';
-    return a || b ? `${a} -> ${b}` : '拖拽';
+    return a || b ? `${a} -> ${b}` : 'drag';
   }
   if (n.type === STEP_TYPES.SCROLL) {
     const mode = n.config?.mode || 'offset';

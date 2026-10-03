@@ -1020,10 +1020,10 @@
     const PANEL_TEMPLATE = `
       <div class="em-panel" id="em_panel_root">
         <!-- Header -->
-        <div class="em-header em-drag-handle" id="__em_drag_handle" title="拖动移动">
-          <h2 class="em-title">元素标注</h2>
+        <div class="em-header em-drag-handle" id="__em_drag_handle" title="Drag to move">
+          <h2 class="em-title">Element marker</h2>
           <div class="em-header-actions">
-            <button class="em-icon-btn" id="__em_close" title="关闭">
+            <button class="em-icon-btn" id="__em_close" title="Close">
               <svg viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
               </svg>
@@ -1035,21 +1035,21 @@
         <div class="em-controls">
           <div class="em-select-wrapper">
             <select class="em-select" id="__em_selector_type">
-              <option value="css">CSS 定位（推荐）</option>
-              <option value="xpath">XPath 定位</option>
+              <option value="css">CSS selector (recommended)</option>
+              <option value="xpath">XPath selector</option>
             </select>
           </div>
-          <button class="em-square-btn" id="__em_toggle_list" title="列表模式 - 批量标注相似元素" aria-label="列表模式" aria-pressed="false">
+          <button class="em-square-btn" id="__em_toggle_list" title="List mode - batch mark similar elements" aria-label="List mode" aria-pressed="false">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <button class="em-square-btn" id="__em_toggle_box" title="框选定位 - 拖动框选页面区域" aria-label="框选定位" aria-pressed="false">
+          <button class="em-square-btn" id="__em_toggle_box" title="Box selection - drag to select a page region" aria-label="Box selection" aria-pressed="false">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 9V5h4m8 0h4v4M4 15v4h4m8 0h4v-4M8 8h8v8H8z"/>
             </svg>
           </button>
-          <button class="em-square-btn" id="__em_toggle_tab" title="切换执行面板">
+          <button class="em-square-btn" id="__em_toggle_tab" title="Toggle execution panel">
             <svg viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -1059,17 +1059,17 @@
 
         <!-- Selector Display -->
         <div class="em-selector-display">
-          <svg viewBox="0 0 24 24" id="__em_copy_selector" title="复制定位">
+          <svg viewBox="0 0 24 24" id="__em_copy_selector" title="Copy locator">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
-          <span class="em-selector-text" id="__em_selector_text">点击页面元素进行标记</span>
+          <span class="em-selector-text" id="__em_selector_text">Click a page element to mark</span>
           <div class="em-selector-nav">
-            <button class="em-nav-btn" id="__em_nav_up" title="选择父元素">
+            <button class="em-nav-btn" id="__em_nav_up" title="Select parent element">
               <svg viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
               </svg>
             </button>
-            <button class="em-nav-btn" id="__em_nav_down" title="选择子元素">
+            <button class="em-nav-btn" id="__em_nav_down" title="Select child element">
               <svg viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
               </svg>
@@ -1077,21 +1077,21 @@
           </div>
         </div>
 
-        <div class="em-behavior-row" title="关闭后只记录元素，不会触发网站的点击逻辑">
+        <div class="em-behavior-row" title="When off, only the element is recorded and the site's click logic is not triggered">
           <label class="em-behavior-label">
             <input type="checkbox" id="__em_replay_click" />
-            <span>标记后触发页面点击</span>
+            <span>Trigger page click after marking</span>
           </label>
           <button class="em-copy-element-text-btn" id="__em_copy_element_text" type="button">
-            获取该元素文本
+            Get element text
           </button>
-          <span class="em-behavior-hint">用于打开弹窗/下拉</span>
+          <span class="em-behavior-hint">Used to open popups/dropdowns</span>
         </div>
 
         <!-- Tabs are kept in the template for compatibility; the unified form hides them. -->
         <div class="em-tabs">
-          <button class="em-tab active" data-tab="attributes">标记</button>
-          <button class="em-tab" data-tab="execute">验证</button>
+          <button class="em-tab active" data-tab="attributes">Mark</button>
+          <button class="em-tab" data-tab="execute">Validate</button>
         </div>
 
         <!-- Status -->
@@ -1100,53 +1100,53 @@
         <!-- Annotation content -->
         <div class="em-content" id="__em_tab_attributes">
           <div class="em-similar-preview-controls">
-            <span class="em-section-title" style="margin: 0;">Shift 多选范围</span>
-            <select class="em-select" id="__em_selection_scope" aria-label="相似元素范围">
-              <option value="region">当前表格/列表/区域</option>
-              <option value="page">当前页面</option>
+            <span class="em-section-title" style="margin: 0;">Shift multi-select scope</span>
+            <select class="em-select" id="__em_selection_scope" aria-label="Similar element scope">
+              <option value="region">Current table/list/region</option>
+              <option value="page">Current page</option>
             </select>
           </div>
           <div class="em-similar-preview-status" id="__em_similar_preview_status"></div>
           <div class="em-selection-list" id="__em_selection_list" hidden>
             <div class="em-selection-list-header" id="__em_selection_count"></div>
             <div class="em-selection-list-header em-selection-list-actions">
-              <button class="em-selection-clear" id="__em_clear_selection" type="button">清空</button>
+              <button class="em-selection-clear" id="__em_clear_selection" type="button">Clear</button>
             </div>
             <div class="em-selection-items" id="__em_selection_items"></div>
-            <p class="em-selection-hint">这些元素会作为一个分组标注保存</p>
+            <p class="em-selection-hint">These elements are saved as one group marker</p>
           </div>
           <div class="em-extract-controls" id="__em_extract_controls" hidden>
-            <select class="em-select" id="__em_extract_type" aria-label="提取数据类型">
-              <option value="text">文字</option>
-              <option value="href">链接地址</option>
-              <option value="src">图片地址</option>
-              <option value="value">输入值</option>
+            <select class="em-select" id="__em_extract_type" aria-label="Extract data type">
+              <option value="text">Text</option>
+              <option value="href">Link URL</option>
+              <option value="src">Image URL</option>
+              <option value="value">Input value</option>
             </select>
-            <button class="em-selection-remove" id="__em_extract_selected" type="button">提取</button>
-            <button class="em-selection-remove" id="__em_copy_extract" type="button" hidden>复制表格</button>
-            <button class="em-selection-remove" id="__em_download_extract" type="button" hidden>导出 CSV</button>
+            <button class="em-selection-remove" id="__em_extract_selected" type="button">Extract</button>
+            <button class="em-selection-remove" id="__em_copy_extract" type="button" hidden>Copy table</button>
+            <button class="em-selection-remove" id="__em_download_extract" type="button" hidden>Export CSV</button>
           </div>
           <pre class="em-extract-result" id="__em_extract_result" hidden></pre>
           <div class="em-annotation-layout">
             <section>
-              <h3 class="em-section-title">已选元素</h3>
+              <h3 class="em-section-title">Selected elements</h3>
               <div class="em-attributes">
                 <div class="em-attribute">
-                  <div class="em-attribute-label" id="__em_name_label">名称</div>
+                  <div class="em-attribute-label" id="__em_name_label">Name</div>
                   <div class="em-attribute-value editable">
-                    <input class="em-input" id="__em_name" placeholder="元素名称" />
+                    <input class="em-input" id="__em_name" placeholder="Element name" />
                   </div>
                 </div>
                 <div class="em-attribute">
-                  <div class="em-attribute-label">标签</div>
+                  <div class="em-attribute-label">Tags</div>
                   <div class="em-attribute-value editable">
-                    <input class="em-input" id="__em_tags" placeholder="用逗号分隔标签" />
+                    <input class="em-input" id="__em_tags" placeholder="Comma-separated tags" />
                   </div>
                 </div>
                 <div class="em-attribute">
-                  <div class="em-attribute-label">定位</div>
+                  <div class="em-attribute-label">Locator</div>
                   <div class="em-attribute-value">
-                    <svg class="copy-icon" viewBox="0 0 24 24" id="__em_copy" title="复制定位">
+                    <svg class="copy-icon" viewBox="0 0 24 24" id="__em_copy" title="Copy locator">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                     </svg>
                     <span class="em-attribute-text" id="__em_selector">-</span>
@@ -1156,86 +1156,86 @@
             </section>
 
             <section>
-              <h3 class="em-section-title">定位偏好</h3>
+              <h3 class="em-section-title">Locator preferences</h3>
               <div class="em-settings">
                 <div class="em-checkbox-group">
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_testid" checked />
-                  <span>测试标识 <em>推荐</em></span>
+                  <span>Test ID <em>recommended</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_aria" checked />
-                  <span>无障碍标签 <em>推荐</em></span>
+                  <span>Accessibility label <em>recommended</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_text" />
-                    <span>可见文本（XPath）</span>
+                    <span>Visible text (XPath)</span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_id" checked />
-                  <span>ID <em>推荐</em></span>
+                  <span>ID <em>recommended</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_attr" checked />
-                  <span>稳定属性 <em>推荐</em></span>
+                  <span>Stable attributes <em>recommended</em></span>
                   </label>
                   <label class="em-checkbox-label">
                     <input type="checkbox" id="__em_pref_class" />
-                    <span>备用使用类名</span>
+                    <span>Fallback to class name</span>
                   </label>
                 </div>
-                <div class="em-field-label">顺序：测试标识 → 无障碍标签 → 可见文本 → ID → 稳定属性 → 类名 → 结构路径</div>
+                <div class="em-field-label">Order: test ID → accessibility label → visible text → ID → stable attributes → class name → structural path</div>
               </div>
             </section>
           </div>
 
           <div class="em-actions">
-            <button class="em-btn em-btn-primary" id="__em_verify">检查匹配</button>
+            <button class="em-btn em-btn-primary" id="__em_verify">Check match</button>
           </div>
         </div>
 
         <!-- Validation content is visible together with annotation content. -->
         <div class="em-content em-verify-content" id="__em_tab_execute" style="display: block;">
-          <h3 class="em-section-title em-verify-title">执行验证</h3>
+          <h3 class="em-section-title em-verify-title">Run validation</h3>
           <div class="em-settings">
             <div class="em-settings-group">
-              <div class="em-settings-label">验证动作</div>
+              <div class="em-settings-label">Validation action</div>
               <div class="em-select-wrapper">
                 <select class="em-select" id="__em_action">
-                  <option value="hover">悬停</option>
-                  <option value="left_click">左键点击</option>
-                  <option value="double_click">双击</option>
-                  <option value="right_click">右键点击</option>
-                  <option value="scroll">滚动</option>
-                  <option value="type_text">输入文本</option>
-                  <option value="press_keys">按键</option>
+                  <option value="hover">Hover</option>
+                  <option value="left_click">Left click</option>
+                  <option value="double_click">Double click</option>
+                  <option value="right_click">Right click</option>
+                  <option value="scroll">Scroll</option>
+                  <option value="type_text">Type text</option>
+                  <option value="press_keys">Press keys</option>
                 </select>
               </div>
             </div>
 
             <!-- Action-specific inputs (dynamically shown/hidden) -->
             <div class="em-settings-group" id="__em_action_text_group" style="display: none;">
-              <div class="em-settings-label">文本</div>
-              <input class="em-field-input" id="__em_action_text" placeholder="要输入的文本" />
+              <div class="em-settings-label">Text</div>
+              <input class="em-field-input" id="__em_action_text" placeholder="Text to type" />
             </div>
 
             <div class="em-settings-group" id="__em_action_keys_group" style="display: none;">
-              <div class="em-settings-label">按键</div>
-              <input class="em-field-input" id="__em_action_keys" placeholder="如 Enter、Ctrl+C" />
+              <div class="em-settings-label">Keys</div>
+              <input class="em-field-input" id="__em_action_keys" placeholder="e.g. Enter, Ctrl+C" />
             </div>
 
             <div class="em-settings-group" id="__em_scroll_options" style="display: none;">
-              <div class="em-settings-label">滚动方向</div>
+              <div class="em-settings-label">Scroll direction</div>
               <div class="em-select-wrapper">
                 <select class="em-select" id="__em_scroll_direction">
-                  <option value="down">向下</option>
-                  <option value="up">向上</option>
-                  <option value="left">向左</option>
-                  <option value="right">向右</option>
+                  <option value="down">Down</option>
+                  <option value="up">Up</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
                 </select>
               </div>
               <div class="em-field" style="margin-top: 8px;">
-                <div class="em-field-label">次数（1–10，每次约 100px）</div>
+                <div class="em-field-label">Count (1-10, about 100px each)</div>
                 <input class="em-field-input" id="__em_scroll_distance" type="number" min="1" max="10" step="1" value="3" />
               </div>
             </div>
@@ -1244,15 +1244,15 @@
             <div id="__em_click_options" style="display: none;">
               <div class="em-grid">
                 <div class="em-field">
-                  <div class="em-field-label">鼠标按键</div>
+                  <div class="em-field-label">Mouse button</div>
                   <select class="em-select" id="__em_btn">
-                    <option value="left">左键</option>
-                    <option value="middle">中键</option>
-                    <option value="right">右键</option>
+                    <option value="left">Left</option>
+                    <option value="middle">Middle</option>
+                    <option value="right">Right</option>
                   </select>
                 </div>
                 <div class="em-field">
-                  <div class="em-field-label">超时（毫秒）</div>
+                  <div class="em-field-label">Timeout (ms)</div>
                   <input class="em-field-input" id="__em_nav_timeout" type="number" value="3000" />
                 </div>
               </div>
@@ -1260,56 +1260,56 @@
               <div class="em-checkbox-group" style="margin-top: 12px;">
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_wait_nav" />
-                  <span>等待页面跳转</span>
+                  <span>Wait for page navigation</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_alt" />
-                  <span>Alt 键</span>
+                  <span>Alt key</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_ctrl" />
-                  <span>Ctrl 键</span>
+                  <span>Ctrl key</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_meta" />
-                  <span>Meta 键</span>
+                  <span>Meta key</span>
                 </label>
                 <label class="em-checkbox-label">
                   <input type="checkbox" id="__em_mod_shift" />
-                  <span>Shift 键</span>
+                  <span>Shift key</span>
                 </label>
               </div>
             </div>
 
             <div class="em-actions" style="margin-top: 16px;">
-              <button class="em-btn em-btn-primary" id="__em_execute">执行验证</button>
+              <button class="em-btn em-btn-primary" id="__em_execute">Run validation</button>
             </div>
 
             <!-- Execution History -->
             <div id="__em_execution_history" style="margin-top: 16px; display: none;">
-              <div class="em-settings-label">最近执行</div>
+              <div class="em-settings-label">Recent runs</div>
               <div id="__em_history_list" style="font-size: 12px; color: #737373; margin-top: 8px;"></div>
             </div>
           </div>
         </div>
 
         <div class="em-actions em-save-actions">
-          <button class="em-btn em-btn-success" id="__em_save">保存标记</button>
-          <button class="em-btn em-btn-ghost" id="__em_save_separate" hidden>分别命名保存</button>
-          <button class="em-btn em-btn-ghost" id="__em_export">导出定位</button>
-          <button class="em-btn em-btn-ghost" id="__em_cancel">取消</button>
+          <button class="em-btn em-btn-success" id="__em_save">Save marker</button>
+          <button class="em-btn em-btn-ghost" id="__em_save_separate" hidden>Save with separate names</button>
+          <button class="em-btn em-btn-ghost" id="__em_export">Export locator</button>
+          <button class="em-btn em-btn-ghost" id="__em_cancel">Cancel</button>
         </div>
 
         <!-- Footer -->
         <div class="em-footer">
-          点击或按 <kbd>空格</kbd> 标记；<kbd>Ctrl</kbd> 任意多选，<kbd>Shift</kbd> 同类多选；框选按钮可拖动定位
+          Click or press <kbd>Space</kbd> to mark; <kbd>Ctrl</kbd> for arbitrary multi-select, <kbd>Shift</kbd> for same-type multi-select; the box selection button allows drag locate
         </div>
 
-        <div class="em-code-dialog" id="__em_code_dialog" role="dialog" aria-modal="true" aria-label="元素定位代码">
+        <div class="em-code-dialog" id="__em_code_dialog" role="dialog" aria-modal="true" aria-label="Element locator code">
           <div class="em-code-card">
             <div class="em-code-header">
-              <span class="em-code-title">元素定位代码</span>
-              <button class="em-icon-btn" id="__em_code_close" title="关闭">×</button>
+              <span class="em-code-title">Element locator code</span>
+              <button class="em-icon-btn" id="__em_code_close" title="Close">×</button>
             </div>
             <div class="em-code-tabs">
               <button class="em-code-tab active" data-code-language="javascript">JavaScript</button>
@@ -1317,8 +1317,8 @@
             </div>
             <pre class="em-code-output" id="__em_code_output"></pre>
             <div class="em-code-actions">
-              <span id="__em_code_hint">可直接复制到自动化脚本</span>
-              <button class="em-btn em-btn-primary" id="__em_code_copy">复制 JavaScript</button>
+              <span id="__em_code_hint">Copy directly into an automation script</span>
+              <button class="em-btn em-btn-primary" id="__em_code_copy">Copy JavaScript</button>
             </div>
           </div>
         </div>
@@ -1532,13 +1532,13 @@
           const timestamp = new Date(entry.timestamp).toLocaleTimeString();
           const actionName =
             {
-              hover: '悬停',
-              left_click: '左键点击',
-              double_click: '双击',
-              right_click: '右键点击',
-              scroll: '滚动',
-              type_text: '输入文本',
-              press_keys: '按键',
+              hover: 'Hover',
+              left_click: 'Left click',
+              double_click: 'Double click',
+              right_click: 'Right click',
+              scroll: 'Scroll',
+              type_text: 'Type text',
+              press_keys: 'Press keys',
             }[entry.action] || entry.action;
           return `<div style="padding: 6px 0; border-bottom: 1px solid #f5f5f5;">
             <span style="color: ${color}; font-weight: 600;">${icon}</span>
@@ -1627,7 +1627,7 @@
     return { init, destroy };
   })();
 
-  // [继续下一部分...]
+  // [continues in the next part...]
   // ============================================================================
   // Selector Engine - Heuristic Selector Generation
   // ============================================================================
@@ -1989,24 +1989,24 @@
 
   function getElementName(el) {
     const inputTypes = {
-      checkbox: '复选框',
-      radio: '单选框',
-      submit: '提交按钮',
-      button: '按钮',
+      checkbox: 'checkbox',
+      radio: 'radio button',
+      submit: 'submit button',
+      button: 'button',
     };
     const types = {
-      A: '链接',
-      BUTTON: '按钮',
-      INPUT: inputTypes[el.getAttribute('type')] || '输入框',
-      TEXTAREA: '文本框',
-      SELECT: '下拉框',
-      IMG: '图片',
+      A: 'link',
+      BUTTON: 'button',
+      INPUT: inputTypes[el.getAttribute('type')] || 'input',
+      TEXTAREA: 'text area',
+      SELECT: 'dropdown',
+      IMG: 'image',
     };
-    const type = types[el.tagName] || '元素';
+    const type = types[el.tagName] || 'element';
     const label = getAccessibleName(el).replace(/\s+/g, ' ').slice(0, 40);
     const peers = Array.from(el.getRootNode().querySelectorAll(el.tagName));
     const index = Math.max(peers.indexOf(el) + 1, 1);
-    return `${type} #${index}${label ? `：${label}${label.length === 40 ? '…' : ''}` : ''}`;
+    return `${type} #${index}${label ? `: ${label}${label.length === 40 ? '…' : ''}` : ''}`;
   }
 
   // ============================================================================
@@ -2595,8 +2595,8 @@
         drawRects(STATE.previewElements, CONFIG.COLORS.HOVER, true);
         const status = STATE.box?.querySelector('#__em_similar_preview_status');
         if (status) {
-          const scope = STATE.similarScope === 'page' ? '当前页面' : '当前区域';
-          status.textContent = `Shift 点击将选择 ${STATE.previewElements.length} 项（${scope}）`;
+          const scope = STATE.similarScope === 'page' ? 'current page' : 'current region';
+          status.textContent = `Shift click will select ${STATE.previewElements.length} item(s) (${scope})`;
         }
       }
       return;
@@ -2880,7 +2880,7 @@
     });
     if (!result?.success) {
       StateStore.set({
-        validation: { status: 'failure', message: result?.error || '无法定位该元素' },
+        validation: { status: 'failure', message: result?.error || 'Cannot locate this element' },
       });
     }
     return result;
@@ -2913,8 +2913,8 @@
     const selectorDisplay = STATE.box?.querySelector('#__em_selector_text');
     const inputName = STATE.box?.querySelector('#__em_name');
     if (selectorText) selectorText.textContent = selector || '-';
-    if (selectorDisplay) selectorDisplay.textContent = selector || '点击页面元素进行标记';
-    if (inputName && last) inputName.value = last.name || '元素';
+    if (selectorDisplay) selectorDisplay.textContent = selector || 'Click a page element to mark';
+    if (inputName && last) inputName.value = last.name || 'Element';
     StateStore.set({ listMode: STATE.remoteSelectedMembers.length > 1 });
     renderSelectionList();
     return incoming;
@@ -2937,13 +2937,13 @@
       });
       StateStore.set({
         validation: response?.success
-          ? { status: 'success', message: `✓ 已更新“${member.name || '元素'}”的定位` }
-          : { status: 'failure', message: response?.error || '更新定位失败' },
+          ? { status: 'success', message: `✓ Updated locator for "${member.name || 'element'}"` }
+          : { status: 'failure', message: response?.error || 'Failed to update locator' },
       });
       if (response?.success) STATE.repairTarget = null;
     } catch (error) {
       StateStore.set({
-        validation: { status: 'failure', message: error?.message || '更新定位失败' },
+        validation: { status: 'failure', message: error?.message || 'Failed to update locator' },
       });
     }
   }
@@ -2975,16 +2975,16 @@
     items.replaceChildren();
 
     if (!isManualSelection) {
-      if (saveButton) saveButton.textContent = '保存标记';
+      if (saveButton) saveButton.textContent = 'Save marker';
       if (saveSeparateButton) saveSeparateButton.hidden = true;
-      if (nameLabel) nameLabel.textContent = '名称';
-      if (nameInput) nameInput.placeholder = '元素名称';
+      if (nameLabel) nameLabel.textContent = 'Name';
+      if (nameInput) nameInput.placeholder = 'Element name';
       if (previewStatus) previewStatus.textContent = '';
       if (extractResult) extractResult.hidden = true;
       return;
     }
 
-    count.textContent = `已选择 ${selectedMembers.length} 项`;
+    count.textContent = `${selectedMembers.length} item(s) selected`;
     if (saveSeparateButton) saveSeparateButton.hidden = selectedMembers.length < 2;
     for (const member of selectedMembers) {
       const row = document.createElement('div');
@@ -2998,9 +2998,9 @@
       nameInput.className = 'em-selection-name-input';
       nameInput.value = STATE.memberNames.get(getLocalMemberKey(member)) || member.name;
       nameInput.title = member.framePath?.length
-        ? `iframe：${member.framePath.map((segment) => segment.selector).join(' → ')}`
-        : member.tagName || '当前页面';
-      nameInput.setAttribute('aria-label', `元素名称：${member.name}`);
+        ? `iframe: ${member.framePath.map((segment) => segment.selector).join(' → ')}`
+        : member.tagName || 'Current page';
+      nameInput.setAttribute('aria-label', `Element name: ${member.name}`);
       nameInput.addEventListener('input', () => {
         STATE.memberNames.set(getLocalMemberKey(member), nameInput.value.trim());
       });
@@ -3009,24 +3009,24 @@
       const locate = document.createElement('button');
       locate.className = 'em-selection-remove';
       locate.type = 'button';
-      locate.textContent = '定位';
-      locate.setAttribute('aria-label', `定位 ${member.name}`);
+      locate.textContent = 'Locate';
+      locate.setAttribute('aria-label', `Locate ${member.name}`);
       locate.addEventListener('click', () => locateMember(member));
 
       const remove = document.createElement('button');
       remove.className = 'em-selection-remove';
       remove.type = 'button';
-      remove.textContent = '移除';
-      remove.setAttribute('aria-label', `移除 ${member.name}`);
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', `Remove ${member.name}`);
       remove.addEventListener('click', () => removeSelectedMember(member));
 
       row.append(memberContent, locate, remove);
       items.append(row);
     }
 
-    if (saveButton) saveButton.textContent = `保存分组（${selectedMembers.length}项）`;
-    if (nameLabel) nameLabel.textContent = '分组名称';
-    if (nameInput) nameInput.placeholder = '给这组元素命名';
+    if (saveButton) saveButton.textContent = `Save group (${selectedMembers.length} item(s))`;
+    if (nameLabel) nameLabel.textContent = 'Group name';
+    if (nameInput) nameInput.placeholder = 'Name this group of elements';
   }
 
   function removeSelectedMember(member) {
@@ -3088,7 +3088,7 @@
     const extractButton = STATE.box?.querySelector('#__em_extract_selected');
     if (extractButton) {
       extractButton.disabled = true;
-      extractButton.textContent = '提取中…';
+      extractButton.textContent = 'Extracting...';
     }
     try {
       STATE.extractionRows = await Promise.all(
@@ -3096,16 +3096,17 @@
           const result = await runMemberOperation(member, 'value', valueType);
           return {
             name: member.name,
-            frame: member.framePath?.map((segment) => segment.selector).join(' → ') || '当前页面',
+            frame:
+              member.framePath?.map((segment) => segment.selector).join(' → ') || 'Current page',
             value: result?.success ? result.value : '',
-            error: result?.success ? '' : result?.error || '读取失败',
+            error: result?.success ? '' : result?.error || 'Read failed',
           };
         }),
       );
       const preview = STATE.box?.querySelector('#__em_extract_result');
       if (preview) {
         preview.textContent = [
-          '名称\t页面/Frame\t结果',
+          'Name\tPage/Frame\tResult',
           ...STATE.extractionRows.map(
             (row) => `${row.name}\t${row.frame}\t${row.value || row.error}`,
           ),
@@ -3118,12 +3119,12 @@
       if (downloadButton) downloadButton.hidden = false;
     } catch (error) {
       StateStore.set({
-        validation: { status: 'failure', message: error?.message || '批量提取失败' },
+        validation: { status: 'failure', message: error?.message || 'Batch extraction failed' },
       });
     } finally {
       if (extractButton) {
         extractButton.disabled = false;
-        extractButton.textContent = '提取';
+        extractButton.textContent = 'Extract';
       }
     }
   }
@@ -3136,23 +3137,23 @@
   async function copyExtractionRows() {
     if (!STATE.extractionRows.length) return;
     const tsv = [
-      ['名称', '页面/Frame', '结果'],
+      ['Name', 'Page/Frame', 'Result'],
       ...STATE.extractionRows.map((row) => [row.name, row.frame, row.error || row.value]),
     ]
       .map((row) => row.map(escapeCsvField).join('\t'))
       .join('\n');
     try {
       await navigator.clipboard.writeText(tsv);
-      StateStore.set({ validation: { status: 'success', message: '✓ 已复制为表格' } });
+      StateStore.set({ validation: { status: 'success', message: '✓ Copied as table' } });
     } catch {
-      StateStore.set({ validation: { status: 'failure', message: '复制失败，请使用 CSV 导出' } });
+      StateStore.set({ validation: { status: 'failure', message: 'Copy failed, use CSV export' } });
     }
   }
 
   function downloadExtractionCsv() {
     if (!STATE.extractionRows.length) return;
     const csv = [
-      ['名称', '页面/Frame', '结果'],
+      ['Name', 'Page/Frame', 'Result'],
       ...STATE.extractionRows.map((row) => [row.name, row.frame, row.error || row.value]),
     ]
       .map((row) => row.map(escapeCsvField).join(','))
@@ -3478,13 +3479,16 @@
       const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
       if (!selector || selector === '-') {
         StateStore.set({
-          validation: { status: 'failure', message: '请先点击页面元素，再检查匹配' },
+          validation: {
+            status: 'failure',
+            message: 'Click a page element first, then check the match',
+          },
         });
         return;
       }
 
       StateStore.set({
-        validation: { status: 'running', message: '正在验证定位…' },
+        validation: { status: 'running', message: 'Validating locator...' },
       });
 
       const selectorType = StateStore.get('selectorType');
@@ -3495,8 +3499,8 @@
         const result = await highlightSelectorExternal({ selector, selectorType: effectiveType });
         StateStore.set({
           validation: result.success
-            ? { status: 'success', message: `已定位到 ${result.count || 1} 个元素` }
-            : { status: 'failure', message: result.error || '未找到匹配元素' },
+            ? { status: 'success', message: `Located ${result.count || 1} element(s)` }
+            : { status: 'failure', message: result.error || 'No matching element found' },
         });
         return;
       }
@@ -3510,7 +3514,7 @@
 
       if (!filteredMatches || filteredMatches.length === 0) {
         StateStore.set({
-          validation: { status: 'failure', message: '未找到匹配元素' },
+          validation: { status: 'failure', message: 'No matching element found' },
         });
         return;
       }
@@ -3533,7 +3537,7 @@
       StateStore.set({
         validation: {
           status: 'success',
-          message: `已定位到 ${filteredMatches.length} 个元素`,
+          message: `Located ${filteredMatches.length} element(s)`,
         },
       });
 
@@ -3547,7 +3551,7 @@
     } catch (error) {
       console.error('[verifyHighlightOnly] error:', error);
       StateStore.set({
-        validation: { status: 'failure', message: error.message || '验证失败' },
+        validation: { status: 'failure', message: error.message || 'Validation failed' },
       });
     }
   }
@@ -3560,13 +3564,16 @@
       const selector = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
       if (!selector || selector === '-') {
         StateStore.set({
-          validation: { status: 'failure', message: '请先选择元素，再执行验证' },
+          validation: {
+            status: 'failure',
+            message: 'Select an element first, then run validation',
+          },
         });
         return;
       }
 
       StateStore.set({
-        validation: { status: 'running', message: '正在执行验证…' },
+        validation: { status: 'running', message: 'Running validation...' },
       });
 
       const selectorType = StateStore.get('selectorType');
@@ -3586,7 +3593,7 @@
 
       if (!isComposite && (!filteredMatches || filteredMatches.length === 0)) {
         StateStore.set({
-          validation: { status: 'failure', message: '未找到匹配元素' },
+          validation: { status: 'failure', message: 'No matching element found' },
         });
         return;
       }
@@ -3668,7 +3675,7 @@
         StateStore.set({
           validation: {
             status: 'success',
-            message: `✓ 验证成功 (匹配 ${isComposite ? 1 : filteredMatches.length} 个元素)`,
+            message: `✓ Validation succeeded (matched ${isComposite ? 1 : filteredMatches.length} element(s))`,
           },
           validationHistory: history,
         });
@@ -3693,7 +3700,7 @@
       StateStore.set({
         validation: {
           status: 'failure',
-          message: `错误: ${err.message}`,
+          message: `Error: ${err.message}`,
         },
         validationHistory: history,
       });
@@ -3815,7 +3822,7 @@
       const sel = STATE.box?.querySelector('#__em_selector')?.textContent?.trim();
       if (!sel || sel === '-') {
         StateStore.set({
-          validation: { status: 'failure', message: '还没有可复制的定位' },
+          validation: { status: 'failure', message: 'Nothing to copy yet' },
         });
         return;
       }
@@ -3828,14 +3835,14 @@
           textarea.value = sel;
           document.body.appendChild(textarea);
           textarea.select();
-          if (!document.execCommand('copy')) throw new Error('浏览器拒绝访问剪贴板');
+          if (!document.execCommand('copy')) throw new Error('Browser denied clipboard access');
         } finally {
           textarea.remove();
         }
       }
 
       StateStore.set({
-        validation: { status: 'success', message: '✓ 已复制到剪贴板' },
+        validation: { status: 'success', message: '✓ Copied to clipboard' },
       });
 
       setTimeout(() => {
@@ -3843,7 +3850,7 @@
       }, 2000);
     } catch (error) {
       StateStore.set({
-        validation: { status: 'failure', message: error?.message || '复制定位失败' },
+        validation: { status: 'failure', message: error?.message || 'Failed to copy locator' },
       });
     }
   }
@@ -3853,7 +3860,10 @@
       const selected = STATE.selectedEl;
       if (!(selected instanceof Element)) {
         StateStore.set({
-          validation: { status: 'failure', message: '请先点击页面元素，再获取文本' },
+          validation: {
+            status: 'failure',
+            message: 'Click a page element first, then get its text',
+          },
         });
         return;
       }
@@ -3876,7 +3886,7 @@
         .join('\n');
       if (!value) {
         StateStore.set({
-          validation: { status: 'failure', message: '该元素没有可复制的文本内容' },
+          validation: { status: 'failure', message: 'This element has no copyable text content' },
         });
         return;
       }
@@ -3889,14 +3899,14 @@
           textarea.value = value;
           document.body.appendChild(textarea);
           textarea.select();
-          if (!document.execCommand('copy')) throw new Error('浏览器拒绝访问剪贴板');
+          if (!document.execCommand('copy')) throw new Error('Browser denied clipboard access');
         } finally {
           textarea.remove();
         }
       }
 
       StateStore.set({
-        validation: { status: 'success', message: `✓ 已复制该元素文本（${value.length} 字）` },
+        validation: { status: 'success', message: `✓ Copied element text (${value.length} chars)` },
       });
 
       setTimeout(() => {
@@ -3904,15 +3914,15 @@
       }, 2000);
     } catch (error) {
       StateStore.set({
-        validation: { status: 'failure', message: error?.message || '获取元素文本失败' },
+        validation: { status: 'failure', message: error?.message || 'Failed to get element text' },
       });
     }
   }
 
   function formatValidationError(error) {
-    const message = String(error || '验证失败');
+    const message = String(error || 'Validation failed');
     if (message.includes('Provide ref or selector or coordinates for hover')) {
-      return '无法定位元素，请重新选择后验证';
+      return 'Cannot locate the element, select it again and validate';
     }
     return message;
   }
@@ -3938,15 +3948,15 @@
     if (frames.length > 1) return { success: true, matchCount: frames.length };
     const frame = frames[0];
     if (!frame?.contentWindow) {
-      return { success: false, matchCount: 0, error: 'iframe 定位已失效' };
+      return { success: false, matchCount: 0, error: 'iframe locator is no longer valid' };
     }
     if (segment.url && frame.getAttribute('src')) {
       try {
         if (new URL(frame.getAttribute('src'), location.href).href !== segment.url) {
-          return { success: false, matchCount: 0, error: 'iframe 页面地址已变化' };
+          return { success: false, matchCount: 0, error: 'iframe page URL has changed' };
         }
       } catch {
-        return { success: false, matchCount: 0, error: 'iframe 页面地址无效' };
+        return { success: false, matchCount: 0, error: 'iframe page URL is invalid' };
       }
     }
 
@@ -3954,7 +3964,7 @@
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         STATE.pendingMemberQueries.delete(reqId);
-        resolve({ success: false, matchCount: 0, error: 'iframe 无法访问或响应超时' });
+        resolve({ success: false, matchCount: 0, error: 'iframe is unreachable or timed out' });
       }, 2500);
       STATE.pendingMemberQueries.set(reqId, {
         source: frame.contentWindow,
@@ -3987,7 +3997,7 @@
       member.selectorType === 'xpath'
         ? evaluateXPathAll(member.selector)[0]
         : queryAllDeep(member.selector)[0];
-    if (!element) return { success: false, value: '', error: '未找到元素' };
+    if (!element) return { success: false, value: '', error: 'Element not found' };
     return { success: true, value: String(getMemberElementValue(element, valueType)) };
   }
 
@@ -3999,23 +4009,23 @@
         )
       : [];
     if (frames.length !== 1 || !frames[0]?.contentWindow) {
-      return { success: false, value: '', error: 'iframe 定位无效或匹配不唯一' };
+      return { success: false, value: '', error: 'iframe locator is invalid or not unique' };
     }
     const frame = frames[0];
     if (segment.url && frame.getAttribute('src')) {
       try {
         if (new URL(frame.getAttribute('src'), location.href).href !== segment.url) {
-          return { success: false, value: '', error: 'iframe 页面地址已变化' };
+          return { success: false, value: '', error: 'iframe page URL has changed' };
         }
       } catch {
-        return { success: false, value: '', error: 'iframe 页面地址无效' };
+        return { success: false, value: '', error: 'iframe page URL is invalid' };
       }
     }
     const reqId = `em_query_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         STATE.pendingMemberQueries.delete(reqId);
-        resolve({ success: false, value: '', error: 'iframe 查询超时' });
+        resolve({ success: false, value: '', error: 'iframe query timed out' });
       }, 2500);
       STATE.pendingMemberQueries.set(reqId, { source: frame.contentWindow, timer, resolve });
       frame.contentWindow.postMessage(
@@ -4059,13 +4069,15 @@
     const hasGroup = members.length > 1 || STATE.selectionMode === 'manual';
     const groupId = hasGroup ? createMemberId() : undefined;
     return {
-      name: name || (hasGroup ? `元素分组（${members.length}项）` : selector),
+      name: name || (hasGroup ? `Element group (${members.length} item(s))` : selector),
       url: location.href,
       selector,
       selectorType,
       listMode: members.length > 1 || StateStore.get('listMode'),
       ...(tags.length ? { tags: [...new Set(tags)] } : {}),
-      ...(hasGroup ? { groupId, groupName: name || `元素分组（${members.length}项）` } : {}),
+      ...(hasGroup
+        ? { groupId, groupName: name || `Element group (${members.length} item(s))` }
+        : {}),
       ...(members.length > 1 || members[0]?.framePath?.length ? { members } : {}),
     };
   }
@@ -4074,7 +4086,10 @@
     const marker = getMarkerData();
     if (!marker) {
       StateStore.set({
-        validation: { status: 'failure', message: '请先选择元素，再导出定位' },
+        validation: {
+          status: 'failure',
+          message: 'Select an element first, then export the locator',
+        },
       });
       return;
     }
@@ -4110,7 +4125,7 @@
     if (!dialog || !output || !copyButton) return;
     const code = dialog.dataset[language] || '';
     output.textContent = code;
-    copyButton.textContent = `复制 ${language === 'python' ? 'Python' : 'JavaScript'}`;
+    copyButton.textContent = `Copy ${language === 'python' ? 'Python' : 'JavaScript'}`;
     dialog.dataset.codeLanguage = language;
     dialog.querySelectorAll('[data-code-language]').forEach((tab) => {
       tab.classList.toggle('active', tab.dataset.codeLanguage === language);
@@ -4131,7 +4146,9 @@
       document.execCommand('copy');
       textarea.remove();
     }
-    StateStore.set({ validation: { status: 'success', message: '✓ 定位代码已复制到剪贴板' } });
+    StateStore.set({
+      validation: { status: 'success', message: '✓ Locator code copied to clipboard' },
+    });
   }
 
   async function save(saveMode = 'group') {
@@ -4139,7 +4156,10 @@
       const marker = getMarkerData();
       if (!marker) {
         StateStore.set({
-          validation: { status: 'failure', message: '请先选择元素，再保存标记' },
+          validation: {
+            status: 'failure',
+            message: 'Select an element first, then save the marker',
+          },
         });
         return;
       }
@@ -4168,7 +4188,7 @@
         );
         const failedCount = responses.filter((item) => !item?.success).length;
         response = failedCount
-          ? { success: false, error: `${failedCount} 个元素保存失败` }
+          ? { success: false, error: `Failed to save ${failedCount} element(s)` }
           : { success: true };
       } else {
         response = await chrome.runtime.sendMessage({
@@ -4180,12 +4200,17 @@
         validation: response?.success
           ? {
               status: 'success',
-              message: saveMode === 'separate' ? '✓ 已分别保存并加入同一分组' : '✓ 标记已保存',
+              message:
+                saveMode === 'separate'
+                  ? '✓ Saved separately into the same group'
+                  : '✓ Marker saved',
             }
-          : { status: 'failure', message: response?.error || '保存失败' },
+          : { status: 'failure', message: response?.error || 'Save failed' },
       });
     } catch (error) {
-      StateStore.set({ validation: { status: 'failure', message: error?.message || '保存失败' } });
+      StateStore.set({
+        validation: { status: 'failure', message: error?.message || 'Save failed' },
+      });
     }
   }
 
@@ -4557,7 +4582,7 @@
                 {
                   type: 'em-member-operation-result',
                   reqId: data.reqId,
-                  result: { success: false, value: '', error: error?.message || '查询失败' },
+                  result: { success: false, value: '', error: error?.message || 'Query failed' },
                 },
                 '*',
               ),
@@ -4584,7 +4609,7 @@
                   result: {
                     success: false,
                     matchCount: 0,
-                    error: error?.message || '标注检查失败',
+                    error: error?.message || 'Marker check failed',
                   },
                 },
                 '*',
@@ -4674,8 +4699,8 @@
             if (data.preview) {
               const status = STATE.box?.querySelector('#__em_similar_preview_status');
               if (status) {
-                const scope = data.scope === 'page' ? '当前页面' : '当前区域';
-                status.textContent = `Shift 点击将选择 ${data.previewCount || rects.length} 项（${scope}）`;
+                const scope = data.scope === 'page' ? 'current page' : 'current region';
+                status.textContent = `Shift click will select ${data.previewCount || rects.length} item(s) (${scope})`;
               }
             }
           } else {
@@ -4713,7 +4738,7 @@
           sendResponse({
             success: false,
             matchCount: 0,
-            error: error?.message || '标注检查失败',
+            error: error?.message || 'Marker check failed',
           }),
         );
       return true;
@@ -4725,14 +4750,17 @@
           return {
             memberId: member.id,
             name: member.name,
-            frame: member.framePath?.map((segment) => segment.selector).join(' → ') || '当前页面',
+            frame:
+              member.framePath?.map((segment) => segment.selector).join(' → ') || 'Current page',
             value: result?.success ? result.value : '',
-            error: result?.success ? '' : result?.error || '读取失败',
+            error: result?.success ? '' : result?.error || 'Read failed',
           };
         }),
       )
         .then((rows) => sendResponse({ success: true, rows }))
-        .catch((error) => sendResponse({ success: false, error: error?.message || '提取失败' }));
+        .catch((error) =>
+          sendResponse({ success: false, error: error?.message || 'Extraction failed' }),
+        );
       return true;
     } else if (request?.action === 'element_marker_reselect' && IS_MAIN) {
       STATE.repairTarget = {
@@ -4741,7 +4769,7 @@
       };
       StateStore.set({
         activeTab: 'attributes',
-        validation: { status: 'idle', message: '请在页面上点击新的元素定位' },
+        validation: { status: 'idle', message: 'Click a new element on the page to locate' },
       });
       sendResponse({ success: true });
       return true;
@@ -4753,7 +4781,9 @@
           const response = {
             success: failed.length === 0,
             results,
-            ...(failed.length ? { error: `${failed.length} 个标注元素无法定位` } : {}),
+            ...(failed.length
+              ? { error: `${failed.length} marked element(s) could not be located` }
+              : {}),
           };
           sendResponse(response);
         })

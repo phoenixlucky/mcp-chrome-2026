@@ -50,11 +50,11 @@ fn request_json(port: u16, method: &str, path: &str) -> BridgeResponse {
     let address = format!("127.0.0.1:{port}");
     let socket = match address.to_socket_addrs().ok().and_then(|mut addresses| addresses.next()) {
         Some(socket) => socket,
-        None => return error_response("无法解析本机服务地址"),
+        None => return error_response("Cannot resolve the local service address"),
     };
     let mut stream = match TcpStream::connect_timeout(&socket, Duration::from_secs(3)) {
         Ok(stream) => stream,
-        Err(error) => return error_response(format!("本地服务未连接：{error}")),
+        Err(error) => return error_response(format!("Local service not connected: {error}")),
     };
     let _ = stream.set_read_timeout(Some(Duration::from_secs(4)));
     let authorization = env::var("CHROME_MCP_API_KEY")
@@ -66,16 +66,16 @@ fn request_json(port: u16, method: &str, path: &str) -> BridgeResponse {
         "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nOrigin: http://127.0.0.1:1420\r\n{authorization}Connection: close\r\nContent-Length: 0\r\n\r\n"
     );
     if let Err(error) = stream.write_all(request.as_bytes()) {
-        return error_response(format!("发送本地请求失败：{error}"));
+        return error_response(format!("Failed to send the local request: {error}"));
     }
 
     let mut bytes = Vec::new();
     if let Err(error) = stream.read_to_end(&mut bytes) {
-        return error_response(format!("读取本地响应失败：{error}"));
+        return error_response(format!("Failed to read the local response: {error}"));
     }
     let response = String::from_utf8_lossy(&bytes);
     let Some((headers, body)) = response.split_once("\r\n\r\n") else {
-        return error_response("本地服务返回了无效响应");
+        return error_response("The local service returned an invalid response");
     };
     let status = headers
         .lines()
@@ -89,7 +89,7 @@ fn request_json(port: u16, method: &str, path: &str) -> BridgeResponse {
             .and_then(|value| value.get("message").or_else(|| value.get("error")))
             .and_then(Value::as_str)
             .map(str::to_owned)
-            .or_else(|| Some(format!("本地服务返回 HTTP {status}")))
+            .or_else(|| Some(format!("Local service returned HTTP {status}")))
     } else {
         None
     };
@@ -149,7 +149,7 @@ fn show_main_window(app: &AppHandle) {
 
 fn tray_status(response: &BridgeResponse) -> (String, bool, bool, bool) {
     let Some(data) = response.data.as_ref() else {
-        return ("状态：服务未连接".into(), true, false, false);
+        return ("Status: service not connected".into(), true, false, false);
     };
     let running = data
         .get("server")
@@ -162,10 +162,10 @@ fn tray_status(response: &BridgeResponse) -> (String, bool, bool, bool) {
         .unwrap_or(false);
 
     match running {
-        Some(false) => ("状态：服务已停止".into(), true, false, false),
-        Some(true) if connected => ("状态：运行中 · Chrome 已连接".into(), false, true, true),
-        Some(true) => ("状态：运行中 · 等待 Chrome".into(), false, true, true),
-        None => ("状态：服务未连接".into(), true, false, false),
+        Some(false) => ("Status: service stopped".into(), true, false, false),
+        Some(true) if connected => ("Status: running · Chrome connected".into(), false, true, true),
+        Some(true) => ("Status: running · waiting for Chrome".into(), false, true, true),
+        None => ("Status: service not connected".into(), true, false, false),
     }
 }
 
@@ -180,7 +180,7 @@ fn refresh_tray_menu(
     let (label, start_enabled, stop_enabled, restart_enabled) = if response.ok {
         tray_status(&response)
     } else {
-        ("状态：服务未连接".into(), true, false, false)
+        ("Status: service not connected".into(), true, false, false)
     };
     let _ = status.set_text(label);
     let _ = start.set_enabled(start_enabled);
@@ -207,7 +207,7 @@ fn clear_error_diagnostics(terminal_id: String, state: State<'_, BridgeState>) -
                 .chars()
                 .all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_'))
     {
-        return error_response("无效的错误日志终端 ID");
+        return error_response("Invalid error log terminal ID");
     }
     let path = if terminal_id == "all" {
         "/__chrome_mcp_bridge/error-diagnostics/clear".to_string()
@@ -227,7 +227,7 @@ fn control_service(action: String, state: State<'_, BridgeState>) -> BridgeRespo
     let path = match action.as_str() {
         "start" => "/__chrome_mcp_bridge/start",
         "stop" => "/__chrome_mcp_bridge/stop",
-        _ => return error_response("不支持的服务操作"),
+        _ => return error_response("Unsupported service action"),
     };
     request_json(state.port, "POST", path)
 }
@@ -239,7 +239,7 @@ fn cancel_mcp_request(request_id: String, state: State<'_, BridgeState>) -> Brid
             .chars()
             .all(|character| character.is_ascii_alphanumeric() || character == '-')
     {
-        return error_response("无效的 MCP 请求 ID");
+        return error_response("Invalid MCP request ID");
     }
     request_json(
         state.port,
@@ -260,10 +260,10 @@ fn control_runtime(task_id: String, action: String, state: State<'_, BridgeState
             .chars()
             .all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_')
     {
-        return error_response("无效的运行时任务 ID");
+        return error_response("Invalid runtime task ID");
     }
     if !matches!(action.as_str(), "cancel" | "pause" | "resume" | "focus") {
-        return error_response("不支持的运行时操作");
+        return error_response("Unsupported runtime action");
     }
     request_json(
         state.port,
@@ -291,7 +291,7 @@ fn start_bridge(app: AppHandle, state: State<'_, BridgeState>) -> Result<String,
         .into_iter()
         .find(|candidate| candidate.is_file())
         .ok_or_else(|| {
-            "找不到 chrome-mcp-bridge.exe。请把它放在客户端旁边，或设置 CHROME_MCP_BRIDGE_EXECUTABLE。".to_string()
+            "chrome-mcp-bridge.exe not found. Put it next to the client, or set CHROME_MCP_BRIDGE_EXECUTABLE.".to_string()
         })?;
     let child_process = Command::new(&path)
         .arg("--tauri")
@@ -302,14 +302,14 @@ fn start_bridge(app: AppHandle, state: State<'_, BridgeState>) -> Result<String,
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|error| format!("启动桥接服务失败：{error}"))?;
-    *state.child.lock().map_err(|_| "无法锁定桥接进程状态".to_string())? = Some(child_process);
+        .map_err(|error| format!("Failed to start the bridge service: {error}"))?;
+    *state.child.lock().map_err(|_| "Cannot lock the bridge process state".to_string())? = Some(child_process);
     Ok(path.display().to_string())
 }
 
 #[tauri::command]
 fn open_log() -> Result<(), String> {
-    let root = env::var("LOCALAPPDATA").map_err(|_| "找不到 LOCALAPPDATA".to_string())?;
+    let root = env::var("LOCALAPPDATA").map_err(|_| "LOCALAPPDATA not found".to_string())?;
     let path = PathBuf::from(root).join("mcp-chrome-bridge/logs/portable-launcher.log");
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
@@ -321,7 +321,7 @@ fn open_log() -> Result<(), String> {
         .arg(path)
         .spawn()
         .map(|_| ())
-        .map_err(|error| format!("打开日志失败：{error}"))
+        .map_err(|error| format!("Failed to open the log: {error}"))
 }
 
 pub fn run() {
@@ -344,14 +344,14 @@ pub fn run() {
             open_log
         ])
         .setup(|app| {
-            let status = MenuItem::with_id(app, "status", "状态：正在读取…", false, None::<&str>)?;
-            let show = MenuItem::with_id(app, "show", "打开客户端", true, None::<&str>)?;
-            let start = MenuItem::with_id(app, "start", "启动 MCP 服务", true, None::<&str>)?;
-            let stop = MenuItem::with_id(app, "stop", "停止 MCP 服务", false, None::<&str>)?;
-            let restart = MenuItem::with_id(app, "restart", "重启 MCP 服务", true, None::<&str>)?;
-            let health = MenuItem::with_id(app, "health", "检查 Chrome 连接", true, None::<&str>)?;
-            let log = MenuItem::with_id(app, "log", "打开运行日志", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出客户端并停止服务", true, None::<&str>)?;
+            let status = MenuItem::with_id(app, "status", "Status: reading…", false, None::<&str>)?;
+            let show = MenuItem::with_id(app, "show", "Open client", true, None::<&str>)?;
+            let start = MenuItem::with_id(app, "start", "Start MCP service", true, None::<&str>)?;
+            let stop = MenuItem::with_id(app, "stop", "Stop MCP service", false, None::<&str>)?;
+            let restart = MenuItem::with_id(app, "restart", "Restart MCP service", true, None::<&str>)?;
+            let health = MenuItem::with_id(app, "health", "Check Chrome connection", true, None::<&str>)?;
+            let log = MenuItem::with_id(app, "log", "Open runtime log", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit client and stop service", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let separator_before_quit = PredefinedMenuItem::separator(app)?;
             let menu = Menu::with_items(

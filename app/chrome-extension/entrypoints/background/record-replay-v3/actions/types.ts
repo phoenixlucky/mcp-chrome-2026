@@ -1,25 +1,25 @@
 /**
  * Action Type System for Record & Replay
- * 商业级录制回放的核心类型定义
+ * Core type definitions for commercial-grade record & replay
  *
- * 设计原则：
- * - 类型安全，无 any
- * - 支持所有操作类型
- * - 支持重试、超时、错误处理策略
- * - 支持选择器候选列表和稳定性评分
- * - 支持变量系统
- * - 符合 SOLID 原则（接口可通过声明合并扩展）
+ * Design principles:
+ * - Type-safe, no any
+ * - Support all operation types
+ * - Support retry, timeout and error handling policies
+ * - Support selector candidate lists and stability scoring
+ * - Support the variable system
+ * - Follow SOLID principles (interfaces extensible via declaration merging)
  */
 
 // ================================
-// 基础类型
+// Base types
 // ================================
 
 export type Milliseconds = number;
 export type ISODateTimeString = string;
 export type NonEmptyArray<T> = [T, ...T[]];
 
-// JSON 类型
+// JSON types
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 export interface JsonObject {
@@ -27,7 +27,7 @@ export interface JsonObject {
 }
 export type JsonArray = JsonValue[];
 
-// ID 类型
+// ID types
 export type FlowId = string;
 export type ActionId = string;
 export type SubflowId = string;
@@ -49,7 +49,7 @@ export type BuiltinEdgeLabel = (typeof EDGE_LABELS)[keyof typeof EDGE_LABELS];
 export type EdgeLabel = string;
 
 // ================================
-// 错误处理
+// Error handling
 // ================================
 
 export type ActionErrorCode =
@@ -73,29 +73,29 @@ export interface ActionError {
 }
 
 // ================================
-// 执行策略
+// Execution policy
 // ================================
 
 export interface TimeoutPolicy {
   ms: Milliseconds;
-  /** 'attempt' = 每次尝试独立计时, 'action' = 整个 action 总计时 */
+  /** 'attempt' = time each attempt independently, 'action' = time the whole action */
   scope?: 'attempt' | 'action';
 }
 
 export type BackoffKind = 'none' | 'exp' | 'linear';
 
 export interface RetryPolicy {
-  /** 重试次数（不含首次尝试） */
+  /** Retry count (excluding the first attempt) */
   retries: number;
-  /** 重试间隔 */
+  /** Retry interval */
   intervalMs: Milliseconds;
-  /** 退避策略 */
+  /** Backoff strategy */
   backoff?: BackoffKind;
-  /** 最大间隔（用于 exp/linear） */
+  /** Max interval (used for exp/linear) */
   maxIntervalMs?: Milliseconds;
-  /** 抖动策略 */
+  /** Jitter strategy */
   jitter?: 'none' | 'full';
-  /** 仅在这些错误码时重试 */
+  /** Retry only on these error codes */
   retryOn?: ReadonlyArray<ActionErrorCode>;
 }
 
@@ -119,7 +119,7 @@ export interface ActionPolicy {
 }
 
 // ================================
-// 变量系统
+// Variable system
 // ================================
 
 export interface VariableDefinitionBase {
@@ -184,7 +184,7 @@ export interface VariablePointer {
 }
 
 // ================================
-// 表达式和模板
+// Expressions and templates
 // ================================
 
 export type ExpressionLanguage = 'js' | 'rr';
@@ -224,7 +224,7 @@ export type DataPath = string; // dot/bracket path: e.g. "data.items[0].id"
 export type Assignments = Record<VariableName, DataPath>;
 
 // ================================
-// 条件表达式
+// Conditional expressions
 // ================================
 
 export type CompareOp =
@@ -258,13 +258,13 @@ export type Condition =
   | { kind: 'or'; conditions: NonEmptyArray<Condition> };
 
 // ================================
-// 选择器系统
+// Selector system
 // ================================
 
 export type SelectorCandidateSource = 'recorded' | 'user' | 'generated';
 
 export interface SelectorStability {
-  /** 稳定性评分 0-1 */
+  /** Stability score 0-1 */
   score: number;
   signals?: {
     usesId?: boolean;
@@ -322,7 +322,7 @@ export interface ElementTargetBase {
 
 export type ElementTarget =
   | (ElementTargetBase & {
-      /** 临时引用（快速路径） */
+      /** Temporary reference (fast path) */
       ref: string;
       candidates?: ReadonlyArray<SelectorCandidate>;
     })
@@ -332,12 +332,12 @@ export type ElementTarget =
     });
 
 // ================================
-// Action 参数定义
+// Action param definitions
 // ================================
 
 export type BrowserWorld = 'MAIN' | 'ISOLATED';
 
-// --- 页面交互 ---
+// --- Page interaction ---
 
 export interface ClickParams {
   target: ElementTarget;
@@ -382,14 +382,14 @@ export interface DragParams {
   path?: ReadonlyArray<Point>;
 }
 
-// --- 导航 ---
+// --- Navigation ---
 
 export interface NavigateParams {
   url: Resolvable<string>;
   refresh?: boolean;
 }
 
-// --- 等待和断言 ---
+// --- Wait and assert ---
 
 export type WaitCondition =
   | { kind: 'sleep'; sleep: Resolvable<Milliseconds> }
@@ -421,7 +421,7 @@ export interface AssertParams {
   failStrategy?: AssertFailStrategy;
 }
 
-// --- 数据和脚本 ---
+// --- Data and scripts ---
 
 export type ExtractParams =
   | {
@@ -502,7 +502,7 @@ export interface HttpParams {
   assign?: Assignments;
 }
 
-// --- DOM 工具 ---
+// --- DOM utilities ---
 
 export interface TriggerEventParams {
   target: ElementTarget;
@@ -529,7 +529,7 @@ export interface LoopElementsParams {
   subflowId: SubflowId;
 }
 
-// --- 标签页管理 ---
+// --- Tab management ---
 
 export interface OpenTabParams {
   url?: Resolvable<string>;
@@ -553,7 +553,7 @@ export interface HandleDownloadParams {
   saveAs?: VariableName;
 }
 
-// --- 控制流 ---
+// --- Control flow ---
 
 export interface ExecuteFlowParams {
   flowId: FlowId;
@@ -597,7 +597,7 @@ export interface DelayParams {
   sleep: Resolvable<Milliseconds>;
 }
 
-// --- 触发器 ---
+// --- Triggers ---
 
 export type TriggerUrlRuleKind = 'url' | 'domain' | 'path';
 
@@ -658,19 +658,19 @@ export interface TriggerParams {
 }
 
 // ================================
-// Action 核心定义
+// Action core definitions
 // ================================
 
 /**
- * ActionParamsByType 使用 interface 声明
- * 允许外部模块通过声明合并扩展 Action 类型（符合 OCP 原则）
+ * ActionParamsByType uses interface declaration
+ * Allows external modules to extend Action types via declaration merging (OCP principle)
  */
 export interface ActionParamsByType {
-  // UI/构建时
+  // UI/build time
   trigger: TriggerParams;
   delay: DelayParams;
 
-  // 页面交互
+  // Page interaction
   click: ClickParams;
   dblclick: ClickParams;
   fill: FillParams;
@@ -678,11 +678,11 @@ export interface ActionParamsByType {
   scroll: ScrollParams;
   drag: DragParams;
 
-  // 同步和验证
+  // Sync and validation
   wait: WaitParams;
   assert: AssertParams;
 
-  // 数据和脚本
+  // Data and scripts
   extract: ExtractParams;
   script: ScriptParams;
   http: HttpParams;
@@ -691,21 +691,21 @@ export interface ActionParamsByType {
   readPage: ReadPageParams;
   getWebContent: GetWebContentParams;
 
-  // DOM 工具
+  // DOM utilities
   triggerEvent: TriggerEventParams;
   setAttribute: SetAttributeParams;
 
-  // 帧和循环
+  // Frame and loops
   switchFrame: SwitchFrameParams;
   loopElements: LoopElementsParams;
 
-  // 控制流
+  // Control flow
   if: IfParams;
   foreach: ForeachParams;
   while: WhileParams;
   executeFlow: ExecuteFlowParams;
 
-  // 标签页
+  // Tabs
   navigate: NavigateParams;
   openTab: OpenTabParams;
   switchTab: SwitchTabParams;
@@ -735,7 +735,7 @@ export type ExecutableActionType = Exclude<ActionType, 'trigger'>;
 export type ExecutableAction<T extends ExecutableActionType = ExecutableActionType> = Action<T>;
 
 // ================================
-// Action 输出
+// Action outputs
 // ================================
 
 export interface HttpResponse {
@@ -756,7 +756,7 @@ export interface DownloadInfo {
 }
 
 /**
- * Action 输出类型映射（可通过声明合并扩展）
+ * Action output type map (extensible via declaration merging)
  */
 export interface ActionOutputsByType {
   screenshot: { base64Data: string };
@@ -775,7 +775,7 @@ export type ActionOutput<T extends ActionType> = T extends keyof ActionOutputsBy
   : undefined;
 
 // ================================
-// 执行接口
+// Execution interfaces
 // ================================
 
 export type ValidationResult = { ok: true } | { ok: false; errors: NonEmptyArray<string> };
@@ -797,9 +797,9 @@ export interface ActionExecutionContext {
   tabId: number;
   frameId?: number;
   runId?: string;
-  /** 日志记录函数 */
+  /** Logging function */
   log: (message: string, level?: 'info' | 'warn' | 'error') => void;
-  /** 截图函数 */
+  /** Screenshot function */
   captureScreenshot?: () => Promise<string>;
   /**
    * Optional structured log sink for replay UIs (legacy RunLogger integration).
@@ -832,11 +832,11 @@ export interface ActionExecutionResult<T extends ActionType = ActionType> {
   status: 'success' | 'failed' | 'skipped' | 'paused';
   output?: ActionOutput<T>;
   error?: ActionError;
-  /** 下一个边的 label（用于条件分支） */
+  /** Next edge label (used for conditional branching) */
   nextLabel?: EdgeLabel;
-  /** 控制流指令（foreach/while） */
+  /** Control flow directive (foreach/while) */
   control?: ControlDirective;
-  /** 执行耗时 */
+  /** Execution duration */
   durationMs?: Milliseconds;
   /**
    * New tab ID after tab operations (openTab/switchTab).
@@ -846,20 +846,20 @@ export interface ActionExecutionResult<T extends ActionType = ActionType> {
 }
 
 /**
- * Action 执行器接口
+ * Action handler interface
  */
 export interface ActionHandler<T extends ExecutableActionType = ExecutableActionType> {
   type: T;
-  /** 验证 action 配置 */
+  /** Validate action config */
   validate?: (action: Action<T>) => ValidationResult;
-  /** 执行 action */
+  /** Execute the action */
   run: (ctx: ActionExecutionContext, action: Action<T>) => Promise<ActionExecutionResult<T>>;
-  /** 生成 action 描述（用于 UI 显示） */
+  /** Generate an action description (for UI display) */
   describe?: (action: Action<T>) => string;
 }
 
 // ================================
-// Flow 图结构
+// Flow graph structure
 // ================================
 
 export interface ActionEdge {
@@ -892,11 +892,11 @@ export interface Flow {
   meta: FlowMeta;
   variables?: ReadonlyArray<VariableDefinition>;
 
-  /** DAG 节点 */
+  /** DAG nodes */
   nodes: ReadonlyArray<AnyAction>;
-  /** DAG 边 */
+  /** DAG edges */
   edges: ReadonlyArray<ActionEdge>;
-  /** 子流程（用于 foreach/while/loopElements） */
+  /** Subflows (for foreach/while/loopElements) */
   subflows?: Record<
     SubflowId,
     { nodes: ReadonlyArray<AnyAction>; edges: ReadonlyArray<ActionEdge> }
@@ -904,7 +904,7 @@ export interface Flow {
 }
 
 // ================================
-// Action 规格（用于 UI）
+// Action specs (for UI)
 // ================================
 
 export type ActionCategory = 'Flow' | 'Actions' | 'Logic' | 'Tools' | 'Tabs' | 'Page';
@@ -930,12 +930,12 @@ export interface ActionSpec<T extends ActionType = ActionType> {
   display: ActionSpecDisplay;
   ports: ActionSpecPorts;
   defaults?: Partial<ActionParamsByType[T]>;
-  /** 需要进行模板替换的字段路径 */
+  /** Field paths that need template substitution */
   refDataKeys?: ReadonlyArray<string>;
 }
 
 // ================================
-// 常量导出
+// Constant exports
 // ================================
 
 export const ACTION_TYPES: ReadonlyArray<ActionType> = [

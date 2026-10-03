@@ -11,9 +11,9 @@ const destination = path.join(destinationDir, 'chrome-mcp-bridge.exe');
 try {
   await fs.access(source);
 } catch {
-  throw new Error(`找不到 ${source}，请先运行 package:windows 生成桥接服务。`);
+  throw new Error(`Cannot find ${source}; run package:windows first to build the bridge service.`);
 }
 
 await fs.mkdir(destinationDir, { recursive: true });
 await fs.copyFile(source, destination);
-console.log(`已准备 Tauri bridge：${destination}`);
+console.log(`Prepared Tauri bridge: ${destination}`);

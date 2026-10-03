@@ -5,216 +5,222 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **English-first project** — code comments, UI strings, documentation, and the README are now English; English is the default UI language. The canonical tool catalog in `tools.ts` is English, while `tools-zh.ts` keeps the Chinese descriptions the extension zh mode reads.
+
 ## [v2.7.6] - 2026-09-13
 
 ### Added
 
-- **后台窗口浏览器操作** — 增强最小化窗口下的滚动、采集、线程提取和页面交互支持，并提供明确的前台窗口要求与可重试错误。
-- **采集与滚动工具增强** — 支持后台模式、布局可用性检测、部分结果返回和统一滚动执行路径。
+- **Background window browser operations** — Improved scrolling, collection, thread extraction, and page interaction with minimized windows, plus explicit foreground-window requirements and retryable errors.
+- **Collection and scroll tool enhancements** — Support for background mode, layout availability detection, partial results, and a unified scroll execution path.
 
 ### Fixed
 
-- **浏览器工具稳定性** — 改进 CDP 超时、页面生命周期、网络捕获、SPA 请求和跨页面结果处理。
-- **版本同步** — 根包、子包、WASM、桌面 Tauri/Cargo 配置统一为 v2.7.6。
+- **Browser tool stability** — Improved CDP timeouts, page lifecycle, network capture, SPA requests, and cross-page result handling.
+- **Version sync** — Root package, sub-packages, WASM, and desktop Tauri/Cargo configs aligned to v2.7.6.
 
 ## [v2.7.5] - 2026-09-13
 
 ### Added
 
-- **内容脚本超时恢复与执行状态保护** — 内容脚本超时支持一次恢复重试；点击等副作用操作在超时后返回 `EXECUTION_UNKNOWN`，避免盲目重复执行。
+- **Content script timeout recovery and execution state protection** — Content script timeouts support one recovery retry; side-effect actions such as clicks return `EXECUTION_UNKNOWN` after a timeout to avoid blind re-execution.
 
 ### Fixed
 
-- **浏览器交互取消与断连** — 改进点击、键盘、滚动、CDP 会话和 HTTP 请求断开时的取消与错误诊断。
-- **版本同步** — 根包、子包、WASM、桌面 Tauri/Cargo 配置统一为 v2.7.5。
+- **Browser interaction cancellation and disconnects** — Improved cancellation and error diagnostics when clicks, keyboard input, scrolling, CDP sessions, and HTTP requests are aborted.
+- **Version sync** — Root package, sub-packages, WASM, and desktop Tauri/Cargo configs aligned to v2.7.5.
 
 ## [v2.7.4] - 2026-09-13
 
 ### Added
 
-- **页面递归采集与线程提取** — 新增 `chrome_crawl_links` 和 `chrome_extract_thread`，支持深度/节点限制、重试、滚动加载、嵌套过滤和条件停止。
+- **Recursive page collection and thread extraction** — Added `chrome_crawl_links` and `chrome_extract_thread` with depth/node limits, retries, scroll loading, nested filtering, and conditional stopping.
 
 ### Fixed
 
-- **审查工具错误信息** — 保留页面执行异常的描述与堆栈，便于定位 `find_and_click` 和 `expand_section` 失败原因。
-- **版本同步** — 根包、子包、WASM、桌面 Tauri/Cargo 配置统一为 v2.7.4。
+- **Inspection tool error messages** — Preserve page execution exception descriptions and stacks to help pinpoint `find_and_click` and `expand_section` failures.
+- **Version sync** — Root package, sub-packages, WASM, and desktop Tauri/Cargo configs aligned to v2.7.4.
 
 ## [v2.6.11] - 2026-09-08
 
 ### Fixed
 
-- **输出内容清理更稳健** — 改进扩展输出清理逻辑并补充测试，减少异常或不完整响应。
+- **More robust output sanitization** — Improved extension output sanitization logic with added tests to reduce malformed or incomplete responses.
 
 ### Changed
 
-- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.11。
+- All release packages, desktop Tauri config, and runtime versions aligned to v2.6.11.
 
 ## [v2.6.10] - 2026-09-07
 
 ### Added
 
-- **最近请求记录折叠与滚动** — 桌面版已完成调用记录支持折叠，并在记录较多时独立滚动。
+- **Recent request record collapsing and scrolling** — Desktop completed-call records can now be collapsed and scroll independently when there are many entries.
 
 ### Fixed
 
-- **慢页面导航不再阻塞** — `chrome_navigate` 默认不等待页面完全 ready，超时错误统一转换为 `McpToolTimeout`，后续 URL/HTML 轮询可以继续执行。
+- **Slow-page navigation no longer blocks** — `chrome_navigate` no longer waits for the page to be fully ready by default; timeout errors are normalized to `McpToolTimeout` so subsequent URL/HTML polling can continue.
 
 ### Changed
 
-- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.10。
+- All release packages, desktop Tauri config, and runtime versions aligned to v2.6.10.
 
 ## [v2.6.9] - 2026-09-07
 
 ### Fixed
 
-- **页面持续加载时等待卡住** — `chrome_wait` 的 CDP 等待现在支持本地 deadline、取消和 debugger 会话释放。
-- **失效 tabId 误复用** — 显式 tab 已关闭时，`chrome_block_images` 返回明确错误，不再切换到当前活动 tab。
-- **同 tab 请求排队阻塞** — 写操作队列支持 deadline 和取消，避免后续请求被卡死操作长期占用。
-- **多匹配 selector 诊断** — 将调用方 selector 不唯一识别为预期输入错误，提示细化 selector。
+- **Waits hanging while a page keeps loading** — `chrome_wait`'s CDP wait now supports a local deadline, cancellation, and debugger session release.
+- **Stale tabId silently reused** — When an explicit tab is closed, `chrome_block_images` now returns a clear error instead of switching to the active tab.
+- **Same-tab request queue blocking** — The write-operation queue now supports deadlines and cancellation so later requests aren't held hostage by a stuck operation.
+- **Multiple-match selector diagnostics** — A caller selector matching multiple elements is now reported as an expected input error, suggesting a more specific selector.
 
 ### Changed
 
-- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.9。
+- All release packages, desktop Tauri config, and runtime versions aligned to v2.6.9.
 
 ## [v2.6.7] - 2026-09-04
 
 ### Added
 
-- **全入口请求监控与中断** — 桌面版统一展示 `/mcp`、`/mcp-new`、`/sse` 和 STDIO 活动请求，并支持按请求 ID 中断。
-- **页面消息超时配置** — 扩展设置支持 5–300 秒手动配置，默认 30 秒。
+- **All-entry request monitoring and abort** — The desktop app now shows active requests across `/mcp`, `/mcp-new`, `/sse`, and STDIO, and can abort by request ID.
+- **Page message timeout configuration** — Extension settings support manual configuration from 5–300 seconds, default 30 seconds.
 
 ### Fixed
 
-- **`/mcp-new` deadline 过短** — 延长普通工具、长任务及标签解析等 native 请求窗口，减少间歇性 `DEADLINE_EXCEEDED`。
+- **`/mcp-new` deadline too short** — Extended native request windows for regular tools, long tasks, and tab resolution to reduce intermittent `DEADLINE_EXCEEDED`.
 
 ### Changed
 
-- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.6.7。
+- All release packages, desktop Tauri config, and runtime versions aligned to v2.6.7.
 
 ## [v2.5.6] - 2026-09-04
 
 ### Fixed
 
-- **`/mcp-new` 大响应失败** — 修复 Artifact 响应缺少普通工具 `status` 字段而被误报为 `Error calling tool: undefined` 的问题。
-- **扩展内容脚本断连** — `getHtmlContent` / `getInteractiveElements` 遇到接收端不存在或消息通道关闭时，自动等待标签页就绪、重新注入并重试一次。
+- **`/mcp-new` large-response failures** — Fixed Artifact responses missing the regular tool `status` field being misreported as `Error calling tool: undefined`.
+- **Extension content script disconnects** — When the receiver doesn't exist or the message channel is closed, `getHtmlContent` / `getInteractiveElements` now wait for the tab to be ready, re-inject, and retry once.
 
 ### Added
 
-- **无会话请求监控与中断** — 桌面版展示 `/mcp-new` 活动请求及请求 ID、工具名、耗时和客户端信息，并支持按请求 ID 中断。
-- **错误响应兜底** — Native 扩展返回非成功响应时保留错误对象、消息或状态，避免丢失错误上下文。
+- **Sessionless request monitoring and abort** — The desktop app shows active `/mcp-new` requests with request ID, tool name, duration, and client info, and can abort by request ID.
+- **Error response fallback** — Preserve the error object, message, or status when the native extension returns a non-success response, avoiding lost error context.
 
 ### Changed
 
-- 所有发布包、桌面 Tauri 配置与运行时版本统一为 v2.5.6。
+- All release packages, desktop Tauri config, and runtime versions aligned to v2.5.6.
 
 ## [v2.5.5] - 2026-09-03
 
 ### Added
 
-- **统一传输层** — 新增 `unified-transport` 与 `stdio-transport`：STDIO 客户端默认连接 `/mcp-new`（MCP 2026-07-28 无会话传输），失败自动回退兼容版 `/mcp`；JSON-RPC 编解码、deadline、取消、重试、错误映射与 newline JSON / `Content-Length` 双 framing 全链路一致。
-- **原生通道并发治理与协议 V2 唯一化** — Native Host 断线后 pending / controller / queue 归零，写操作不自动重放；V1 输入以 `UNSUPPORTED_VERSION` 拒绝；新增帧解码器（单条消息上限 16 MiB、半包/粘包重组、单次读取条数上限）。
-- **共享协议扩展** — `native-protocol` 增加 Artifact 分片消息（`artifactId + seq + eof + sha256`）与 `native.eventChannelReady` 事件，能力声明扩展。
-- **Artifact 数据面** — 新增 `artifact-store`：分片上传与校验、临时文件原子改名、TTL 自动清理与容量上限、断线残留清理；对 Cookie / Token / Authorization 脱敏。
-- **localhost WebSocket 事件通道** — 新增 `event-websocket-server`：随机端口 + 一次性 Token 下发、仅绑定 127.0.0.1、Origin / 扩展 ID 白名单、连接数与请求大小限制。
-- **安全与可观测性** — 支持精确扩展 ID（`CHROME_MCP_EXTENSION_ID`）与 Origin 白名单（`CHROME_MCP_ALLOWED_ORIGINS`）、请求体上限 `CHROME_MCP_MAX_HTTP_BODY_BYTES`（默认 8 MiB）、调试 start/stop 接口默认关闭（`CHROME_MCP_ENABLE_DEBUG_ENDPOINTS`）；每请求 traceId 并记录 `stdio_wait` / `http_process` / `native_queue_wait` / `native_roundtrip` / `browser_execution` / `total` 分段耗时。
-- **发布门禁** — 新增 `test:phase8` / `check:phase8` 与 `scripts/phase8-gates.mjs`（1000 次混合读写、断线归零、静态门禁）；`check-versions` 覆盖 desktop Tauri / Cargo / tauri.conf。
-- **浏览器与工具增强** — `navigate` 支持 `waitForReady` / `waitTimeoutMs`；spa fetch 临时标签页空闲回收保护；popup 支持多传输入口配置切换。
+- **Unified transport layer** — Added `unified-transport` and `stdio-transport`: the STDIO client connects to `/mcp-new` (MCP 2026-07-28 sessionless transport) by default and falls back to the compatible `/mcp` when that fails; JSON-RPC encoding/decoding, deadlines, cancellation, retries, error mapping, and newline JSON / `Content-Length` dual framing are consistent across the whole chain.
+- **Native channel concurrency control and protocol V2 consolidation** — After a Native Host disconnect, pending / controller / queue are reset to zero and write operations are not replayed automatically; V1 input is rejected with `UNSUPPORTED_VERSION`; added a frame decoder (16 MiB per-message limit, half/sticky packet reassembly, per-read count limit).
+- **Shared protocol extensions** — `native-protocol` adds Artifact chunk messages (`artifactId + seq + eof + sha256`) and the `native.eventChannelReady` event, extending capability declarations.
+- **Artifact data plane** — Added `artifact-store`: chunked upload and verification, atomic rename of temp files, TTL auto-cleanup with a size cap, and cleanup of disconnected-session leftovers; Cookie / Token / Authorization are redacted.
+- **localhost WebSocket event channel** — Added `event-websocket-server`: random port with one-time token issuance, 127.0.0.1-only binding, Origin / extension ID allowlists, and connection-count and request-size limits.
+- **Security and observability** — Support for an exact extension ID (`CHROME_MCP_EXTENSION_ID`) and Origin allowlist (`CHROME_MCP_ALLOWED_ORIGINS`), request body cap `CHROME_MCP_MAX_HTTP_BODY_BYTES` (default 8 MiB), and debug start/stop endpoints disabled by default (`CHROME_MCP_ENABLE_DEBUG_ENDPOINTS`); per-request traceId with segment timings for `stdio_wait` / `http_process` / `native_queue_wait` / `native_roundtrip` / `browser_execution` / `total`.
+- **Release gates** — Added `test:phase8` / `check:phase8` and `scripts/phase8-gates.mjs` (1000 mixed read/write operations, disconnect reset, static gates); `check-versions` now covers desktop Tauri / Cargo / tauri.conf.
+- **Browser and tool enhancements** — `navigate` supports `waitForReady` / `waitTimeoutMs`; idle reclamation protection for spa fetch temporary tabs; popup supports switching between multiple transport entry configurations.
 
 ### Changed
 
-- `/mcp-new` 成为默认端点（stdio 默认配置与 CLI 文档同步），`/mcp` 保留为兼容端点；同时保留旧 SSE `/sse` + `/messages` 与 STDIO 入口。
-- 桌面版展示全部 MCP 服务入口，新增连接类型 / 无会话端点统计、会话 P95 耗时与客户端详情（时长 / 延迟 / 列表弹窗）。
-- 原生 STDIO framing 同时接受 newline JSON 与 `Content-Length`；stdio 客户端连接增加并发保护与失效重置。
-- 打包脚本支持按目标选择构建；打包产物精简，pnpm 统一 11.25、桌面图标切换为本地 icon.ico。
-- 版本统一为 v2.5.5。
+- `/mcp-new` is now the default endpoint (stdio default config and CLI docs synced), with `/mcp` kept as a compatible endpoint; the legacy SSE `/sse` + `/messages` and STDIO entries are also retained.
+- The desktop app shows all MCP service entries, with new connection-type / sessionless endpoint stats, session P95 duration, and client details (duration / latency / list popup).
+- Native STDIO framing accepts both newline JSON and `Content-Length`; stdio client connections gained concurrency protection and stale reset.
+- Packaging scripts support per-target build selection; packaging artifacts were slimmed down, pnpm unified at 11.25, and the desktop icon switched to the local icon.ico.
+- Versions aligned to v2.5.5.
 
 ## [v2.5.0] - 2026-09-02
 
 ### Added
 
-- **Streamable HTTP（尝鲜版）** — 新增 `/mcp-new`，提供 MCP 2026-07-28 无会话传输。
-- **多传输入口共存** — 保留兼容版 `/mcp`、旧 SSE `/sse` + `/messages` 与 STDIO。
-- **桌面版入口面板** — `chrome-mcp-desktop-2.5.0-win-x64` 展示全部 MCP 服务入口。
+- **Streamable HTTP (early preview)** — Added `/mcp-new` providing the MCP 2026-07-28 sessionless transport.
+- **Multiple transport entries coexist** — The compatible `/mcp`, legacy SSE `/sse` + `/messages`, and STDIO entries are retained.
+- **Desktop entry panel** — `chrome-mcp-desktop-2.5.0-win-x64` shows all MCP service entries.
 
 ### Changed
 
-- **版本统一为 v2.5.0** — 根包、子包、Tauri/Cargo、便携版运行时和桌面管理器统一升级。
+- **Versions aligned to v2.5.0** — Root package, sub-packages, Tauri/Cargo, portable runtime, and desktop manager upgraded together.
 
 ## [v2.4.11] - 2026-08-31
 
 ### Added
 
-- **Tauri 2 + Vue 桌面客户端** — 新增 `app/desktop-client`：原生桌面管理器（Rust + Vue），支持 Windows 打包（NSIS/MSI），图标与托盘集成。
-- **便携版单文件 EXE** — `scripts/package-windows.mjs` 基于 Node SEA + postject 打包 `chrome-mcp-bridge-<ver>-win-x64.exe`，内嵌完整运行时并自动注册 Chrome/Chromium Native Messaging。
-- **桌面管理器与托盘常驻** — WinForms 状态面板（服务/扩展/Native Host/MCP 会话/工具数），关闭窗口最小化到系统托盘，支持启动/停止服务、健康检查与日志入口；`--stdio` 便携模式可直接作为 MCP 客户端 command。
-- **一键打包脚本** — `package-windows.bat` / `package-desktop-windows.bat`，打包前自动校验版本一致性。
+- **Tauri 2 + Vue desktop client** — Added `app/desktop-client`: a native desktop manager (Rust + Vue) with Windows packaging (NSIS/MSI), icon, and tray integration.
+- **Portable single-file EXE** — `scripts/package-windows.mjs` builds `chrome-mcp-bridge-<ver>-win-x64.exe` on Node SEA + postject, embedding the full runtime and auto-registering Chrome/Chromium Native Messaging.
+- **Desktop manager and tray residency** — WinForms status panel (service/extension/Native Host/MCP sessions/tool count), closing the window minimizes to the system tray, with start/stop service, health check, and log entry; `--stdio` portable mode can be used directly as an MCP client command.
+- **One-click packaging scripts** — `package-windows.bat` / `package-desktop-windows.bat` validate version consistency before packaging.
 
 ### Changed
 
-- **服务开关与状态控制通道** — `/__chrome_mcp_bridge/start`、`/stop` 控制端点；服务停止时 `/mcp` 等端点返回 503，保留本机控制通道。
-- **HTTP 端口接管** — Chrome 原生消息宿主启动时可接管已占用端口，保证扩展连接与 HTTP 服务同进程。
-- **代理轮换 IP 对比** — 手动轮换时展示切换前后出口 IP，探测期间临时覆盖探针会话。
-- **图标与打包改进** — 桌面客户端/管理器使用 catgirl 图标，EXE 资源注入（`UpdateResource`）；跳过文档/配置源文件、发布文件被占用时回退 `.new.exe`；pnpm 升至 11.24.0，打包改用 tar zip。
-- 版本统一为 v2.4.11。
+- **Service toggle and status control channel** — `/__chrome_mcp_bridge/start` and `/stop` control endpoints; when the service is stopped, endpoints such as `/mcp` return 503 while the local control channel stays available.
+- **HTTP port takeover** — The Chrome native messaging host can take over an occupied port at startup, keeping the extension connection and HTTP service in the same process.
+- **Proxy rotation IP comparison** — Manual rotation shows the exit IP before and after the switch, temporarily overriding the probe session during detection.
+- **Icon and packaging improvements** — Desktop client/manager use the catgirl icon with EXE resource injection (`UpdateResource`); documentation/config source files are skipped and locked release files fall back to `.new.exe`; pnpm bumped to 11.24.0 and packaging switched to tar zip.
+- Versions aligned to v2.4.11.
 
 ## [v2.4.10] - 2026-08-26
 
 ### Added
 
-- **主题视觉升级** — 全应用高级立绘背景：Popup / Sidepanel / Welcome / Builder 页面卡片透明化并与背景图融合（`color-mix` 半透明材质、`center top` 构图修正）。
-- **`better-sqlite3` 升级 `^13.0.3`** — 迁移到 N-API 并自带全平台预编译二进制，安装不再需要源码编译。
+- **Theme visual upgrade** — Premium character art backgrounds across the app: Popup / Sidepanel / Welcome / Builder page cards are transparentized and blended with the background image (`color-mix` translucent material, `center top` composition fix).
+- **`better-sqlite3` upgraded to `^13.0.3`** — Migrated to N-API with bundled prebuilt binaries for all platforms; installation no longer requires compiling from source.
 
 ### Fixed
 
-- **IDBFS 同步竞态修复** — 等待 sync 回调完成后再继续，避免 IDBFS 同步竞态（`vector-database.ts`）。
-- **内容索引任务按 tab 去重** — 同一标签页的索引任务复用进行中的 Promise，避免并发重复索引；错误处理增强（`content-indexer.ts`）。
+- **IDBFS sync race fix** — Wait for the sync callback to complete before continuing, avoiding an IDBFS sync race (`vector-database.ts`).
+- **Content indexing tasks deduplicated per tab** — Index tasks for the same tab reuse the in-flight Promise to avoid duplicate concurrent indexing; improved error handling (`content-indexer.ts`).
 
 ### Changed
 
-- CI `check:versions` 修复，各包版本号统一为 2.4.10。
-- 版本统一为 v2.4.10。
+- Fixed CI `check:versions`; package versions aligned to 2.4.10.
+- Versions aligned to v2.4.10.
 
 ## [v2.4.4] - 2026-08-26
 
 ### Changed
 
-- **新主题背景多页面适配** — Popup 非首页视图（MCP 工具页 / 本地模型页）应用猫娘高级立绘背景并叠加半透明毛玻璃卡片；Sidepanel 侧边栏启用全幅猫娘背景；Welcome 页卡片与命令行区块改为半透明 `color-mix` 材质，与封面背景融合；Builder Canvas 与 Popup 首页背景构图修正为 `center top`，头部视觉不被裁切；Popup 首页主卡背景改用聊天背景图，与侧边栏区分。
-- 版本统一为 v2.4.4。
+- **New theme background across multiple pages** — Popup non-home views (MCP tools page / local model page) use the catgirl character art background with translucent frosted-glass cards overlaid; the Sidepanel uses a full-bleed catgirl background; Welcome page cards and the command-line block switched to translucent `color-mix` material blended with the cover background; Builder Canvas and the Popup home background composition fixed to `center top` so the header art isn't cropped; the Popup home main card now uses the chat background image to distinguish it from the sidepanel.
+- Versions aligned to v2.4.4.
 
 ## [v2.4.3] - 2026-08-26
 
 ### Added
 
-- **猫娘主题素材更新** — 更换扩展全套图标（16–128px）与聊天背景、高级立绘，新增 Welcome 页专属背景图，Welcome 页切换为全幅封面布局。
+- **Catgirl theme asset update** — Replaced the full extension icon set (16–128px), chat background, and character art, added a Welcome page-exclusive background image, and switched the Welcome page to a full-bleed cover layout.
 
 ### Changed
 
-- **`better-sqlite3` 升级到 `^13.0.3`** — v13 迁移到 N-API 并自带全平台预编译二进制（官方已移除已停止维护的 `prebuild-install` 依赖），安装时不再需要源码编译，也不再需要 Node headers 下载；pnpm `allowBuilds` 中对 `better-sqlite3` 的构建放行同步关闭。安装命令中的 `--allow-scripts` 白名单相应去掉了 `better-sqlite3`。
-- 安装文档（README / README_en / WINDOWS_INSTALL_zh）同步更新。
-- 版本统一为 v2.4.3。
+- **`better-sqlite3` upgraded to `^13.0.3`** — v13 migrates to N-API with bundled prebuilt binaries for all platforms (upstream removed the unmaintained `prebuild-install` dependency), so installation no longer needs source compilation or Node headers download; the pnpm `allowBuilds` exception for `better-sqlite3` was removed accordingly. The `--allow-scripts` allowlist in the install command dropped `better-sqlite3` as well.
+- Installation docs (README / README_en / WINDOWS_INSTALL_zh) updated accordingly.
+- Versions aligned to v2.4.3.
 
 ## [v2.4.2] - 2026-08-25
 
 ### Fixed
 
-- **FS.syncfs 串行化** — 所有 `syncFS` 请求统一进入同步队列串行执行；超时（5s）仅 `console.warn` 报警，不再提前释放队列，避免并发 syncfs 竞争导致向量库文件损坏（`vector-database.ts`）。
-- **清理流程复用同步队列** — 向量库清理/初始化流程改为复用同一同步队列，避免与写入操作交错。
-- **防止重复注册标签页监听器** — 内容索引器增加 `tabEventListenersSetUp` 标志，避免多次初始化时重复注册监听器（`content-indexer.ts`）。
-- **向量搜索关闭重复自动索引** — 向量搜索工具 `autoIndex` 改为 `false`，避免与内容索引器重复索引（`vector-search.ts`）。
+- **FS.syncfs serialization** — All `syncFS` requests are queued and run serially; a timeout (5s) only logs a `console.warn` instead of releasing the queue early, preventing concurrent syncfs races from corrupting vector store files (`vector-database.ts`).
+- **Cleanup flow reuses the sync queue** — Vector store cleanup/initialization now reuses the same sync queue to avoid interleaving with write operations.
+- **Prevent duplicate tab event listeners** — The content indexer adds a `tabEventListenersSetUp` flag to avoid registering listeners repeatedly across multiple initializations (`content-indexer.ts`).
+- **Vector search disables duplicate auto-indexing** — The vector search tool's `autoIndex` now defaults to `false` to avoid double indexing with the content indexer (`vector-search.ts`).
 
 ### Changed
 
-- 版本统一为 v2.4.2。
+- Versions aligned to v2.4.2.
 
 ## [v2.4.1] - 2026-08-25
 
 ### Changed
 
-- **原生 stdio 直连（无需额外桥接器）** — `mcp-chrome-stdio` 内部使用 MCP SDK 的 Streamable HTTP 客户端，自动管理 POST、SSE 与 `sessionId` 生命周期；推荐直接使用原生 stdio，不再依赖 `mcp-bridge.js`。
-- **`MCP_SERVER_URL` / `MCP_SERVER_ORIGIN` 配置** — 新增环境变量：`MCP_SERVER_URL` 指定 stdio 客户端连接的 Streamable HTTP 端点（默认 `http://127.0.0.1:12306/mcp`）；`MCP_SERVER_ORIGIN` 自定义 Origin（默认 `chrome-extension://mcp-stdio`）。
-- **API Key 转发** — 服务启用 `CHROME_MCP_API_KEY` 时，stdio 客户端自动将该 key 作为 Bearer 转发到 HTTP 服务器。
-- 本机桥接器自动发送 Origin，握手兼容性提升。
-- 版本统一为 v2.4.1。
+- **Native stdio direct connection (no extra bridge)** — `mcp-chrome-stdio` now uses the MCP SDK's Streamable HTTP client internally, managing POST, SSE, and `sessionId` lifecycle automatically; native stdio is recommended and `mcp-bridge.js` is no longer required.
+- **`MCP_SERVER_URL` / `MCP_SERVER_ORIGIN` configuration** — New environment variables: `MCP_SERVER_URL` sets the Streamable HTTP endpoint the stdio client connects to (default `http://127.0.0.1:12306/mcp`); `MCP_SERVER_ORIGIN` customizes the Origin (default `chrome-extension://mcp-stdio`).
+- **API key forwarding** — When the service enables `CHROME_MCP_API_KEY`, the stdio client automatically forwards the key as a Bearer token to the HTTP server.
+- The local bridge now sends Origin automatically, improving handshake compatibility.
+- Versions aligned to v2.4.1.
 
 ## [v2.4.0] - 2026-08-25
 
@@ -229,7 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **图片拦截误伤修复** — 修复图片拦截规则误伤正常图片请求的问题；填充与元素查找逻辑更稳健（v2.3.6）。
+- **Image blocking false positives fixed** — Fixed image blocking rules accidentally blocking legitimate image requests; fill and element lookup logic is more robust (v2.3.6).
 
 ### Changed
 
@@ -237,449 +243,449 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP HTTP requests without an Origin now require a valid API key; invalid Origins are rejected.
 - Web Editor is V3-only; the unused V1 fallback path and legacy script were removed.
 - Obsolete commented legacy schema drafts were removed; userscript is now a documented public tool.
-- CI：typecheck 前先构建 shared 包；pnpm 测试命令的 `--` 分隔符传参修复；upload-artifact 修复 `.output` 隐藏目录中的 zip。
+- CI: build the shared package before typecheck; fixed `--` separator argument passing for pnpm test commands; upload-artifact fixed zips in the hidden `.output` directory.
 - Package versions are aligned at v2.4.0.
 
 ## [v2.3.5] - 2026-08-24
 
 ### Changed
 
-- **web-editor v2 → v3 架构迁移** — Web Editor 组件全面迁移到 v3 统一架构：消息 action 从 v2 后缀更新为 v3 后缀，`window` 暴露 API 更新为 `__MCP_WEB_EDITOR_V3__`，类型定义与注释同步。
-- **CI 工作流** — 新增 `.github/workflows/ci.yml`（master push / PR 触发，typecheck + lint + test + build），`build-release.yml` 同步梳理。
-- **wasm-simd 增强** — Rust 包补充 `description` / `license`，新增 `COPY` 辅助脚本（`copy-wasm.mjs`）、Rust 工具链检查脚本（`check-wasm-toolchain.mjs`）。
-- **Windows 安装排错** — Windows 安装文档补充 EBUSY 目录占用排错指南。
-- 版本统一为 v2.3.5。
+- **web-editor v2 → v3 architecture migration** — Web Editor components fully migrated to the v3 unified architecture: message actions updated from the v2 suffix to the v3 suffix, the `window`-exposed API renamed to `__MCP_WEB_EDITOR_V3__`, and type definitions and comments synced.
+- **CI workflow** — Added `.github/workflows/ci.yml` (triggered on master push / PR; typecheck + lint + test + build) and cleaned up `build-release.yml`.
+- **wasm-simd enhancements** — Added `description` / `license` to the Rust package and new helper scripts: `copy-wasm.mjs` (COPY helper) and `check-wasm-toolchain.mjs` (Rust toolchain check).
+- **Windows install troubleshooting** — Windows install docs gained an EBUSY directory-lock troubleshooting guide.
+- Versions aligned to v2.3.5.
 
 ## [v2.3.1] - 2026-08-24
 
 ### Added
 
-- **7 个页面工具** — 新增 `chrome_create_tab`（指定 URL/窗口/前台后台/固定）、`chrome_hover`（元素悬停）、`chrome_print_to_pdf`（A3-A5/LETTER/LEGAL/TABLOID 多种纸张导出 PDF）、`chrome_get_element_info`（元素几何与属性检测）、`chrome_storage_get` / `chrome_storage_set` / `chrome_storage_delete`（扩展存储读写删）。
-- **Welcome 页面中英文切换** — 自动检测语言，选择持久化到 `localStorage`，同步 `<html lang>` 与 `<title>`。
+- **7 page tools** — Added `chrome_create_tab` (specify URL/window/foreground or background/pinned), `chrome_hover` (element hover), `chrome_print_to_pdf` (PDF export on A3-A5/LETTER/LEGAL/TABLOID paper), `chrome_get_element_info` (element geometry and property inspection), and `chrome_storage_get` / `chrome_storage_set` / `chrome_storage_delete` (extension storage read/write/delete).
+- **Welcome page Chinese/English toggle** — Auto-detects language, persists the choice to `localStorage`, and syncs `<html lang>` and `<title>`.
 
 ### Changed
 
-- 版本统一为 v2.3.1。
+- Versions aligned to v2.3.1.
 
 ## [v2.3.0] - 2026-08-24
 
 ### Added
 
-- **多 Profile 任务隔离** — 独立 Cookie、缓存、历史与登录态，支持多会话并行。
-- **Profile 诊断** — 汇总 Profile、CDP、MCP、代理与扩展状态。
-- **批量与定时任务** — 新增 `chrome_batch`，并支持持久化工作流队列和 cron/interval 触发。
-- **安全升级命令** — 精确版本、npm SHA-512 完整性校验、安装验证与失败回滚。
+- **Multi-profile task isolation** — Isolated cookies, cache, history, and login state with parallel multi-session support.
+- **Profile diagnostics** — Aggregated profile, CDP, MCP, proxy, and extension status.
+- **Batch and scheduled tasks** — Added `chrome_batch` with persistent workflow queues and cron/interval triggers.
+- **Safe upgrade command** — Exact versions, npm SHA-512 integrity verification, install verification, and rollback on failure.
 
 ### Changed
 
-- **统一 ActionPolicy** — 点击、输入、滚动和导航等动作统一支持 `fast`、`balanced`、`human` 节奏。
-- 版本统一为 v2.3.0。
+- **Unified ActionPolicy** — Click, type, scroll, and navigate actions all support `fast`, `balanced`, and `human` pacing.
+- Versions aligned to v2.3.0.
 
 ## [v2.2.1] - 2026-08-23
 
 ### Added
 
-- **Welcome 页面中英文切换** — 根据浏览器语言自动检测界面语言，选择持久化到 `localStorage`，并同步 `<html lang>` 与页面 `<title>`（新增 `locale.ts` 与对应测试）。
+- **Welcome page Chinese/English toggle** — Detects the UI language from the browser locale, persists the choice to `localStorage`, and syncs `<html lang>` and the page `<title>` (new `locale.ts` with tests).
 
 ### Fixed
 
-- **Native Host 共享运行时安装加固** — 构建脚本嵌入 shared 运行时前先校验 `dist` 是否就绪，缺失时明确报错并给出修复指引；`doctor` 新增 `host.shared-runtime` 检查，vendor 副本存在时一键自动恢复 `node_modules` 中的运行时；`postinstall` 在运行时缺失时输出清晰警告，替代首次启动时的 `MODULE_NOT_FOUND`。
+- **Hardened Native Host shared-runtime installation** — Build scripts verify `dist` is ready before embedding the shared runtime, with a clear error and fix guidance when missing; `doctor` gained a `host.shared-runtime` check that auto-restores the runtime into `node_modules` when a vendor copy exists; `postinstall` prints a clear warning when the runtime is missing instead of a `MODULE_NOT_FOUND` on first launch.
 
 ### Changed
 
-- 版本统一为 v2.2.1。
+- Versions aligned to v2.2.1.
 
 ## [v2.2.0] - 2026-08-21
 
 ### Added
 
-- **代理会话管理系统** — 重构 `proxy.ts`：新增多国家代理选择（`PROXY_COUNTRIES`）、会话维度轮换（`sessionIdsByScope`）、默认会话时长 5 分钟、显式轮换窗口（60s 内最多 3 次）与自动轮换冷却（5 分钟，窗口 1 小时）；会话 ID 生成支持 `sessid` / `sesstime` 组合格式。
-- **Popup 代理设置界面** — 大幅扩展代理配置 UI（国家选择、会话管理入口），Options 页面同步增强。
+- **Proxy session management system** — Reworked `proxy.ts`: multi-country proxy selection (`PROXY_COUNTRIES`), per-session rotation (`sessionIdsByScope`), default session duration of 5 minutes, explicit rotation window (max 3 per 60s), and auto-rotation cooldown (5 minutes per 1-hour window); session ID generation supports the combined `sessid` / `sesstime` format.
+- **Popup proxy settings UI** — Greatly expanded proxy configuration UI (country selection, session management entry) with matching Options page enhancements.
 
 ### Changed
 
-- **`ensure-pnpm.bat` 脚本** — 新增 `scripts/ensure-pnpm.bat`，`start-server.bat` 与 `package-extension.bat` 统一复用 pnpm/corepack 检测逻辑。
-- 代理测试更新覆盖新会话管理逻辑。
-- 版本统一为 v2.2.0。
+- **`ensure-pnpm.bat` script** — Added `scripts/ensure-pnpm.bat`; `start-server.bat` and `package-extension.bat` now share the same pnpm/corepack detection logic.
+- Proxy tests updated to cover the new session management logic.
+- Versions aligned to v2.2.0.
 
 ## [v2.1.5] - 2026-08-15
 
 ### Fixed
 
-- **网络请求工具加固** — `chrome_network_request` 过滤浏览器禁用的请求头（`accept-encoding` / `host` / `origin` / `sec-*` 等），避免触发 Chrome 请求校验失败；增加同源检查与更清晰的错误信息。
-- **Web fetcher 错误处理增强** — 抓取失败时返回结构化错误与重试提示。
-- **遗留定位器支持** — click/fill 在 ref 过期且无可用 selector 时支持旧式 `ref`/`name` 定位器兜底解析；`get_page_text` 等工具同步适配。
+- **Network request tool hardening** — `chrome_network_request` filters browser-forbidden headers (`accept-encoding` / `host` / `origin` / `sec-*`, etc.) to avoid Chrome request validation failures; added same-origin checks and clearer error messages.
+- **Web fetcher error handling** — Returns structured errors and retry hints when fetching fails.
+- **Legacy locator support** — click/fill fall back to legacy `ref`/`name` locators when a ref is stale and no selector is available; `get_page_text` and other tools updated accordingly.
 
 ### Changed
 
-- **start-server.bat 增强** — 自动检测 pnpm / corepack（无 pnpm 时回退 `corepack pnpm`），与 `package-extension.bat` 一致。
-- Popup 界面与网络助手微调，新增 network-request / web-fetcher / interaction-helper 测试。
-- 版本统一为 v2.1.5。
+- **start-server.bat enhancement** — Auto-detects pnpm / corepack (falls back to `corepack pnpm` when pnpm is missing), consistent with `package-extension.bat`.
+- Minor Popup UI and network helper tweaks; added network-request / web-fetcher / interaction-helper tests.
+- Versions aligned to v2.1.5.
 
 ## [v2.1.1] - 2026-08-15
 
 ### Changed
 
-- **Node 24 要求** — 项目 engines 与 `.nvmrc` 锁定 Node 24；`start-server.bat` / `start-server.sh` 启动时自动切换/提示 Node 24（优先 nvm）。
-- **Jest 配置修复** — native-server 测试配置修复 NodeNext 模块解析（`extensionAlias` / `moduleNameMapper`），构建与测试在 Node 24 下稳定运行。
-- 版本统一为 v2.1.1。
+- **Node 24 requirement** — Project engines and `.nvmrc` now pin Node 24; `start-server.bat` / `start-server.sh` auto-switch to or prompt for Node 24 on startup (nvm preferred).
+- **Jest config fix** — native-server test config fixed NodeNext module resolution (`extensionAlias` / `moduleNameMapper`) so builds and tests run reliably on Node 24.
+- Versions aligned to v2.1.1.
 
 ## [v2.1.0] - 2026-08-14
 
 ### Added
 
-- **目标标签页解析重构（`resolveTargetTab`）** — 显式 `tabId` 权威：目标标签页已关闭/缺失时明确报错，不再静默回退到无关的激活标签页；省略 `tabId` 时可传 `windowId` 选择目标窗口。
-- **click/fill 目标恢复（stale ref recovery）** — 保留原始 CSS/XPath selector 作为 ref 的伴随定位；React 等框架重建 DOM 节点导致 ref 过期时，内容脚本用 selector 重新解析目标；背景层新增 RESOLVE_REF selector 查找，ref-only 调用在分发前获得恢复提示；点击/填充助手支持 XPath 选择器。
-- **读取类工具支持 `url` 导航参数** — `read_page` / `spa_fetch` 等提供 `url` 时先导航再读取目标标签页，可传 `background` 后台打开。
-- **`maxOutputBytes` 输出限制** — 限制返回 JSON 大小（默认 24000，最大 200000），超限返回截断元数据。
-- 新增 `base-browser.test.ts`（目标解析与恢复测试）。
+- **Target tab resolution rework (`resolveTargetTab`)** — An explicit `tabId` is authoritative: a closed/missing target tab now errors clearly instead of silently falling back to an unrelated active tab; when `tabId` is omitted, `windowId` can select the target window.
+- **click/fill target recovery (stale ref recovery)** — The original CSS/XPath selector is kept as a companion locator for the ref; when frameworks like React rebuild DOM nodes and the ref goes stale, the content script re-resolves the target via the selector; the background layer gained a RESOLVE_REF selector lookup so ref-only calls get a recovery hint before dispatch; click/fill helpers accept XPath selectors.
+- **Read tools accept a `url` navigation parameter** — When `url` is provided, `read_page` / `spa_fetch` and others navigate first and then read the target tab; `background` can open it in the background.
+- **`maxOutputBytes` output limit** — Caps the returned JSON size (default 24000, max 200000); over-limit responses include truncation metadata.
+- Added `base-browser.test.ts` (target resolution and recovery tests).
 
 ### Changed
 
-- 版本统一为 v2.1.0。
+- Versions aligned to v2.1.0.
 
 ## [v2.0.3] - 2026-08-13
 
 ### Added
 
-- **`chrome_paste_image` 工具** — 将本地图片或图片数据作为合成 paste 事件粘贴到 textarea / input / contenteditable 元素；不读取系统剪贴板，内部使用临时 file input、DataTransfer 和 ClipboardEvent。
-- **`chrome_get_form_value` 工具** — 读取表单元素当前值，配合表单自动化流程。
+- **`chrome_paste_image` tool** — Pastes a local image or image data into textarea / input / contenteditable elements as a synthetic paste event; does not read the system clipboard, using a temporary file input, DataTransfer, and ClipboardEvent internally.
+- **`chrome_get_form_value` tool** — Reads the current value of a form element for form automation flows.
 
 ### Changed
 
-- **`chrome_javascript` 目标标签页优化** — 省略 `tabId` 时优先使用最近操作的标签页，无历史目标时才使用当前激活标签页。
-- 文件上传 / 表格提取 / 点击填充助手（click-helper / fill-helper）健壮性增强。
-- Popup 工具目录补充 6 个工具的 launch dates。
-- 版本统一为 v2.0.3。
+- **`chrome_javascript` target tab improvement** — When `tabId` is omitted, prefer the most recently operated tab and only use the active tab when there is no prior target.
+- Improved robustness of file upload / table extraction / click and fill helpers (click-helper / fill-helper).
+- Added launch dates for 6 tools in the Popup tool catalog.
+- Versions aligned to v2.0.3.
 
 ## [v2.0.2] - 2026-08-13
 
 ### Added
 
-- **`chrome_locate_element`** — 网页元素定位工具：支持已保存的 `markerId`/`markerName`、旧 `ref`、CSS/XPath、可见文本、ARIA role、`aria-label`、`data-testid` 和表单 `name` 多种定位方式；定位时自动滚动并高亮目标，返回当前有效的 `ref`/`selector`/坐标，可直接传给 `chrome_click_element` 或 `chrome_fill_or_select`。
-- **`chrome_select_all_items`** — 懒加载/虚拟列表安全全选工具：滚动到底部、等待卡片数量连续稳定数轮后再逐个操作卡片内 checkbox，不依赖页面可能失效的"选择全部"按钮，也不把乐观 DOM 数量当作操作成功依据。
+- **`chrome_locate_element`** — Page element locator: supports saved `markerId`/`markerName`, legacy `ref`, CSS/XPath, visible text, ARIA role, `aria-label`, `data-testid`, and form `name` locators; auto-scrolls to and highlights the target, returning a currently valid `ref`/`selector`/coordinates that can be passed directly to `chrome_click_element` or `chrome_fill_or_select`.
+- **`chrome_select_all_items`** — Safe select-all for lazy/virtual lists: scrolls to the bottom, waits until the card count is stable for several consecutive rounds, then toggles each card checkbox individually, without relying on a page's potentially broken "select all" button and without treating optimistic DOM counts as success.
 
 ### Changed
 
-- **`chrome_wait_for_extract_response` 增强** — 新增 `confirm` 参数（可选地点击确认按钮）；返回 HTTP 状态、请求体和响应体，用于核验删除等异步操作是否真正成功；`extract` 变为可选，仅在需要抽取 JSON 记录时提供。
-- **`chrome_click_element` 增强** — 支持 `markerId`/`markerName`，点击前自动重新定位目标。
-- **`chrome_javascript` 文档修正** — 明确参数名为 `code`（非 `script`），读取结果必须显式 `return`。
-- 版本统一为 v2.0.2。
+- **`chrome_wait_for_extract_response` enhancements** — Added a `confirm` parameter (optionally clicks a confirm button); returns HTTP status, request body, and response body to verify that async operations such as deletes actually succeeded; `extract` is now optional and only needed when extracting JSON records.
+- **`chrome_click_element` enhancements** — Supports `markerId`/`markerName` and re-locates the target before clicking.
+- **`chrome_javascript` doc fix** — Clarified that the parameter is `code` (not `script`) and that results must be explicitly `return`ed.
+- Versions aligned to v2.0.2.
 
 ## [v2.0.1] - 2026-08-13
 
 ### Changed
 
-- **受限页面注入保护** — `BaseBrowserToolExecutor.injectFiles` 注入前检查标签页 URL 协议，对 `chrome:` / `edge:` / `devtools:` / `view-source:` 等受限页面主动抛出清晰错误，替代 Chrome 底层的晦涩拒绝。
-- **键盘参数强校验** — `chrome_keyboard` 的 `keys` 参数在运行时校验必须为非空字符串，拒绝数组/对象等 MCP 传入的非法类型。
-- **点击助手增强** — `click-helper` 等待目标元素可见后再触发点击；对不可见元素自动向上提升到可点击祖先（`button` / `[role="button"]` / `a` / `[data-testid]`）。
-- **填充助手增强** — `fill-helper` 命中测试前先处理屏幕外可渲染候选元素，避免命中错误元素。
-- 版本统一为 v2.0.1。
+- **Restricted page injection protection** — `BaseBrowserToolExecutor.injectFiles` checks the tab URL scheme before injecting and raises a clear error for restricted pages such as `chrome:` / `edge:` / `devtools:` / `view-source:`, replacing Chrome's cryptic underlying rejection.
+- **Strict keyboard parameter validation** — `chrome_keyboard`'s `keys` parameter is validated at runtime to be a non-empty string, rejecting invalid types such as arrays/objects passed via MCP.
+- **Click helper enhancements** — `click-helper` waits for the target element to become visible before clicking; invisible elements automatically promote to a clickable ancestor (`button` / `[role="button"]` / `a` / `[data-testid]`).
+- **Fill helper enhancements** — `fill-helper` handles off-screen renderable candidates before hit testing to avoid hitting the wrong element.
+- Versions aligned to v2.0.1.
 
 ## [v2.0.0] - 2026-08-12
 
 ### Changed
 
-- **CDP 会话管理重构** — 为每个 tab 的 `attach` / `detach` / `sendCommand` 增加 per-tab 串行锁，杜绝两个工具调用在 `getTargets()` 与 `debugger.attach()` 之间竞态导致的并发会话冲突；owner 从 `Set` 改为引用计数 `Map`，修复同一 owner 多次引用导致 detach 提前释放的会话泄漏。
-- **`chrome_javascript` 取消支持** — 工具执行接入 `AbortSignal`：调用方取消或超时后通过新增的 `cdpSessionManager.abortOwner()` 主动 `debugger.detach()` 释放残留会话（1s 超时兜底），防止挂起的 `Runtime.evaluate` 长期占用 tab 的 debugger 导致后续工具连锁卡住；错误契约新增 `cancelled` 种类。
-- **回归测试** — 新增 `cdp-session-manager.test.ts`（并发 attach 串行化、超时强制释放、owner 重复引用平衡）与 `chrome_javascript` 取消契约测试。
-- 版本统一为 v2.0.0。
+- **CDP session management rework** — Added a per-tab serial lock for each tab's `attach` / `detach` / `sendCommand`, eliminating concurrent session conflicts caused by two tool calls racing between `getTargets()` and `debugger.attach()`; the owner map changed from a `Set` to a reference-counted `Map`, fixing session leaks where repeated references from the same owner released the detach early.
+- **`chrome_javascript` cancellation support** — Tool execution is wired to `AbortSignal`: after caller cancellation or timeout, the new `cdpSessionManager.abortOwner()` actively calls `debugger.detach()` to release the leftover session (1s timeout fallback), preventing a hung `Runtime.evaluate` from holding the tab debugger and cascading into later tool stalls; the error contract gained a `cancelled` kind.
+- **Regression tests** — Added `cdp-session-manager.test.ts` (concurrent attach serialization, forced release on timeout, balanced owner reference counting) and a cancellation contract test for `chrome_javascript`.
+- Versions aligned to v2.0.0.
 
 ## [v1.9.2] - 2026-08-10
 
 ### Added
 
-- **`chrome_paste_text` 工具** — 向富文本编辑器合成粘贴多段文本，专治 Draft.js 系编辑器（知乎、Medium 等）：给编辑器元素派发带 `DataTransfer` 的合成 `ClipboardEvent('paste')`，走原生 paste 路径完整接收全部段落，不依赖页面焦点、不读系统剪贴板；替代 `chrome_computer` type（带换行会错乱）、`execCommand('insertText')`（多段只留最后一段）与剪贴板 API（无焦点被拒）。建议粘贴后刷新页面验证草稿完整，再点击发布按钮。
+- **`chrome_paste_text` tool** — Synthesizes multi-paragraph paste into rich text editors, specifically for Draft.js-based editors (Zhihu, Medium, etc.): dispatches a synthetic `ClipboardEvent('paste')` with `DataTransfer` to the editor element, going through the native paste path so all paragraphs arrive intact, without relying on page focus or reading the system clipboard; replaces `chrome_computer` type (mangles newlines), `execCommand('insertText')` (keeps only the last paragraph), and the clipboard API (rejected without focus). Suggest refreshing the page after pasting to verify the draft is intact before clicking the publish button.
 
 ### Changed
 
-- 版本统一为 v1.9.2。
+- Versions aligned to v1.9.2.
 
 ## [v1.9.1] - 2026-08-10
 
 ### Added
 
-- **`chrome_post_to_x` 工具** — 在已登录的 X/Twitter 页面发布文本帖子：等待编辑框、填充并回读验证、等待发布按钮、点击一次、等待成功标记；明确返回 `published` / `failed` / `unknown`，未知时**不自动重试**避免重复发帖；支持自定义选择器兼容 X 页面变体。
+- **`chrome_post_to_x` tool** — Posts a text post on a logged-in X/Twitter page: waits for the editor, fills and reads back to verify, waits for the publish button, clicks once, and waits for the success marker; explicitly returns `published` / `failed` / `unknown`, and on unknown **does not auto-retry** to avoid duplicate posts; supports custom selectors for X page variants.
 
 ### Changed
 
-- **`chrome_handle_dialog` 增强** — 支持 `tabId` / `windowId` 指定目标标签页；覆盖 `beforeunload` 对话框处理。
-- 交互工具（点击/填充助手、等待）细节增强。
-- 版本统一为 v1.9.1。
+- **`chrome_handle_dialog` enhancements** — Supports `tabId` / `windowId` to target a tab; covers `beforeunload` dialog handling.
+- Refined interaction tools (click/fill helpers, wait).
+- Versions aligned to v1.9.1.
 
 ## [v1.9.0] - 2026-08-10
 
 ### Added
 
-- **`collect_virtual_lists` 工具** — 在多个标签页或窗口中**并发**采集动态/虚拟列表，按目标返回独立结果、状态、分批数据和失败原因；支持字段映射、去重、时长上限、分批返回与进度上报。
+- **`collect_virtual_lists` tool** — **Concurrently** collects dynamic/virtual lists across multiple tabs or windows, returning per-target results, status, batched data, and failure reasons; supports field mapping, dedup, duration caps, batched returns, and progress reporting.
 
 ### Changed
 
-- **`chrome_scroll` 真人滚动间隔不再随距离等比放大** — 修复 `intervalMs` 与 `steps` 同时按 amount 缩放导致总时长平方增长的问题；现在步数仍按 `600px = 15` 步为基准按距离等比计算，步间隔恒定（human / humanFast / humanSlow = 50 / 20 / 80ms），长距离真人滚动耗时与距离成线性关系；工具描述与文档同步更新。
-- **MCP 实时进度链路** — 长耗时采集工具可通过 Native Messaging 的 `tool_progress` 消息逐步上报，并转换为标准 `notifications/progress`；最终结果协议保持兼容，取消和多窗口进度继续复用同一个请求上下文。
-- 版本统一为 v1.9.0。
+- **`chrome_scroll` human-like scroll interval no longer scales with distance** — Fixed `intervalMs` and `steps` both scaling with amount and making total duration grow quadratically; step count still scales with distance from the `600px = 15` steps baseline while the step interval stays constant (human / humanFast / humanSlow = 50 / 20 / 80ms), so long human-like scrolls now scale linearly with distance; tool description and docs updated.
+- **MCP live progress pipeline** — Long-running collection tools can report incrementally via Native Messaging `tool_progress` messages, converted to standard `notifications/progress`; the final result protocol stays compatible and cancellation and multi-window progress keep reusing the same request context.
+- Versions aligned to v1.9.0.
 
 ## [v1.8.4] - 2026-08-04
 
 ### Fixed
 
-- **i18n 工具参数描述修复** — 为 26 个参数新增工具级描述覆盖，修复通用参数描述（`query` / `text` / `tabIds` / `tabId` / `url` / `action` 等）串扰到无关工具的问题（例如 `search_tabs_content.query` 误显示书签关键词）。
-- **`chrome_scroll.mode` / `chrome_console.mode` 描述修正** — 通用 `mode` 条目原本是控制台专属语义，导致 `chrome_scroll.mode` 显示错误文本；现为两个工具分别补充工具级描述，并将通用条目改为中性文本。
+- **i18n tool parameter description fix** — Added tool-level description overrides for 26 parameters, fixing generic parameter descriptions (`query` / `text` / `tabIds` / `tabId` / `url` / `action`, etc.) bleeding into unrelated tools (e.g. `search_tabs_content.query` wrongly showing bookmark keywords).
+- **`chrome_scroll.mode` / `chrome_console.mode` description fix** — The generic `mode` entry had console-specific semantics and showed wrong text for `chrome_scroll.mode`; both tools now have their own tool-level descriptions and the generic entry was made neutral.
 
 ### Changed
 
-- 版本统一为 v1.8.4。
+- Versions aligned to v1.8.4.
 
 ## [v1.8.9] - 2026-08-06
 
 ### Fixed
 
-- **`chrome_scroll` 真人懒加载性能优化** — 每轮节奏内仅执行一次页面稳定等待（settle），不再每小步都等待，避免超出 MCP 请求预算；长距离真人滚动更稳定高效。
+- **`chrome_scroll` human-like lazy-load performance** — Only one page settle wait per pacing round instead of after every small step, avoiding MCP request budget overruns; long human-like scrolls are more stable and efficient.
 
 ### Changed
 
-- Popup 工具页面微调。
-- 版本统一为 v1.8.9。
+- Minor Popup tool page tweaks.
+- Versions aligned to v1.8.9.
 
 ## [v1.8.8] - 2026-08-04
 
 ### Changed
 
-- **`chrome_scroll` 真人滚动速度档位整体提速** — 三档基准间隔调整为 `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms（原 100/50/150ms），滚动效率提升约一倍；工具描述与文档同步更新。
-- **`package-extension.bat` 增强** — 自动检测 pnpm / corepack（无 pnpm 时回退 `corepack pnpm`）；shared 构建改用 `--filter` 方式。
-- 版本统一为 v1.8.8。
+- **`chrome_scroll` human-like speed tiers sped up** — The three tiers' base intervals changed to `human` 50ms / `humanFast` 20ms / `humanSlow` 80ms (previously 100/50/150ms), roughly doubling scroll efficiency; tool description and docs updated.
+- **`package-extension.bat` enhancement** — Auto-detects pnpm / corepack (falls back to `corepack pnpm` when pnpm is missing); the shared build now uses `--filter`.
+- Versions aligned to v1.8.8.
 
 ## [v1.8.7] - 2026-08-04
 
 ### Added
 
-- **`chrome_scroll` 真人滚动速度档位** — `human`、`humanFast`、`humanSlow` 三档分别使用 50ms、20ms、80ms 步间隔，配合 `humanLazyLoad` / `toBottom` 覆盖更多动态页面场景；工具描述与文档同步更新。
+- **`chrome_scroll` human-like speed tiers** — `human`, `humanFast`, and `humanSlow` use 50ms, 20ms, and 80ms step intervals respectively, covering more dynamic page scenarios together with `humanLazyLoad` / `toBottom`; tool description and docs updated.
 
 ### Changed
 
-- 版本统一为 v1.8.7。
+- Versions aligned to v1.8.7.
 
 ## [v1.8.6] - 2026-08-04
 
 ### Added
 
-- **MCP Server 版本动态化** — Stdio / HTTP 双通道的 server version 从硬编码 `1.0.0` 改为读取 `package.json`，客户端可准确感知插件版本。
+- **Dynamic MCP Server version** — The stdio / HTTP server version now reads `package.json` instead of the hard-coded `1.0.0`, so clients can accurately detect the extension version.
 
 ### Fixed
 
-- **i18n 修复** — 修正 `chrome_scroll` 的 `mode` 参数描述；新增工具级参数描述，避免通用文案误配；Popup MCP 工具目录中文翻译与 README_zh 对齐。
+- **i18n fix** — Corrected the `chrome_scroll` `mode` parameter description; added tool-level parameter descriptions to avoid generic copy mismatches; aligned the Chinese Popup MCP tool catalog translation with README_zh.
 
 ### Changed
 
-- 工具超时逻辑简化：非长耗时工具统一 60s 上限（移除 navigate/download/upload 独立分类）。
-- 版本统一为 v1.8.6。
+- Simplified tool timeout logic: a uniform 60s cap for non-long-running tools (removed the separate navigate/download/upload categories).
+- Versions aligned to v1.8.6.
 
 ## [v1.8.1] - 2026-08-04
 
 ### Added
 
-- **`chrome_scroll` 真人滚动模式（`mode: 'human'`）** — 全新的人类行为模拟滚动：
-  - 使用**原生 wheel 输入**逐像素滚动，而非直接设置 scrollTop，可触发页面真实滚动监听器
-  - 分步推进（每步 600px、150ms 间隔），配合**加减速曲线**（ease-out）模拟真人滚轮节奏
-  - `humanLazyLoad: true`：每小步后检测 DOM、布局和网络资源变化，等待页面稳定后再继续（800ms 超时），`toBottom` 配合可持续加载无限列表（最多 50 轮 / 9 秒上限）
-- Scroll 工具描述与参数同步完善，新增对应测试。
+- **`chrome_scroll` human-like scroll mode (`mode: 'human'`)** — Brand-new human-behavior-simulating scroll:
+  - Scrolls pixel by pixel using **native wheel input** instead of setting scrollTop directly, triggering real page scroll listeners
+  - Advances in steps (600px per step, 150ms interval) with an **ease-out curve** to mimic human wheel pacing
+  - `humanLazyLoad: true`: checks DOM, layout, and network resource changes after each small step and waits for the page to settle before continuing (800ms timeout); combined with `toBottom` it keeps loading infinite lists (max 50 rounds / 9 second cap)
+- Scroll tool description and parameters completed, with matching tests.
 
 ### Changed
 
-- 版本统一为 v1.8.1。
+- Versions aligned to v1.8.1.
 
 ## [v1.8.0] - 2026-07-31
 
 ### Added
 
-- **`chrome_proxy_rotate` 工具** — 调用方确认当前标签页异常时，轮换代理会话并重新加载页面（需已启用代理，不返回用户名或密码）。
-- **英文工具描述** — 新增 `tools-en.ts` 全量英文工具描述，中英双语元数据完整覆盖。
-- **Scroll 工具增强** — 滚动工具能力扩展（元素滚动、方向控制、超时处理等）。
-- **Web Editor 性能监控更新** — `perf-monitor` 与消息监听增强，新增对应测试。
+- **`chrome_proxy_rotate` tool** — Rotates the proxy session and reloads the page when the caller confirms the tab is misbehaving (requires an enabled proxy; never returns username or password).
+- **English tool descriptions** — Added full English tool descriptions in `tools-en.ts`, completing bilingual metadata coverage.
+- **Scroll tool enhancements** — Extended scrolling capabilities (element scroll, direction control, timeout handling, etc.).
+- **Web Editor performance monitoring update** — Enhanced `perf-monitor` and message listeners, with matching tests.
 
 ### Changed
 
-- 版本统一为 v1.8.0。
+- Versions aligned to v1.8.0.
 
 ## [v1.7.16] - 2026-07-31
 
 ### Added
 
-- **代理（Proxy）支持** — 新增代理设置/管理能力：Options 与 Popup 页面新增代理配置 UI，支持代理接管状态控制。
-- **`chrome_proxy_diagnostics` 工具** — 读取代理配置及 Chrome 接管状态；`action=test` 时验证代理出口 IP（不会返回用户名或密码）。
-- **网络请求代理支持** — `network-request` 工具适配代理环境，新增对应测试。
+- **Proxy support** — Added proxy setup/management: new proxy configuration UI in the Options and Popup pages with proxy takeover status control.
+- **`chrome_proxy_diagnostics` tool** — Reads proxy config and Chrome takeover status; with `action=test` it verifies the proxy exit IP (never returns username or password).
+- **Network request proxy support** — The `network-request` tool works in proxied environments, with matching tests.
 
 ### Changed
 
-- 版本统一为 v1.7.16。
+- Versions aligned to v1.7.16.
 
 ## [v1.7.5] - 2026-07-31
 
 ### Fixed
 
-- **Cookie 工具修复** — 过滤工具元数据（`intent`/`background`）后再调用 `chrome.cookies` API，避免参数污染导致操作失败。
-- **Popup App 修复** — 错误提示与弹窗界面调整。
-- **错误日志修复** — `error-log.ts` 输出优化。
+- **Cookie tool fix** — Filters tool metadata (`intent`/`background`) before calling the `chrome.cookies` API, avoiding parameter pollution that broke operations.
+- **Popup App fix** — Adjusted error prompts and popup UI.
+- **Error log fix** — Improved `error-log.ts` output.
 
 ### Changed
 
-- 版本统一为 v1.7.5。
+- Versions aligned to v1.7.5.
 
 ## [v1.7.0] - 2026-07-31
 
 ### Added
 
-- **`collect_virtual_list`** — 从动态/虚拟列表中稳定抽取去重记录，支持小步滚动、停滞判断和向上回扫。
-- **`wait_extract_response`** — 导航或点击后等待指定 JSON 响应，并按 JSONPath 抽取记录。
-- **`capture_debug_bundle`** — 将失败现场保存到下载目录：截图、DOM、控制台、脱敏网络摘要和元数据。
-- **`resume_tab_task`** — 保存、读取或清除正常标签页的调用方状态（不创建无痕窗口，不读取 Cookie）。
+- **`collect_virtual_list`** — Reliably extracts deduplicated records from dynamic/virtual lists with small-step scrolling, stall detection, and upward rescans.
+- **`wait_extract_response`** — Waits for a specific JSON response after navigation or a click and extracts records via JSONPath.
+- **`capture_debug_bundle`** — Saves the failure scene to the downloads directory: screenshot, DOM, console, redacted network summary, and metadata.
+- **`resume_tab_task`** — Saves, reads, or clears caller state for a normal tab (doesn't create an incognito window or read cookies).
 
 ### Changed
 
-- Native Host：MCP SDK 升级至 `^1.30.0`，`drizzle-orm` 升级至 `^0.45.2`；`native-messaging-host` 请求 ID 生成、`file-handler` 与 `doctor` 脚本修复优化。
-- Popup 工具页面与 DeepSeek 设置面板微调。
-- 所有项目包版本统一为 v1.7.0。
+- Native Host: MCP SDK upgraded to `^1.30.0`, `drizzle-orm` to `^0.45.2`; fixed and improved `native-messaging-host` request ID generation, `file-handler`, and the `doctor` script.
+- Minor tweaks to the Popup tool page and DeepSeek settings panel.
+- All project package versions aligned to v1.7.0.
 
 ## [v1.6.26] - 2026-07-31
 
 ### Added
 
-- **新增 12+ 个工具** — `chrome_block_resources`（阻止资源加载）、`chrome_task_context`（任务上下文）、`chrome_scoped_action`（限定作用域操作）、`chrome_diagnostic_snapshot`（诊断快照）、`chrome_list_frames`（列出框架）、`chrome_find_and_click`（查找并点击）、`chrome_expand_section`（展开折叠区域）、`chrome_scan_for_section`（滚动查找区域）、`chrome_paginate_extract`（分页提取）、`chrome_extract_records`（提取记录）、`detect_empty_state`（检测空状态）、`merge_records`（合并记录）。
-- **网络抓包重构** — webRequest / CDP 双通道统一，新增 `chrome_block_images` 升级版资源控制。
-- **Popup 工具页面更新** — MCP 工具列表交互与展示优化。
+- **12+ new tools** — `chrome_block_resources` (block resource loading), `chrome_task_context` (task context), `chrome_scoped_action` (scoped action), `chrome_diagnostic_snapshot` (diagnostic snapshot), `chrome_list_frames` (list frames), `chrome_find_and_click` (find and click), `chrome_expand_section` (expand collapsed section), `chrome_scan_for_section` (scroll to find section), `chrome_paginate_extract` (paginated extract), `chrome_extract_records` (extract records), `detect_empty_state` (detect empty state), `merge_records` (merge records).
+- **Network capture rework** — Unified the webRequest / CDP channels and added the upgraded `chrome_block_images` resource control.
+- **Popup tool page update** — Improved MCP tool list interaction and presentation.
 
 ### Changed
 
-- Agent Chat 组件修复与优化。
-- README 新增智能助手 UI 截图。
-- 版本统一为 v1.6.26。
+- Fixed and improved the Agent Chat component.
+- Added an assistant UI screenshot to the README.
+- Versions aligned to v1.6.26.
 
 ## [v1.6.19] - 2026-07-30
 
 ### Added
 
-- **侧边栏聊天界面全面翻新** — 猫娘聊天背景、i18n 国际化支持、主题切换、设置面板重构。
-- **选择器引擎大重构** — 新增 page handler，`element-marker.js` 注入脚本大幅优化，Builder/Sidepanel 多处体验改进。
-- **Popup 页面调整** — 工具列表交互优化。
-- 新增 `package-extension.bat` 打包脚本。
+- **Sidepanel chat UI overhaul** — Catgirl chat background, i18n support, theme switching, and settings panel rework.
+- **Selector engine overhaul** — Added page handler, greatly optimized the `element-marker.js` injection script, and improved many Builder/Sidepanel experiences.
+- **Popup page adjustments** — Improved tool list interaction.
+- Added the `package-extension.bat` packaging script.
 
 ### Changed
 
-- 语义相似度引擎改为静态导入 PREDEFINED_MODELS；wxt 配置禁用 modulePreload。
-- DeepSeek 引擎更新并补充测试。
-- 版本统一为 v1.6.19。
+- Semantic similarity engine now statically imports PREDEFINED_MODELS; wxt config disables modulePreload.
+- DeepSeek engine updated with added tests.
+- Versions aligned to v1.6.19.
 
 ## [v1.6.4] - 2026-07-30
 
 ### Added
 
-- **Cookie 管理三件套** — 新增 `chrome_cookie_get` / `chrome_cookie_set` / `chrome_cookie_delete` 三个工具，支持按 URL、域名、名称筛选查询、设置和删除 Cookie。
-- **`chrome_get_interactive_elements`** — 恢复该工具（之前被遗漏）。
-- 删除 `start-server-npm.bat`（与 `start-server.bat` 功能重复）。
-- README 路线图更新：移除「工具级 ACL」，新增「待开发工具」计划表。
+- **Cookie management trio** — Added `chrome_cookie_get` / `chrome_cookie_set` / `chrome_cookie_delete` for querying, setting, and deleting cookies filtered by URL, domain, or name.
+- **`chrome_get_interactive_elements`** — Restored (it had been missed).
+- Removed `start-server-npm.bat` (duplicate of `start-server.bat`).
+- README roadmap update: removed "tool-level ACL" and added a "planned tools" table.
 
 ### Changed
 
-- 版本统一为 v1.6.4。
+- Versions aligned to v1.6.4.
 
 ## [v1.6.2] - 2026-07-30
 
 ### Added
 
-- pnpm 版本升级至 11.18.0。
+- pnpm bumped to 11.18.0.
 
 ## [v1.6.1] - 2026-07-24
 
 ### Fixed
 
-- **output-sanitizer 精简与修复** — 移除 `sanitizeOutput` 中的冗余分支逻辑，简化代码结构。
-- 新增 `output-sanitizer.test.ts` 单元测试覆盖。
+- **output-sanitizer cleanup and fix** — Removed redundant branch logic in `sanitizeOutput` to simplify the code.
+- Added `output-sanitizer.test.ts` unit test coverage.
 
 ### Changed
 
-- 所有包版本统一为 v1.6.1。
+- All package versions aligned to v1.6.1.
 
 ## [v1.6.0] - 2026-07-24
 
 ### Added
 
-- **猫娘毛玻璃 UI** — 扩展弹窗和 Builder 界面全面采用毛玻璃视觉效果，配合柔和猫娘主题色调。
-- **品牌更名** — 项目视觉标识统一更新。
-- **页面录制快捷键** — `Ctrl+Shift+1/2/3` 分别控制开始/暂停/停止录制。
-- **内嵌 Shared Runtime** — native-server postinstall 自动安装 bundled shared runtime，减少手动构建步骤。
-- **页面录制器新架构** — 新增 `page-recorder.ts`、`page-picker.ts`、`tabs.test.ts`。
+- **Catgirl frosted-glass UI** — The extension popup and Builder UI now fully use frosted-glass visuals with soft catgirl theme tones.
+- **Brand rename** — Project visual identity updated throughout.
+- **Page recording shortcuts** — `Ctrl+Shift+1/2/3` start/pause/stop recording respectively.
+- **Bundled shared runtime** — native-server postinstall installs the bundled shared runtime automatically, reducing manual build steps.
+- **New page recorder architecture** — Added `page-recorder.ts`, `page-picker.ts`, and `tabs.test.ts`.
 
 ### Changed
 
-- **启动脚本优化** — `start-server.bat` / `start-server-npm.bat` 从 4 步精简为 3 步，移除独立 shared build 步骤。
-- **错误日志系统重构** — 错误日志从行内展示改为弹窗 Modal，提升查看体验；新增网络捕获 URL 安全检查。
-- **Builder/Popup UI 重构** — 大幅重写 `App.vue`，优化工作流编辑器界面。
-- **导航容错增强** — 页面导航失败时提供更清晰的错误回退。
-- **依赖升级** — pnpm 从 11.15.1 升级至 11.17.0。
+- **Startup script streamlining** — `start-server.bat` / `start-server-npm.bat` reduced from 4 steps to 3, removing the separate shared build step.
+- **Error log system rework** — Error logs moved from inline display to a modal dialog for better readability; added a network capture URL safety check.
+- **Builder/Popup UI rework** — Heavily rewrote `App.vue` to improve the workflow editor UI.
+- **Navigation resilience** — Clearer error fallback when page navigation fails.
+- **Dependency upgrade** — pnpm upgraded from 11.15.1 to 11.17.0.
 
 ### Fixed
 
-- **Native Messaging 注册容错** — 检测到 `EPERM` 时给出明确提示，建议关闭 Chrome 后重试。
+- **Native Messaging registration resilience** — Clear guidance when `EPERM` is detected, suggesting closing Chrome and retrying.
 
-- 所有包版本统一为 v1.6.0。
+- All package versions aligned to v1.6.0.
 
 ## [v1.5.3] - 2026-07-21
 
 ### Fixed
 
-- **可靠滚动容器识别**: `chrome_scroll` 和 `chrome_get_scroll_state` 使用同一真实容器解析，修复虚拟列表上回执成功但未移动的问题。
+- **Reliable scroll container detection**: `chrome_scroll` and `chrome_get_scroll_state` share the same real-container resolution, fixing virtual lists reporting success without actually moving.
 
 ### Added
 
-- `anchorSelector` 参数可将自动识别锁定到嵌套或虚拟列表中的内容锚点。
-- 滚动结果新增目标容器和实际位移回执。
-- 所有发布包版本统一为 v1.5.3。
+- The `anchorSelector` parameter pins auto-detection to a content anchor in nested or virtual lists.
+- Scroll results now include the target container and actual movement receipt.
+- All release package versions aligned to v1.5.3.
 
 ## [v1.5.2] - 2026-07-21
 
 ### Added
 
-- **操作意图显示**: 在浏览器状态叠加层显示当前步骤的 `intent` 信息，AI 执行时用户可清晰了解每一步的意图。
-  - 🏷️ 所有工具输入新增可选 `intent` 字段
-  - 🖥️ 状态叠加层 (`chrome_operation_status`) 显示"意图：xxx"行
-  - 🔄 自动截断长意图文本至 160 字符
+- **Operation intent display**: Show the current step's `intent` in the browser status overlay so users can clearly understand each step while the AI runs.
+  - 🏷️ Optional `intent` field added to all tool inputs
+  - 🖥️ Status overlay (`chrome_operation_status`) shows an "Intent: xxx" line
+  - 🔄 Long intent text truncated to 160 characters
 
 ### Changed
 
-- **类型安全增强**: 模型选择接口从 `string` 迁移至 `ModelPreset` 枚举，消除运行时类型风险。
-- **预览元数据结构优化**: `AgentSessionListItem` 中预览元数据解析逻辑重构，增强 `WebEditorApply` 类型的健壮性。
-- 所有包版本统一为 v1.5.2
+- **Type safety**: Model selection API migrated from `string` to the `ModelPreset` enum, eliminating runtime type risk.
+- **Preview metadata structure**: Reworked preview metadata parsing in `AgentSessionListItem` and hardened the `WebEditorApply` type.
+- All package versions aligned to v1.5.2.
 
 ## [v1.5.1] - 2026-07-19
 
 ### Added
 
-- **元素代码生成弹窗**: 标记元素后弹窗展示定位代码，替代原有 JSON 文件导出。
-  - 🪟 内联代码弹窗 UI，支持一键复制到剪贴板
-  - 🌐 支持 JavaScript（querySelector / XPath）和 Python（Selenium By）两种代码格式
-  - 📋 使用 Clipboard API + fallback 兼容，确保所有环境下可用
-  - ⌨️ Escape 键快捷关闭弹窗
-  - 📑 代码标签页切换（JS / Python），复制按钮标题跟随语言同步更新
+- **Element code generation popup**: After marking an element, a popup shows the locator code instead of exporting a JSON file.
+  - 🪟 Inline code popup UI with one-click copy to clipboard
+  - 🌐 Supports JavaScript (querySelector / XPath) and Python (Selenium By) code formats
+  - 📋 Clipboard API with fallback compatibility to work in all environments
+  - ⌨️ Escape key closes the popup
+  - 📑 Code tab switching (JS / Python) updates the copy button title to match the language
 
 ### Changed
 
-- 所有包版本统一为 v1.5.1
+- All package versions aligned to v1.5.1.
 
 ## [v1.5.0] - 2026-07-19
 
 ### Breaking
 
-- **工作流引擎 v3 架构统一**: 旧版 record-replay v2 代码已全面迁移至 v3 统一架构。
-  - 🧹 移除 v2 旧引擎、旧录制模块、旧节点系统（共 50+ 文件）
-  - 🏗️ 动作处理器统一为 `record-replay-v3/actions` 模块
-  - 🔌 插件系统重构为 `action-node-adapter` + `register-action-nodes`
-  - 📦 新增 `public-api` / `builder-types` / `utils` 公共模块
-  - 📉 净减少 ~12,300 行旧代码
-  - 📦 v1.5.0 之前的旧版本源码已归档至 `V2toV3` 分支
+- **Workflow engine v3 architecture unification**: The legacy record-replay v2 code is fully migrated to the v3 unified architecture.
+  - 🧹 Removed the v2 engine, recording modules, and node system (50+ files)
+  - 🏗️ Action handlers unified into the `record-replay-v3/actions` module
+  - 🔌 Plugin system reworked into `action-node-adapter` + `register-action-nodes`
+  - 📦 Added `public-api` / `builder-types` / `utils` shared modules
+  - 📉 Net reduction of ~12,300 lines of legacy code
+  - 📦 Pre-v1.5.0 sources archived to the `V2toV3` branch
 
 ### Changed
 
-- 所有包版本统一为 v1.5.0
+- All package versions aligned to v1.5.0.
 
 ## [v1.4.0] - 2026-07-18
 

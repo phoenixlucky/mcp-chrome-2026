@@ -1,14 +1,13 @@
 <template>
   <div class="form-section">
     <div class="form-group">
-      <label class="form-label">延迟 (ms)</label>
+      <label class="form-label">Delay (ms)</label>
       <input class="form-input" type="number" v-model.number="(node as any).config.ms" min="0" />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 defineProps<{ node: NodeBase }>();
 </script>

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Kernel 模块导出入口
+ * @fileoverview Kernel module export entry
  */
 
 export * from './kernel';

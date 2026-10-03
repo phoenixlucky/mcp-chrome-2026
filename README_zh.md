@@ -1,5 +1,5 @@
 # Chrome MCP Server
 
-中文版 README 已迁移到 [README.md](README.md)。
+The README, docs, and default UI are now in English — see [README.md](README.md).
 
-English: [README_en.md](README_en.md)
+The extension still ships `zh_CN` and `zh_TW` interface localizations.

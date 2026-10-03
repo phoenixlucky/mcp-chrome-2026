@@ -1,41 +1,41 @@
-# 快捷工具指南
+# Quick Tools Guide
 
-## 插件弹窗快捷工具
+## Popup quick tools
 
-点击扩展工具栏图标，在“快捷工具”区域使用以下两个页面级功能。
+Click the extension toolbar icon and use the two page-level tools in the **Quick Tools** section.
 
-### 开启页面编辑模式
+### Enable Page Editing Mode
 
-页面编辑器用于在当前网页上**可视化定位和调整界面**：选中元素后可查看属性、调整尺寸/布局/样式，再把“把这个按钮变大一些”之类的需求连同元素上下文发送给智能助手。助手据此修改项目源码；编辑器本身不会替你直接发布网站。
+The page editor lets you **locate and adjust UI visually** on the current page. Select an element to inspect its properties, adjust size/layout/styles, then send a request such as “make this button larger” to the Smart Assistant with that element context. The assistant changes source code; the editor does not publish a website by itself.
 
-- 打开方式：弹窗中的编辑图标、页面右键菜单“切换网页编辑模式”，或 `Ctrl/Cmd + Shift + O`。
-- 适合：本地开发页面的 UI 微调、原型验证、让 Claude/Codex 精确定位某个组件。
-- 更多操作说明：[可视化编辑器](VisualEditor_zh.md)。
+- Open it from the popup edit icon, the **Toggle Web Editing Mode** page context-menu item, or `Ctrl/Cmd + Shift + O`.
+- Use it for local UI tuning, prototype validation, and precise component targeting with Claude or Codex.
+- See the [Visual Editor guide](VisualEditor.md) for more detail.
 
-### 开启元素标注
+### Enable Element Marking
 
-元素标注用于把当前页面的重要元素保存为具名选择器，例如“商品价格”“提交按钮”或“评论列表”。保存后，可在“元素标注管理”中搜索、编辑和删除；MCP 读取页面时会优先带上匹配的标注，方便助手稳定定位。
+Element Marking saves important page elements as named selectors, such as “product price”, “submit button”, or “review list”. You can search, edit, and delete them in **Element Marker Management**. Matching markers are included first when MCP reads a page, making assistant targeting more reliable.
 
-- 打开方式：弹窗中的标注图标，或页面右键菜单“标注元素”。
-- 适合：经常重复采集或操作的页面、需要给 AI 指明关键字段/按钮的任务。
-- 标注保存在扩展本地 IndexedDB，并按页面来源与路径匹配；页面结构变化后请重新检查选择器。
+- Open it from the popup marker icon or the **Mark element** page context-menu item.
+- Use it for pages you repeatedly collect from or operate, and for explicitly identifying important fields and controls to an AI assistant.
+- Markers are stored in the extension's local IndexedDB and matched by page origin and path; recheck a selector after a page structure change.
 
-## 页面 Quick Panel
+## Page Quick Panel
 
-在任意网页按 `Ctrl + Shift + U`（macOS：`Cmd + Shift + U`）打开或关闭 Quick Panel。
+Press `Ctrl + Shift + U` on any page (`Cmd + Shift + U` on macOS) to open or close the Quick Panel.
 
-1. 先在智能助手侧边栏创建并选中一个会话。
-2. 打开网页 Quick Panel；它会自动附带当前页面 URL 和已选中的页面文本。
-3. 输入问题后按 Enter 发送；按 Esc 关闭面板。流式回复期间可取消请求。
+1. Create and select a session in the Smart Assistant side panel first.
+2. Open the page Quick Panel; it automatically includes the current page URL and selected page text.
+3. Press Enter to send and Esc to close. You can cancel while a streamed reply is in progress.
 
-如果没有选中助手会话，扩展会打开侧边栏并提示你先创建或选择会话。单个请求最长等待 15 分钟；超时或连接失败后可从侧边栏重试。
+When no assistant session is selected, the extension opens the side panel and asks you to select or create one. A request can wait for up to 15 minutes; retry from the side panel after a timeout or connection error.
 
-## 插件弹窗 MCP 工具目录
+## Popup MCP Tool Catalog
 
-点击扩展工具栏图标，打开 **MCP Tools** 页面：
+Click the extension toolbar icon and open **MCP Tools**:
 
-- 使用搜索框按工具名称或说明过滤。
-- 展开条目查看参数、必填标记和描述。
-- 该页面仅用于浏览工具目录，**不会直接执行工具**；请让兼容 MCP 的客户端调用工具。
+- Search by tool name or description.
+- Expand an item to inspect parameters, required flags, and descriptions.
+- This is a browse-only catalog; it **does not execute tools**. Use an MCP-compatible client to invoke them.
 
-完整工具参数与示例请查看：[工具 API 参考](TOOLS_zh.md)。
+For complete tool parameters and examples, see the [Tool API Reference](TOOLS.md).

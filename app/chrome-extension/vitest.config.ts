@@ -1,11 +1,14 @@
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
+import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
+  // Compile .vue imports so render tests can mount real components.
+  plugins: [vue()],
   resolve: {
     alias: {
       // Match WXT's path aliases from .wxt/tsconfig.json

@@ -67,9 +67,9 @@ describe('DeepSeekEngine', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(
         streamResponse([
-          'data: {"choices":[{"delta":{"reasoning_content":"思"}}]}\n\n',
-          'data: {"choices":[{"delta":{"reasoning_content":"考","content":"答"}}]}\n',
-          'data: {"choices":[{"delta":{"content":"案"}}]}\n\ndata: [DONE]\n\n',
+          'data: {"choices":[{"delta":{"reasoning_content":"Thi"}}]}\n\n',
+          'data: {"choices":[{"delta":{"reasoning_content":"nking"}}]}\n',
+          'data: {"choices":[{"delta":{"content":"Answer"}}]}\n\ndata: [DONE]\n\n',
         ]),
       );
 
@@ -78,7 +78,7 @@ describe('DeepSeekEngine', () => {
 
     const messages = events.filter((event) => event.type === 'message').map((event) => event.data);
     expect(messages.at(-1)).toMatchObject({
-      content: '💭 思考\n\n答案',
+      content: '💭 Thinking\n\nAnswer',
       isStreaming: false,
       isFinal: true,
     });

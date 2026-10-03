@@ -6,7 +6,7 @@
           <div class="header-title">Edge</div>
           <div class="header-id">{{ edge.id }}</div>
         </div>
-        <button class="btn-delete" type="button" title="删除边" @click.stop="onRemove">
+        <button class="btn-delete" type="button" title="Delete edge" @click.stop="onRemove">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
               d="m4 4 8 8M12 4 4 12"
@@ -47,7 +47,7 @@
       </div>
     </div>
     <div v-else class="panel-empty">
-      <div class="empty-text">未选择边</div>
+      <div class="empty-text">No edge selected</div>
     </div>
   </aside>
 </template>

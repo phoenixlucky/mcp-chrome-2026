@@ -11,44 +11,45 @@
     </header>
 
     <section v-if="hiddenInterfaceUnlocked" class="proxy">
-      <h2>住宅代理</h2>
+      <h2>Residential proxy</h2>
       <p class="description"
-        >反向入口 <code>pr.oxylabs.io:7777</code> 在用户名中使用
-        <code>cc-XX</code>；具体国家入口使用对应国家主机和端口，用户名不带
-        <code>cc</code>。插件按站点保持同一出口，未指定 <code>sesstime</code> 时默认约 5 分钟；
-        需要更长粘性时再加 <code>sesstime-60</code> 或更长时长。</p
+        >The reverse entry uses <code>pr.oxylabs.io:7777</code> + <code>cc-XX</code>;
+        country-specific entries use the matching country host and port with <code>cc</code> omitted
+        from the username. The extension keeps the same exit IP per site; without
+        <code>sesstime</code> it defaults to about 5 minutes; add <code>sesstime-60</code> for
+        longer stickiness.</p
       >
       <div class="grid">
         <label class="toggle">
-          启用代理
+          Enable proxy
           <input type="checkbox" v-model="proxy.enabled" />
         </label>
         <label>
-          端点类型
+          Endpoint type
           <select v-model="proxy.endpointType" :disabled="!proxy.enabled">
-            <option value="reverse">反向连接入口（7777）</option>
-            <option value="country">具体国家/地区入口</option>
+            <option value="reverse">Reverse entry (7777)</option>
+            <option value="country">Country/region-specific entry</option>
           </select>
         </label>
         <label v-if="proxy.endpointType === 'reverse'">
-          接入地区
+          Access region
           <select v-model="proxy.accessRegion" :disabled="!proxy.enabled">
-            <option value="global">全球（pr.oxylabs.io:7777）</option>
-            <option value="beijing">北京（cnt9t1is.com:8000）</option>
-            <option value="hongkong">香港（a81298871.com:8000）</option>
-            <option value="custom">自定义地址</option>
+            <option value="global">Global (pr.oxylabs.io:7777)</option>
+            <option value="beijing">Beijing (cnt9t1is.com:8000)</option>
+            <option value="hongkong">Hong Kong (a81298871.com:8000)</option>
+            <option value="custom">Custom address</option>
           </select>
         </label>
         <label>
-          输出格式 / 连接协议
+          Output format / connection protocol
           <select v-model="proxy.protocol" :disabled="!proxy.enabled">
-            <option value="http">端点：端口 / HTTP</option>
-            <option value="https">HTTPS（北京/香港入口必选）</option>
-            <option value="socks5" disabled>SOCKS5（Oxylabs 不支持 Chrome）</option>
+            <option value="http">Endpoint: port / HTTP</option>
+            <option value="https">HTTPS (required for Beijing/Hong Kong entries)</option>
+            <option value="socks5" disabled>SOCKS5 (not supported by Oxylabs for Chrome)</option>
           </select>
         </label>
         <label>
-          代理地址或完整连接串
+          Proxy address or full connection string
           <input
             v-model="proxy.host"
             placeholder="customer-USER:PASSWORD@pr.oxylabs.io:7777"
@@ -56,7 +57,7 @@
           />
         </label>
         <label>
-          端口
+          Port
           <input
             v-model.number="proxy.port"
             type="number"
@@ -66,7 +67,7 @@
           />
         </label>
         <label>
-          用户名
+          Username
           <input
             v-model="proxy.username"
             placeholder="customer-USERNAME-cc-us-sesstime-5"
@@ -74,22 +75,26 @@
           />
         </label>
         <label>
-          国家/地区{{ proxy.endpointType === 'country' ? '' : '（可选）' }}
+          Country/region{{ proxy.endpointType === 'country' ? '' : ' (optional)' }}
           <select v-model="proxy.countryCode" :disabled="!proxy.enabled">
-            <option v-if="proxy.endpointType === 'reverse'" value="">不指定（保留用户名）</option>
-            <option v-if="proxy.endpointType === 'reverse'" value="random">随机（移除 cc）</option>
+            <option v-if="proxy.endpointType === 'reverse'" value=""
+              >Unspecified (keep username)</option
+            >
+            <option v-if="proxy.endpointType === 'reverse'" value="random"
+              >Random (remove cc)</option
+            >
             <option v-for="country in PROXY_COUNTRIES" :key="country.code" :value="country.code">
               {{ country.name
               }}{{
                 proxy.endpointType === 'reverse'
-                  ? `（cc-${country.code}）`
-                  : `（${country.code}-pr.oxylabs.io:${proxy.protocol === 'https' ? country.httpsPort : country.httpPort}）`
+                  ? `(cc-${country.code})`
+                  : `(${country.code}-pr.oxylabs.io:${proxy.protocol === 'https' ? country.httpsPort : country.httpPort})`
               }}
             </option>
           </select>
         </label>
         <label>
-          密码
+          Password
           <input
             v-model="proxy.password"
             type="password"
@@ -98,16 +103,16 @@
           />
         </label>
         <label>
-          会话 ID（可选）
+          Session ID (optional)
           <input v-model="proxy.sessionId" placeholder="0366443321" :disabled="!proxy.enabled" />
         </label>
         <label class="toggle">
-          页面异常自动轮换 IP（同站点最短 5 分钟，不设每小时次数上限）
+          Auto-rotate IP on page errors (min. 5 minutes per site, no hourly cap)
           <input type="checkbox" v-model="proxy.rotateOnError" :disabled="!proxy.enabled" />
         </label>
       </div>
       <label>
-        仅对这些网站走代理（留空表示全部网站）
+        Proxy only these sites (leave empty for all sites)
         <textarea
           v-model="proxyDomains"
           rows="2"
@@ -116,7 +121,7 @@
         />
       </label>
       <div class="row">
-        <button :disabled="proxySaving" @click="saveProxy">保存代理设置</button>
+        <button :disabled="proxySaving" @click="saveProxy">Save proxy settings</button>
         <span class="hint" v-if="proxyResult">{{ proxyResult }}</span>
       </div>
     </section>
@@ -343,12 +348,12 @@ async function saveProxy() {
           .filter(Boolean),
       },
     });
-    if (!result?.success) throw new Error(result?.error || '保存失败');
+    if (!result?.success) throw new Error(result?.error || 'Save failed');
     Object.assign(proxy, result.config);
     proxyDomains.value = (result.config.domains || []).join('\n');
-    proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
+    proxyResult.value = proxy.enabled ? 'Proxy enabled' : 'Proxy disabled';
   } catch (error: any) {
-    proxyResult.value = `错误：${error?.message || String(error)}`;
+    proxyResult.value = `Error: ${error?.message || String(error)}`;
   } finally {
     proxySaving.value = false;
   }

@@ -96,10 +96,10 @@ function appendVariables(variables: unknown[]) {
 }
 
 async function start(): Promise<{ success: boolean; flowId?: string; error?: string }> {
-  if (status !== 'idle') return { success: false, error: '已有进行中的录制' };
+  if (status !== 'idle') return { success: false, error: 'A recording is already in progress' };
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!active?.id || !active.url || !/^https?:/i.test(active.url)) {
-    return { success: false, error: '请切换到 http/https 普通网页后再开始录制' };
+    return { success: false, error: 'Switch to a normal http/https page before recording' };
   }
   const now = new Date().toISOString();
   const page = new URL(active.url);
@@ -108,14 +108,14 @@ async function start(): Promise<{ success: boolean; flowId?: string; error?: str
   flow = {
     schemaVersion: FLOW_SCHEMA_VERSION,
     id: flowId,
-    name: `页面录制 ${new Date().toLocaleString()}`,
-    description: `录制自 ${active.url}`,
+    name: `Page recording ${new Date().toLocaleString()}`,
+    description: `Recorded from ${active.url}`,
     createdAt: now,
     updatedAt: now,
     entryNodeId: entryId,
     nodes: [{ id: entryId, kind: 'navigate', config: { url: active.url }, ui: { x: 0, y: 120 } }],
     edges: [],
-    meta: { tags: ['页面录制'], bindings: [{ kind: 'domain', value: page.hostname }] },
+    meta: { tags: ['Page recording'], bindings: [{ kind: 'domain', value: page.hostname }] },
   };
   tabId = active.id;
   status = 'recording';
@@ -131,7 +131,7 @@ async function start(): Promise<{ success: boolean; flowId?: string; error?: str
 }
 
 async function stop(): Promise<{ success: boolean; flow?: FlowV3; error?: string }> {
-  if (!flow || status === 'idle') return { success: false, error: '当前没有录制' };
+  if (!flow || status === 'idle') return { success: false, error: 'No active recording' };
   status = 'stopping';
   await control('stop').catch(() => undefined);
   const saved = flow;
@@ -146,14 +146,14 @@ async function stop(): Promise<{ success: boolean; flow?: FlowV3; error?: string
 }
 
 async function pause(): Promise<{ success: boolean; error?: string }> {
-  if (status !== 'recording') return { success: false, error: '当前未在录制' };
+  if (status !== 'recording') return { success: false, error: 'Not recording' };
   status = 'paused';
   await control('pause');
   return { success: true };
 }
 
 async function resume(): Promise<{ success: boolean; error?: string }> {
-  if (status !== 'paused') return { success: false, error: '当前未暂停' };
+  if (status !== 'paused') return { success: false, error: 'Not paused' };
   status = 'recording';
   await control('resume');
   return { success: true };
