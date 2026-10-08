@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOOL_SCHEMAS, TOOL_SCHEMAS_EN } from '@ethanwilkins/chrome-mcp-shared-2026';
+import { TOOL_SCHEMAS, TOOL_SCHEMAS_ZH } from '@ethanwilkins/chrome-mcp-shared-2026';
 
 describe('MCP tool catalog', () => {
   it('exposes maintained tools and omits retired aliases', () => {
@@ -122,9 +122,9 @@ describe('MCP tool catalog', () => {
     );
   });
 
-  it('keeps the bilingual catalog aligned and fully described', () => {
+  it('keeps the English and Chinese catalogs aligned and fully described', () => {
     const names = TOOL_SCHEMAS.map((tool) => tool.name);
-    expect(TOOL_SCHEMAS_EN.map((tool) => tool.name)).toEqual(names);
+    expect(TOOL_SCHEMAS_ZH.map((tool) => tool.name)).toEqual(names);
     const withoutDescriptions = (value: unknown): unknown => {
       if (Array.isArray(value)) return value.map(withoutDescriptions);
       if (!value || typeof value !== 'object') return value;
@@ -134,18 +134,26 @@ describe('MCP tool catalog', () => {
           .map(([key, child]) => [key, withoutDescriptions(child)]),
       );
     };
-    expect(withoutDescriptions(TOOL_SCHEMAS_EN)).toEqual(withoutDescriptions(TOOL_SCHEMAS));
+    expect(withoutDescriptions(TOOL_SCHEMAS_ZH)).toEqual(withoutDescriptions(TOOL_SCHEMAS));
     const han = /\p{Script=Han}/u;
-    for (const catalog of [TOOL_SCHEMAS, TOOL_SCHEMAS_EN]) {
-      for (const tool of catalog) {
-        expect(tool.description?.trim()).toBeTruthy();
-        for (const schema of Object.values(tool.inputSchema.properties || {}) as Array<{
-          description?: string;
-        }>) {
-          expect(schema.description?.trim()).toBeTruthy();
-        }
+    for (const tool of TOOL_SCHEMAS) {
+      expect(tool.description?.trim()).toBeTruthy();
+      for (const schema of Object.values(tool.inputSchema.properties || {}) as Array<{
+        description?: string;
+      }>) {
+        expect(schema.description?.trim()).toBeTruthy();
       }
     }
-    expect(TOOL_SCHEMAS_EN.every((tool) => !han.test(tool.description || ''))).toBe(true);
+    expect(TOOL_SCHEMAS.every((tool) => !han.test(tool.description || ''))).toBe(true);
+    // The zh catalog keeps Chinese descriptions for every tool and parameter, so
+    // the extension's zh mode has a translated fallback for the whole catalog.
+    expect(TOOL_SCHEMAS_ZH.every((tool) => han.test(tool.description || ''))).toBe(true);
+    for (const tool of TOOL_SCHEMAS_ZH) {
+      for (const schema of Object.values(tool.inputSchema.properties || {}) as Array<{
+        description?: string;
+      }>) {
+        expect(han.test(schema.description || '')).toBe(true);
+      }
+    }
   });
 });

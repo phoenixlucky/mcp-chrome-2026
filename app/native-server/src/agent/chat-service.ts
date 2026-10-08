@@ -33,8 +33,10 @@ export interface AgentChatServiceOptions {
 /**
  * AgentChatService coordinates incoming /agent/chat requests and delegates to engines.
  *
- * 中文说明：该服务负责会话级调度，不关心具体 CLI/SDK 实现细节。
- * 通过 Engine 接口实现依赖倒置，后续替换或新增引擎时无需修改 HTTP 路由层。
+ * This service handles session-level scheduling and does not care about
+ * specific CLI/SDK implementation details. The Engine interface inverts the
+ * dependency so replacing or adding engines later requires no changes to the
+ * HTTP route layer.
  */
 export class AgentChatService {
   private readonly engines = new Map<EngineName, AgentEngine>();
@@ -481,7 +483,7 @@ export class AgentChatService {
     if (!this.runningExecutions.has(requestId)) return false;
     this.pausedExecutions.add(requestId);
     this.runtimeRegistry?.update(requestId, 'paused', 'paused', {
-      message: '已请求暂停，将在当前 Agent 工具边界后生效',
+      message: 'Pause requested; it takes effect after the current Agent tool boundary',
     });
     return true;
   }

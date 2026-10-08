@@ -11,14 +11,14 @@
     ]"
     :data-agent-theme="agentTheme"
   >
-    <!-- 首页 -->
+    <!-- Home -->
     <div v-show="currentView === 'home'" class="home-view">
       <div class="header">
         <div class="header-content">
           <div class="header-brand">
             <img class="header-brand-icon" src="/assets/brand/popup-mascot.png" alt="" />
             <div class="header-brand-copy">
-              <h1 class="header-title">猫娘 Chrome MCP Server</h1>
+              <h1 class="header-title">Catgirl Chrome MCP Server</h1>
               <p class="header-caption">CHROME MCP SERVER FOR ANYTHING</p>
             </div>
           </div>
@@ -26,8 +26,8 @@
             v-if="hiddenInterfaceUnlocked"
             type="button"
             class="header-logo-button"
-            title="打开欢迎页"
-            aria-label="打开欢迎页"
+            title="Open welcome page"
+            aria-label="Open welcome page"
             @click="openWelcomePage"
           >
             <img class="header-logo" src="/assets/brand/popup-avatar.webp" alt="" />
@@ -38,10 +38,10 @@
         </div>
       </div>
       <div ref="homeContentRef" class="content">
-        <!-- 服务配置卡片 -->
+        <!-- Service configuration card -->
         <div class="section">
           <h2 class="section-title">{{ getMessage('nativeServerConfigLabel') }}</h2>
-          <p class="section-description">快速配置和管理你的本地 MCP 服务器</p>
+          <p class="section-description">Quickly configure and manage your local MCP server</p>
           <div class="config-card">
             <div :class="['status-section', getStatusBgClass()]">
               <div :class="['status-banner', getStatusBgClass()]">
@@ -54,8 +54,8 @@
                   <span class="status-description">
                     {{
                       serverStatus.isRunning
-                        ? '一切正常，正在为客户端提供服务'
-                        : '连接本地服务后即可向客户端提供 MCP 接入'
+                        ? 'Everything is fine, serving clients'
+                        : 'Connect the local service to expose MCP to clients'
                     }}
                   </span>
                 </div>
@@ -109,20 +109,24 @@
                   <PopupIcon name="server" />
                   <div>
                     <p class="mcp-config-label">{{ getMessage('mcpServerConfigLabel') }}</p>
-                    <span>选择合适的配置链接，在客户端中使用</span>
+                    <span>Pick a suitable config link and use it in your client</span>
                   </div>
                 </div>
                 <button
                   type="button"
                   class="copy-config-button"
-                  :aria-label="`复制${selectedMcpTransportOption.title}配置`"
+                  :aria-label="`Copy ${selectedMcpTransportOption.title} config`"
                   @click="copyMcpConfig"
                 >
                   <PopupIcon name="copy" />
                   {{ copyButtonText }}
                 </button>
               </div>
-              <div class="mcp-transport-options" role="radiogroup" aria-label="MCP 服务入口">
+              <div
+                class="mcp-transport-options"
+                role="radiogroup"
+                aria-label="MCP service endpoint"
+              >
                 <button
                   v-for="transport in mcpTransportOptions"
                   :key="transport.id"
@@ -150,7 +154,7 @@
                       v-if="selectedMcpTransport === transport.id"
                       class="mcp-transport-option-selected"
                     >
-                      当前
+                      Current
                     </span>
                   </span>
                   <code class="mcp-transport-option-endpoint">{{ transport.endpoint }}</code>
@@ -163,7 +167,7 @@
               </div>
             </div>
 
-            <!-- 端口与连接 -->
+            <!-- Port and connection -->
             <div class="connection-group">
               <div class="port-section">
                 <label for="port" class="port-label">{{ getMessage('connectionPortLabel') }}</label>
@@ -192,7 +196,7 @@
             </div>
             <section class="proxy-live-status" aria-live="polite">
               <div class="proxy-live-status-header">
-                <strong>当前出口 IP 位置</strong>
+                <strong>Current exit IP location</strong>
                 <button
                   class="proxy-live-refresh"
                   type="button"
@@ -200,39 +204,39 @@
                   :aria-busy="currentProxyInfoLoading"
                   @click="refreshCurrentProxyInfo"
                 >
-                  {{ currentProxyInfoLoading ? '获取中…' : '刷新' }}
+                  {{ currentProxyInfoLoading ? 'Fetching...' : 'Refresh' }}
                 </button>
               </div>
-              <p v-if="!proxy.enabled" class="proxy-live-placeholder">代理未启用</p>
+              <p v-if="!proxy.enabled" class="proxy-live-placeholder">Proxy is disabled</p>
               <p
                 v-else-if="currentProxyInfoLoading && !currentProxyInfo"
                 class="proxy-live-placeholder"
               >
-                正在获取当前位置…
+                Fetching current location...
               </p>
               <template v-else-if="currentProxyInfo">
                 <p v-if="currentProxyLocation" class="proxy-live-location">{{
                   currentProxyLocation
                 }}</p>
-                <p v-else class="proxy-live-placeholder">接口未返回位置数据</p>
+                <p v-else class="proxy-live-placeholder">No location data returned by the API</p>
                 <code class="proxy-live-ip">{{ currentProxyInfo.ip }}</code>
               </template>
               <p v-else class="proxy-live-placeholder">
-                {{ currentProxyInfoError || '暂时无法获取出口 IP 位置' }}
+                {{ currentProxyInfoError || 'Unable to fetch the exit IP location right now' }}
               </p>
             </section>
             <div class="popup-subsection-heading">
               <PopupIcon name="sparkles" />
               <div>
-                <strong>设置 / 偏好</strong>
-                <small>自定义扩展行为和功能偏好</small>
+                <strong>Settings / preferences</strong>
+                <small>Customize extension behavior and preferences</small>
               </div>
             </div>
-            <div class="extension-id">扩展 ID: {{ extensionId }}</div>
+            <div class="extension-id">Extension ID: {{ extensionId }}</div>
             <label class="background-operations-switch">
               <span>
-                <strong>后台操作</strong>
-                <small>打开页面和自动化操作时不抢占前台</small>
+                <strong>Background operations</strong>
+                <small>Open pages and run automation without stealing focus</small>
               </span>
               <input
                 v-model="backgroundOperations"
@@ -242,8 +246,8 @@
             </label>
             <label class="background-operations-switch timeout-setting">
               <span>
-                <strong>页面消息超时</strong>
-                <small>等待内容脚本响应，默认 30 秒（5–300 秒）</small>
+                <strong>Page message timeout</strong>
+                <small>Wait for content-script responses, default 30 s (5–300 s)</small>
               </span>
               <span class="timeout-input">
                 <input
@@ -252,17 +256,20 @@
                   min="5"
                   max="300"
                   step="1"
-                  aria-label="页面消息超时（秒）"
+                  aria-label="Page message timeout (seconds)"
                   @change="saveContentMessageTimeout"
                 />
-                <small>秒</small>
+                <small>s</small>
               </span>
             </label>
             <template v-if="hiddenInterfaceUnlocked">
               <label class="background-operations-switch">
                 <span>
-                  <strong>发送滚动坐标</strong>
-                  <small>在页面编辑器左下角悬浮窗显示页面 X/Y 坐标</small>
+                  <strong>Send scroll coordinates</strong>
+                  <small
+                    >Show page X/Y coordinates in the overlay at the bottom-left of the page
+                    editor</small
+                  >
                 </span>
                 <input
                   v-model="sendScrollCoordinates"
@@ -273,15 +280,17 @@
               <div class="popup-subsection-heading popup-subsection-heading--nested">
                 <PopupIcon name="home" />
                 <div>
-                  <strong>代理设置</strong>
-                  <small>管理网络代理相关配置</small>
+                  <strong>Proxy settings</strong>
+                  <small>Manage network proxy configuration</small>
                 </div>
               </div>
               <label class="background-operations-switch">
                 <span>
-                  <strong>住宅代理</strong>
+                  <strong>Residential proxy</strong>
                   <small>{{
-                    proxy.enabled ? '已启用，当前 Chrome 配置文件流量将走代理' : '已关闭'
+                    proxy.enabled
+                      ? 'Enabled, Chrome profile traffic goes through the proxy'
+                      : 'Disabled'
                   }}</small>
                 </span>
                 <input
@@ -302,10 +311,10 @@
                 >
                   {{
                     proxyRotationPending
-                      ? '切换中，请稍后…'
+                      ? 'Switching, please wait...'
                       : proxySaving
-                        ? '正在处理…'
-                        : '手动切换当前页 IP'
+                        ? 'Processing...'
+                        : 'Manually rotate the current page IP'
                   }}
                 </button>
               </div>
@@ -313,86 +322,89 @@
           </div>
         </div>
 
-        <!-- 快捷工具卡片 -->
+        <!-- Quick tools card -->
         <div class="section">
           <button
             type="button"
             class="section-title quick-tools-unlock-trigger"
-            aria-label="快捷工具"
+            aria-label="Quick tools"
             @click="handleQuickToolsClick"
           >
-            快捷工具
+            Quick tools
           </button>
           <div class="rr-icon-buttons">
             <button
               class="rr-icon-btn rr-icon-btn-edit has-tooltip"
               @click="toggleWebEditor"
-              data-tooltip="页面编辑：可视化调整元素，并将选中元素交给助手修改"
+              data-tooltip="Page editor: visually adjust elements and hand them to the assistant for edits"
             >
               <PopupIcon name="edit" />
-              <span>页面编辑</span>
+              <span>Page editor</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-marker has-tooltip"
               @click="toggleElementMarker"
-              data-tooltip="元素标注：保存关键元素，供 MCP 读取与助手定位"
+              data-tooltip="Element markers: save key elements for MCP to read and the assistant to locate"
             >
               <PopupIcon name="tag" />
-              <span>元素标注</span>
+              <span>Element markers</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-logs has-tooltip"
               @click="openErrorLogs"
-              data-tooltip="查看错误日志"
+              data-tooltip="View error logs"
             >
               <PopupIcon name="warning" />
-              <span>错误日志</span>
+              <span>Error logs</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-record has-tooltip"
               :disabled="rrRecording"
               @click="startRecording"
-              data-tooltip="开始录制（Ctrl+Shift+1）"
+              data-tooltip="Start recording (Ctrl+Shift+1)"
             >
               <PopupIcon name="record" />
-              <span>录制</span>
+              <span>Record</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-pause has-tooltip"
               :disabled="!rrRecording"
               @click="togglePauseRecording"
-              :data-tooltip="rrPaused ? '继续录制（Ctrl+Shift+2）' : '暂停录制（Ctrl+Shift+2）'"
+              :data-tooltip="
+                rrPaused ? 'Resume recording (Ctrl+Shift+2)' : 'Pause recording (Ctrl+Shift+2)'
+              "
             >
               <PopupIcon name="pause" />
-              <span>{{ rrPaused ? '继续' : '暂停' }}</span>
+              <span>{{ rrPaused ? 'Resume' : 'Pause' }}</span>
             </button>
             <button
               class="rr-icon-btn rr-icon-btn-stop has-tooltip"
               :disabled="!rrRecording"
               @click="stopRecording"
-              data-tooltip="停止录制（Ctrl+Shift+3）"
+              data-tooltip="Stop recording (Ctrl+Shift+3)"
             >
               <PopupIcon name="stop" />
-              <span>停止</span>
+              <span>Stop</span>
             </button>
           </div>
           <p class="quick-tools-help"
-            >页面编辑用于可视化调整与精确提问；元素标注用于保存页面关键元素，供 MCP 和助手复用。</p
+            >The page editor is for visual adjustments and precise questions; element markers save
+            key page elements for MCP and the assistant to reuse.</p
           >
           <p v-if="rrError" class="quick-tools-error">{{ rrError }}</p>
         </div>
 
-        <!-- 管理入口卡片 -->
+        <!-- Management entry card -->
         <div v-if="hiddenInterfaceUnlocked" class="section">
-          <h2 class="section-title">管理入口</h2>
+          <h2 class="section-title">Management</h2>
           <div class="entry-card">
             <button class="entry-item" @click="openAgentSidepanel">
               <div class="entry-icon agent">
                 <PopupIcon name="chat" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">智能助手</span>
-                <span class="entry-desc">AI Agent 对话与任务</span>
+                <span class="entry-title">AI assistant</span>
+                <span class="entry-desc">AI Agent chat and tasks</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -401,8 +413,8 @@
                 <PopupIcon name="workflow" />
               </div>
               <div class="entry-content">
-                <span class="entry-title"> 工作流管理 </span>
-                <span class="entry-desc">录制与回放自动化流程</span>
+                <span class="entry-title"> Workflow management </span>
+                <span class="entry-desc">Record and replay automation flows</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -411,8 +423,8 @@
                 <PopupIcon name="tag" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">元素标注管理</span>
-                <span class="entry-desc">管理页面元素标注</span>
+                <span class="entry-title">Element marker management</span>
+                <span class="entry-desc">Manage page element markers</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -421,8 +433,8 @@
                 <PopupIcon name="server" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">本地模型</span>
-                <span class="entry-desc">语义引擎与模型管理</span>
+                <span class="entry-title">Local models</span>
+                <span class="entry-desc">Semantic engine and model management</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -431,8 +443,8 @@
                 <PopupIcon name="grid" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">MCP 工具一览</span>
-                <span class="entry-desc">查询可用工具与参数</span>
+                <span class="entry-title">MCP tools overview</span>
+                <span class="entry-desc">Browse available tools and parameters</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -441,8 +453,8 @@
                 <PopupIcon name="home" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">住宅代理</span>
-                <span class="entry-desc">配置代理与页面异常自动轮换</span>
+                <span class="entry-title">Residential proxy</span>
+                <span class="entry-desc">Configure the proxy and auto-rotate on page errors</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -451,8 +463,8 @@
                 <PopupIcon name="cookie" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">Cookie 管理</span>
-                <span class="entry-desc">查看并选择清除所有网页标签页 Cookie</span>
+                <span class="entry-title">Cookie manager</span>
+                <span class="entry-desc">View and selectively clear cookies of all web tabs</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -461,8 +473,8 @@
                 <PopupIcon name="document" />
               </div>
               <div class="entry-content">
-                <span class="entry-title">最近录制脚本</span>
-                <span class="entry-desc">查询、打开或复制页面录制流程</span>
+                <span class="entry-title">Recent recordings</span>
+                <span class="entry-desc">Browse, open, or copy page recording flows</span>
               </div>
               <PopupIcon name="chevron" class="entry-arrow" />
             </button>
@@ -486,10 +498,10 @@
     </div>
 
     <div v-if="showErrorLogs" class="error-log-modal" @click.self="showErrorLogs = false">
-      <section class="error-log-dialog" role="dialog" aria-modal="true" aria-label="错误日志">
+      <section class="error-log-dialog" role="dialog" aria-modal="true" aria-label="Error logs">
         <header class="error-log-header">
-          <strong>错误日志</strong>
-          <button class="copy-config-button" @click="showErrorLogs = false">关闭</button>
+          <strong>Error logs</strong>
+          <button class="copy-config-button" @click="showErrorLogs = false">Close</button>
         </header>
         <textarea readonly class="error-log-content" :value="errorLogText"></textarea>
         <footer class="error-log-actions">
@@ -499,9 +511,9 @@
             :disabled="isExportingErrorLogs"
             @click="exportErrorLogs"
           >
-            {{ isExportingErrorLogs ? '正在导出…' : '导出 JSON' }}
+            {{ isExportingErrorLogs ? 'Exporting...' : 'Export JSON' }}
           </button>
-          <button class="copy-config-button" @click="clearErrorLogs">清空日志</button>
+          <button class="copy-config-button" @click="clearErrorLogs">Clear logs</button>
         </footer>
       </section>
     </div>
@@ -515,78 +527,84 @@
         class="error-log-dialog proxy-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="住宅代理"
+        aria-label="Residential proxy"
       >
         <header class="error-log-header">
-          <strong>住宅代理</strong>
-          <button class="copy-config-button" @click="showProxyModal = false">关闭</button>
+          <strong>Residential proxy</strong>
+          <button class="copy-config-button" @click="showProxyModal = false">Close</button>
         </header>
         <p class="proxy-description"
-          >反向入口使用 <code>pr.oxylabs.io:7777</code> +
-          <code>cc-XX</code>；具体国家入口使用对应国家主机和端口，用户名不带
-          <code>cc</code>。插件会按站点保持同一出口，未指定 <code>sesstime</code> 时默认约 5
-          分钟；需要更长粘性时可加 <code>sesstime-60</code>。</p
+          >The reverse entry uses <code>pr.oxylabs.io:7777</code> + <code>cc-XX</code>;
+          country-specific entries use the matching country host and port with
+          <code>cc</code> omitted from the username. The extension keeps the same exit IP per site;
+          without <code>sesstime</code> it defaults to about 5 minutes; add
+          <code>sesstime-60</code> for longer stickiness.</p
         >
         <div class="proxy-form">
           <label class="proxy-toggle"
-            ><span>启用代理</span><input v-model="proxy.enabled" type="checkbox"
+            ><span>Enable proxy</span><input v-model="proxy.enabled" type="checkbox"
           /></label>
           <label
-            >端点类型<select v-model="proxy.endpointType"
-              ><option value="reverse">反向连接入口（7777）</option
-              ><option value="country">具体国家/地区入口</option></select
+            >Endpoint type<select v-model="proxy.endpointType"
+              ><option value="reverse">Reverse entry (7777)</option
+              ><option value="country">Country/region-specific entry</option></select
             ></label
           >
           <label v-if="proxy.endpointType === 'reverse'"
-            >接入地区<select v-model="proxy.accessRegion"
-              ><option value="global">全球（pr.oxylabs.io:7777）</option
-              ><option value="beijing">北京（cnt9t1is.com:8000）</option
-              ><option value="hongkong">香港（a81298871.com:8000）</option
-              ><option value="custom">自定义地址</option></select
+            >Access region<select v-model="proxy.accessRegion"
+              ><option value="global">Global (pr.oxylabs.io:7777)</option
+              ><option value="beijing">Beijing (cnt9t1is.com:8000)</option
+              ><option value="hongkong">Hong Kong (a81298871.com:8000)</option
+              ><option value="custom">Custom address</option></select
             ></label
           >
           <label
-            >输出格式 / 连接协议<select v-model="proxy.protocol"
-              ><option value="http">端点：端口 / HTTP</option
-              ><option value="https">HTTPS（北京/香港入口必选）</option
-              ><option value="socks5" disabled>SOCKS5（Oxylabs 不支持 Chrome）</option></select
+            >Output format / connection protocol<select v-model="proxy.protocol"
+              ><option value="http">Endpoint: port / HTTP</option
+              ><option value="https">HTTPS (required for Beijing/Hong Kong entries)</option
+              ><option value="socks5" disabled
+                >SOCKS5 (not supported by Oxylabs for Chrome)</option
+              ></select
             ></label
           >
           <label
-            >代理地址或完整连接串<input
+            >Proxy address or full connection string<input
               v-model="proxy.host"
               placeholder="customer-USER:PASSWORD@pr.oxylabs.io:7777"
           /></label>
-          <label>端口<input v-model.number="proxy.port" type="number" min="1" max="65535" /></label>
+          <label>Port<input v-model.number="proxy.port" type="number" min="1" max="65535" /></label>
           <label
-            >用户名<input v-model="proxy.username" placeholder="customer-USERNAME-cc-us"
+            >Username<input v-model="proxy.username" placeholder="customer-USERNAME-cc-us"
           /></label>
           <label
-            >国家/地区{{ proxy.endpointType === 'country' ? '' : '（可选）'
+            >Country/region{{ proxy.endpointType === 'country' ? '' : ' (optional)'
             }}<select v-model="proxy.countryCode"
-              ><option v-if="proxy.endpointType === 'reverse'" value="">不指定（保留用户名）</option
+              ><option v-if="proxy.endpointType === 'reverse'" value=""
+                >Unspecified (keep username)</option
               ><option v-if="proxy.endpointType === 'reverse'" value="random"
-                >随机（移除 cc）</option
+                >Random (remove cc)</option
               ><option v-for="country in PROXY_COUNTRIES" :key="country.code" :value="country.code"
                 >{{ country.name
                 }}{{
                   proxy.endpointType === 'reverse'
-                    ? `（cc-${country.code}）`
-                    : `（${country.code}-pr.oxylabs.io:${proxy.protocol === 'https' ? country.httpsPort : country.httpPort}）`
+                    ? `(cc-${country.code})`
+                    : `(${country.code}-pr.oxylabs.io:${proxy.protocol === 'https' ? country.httpsPort : country.httpPort})`
                 }}</option
               ></select
             ></label
           >
           <label
-            >密码<input v-model="proxy.password" type="password" autocomplete="new-password"
+            >Password<input v-model="proxy.password" type="password" autocomplete="new-password"
           /></label>
-          <label>会话 ID（可选）<input v-model="proxy.sessionId" placeholder="0366443321" /></label>
+          <label
+            >Session ID (optional)<input v-model="proxy.sessionId" placeholder="0366443321"
+          /></label>
           <label class="proxy-toggle"
-            ><span>页面异常自动轮换 IP（同站点最短 5 分钟，不设每小时次数上限）</span
+            ><span>Auto-rotate IP on page errors (min. 5 minutes per site, no hourly cap)</span
             ><input v-model="proxy.rotateOnError" type="checkbox"
           /></label>
           <label
-            >仅对这些网站走代理（留空表示全部网站）<textarea
+            >Only proxy these sites (leave empty for all sites)<textarea
               v-model="proxyDomains"
               rows="2"
               placeholder="example.com&#10;*.shop.example"
@@ -600,21 +618,21 @@
             type="button"
             :disabled="proxySaving || !proxy.enabled"
             @click="rotateCurrentProxy"
-            >手动切换 IP</button
+            >Manually rotate IP</button
           >
           <button
             class="copy-config-button"
             type="button"
             :disabled="proxySaving"
             @click="() => saveProxySettings()"
-            >保存</button
+            >Save</button
           >
           <button
             class="copy-config-button"
             type="button"
             :disabled="proxySaving"
             @click="testProxyConnection"
-            >测试连接</button
+            >Test connection</button
           >
         </footer>
       </section>
@@ -632,45 +650,47 @@
         aria-labelledby="proxy-rotation-result-title"
       >
         <header class="error-log-header">
-          <strong id="proxy-rotation-result-title">IP 切换完成</strong>
+          <strong id="proxy-rotation-result-title">IP rotated</strong>
           <button class="copy-config-button" type="button" @click="closeProxyRotationResult"
-            >关闭</button
+            >Close</button
           >
         </header>
         <div class="proxy-rotation-success" role="status" aria-live="polite">
           <span class="proxy-rotation-icon" aria-hidden="true">✓</span>
           <div class="proxy-rotation-copy">
-            <strong>当前页 IP 已更新</strong>
-            <p>当前 IP 已由以下地址切换为：</p>
+            <strong>Current page IP updated</strong>
+            <p>The current IP was rotated from the following address to:</p>
           </div>
         </div>
-        <div class="proxy-ip-change" aria-label="IP 切换前后对比">
+        <div class="proxy-ip-change" aria-label="IP before and after rotation">
           <div class="proxy-ip-item">
-            <span class="proxy-ip-period">切换前</span>
+            <span class="proxy-ip-period">Before</span>
             <span
               v-if="formatProxyLocation(proxyRotationResult, 'previous')"
               class="proxy-ip-location"
               >{{ formatProxyLocation(proxyRotationResult, 'previous') }}</span
             >
-            <code class="proxy-ip-value">{{ proxyRotationResult?.previousIp || '获取失败' }}</code>
+            <code class="proxy-ip-value">{{
+              proxyRotationResult?.previousIp || 'Fetch failed'
+            }}</code>
           </div>
           <span class="proxy-ip-arrow" aria-hidden="true">→</span>
           <div class="proxy-ip-item">
-            <span class="proxy-ip-period">切换后</span>
+            <span class="proxy-ip-period">After</span>
             <span
               v-if="formatProxyLocation(proxyRotationResult, 'current')"
               class="proxy-ip-location"
               >{{ formatProxyLocation(proxyRotationResult, 'current') }}</span
             >
             <code class="proxy-ip-value proxy-ip-value--current">{{
-              proxyRotationResult?.currentIp || '获取失败'
+              proxyRotationResult?.currentIp || 'Fetch failed'
             }}</code>
           </div>
         </div>
-        <p class="proxy-rotation-note">当前网页正在重新加载，请稍后查看。</p>
+        <p class="proxy-rotation-note">The current page is reloading, check back shortly.</p>
         <footer class="error-log-actions">
           <button class="copy-config-button" type="button" @click="closeProxyRotationResult"
-            >知道了</button
+            >Got it</button
           >
         </footer>
       </section>
@@ -684,11 +704,17 @@
         aria-labelledby="unlock-dialog-title"
       >
         <header class="error-log-header">
-          <strong id="unlock-dialog-title">开启隐藏入口</strong>
-          <button class="copy-config-button" type="button" @click="closeUnlockPrompt">取消</button>
+          <strong id="unlock-dialog-title">Unlock hidden interface</strong>
+          <button class="copy-config-button" type="button" @click="closeUnlockPrompt"
+            >Cancel</button
+          >
         </header>
         <p class="unlock-description">
-          {{ unlockStep === 1 ? '请输入第一步授权口令。' : '请输入第二步授权口令。' }}
+          {{
+            unlockStep === 1
+              ? 'Enter the first authorization passphrase.'
+              : 'Enter the second authorization passphrase.'
+          }}
         </p>
         <form class="unlock-form" @submit.prevent="unlockHiddenInterface">
           <input
@@ -696,11 +722,17 @@
             type="text"
             autocomplete="off"
             autofocus
-            :placeholder="unlockStep === 1 ? '请输入第一步口令' : '请输入第二步口令'"
-            :aria-label="unlockStep === 1 ? '第一步授权口令' : '第二步授权口令'"
+            :placeholder="
+              unlockStep === 1 ? 'Enter the first passphrase' : 'Enter the second passphrase'
+            "
+            :aria-label="
+              unlockStep === 1
+                ? 'First authorization passphrase'
+                : 'Second authorization passphrase'
+            "
           />
           <button class="copy-config-button unlock-submit" type="submit">
-            {{ unlockStep === 1 ? '下一步' : '确认开启' }}
+            {{ unlockStep === 1 ? 'Next' : 'Confirm unlock' }}
           </button>
         </form>
         <p v-if="unlockError" class="unlock-error" role="alert">{{ unlockError }}</p>
@@ -716,17 +748,17 @@
         class="error-log-dialog cookie-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="所有标签页 Cookie"
+        aria-label="Cookies of all tabs"
       >
         <header class="error-log-header">
-          <strong>所有标签页 Cookie</strong>
+          <strong>Cookies of all tabs</strong>
           <button class="copy-config-button" type="button" @click="showCookieModal = false"
-            >关闭</button
+            >Close</button
           >
         </header>
         <p class="proxy-description"
-          >选择任意网页标签页，再勾选要清除的 Cookie；未勾选的 Cookie 会保留。仅处理
-          <code>http/https</code> 网页标签，不显示 Cookie 值。</p
+          >Select any web tab, then check the cookies to clear; unchecked cookies are kept. Only
+          <code>http/https</code> web tabs are handled, and cookie values are not shown.</p
         >
         <div class="cookie-toolbar">
           <button
@@ -734,40 +766,43 @@
             type="button"
             :disabled="cookieLoading || cookieSaving || !cookieCount"
             @click="selectAllCookies(true)"
-            >全选</button
+            >Select all</button
+          >
           >
           <button
             class="copy-config-button"
             type="button"
             :disabled="cookieLoading || cookieSaving"
             @click="selectAllCookies(false)"
-            >全不选</button
+            >Deselect all</button
+          >
           >
           <button
             class="copy-config-button"
             type="button"
             :disabled="cookieLoading || cookieSaving || !cookieCount"
             @click="invertAllCookies"
-            >反选</button
+            >Invert</button
+          >
           >
           <button
             class="copy-config-button"
             type="button"
             :disabled="cookieLoading || cookieSaving"
             @click="loadAllCookieTabs"
-            >刷新</button
+            >Refresh</button
           >
-          <span class="cookie-selected-count">已选 {{ selectedCookieCount }} 个</span>
+          <span class="cookie-selected-count">Selected {{ selectedCookieCount }}</span>
         </div>
-        <div v-if="cookieLoading" class="cookie-empty">正在读取所有网页标签页的 Cookie…</div>
+        <div v-if="cookieLoading" class="cookie-empty">Reading cookies from all web tabs...</div>
         <div v-else-if="!cookieTabs.length" class="cookie-empty"
-          >当前没有可读取 Cookie 的网页标签页。</div
+          >No web tabs with readable cookies right now.</div
         >
         <div v-else class="cookie-tabs-list">
           <article v-for="tab in cookieTabs" :key="tab.id" class="cookie-tab-card">
             <div class="cookie-tab-header">
               <div class="cookie-tab-title">
-                <strong>{{ tab.active ? '当前' : '标签页' }} · {{ tab.title || tab.url }}</strong>
+                <strong>{{ tab.active ? 'Current' : 'Tab' }} · {{ tab.title || tab.url }}</strong>
                 <span>{{ tab.url }}</span>
               </div>
               <div class="cookie-tab-actions">
@@ -776,27 +811,29 @@
                   type="button"
                   :disabled="tab.loading || cookieSaving || !tab.cookies.length"
                   @click="setTabCookiesSelected(tab, true)"
-                  >全选</button
+                  >Select all</button
+                >
                 >
                 <button
                   class="copy-config-button"
                   type="button"
                   :disabled="tab.loading || cookieSaving || !tab.cookies.length"
                   @click="invertTabCookies(tab)"
-                  >反选</button
+                  >Invert</button
+                >
                 >
                 <button
                   class="copy-config-button"
                   type="button"
                   :disabled="tab.loading || cookieSaving"
                   @click="loadCookiesForTab(tab)"
-                  >刷新</button
+                  >Refresh</button
                 >
               </div>
             </div>
-            <p v-if="tab.loading" class="cookie-empty">正在读取…</p>
+            <p v-if="tab.loading" class="cookie-empty">Reading...</p>
             <p v-else-if="tab.error" class="cookie-error">{{ tab.error }}</p>
-            <p v-else-if="!tab.cookies.length" class="cookie-empty">没有匹配到 Cookie。</p>
+            <p v-else-if="!tab.cookies.length" class="cookie-empty">No matching cookies.</p>
             <div v-else class="cookie-list">
               <label v-for="entry in tab.cookies" :key="entry.key" class="cookie-row">
                 <input v-model="entry.selected" type="checkbox" :disabled="cookieSaving" />
@@ -804,9 +841,9 @@
                   <strong>{{ entry.cookie.name }}</strong>
                   <small
                     >{{ entry.cookie.domain }}{{ entry.cookie.path }} ·
-                    {{ entry.cookie.secure ? 'Secure' : '普通' }} ·
-                    {{ entry.cookie.httpOnly ? 'HttpOnly' : '脚本可读' }} ·
-                    {{ entry.cookie.session ? '会话' : '持久' }}</small
+                    {{ entry.cookie.secure ? 'Secure' : 'Plain' }} ·
+                    {{ entry.cookie.httpOnly ? 'HttpOnly' : 'Script-readable' }} ·
+                    {{ entry.cookie.session ? 'Session' : 'Persistent' }}</small
                   >
                 </span>
               </label>
@@ -820,10 +857,10 @@
             type="button"
             :disabled="cookieSaving || !selectedCookieCount"
             @click="clearSelectedCookies"
-            >{{ cookieSaving ? '正在清除…' : `清除已选 ${selectedCookieCount} 个` }}</button
+            >{{ cookieSaving ? 'Clearing...' : `Clear selected ${selectedCookieCount}` }}</button
           >
           <button class="copy-config-button" type="button" @click="showCookieModal = false"
-            >取消</button
+            >Cancel</button
           >
         </footer>
       </section>
@@ -838,16 +875,16 @@
         class="error-log-dialog recent-scripts-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="最近录制脚本"
+        aria-label="Recent recordings"
       >
         <header class="error-log-header">
-          <strong>最近录制的页面脚本</strong>
+          <strong>Recently recorded page scripts</strong>
           <button class="copy-config-button" @click="showRecentRecordedScripts = false"
-            >关闭</button
+            >Close</button
           >
         </header>
         <p v-if="recentRecordedFlows.length === 0" class="recent-scripts-empty"
-          >暂无页面录制脚本。</p
+          >No page recordings yet.</p
         >
         <div v-else class="recent-scripts-list">
           <article v-for="flow in recentRecordedFlows" :key="flow.id" class="recent-script-item">
@@ -856,12 +893,12 @@
               <span>{{ formatRecordedFlowTime(flow.updatedAt || flow.createdAt) }}</span>
             </div>
             <div class="recent-script-actions">
-              <button class="copy-config-button" @click="openBuilderWindow(flow.id)">打开</button>
-              <button class="copy-config-button" @click="runRecordedScript(flow.id)">运行</button>
+              <button class="copy-config-button" @click="openBuilderWindow(flow.id)">Open</button>
+              <button class="copy-config-button" @click="runRecordedScript(flow.id)">Run</button>
               <button
                 class="copy-config-button danger-action"
                 @click="deleteRecordedScript(flow.id)"
-                >删除</button
+                >Delete</button
               >
             </div>
           </article>
@@ -870,7 +907,7 @@
       </section>
     </div>
 
-    <!-- 本地模型二级页面 -->
+    <!-- Local models subpage -->
     <LocalModelPage
       v-show="currentView === 'local-model'"
       :semantic-engine-status="semanticEngineStatus"
@@ -920,13 +957,13 @@
       @cancel="hideClearDataConfirmation"
     />
 
-    <!-- 侧边栏承担工作流管理；编辑器在独立窗口中打开 -->
+    <!-- The sidepanel handles workflow management; the editor opens in a separate window -->
 
     <!-- Coming Soon Toast -->
     <Transition name="toast">
       <div v-if="comingSoonToast.show" class="coming-soon-toast">
         <PopupIcon name="clock" class="toast-icon" />
-        <span>{{ comingSoonToast.feature }} 功能开发中，敬请期待</span>
+        <span>{{ comingSoonToast.feature }} is under development, stay tuned</span>
       </div>
     </Transition>
   </div>
@@ -951,11 +988,11 @@ import ProgressIndicator from './components/ProgressIndicator.vue';
 import ModelCacheManagement from './components/ModelCacheManagement.vue';
 import LocalModelPage from './components/LocalModelPage.vue';
 import McpToolsPage from './components/McpToolsPage.vue';
-// AgentChat theme - 从preload中获取，保持与sidepanel一致
+// AgentChat theme - read from preload, kept consistent with the sidepanel
 const { theme: agentTheme, initTheme } = useAgentTheme();
 const rrRpc = useRRV3Rpc();
 
-// 当前视图状态：首页 or 本地模型页
+// Current view state: home or local models page
 const currentView = ref<'home' | 'local-model' | 'mcp-tools'>('home');
 const homeContentRef = ref<HTMLElement | null>(null);
 let preservedHomeScrollTop = 0;
@@ -979,7 +1016,7 @@ async function loadHiddenInterfaceState() {
     const stored = await chrome.storage.local.get(STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED);
     hiddenInterfaceUnlocked.value = stored[STORAGE_KEYS.HIDDEN_INTERFACE_UNLOCKED] === true;
   } catch (error) {
-    console.warn('加载隐藏界面状态失败:', error);
+    console.warn('Failed to load hidden interface state:', error);
   }
 }
 
@@ -1016,7 +1053,7 @@ async function unlockHiddenInterface() {
 
     if (unlockStep.value === 1) {
       if (!UNLOCK_PRIMARY_DIGESTS.has(phraseDigest)) {
-        unlockError.value = '第一步口令不正确，请重试。';
+        unlockError.value = 'Incorrect first passphrase, please retry.';
         return;
       }
 
@@ -1027,7 +1064,7 @@ async function unlockHiddenInterface() {
     }
 
     if (phraseDigest !== UNLOCK_SECONDARY_DIGEST) {
-      unlockError.value = '第二步口令不正确，请重试。';
+      unlockError.value = 'Incorrect second passphrase, please retry.';
       return;
     }
 
@@ -1035,8 +1072,8 @@ async function unlockHiddenInterface() {
     hiddenInterfaceUnlocked.value = true;
     closeUnlockPrompt();
   } catch (error) {
-    console.warn('验证或保存隐藏界面状态失败:', error);
-    unlockError.value = '验证失败，请稍后重试。';
+    console.warn('Failed to verify or save hidden interface state:', error);
+    unlockError.value = 'Verification failed, please retry later.';
   }
 }
 
@@ -1137,7 +1174,7 @@ const selectedCookieCount = computed(() =>
   ),
 );
 const isExportingErrorLogs = ref(false);
-const errorLogCopyLabel = ref('复制日志');
+const errorLogCopyLabel = ref('Copy logs');
 const errorLogs = ref<Array<{ timestamp: string; type: string; message: string; stack?: string }>>(
   [],
 );
@@ -1149,7 +1186,7 @@ const errorLogText = computed(() =>
             `[${formatRecordedFlowTime(log.timestamp)}] ${log.type}: ${log.message}${log.stack ? `\n${log.stack}` : ''}`,
         )
         .join('\n\n')
-    : '暂无错误日志。',
+    : 'No error logs yet.',
 );
 
 async function loadErrorLogs() {
@@ -1191,11 +1228,11 @@ async function exportErrorLogs() {
 async function copyErrorLogs() {
   try {
     await navigator.clipboard.writeText(errorLogText.value);
-    errorLogCopyLabel.value = '已复制';
+    errorLogCopyLabel.value = 'Copied';
   } catch {
-    errorLogCopyLabel.value = '复制失败';
+    errorLogCopyLabel.value = 'Copy failed';
   }
-  setTimeout(() => (errorLogCopyLabel.value = '复制日志'), 1500);
+  setTimeout(() => (errorLogCopyLabel.value = 'Copy logs'), 1500);
 }
 
 async function clearErrorLogs() {
@@ -1236,7 +1273,11 @@ const currentTabUrl = ref<string>('');
 const recentRecordedFlows = computed(() =>
   rrFlows.value
     .filter(
-      (flow) => flow.meta?.tags?.includes('页面录制') || flow.description?.startsWith('录制自 '),
+      (flow) =>
+        flow.meta?.tags?.includes('Page recording') ||
+        flow.meta?.tags?.includes('页面录制') ||
+        flow.description?.startsWith('Recorded from ') ||
+        flow.description?.startsWith('录制自 '), // legacy flows recorded before the anglicization
     )
     .sort(
       (a, b) =>
@@ -1257,7 +1298,7 @@ const filteredRrFlows = computed(() => {
   });
 });
 
-// Flow editor在独立窗口中打开；在popup不再展示繁杂列表
+// The Flow editor opens in a separate window; the popup no longer shows a long list
 
 const loadFlows = async () => {
   try {
@@ -1278,26 +1319,28 @@ async function runRecordedScript(flowId: string) {
   try {
     await rrRpc.ensureConnected();
     await rrRpc.request('rr_v3.enqueueRun', { flowId });
-    recentScriptsMessage.value = '已开始运行录制脚本。';
+    recentScriptsMessage.value = 'Started running the recorded script.';
   } catch (error) {
-    recentScriptsMessage.value = error instanceof Error ? error.message : '运行脚本失败。';
+    recentScriptsMessage.value =
+      error instanceof Error ? error.message : 'Failed to run the script.';
   }
 }
 
 async function deleteRecordedScript(flowId: string) {
-  if (!window.confirm('确定删除这条录制脚本吗？此操作无法撤销。')) return;
+  if (!window.confirm('Delete this recorded script? This cannot be undone.')) return;
   try {
     await rrRpc.ensureConnected();
     await rrRpc.request('rr_v3.deleteFlow', { flowId });
-    recentScriptsMessage.value = '录制脚本已删除。';
+    recentScriptsMessage.value = 'Recorded script deleted.';
     await loadFlows();
   } catch (error) {
-    recentScriptsMessage.value = error instanceof Error ? error.message : '删除脚本失败。';
+    recentScriptsMessage.value =
+      error instanceof Error ? error.message : 'Failed to delete the script.';
   }
 }
 
 function formatRecordedFlowTime(value?: string) {
-  return value ? new Date(value).toLocaleString() : '时间未知';
+  return value ? new Date(value).toLocaleString() : 'Unknown time';
 }
 
 async function startRecording() {
@@ -1306,14 +1349,14 @@ async function startRecording() {
       type: BACKGROUND_MESSAGE_TYPES.RR_START_RECORDING,
     });
     if (!result?.success) {
-      rrError.value = result?.error || '录制操作失败';
+      rrError.value = result?.error || 'Recording operation failed';
       return;
     }
     rrError.value = '';
     rrRecording.value = true;
     rrPaused.value = false;
   } catch (error) {
-    rrError.value = error instanceof Error ? error.message : '无法连接录制服务';
+    rrError.value = error instanceof Error ? error.message : 'Cannot reach the recording service';
   }
 }
 
@@ -1323,7 +1366,7 @@ async function togglePauseRecording() {
       ? BACKGROUND_MESSAGE_TYPES.RR_RESUME_RECORDING
       : BACKGROUND_MESSAGE_TYPES.RR_PAUSE_RECORDING,
   });
-  if (!result?.success) return console.warn(result?.error || '录制操作失败');
+  if (!result?.success) return console.warn(result?.error || 'Recording operation failed');
   rrPaused.value = !rrPaused.value;
 }
 
@@ -1331,7 +1374,7 @@ async function stopRecording() {
   const result = await chrome.runtime.sendMessage({
     type: BACKGROUND_MESSAGE_TYPES.RR_STOP_RECORDING,
   });
-  if (!result?.success) return console.warn(result?.error || '停止录制失败');
+  if (!result?.success) return console.warn(result?.error || 'Failed to stop recording');
   rrRecording.value = false;
   rrPaused.value = false;
   await loadFlows();
@@ -1375,7 +1418,7 @@ const runFlow = async (flowId: string) => {
       options: { ...runOptions, ...ov, returnLogs: true },
     });
     if (!(res && res.success)) {
-      console.warn('回放失败');
+      console.warn('Replay failed');
       return;
     }
     // If failed, open builder and focus the failed node
@@ -1385,7 +1428,7 @@ const runFlow = async (flowId: string) => {
         const logs = result.logs || [];
         const failed = logs.find((l: any) => l.status === 'failed');
         if (failed && failed.stepId) {
-          // 打开独立编辑窗口并定位失败节点
+          // Open the standalone editor window and focus the failed node
           if (flow) openBuilderWindow(flow.id, String(failed.stepId));
         }
       } else if (result && result.success === true) {
@@ -1396,11 +1439,11 @@ const runFlow = async (flowId: string) => {
       }
     } catch {}
   } catch (e) {
-    console.error('回放失败:', e);
+    console.error('Replay failed:', e);
   }
 };
 
-// 旧的“克隆/发布/定时/覆盖项”在侧边栏或编辑器中处理
+// Legacy clone/publish/schedule/override items are handled in the sidepanel or editor
 
 const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('unknown');
 const isConnecting = ref(false);
@@ -1447,9 +1490,9 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
     {
       id: 'streamable-http',
       icon: 'globe',
-      title: 'Streamable HTTP（兼容版）',
+      title: 'Streamable HTTP (compatible)',
       endpoint: `${baseUrl}/mcp`,
-      description: '保留会话，兼容现有客户端',
+      description: 'Keeps sessions, compatible with existing clients',
       config: {
         mcpServers: {
           'streamable-mcp-server': {
@@ -1462,9 +1505,9 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
     {
       id: 'streamable-http-new',
       icon: 'rocket',
-      title: 'Streamable HTTP（尝鲜版）',
+      title: 'Streamable HTTP (preview)',
       endpoint: `${baseUrl}/mcp-new`,
-      description: 'MCP 2026-07-28，无会话',
+      description: 'MCP 2026-07-28, sessionless',
       config: {
         mcpServers: {
           'streamable-mcp-server-new': {
@@ -1477,9 +1520,9 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
     {
       id: 'sse',
       icon: 'share',
-      title: 'SSE（旧版 MCP）',
+      title: 'SSE (legacy MCP)',
       endpoint: `${baseUrl}/sse`,
-      description: '消息地址：/messages?sessionId=…',
+      description: 'Message endpoint: /messages?sessionId=...',
       config: {
         mcpServers: {
           'sse-mcp-server': {
@@ -1492,8 +1535,8 @@ const mcpTransportOptions = computed<McpTransportOption[]>(() => {
       id: 'stdio',
       icon: 'server',
       title: 'STDIO',
-      endpoint: 'mcp-chrome-stdio 或 EXE --stdio',
-      description: '内部优先连接 /mcp-new，失败时回退 /mcp',
+      endpoint: 'mcp-chrome-stdio or EXE --stdio',
+      description: 'Connects to /mcp-new first, falls back to /mcp on failure',
       config: {
         mcpServers: {
           'chrome-mcp-stdio': {
@@ -1669,11 +1712,11 @@ async function loadProxySettings() {
     };
   }
   if (test?.pending) {
-    proxyResult.value = '正在测试代理出口…';
+    proxyResult.value = 'Testing proxy exit...';
   } else if (test?.success && test.ip) {
-    proxyResult.value = `连接成功，出口 IP：${test.ip}${test.country ? `（国家/地区：${test.country}）` : ''}`;
+    proxyResult.value = `Connected, exit IP: ${test.ip}${test.country ? ` (country/region: ${test.country})` : ''}`;
   } else if (test?.error) {
-    proxyResult.value = `错误：${test.error}`;
+    proxyResult.value = `Error: ${test.error}`;
   }
 }
 
@@ -1691,15 +1734,15 @@ async function saveProxySettings(showResult = true): Promise<boolean> {
           .filter(Boolean),
       },
     });
-    if (!response?.success) throw new Error(response?.error || '保存失败');
+    if (!response?.success) throw new Error(response?.error || 'Save failed');
     Object.assign(proxy, response.config);
     proxyDomains.value = (response.config.domains || []).join('\n');
-    if (showResult) proxyResult.value = proxy.enabled ? '代理已启用' : '代理已停用';
+    if (showResult) proxyResult.value = proxy.enabled ? 'Proxy enabled' : 'Proxy disabled';
     if (showResult && proxy.enabled) void refreshCurrentProxyInfo();
     else if (showResult) currentProxyInfo.value = null;
     return true;
   } catch (error: any) {
-    proxyResult.value = `错误：${error?.message || String(error)}`;
+    proxyResult.value = `Error: ${error?.message || String(error)}`;
     return false;
   } finally {
     proxySaving.value = false;
@@ -1707,14 +1750,14 @@ async function saveProxySettings(showResult = true): Promise<boolean> {
 }
 
 async function testProxyConnection() {
-  proxyResult.value = '正在测试代理出口…';
+  proxyResult.value = 'Testing proxy exit...';
   if (!(await saveProxySettings(false))) return;
   proxySaving.value = true;
-  proxyResult.value = '正在测试代理出口…';
+  proxyResult.value = 'Testing proxy exit...';
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     const response = await chrome.runtime.sendMessage({ type: 'proxy_test', tabId: tab?.id });
-    if (!response?.success) throw new Error(response?.error || '测试失败');
+    if (!response?.success) throw new Error(response?.error || 'Test failed');
     currentProxyInfo.value = {
       ip: response.ip,
       country: response.country,
@@ -1723,9 +1766,9 @@ async function testProxyConnection() {
       location: response.location,
     };
     currentProxyInfoError.value = '';
-    proxyResult.value = `连接成功，出口 IP：${response.ip}${response.country ? `（国家/地区：${response.country}）` : ''}`;
+    proxyResult.value = `Connected, exit IP: ${response.ip}${response.country ? ` (country/region: ${response.country})` : ''}`;
   } catch (error: any) {
-    proxyResult.value = `错误：${error?.message || String(error)}`;
+    proxyResult.value = `Error: ${error?.message || String(error)}`;
   } finally {
     proxySaving.value = false;
   }
@@ -1743,9 +1786,9 @@ async function refreshCurrentProxyInfo() {
   currentProxyInfoLoading.value = true;
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!tab?.id) throw new Error('当前没有可查询的网页标签');
+    if (!tab?.id) throw new Error('No web tab available to query');
     const response = await chrome.runtime.sendMessage({ type: 'proxy_test', tabId: tab.id });
-    if (!response?.success) throw new Error(response?.error || '位置查询失败');
+    if (!response?.success) throw new Error(response?.error || 'Location lookup failed');
     if (requestId !== currentProxyInfoRequestId) return;
     currentProxyInfo.value = {
       ip: response.ip,
@@ -1780,12 +1823,12 @@ async function toggleProxy(event: Event) {
           .filter(Boolean),
       },
     });
-    if (!response?.success) throw new Error(response?.error || '切换失败');
+    if (!response?.success) throw new Error(response?.error || 'Toggle failed');
     Object.assign(proxy, response.config);
-    proxyQuickResult.value = enabled ? '代理已开启' : '代理已关闭';
+    proxyQuickResult.value = enabled ? 'Proxy turned on' : 'Proxy turned off';
   } catch (error: any) {
     proxy.enabled = previous;
-    proxyQuickResult.value = `错误：${error?.message || String(error)}`;
+    proxyQuickResult.value = `Error: ${error?.message || String(error)}`;
   } finally {
     proxySaving.value = false;
     if (proxy.enabled) void refreshCurrentProxyInfo();
@@ -1808,16 +1851,16 @@ async function rotateCurrentProxy() {
   proxyRotationPending.value = true;
   showProxyRotationResult.value = false;
   proxyRotationResult.value = null;
-  proxyQuickResult.value = '切换中，请稍后…';
+  proxyQuickResult.value = 'Switching, please wait...';
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!tab?.id) throw new Error('当前没有可切换代理的网页标签');
+    if (!tab?.id) throw new Error('No web tab available to rotate the proxy for');
     const response = await chrome.runtime.sendMessage({
       type: 'proxy_rotate_current',
       tabId: tab.id,
-      reason: '用户在插件中手动切换 IP',
+      reason: 'User manually rotated the IP from the extension',
     });
-    if (!response?.success) throw new Error(response?.error || '切换 IP 失败');
+    if (!response?.success) throw new Error(response?.error || 'Failed to rotate the IP');
     const result = response.result as
       | {
           rotated?: boolean;
@@ -1836,12 +1879,14 @@ async function rotateCurrentProxy() {
       | undefined;
     if (!result?.rotated) {
       const reasons: Record<string, string> = {
-        proxy_disabled: '代理未启用',
-        rotation_in_progress: '该标签页正在切换中',
-        rate_limited: '切换过于频繁，请稍后再试',
-        outside_proxy_scope: '当前网页不在代理网站范围内',
+        proxy_disabled: 'Proxy is disabled',
+        rotation_in_progress: 'This tab is already rotating',
+        rate_limited: 'Rotating too frequently, try again later',
+        outside_proxy_scope: 'The current page is outside the proxy scope',
       };
-      throw new Error((result?.skipped ? reasons[result.skipped] : undefined) || '当前未切换 IP');
+      throw new Error(
+        (result?.skipped ? reasons[result.skipped] : undefined) || 'IP was not rotated',
+      );
     }
     proxyRotationResult.value = {
       previousIp: result.previousIp,
@@ -1869,10 +1914,10 @@ async function rotateCurrentProxy() {
     } else {
       void refreshCurrentProxyInfo();
     }
-    proxyQuickResult.value = 'IP 切换完成。';
+    proxyQuickResult.value = 'IP rotated.';
     showProxyRotationResult.value = true;
   } catch (error: any) {
-    proxyQuickResult.value = `错误：${error?.message || String(error)}`;
+    proxyQuickResult.value = `Error: ${error?.message || String(error)}`;
   } finally {
     proxyRotationPending.value = false;
     proxySaving.value = false;
@@ -1904,9 +1949,9 @@ function joinProxyLocation(
 ): string {
   if (location) return location;
   return [
-    country ? `国家：${country}` : '',
-    region ? `区域/州/省：${region}` : '',
-    city ? `市：${city}` : '',
+    country ? `Country: ${country}` : '',
+    region ? `Region/state/province: ${region}` : '',
+    city ? `City: ${city}` : '',
   ]
     .filter(Boolean)
     .join(' · ');
@@ -1948,7 +1993,7 @@ async function loadCookiesForTab(tab: CookieTabState, stores?: chrome.cookies.Co
       .map((cookie) => ({ cookie, key: cookieKey(cookie), selected: false }));
   } catch (error: any) {
     tab.cookies = [];
-    tab.error = error?.message || '读取 Cookie 失败';
+    tab.error = error?.message || 'Failed to read cookies';
   } finally {
     tab.loading = false;
   }
@@ -1980,7 +2025,7 @@ async function loadAllCookieTabs() {
     await Promise.all(cookieTabs.value.map((tab) => loadCookiesForTab(tab, stores)));
   } catch (error: any) {
     cookieTabs.value = [];
-    cookieResult.value = `错误：${error?.message || String(error)}`;
+    cookieResult.value = `Error: ${error?.message || String(error)}`;
   } finally {
     cookieLoading.value = false;
   }
@@ -2022,7 +2067,8 @@ async function clearSelectedCookies() {
     tab.cookies.filter((entry) => entry.selected).map((entry) => ({ tab, entry })),
   );
   if (!selected.length || cookieSaving.value) return;
-  if (!window.confirm(`确定清除选中的 ${selected.length} 个 Cookie 吗？未选中的会保留。`)) return;
+  if (!window.confirm(`Clear the ${selected.length} selected cookies? Unselected ones are kept.`))
+    return;
 
   cookieSaving.value = true;
   cookieResult.value = '';
@@ -2044,8 +2090,8 @@ async function clearSelectedCookies() {
     }
     await loadAllCookieTabs();
     cookieResult.value = failed
-      ? `已清除 ${removed} 个，${failed} 个清除失败。`
-      : `已清除 ${removed} 个 Cookie，未选中的 Cookie 已保留。`;
+      ? `Cleared ${removed}, ${failed} failed to clear.`
+      : `Cleared ${removed} cookies; unselected cookies were kept.`;
   } finally {
     cookieSaving.value = false;
   }
@@ -2055,26 +2101,26 @@ async function toggleWebEditor() {
   try {
     await chrome.runtime.sendMessage({ type: BACKGROUND_MESSAGE_TYPES.WEB_EDITOR_TOGGLE });
   } catch (error) {
-    console.warn('切换网页编辑模式失败:', error);
+    console.warn('Failed to toggle web editor mode:', error);
   }
 }
 
 async function toggleElementMarker() {
   try {
-    // 获取当前活动tab
+    // Get the current active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) {
-      console.warn('无法获取当前tab');
+      console.warn('Cannot get the current tab');
       return;
     }
 
-    // 向background发送消息，启动元素标注
+    // Send a message to the background to start element markers
     await chrome.runtime.sendMessage({
       type: BACKGROUND_MESSAGE_TYPES.ELEMENT_MARKER_START,
       tabId: tab.id,
     });
   } catch (error) {
-    console.warn('开启元素标注失败:', error);
+    console.warn('Failed to start element markers:', error);
   }
 }
 
@@ -2264,7 +2310,7 @@ const saveSemanticEngineState = async () => {
 
     await chrome.storage.local.set({ semanticEngineState });
   } catch (error) {
-    console.error('保存语义引擎状态失败:', error);
+    console.error('Failed to save semantic engine state:', error);
   }
 };
 
@@ -2398,7 +2444,7 @@ const checkNativeConnection = async () => {
     const response = await chrome.runtime.sendMessage({ type: 'ping_native' });
     nativeConnectionStatus.value = response?.connected ? 'connected' : 'disconnected';
   } catch (error) {
-    console.error('检测 Native 连接状态失败:', error);
+    console.error('Failed to check native connection status:', error);
     nativeConnectionStatus.value = 'disconnected';
   }
 };
@@ -2417,7 +2463,7 @@ const checkServerStatus = async () => {
       nativeConnectionStatus.value = response.connected ? 'connected' : 'disconnected';
     }
   } catch (error) {
-    console.error('检测服务器状态失败:', error);
+    console.error('Failed to check server status:', error);
   }
 };
 
@@ -2435,7 +2481,7 @@ const refreshServerStatus = async () => {
       nativeConnectionStatus.value = response.connected ? 'connected' : 'disconnected';
     }
   } catch (error) {
-    console.error('刷新服务器状态失败:', error);
+    console.error('Failed to refresh server status:', error);
   }
 };
 
@@ -2468,7 +2514,7 @@ const copyMcpConfig = async () => {
       copyButtonText.value = getMessage('copyConfigButton');
     }, 2000);
   } catch (error) {
-    console.error('复制配置失败:', error);
+    console.error('Failed to copy config:', error);
     copyButtonText.value = '❌' + getMessage('networkErrorMessage');
 
     setTimeout(() => {
@@ -2497,7 +2543,7 @@ const testNativeConnection = async () => {
       await chrome.runtime.sendMessage({ type: 'disconnect_native' });
       nativeConnectionStatus.value = 'disconnected';
     } else {
-      console.log(`尝试连接到端口: ${nativeServerPort.value}`);
+      console.log(`Trying to connect to port: ${nativeServerPort.value}`);
 
       const response = await chrome.runtime.sendMessage({
         type: 'connectNative',
@@ -2505,15 +2551,15 @@ const testNativeConnection = async () => {
       });
       if (response && response.success) {
         nativeConnectionStatus.value = 'connected';
-        console.log('连接成功:', response);
+        console.log('Connected:', response);
         await savePortPreference(nativeServerPort.value);
       } else {
         nativeConnectionStatus.value = 'disconnected';
-        console.error('连接失败:', response);
+        console.error('Connection failed:', response);
       }
     }
   } catch (error) {
-    console.error('测试连接失败:', error);
+    console.error('Connection test failed:', error);
     nativeConnectionStatus.value = 'disconnected';
   } finally {
     isConnecting.value = false;
@@ -2589,7 +2635,7 @@ const loadModelPreference = async () => {
       semanticEngineStatus.value = 'idle';
     }
   } catch (error) {
-    console.error('❌ 加载模型偏好失败:', error);
+    console.error('❌ Failed to load model preference:', error);
   }
 };
 
@@ -2597,7 +2643,7 @@ const saveModelPreference = async (model: ModelPreset) => {
   try {
     await chrome.storage.local.set({ selectedModel: model });
   } catch (error) {
-    console.error('保存模型偏好失败:', error);
+    console.error('Failed to save model preference:', error);
   }
 };
 
@@ -2605,16 +2651,16 @@ const saveVersionPreference = async (version: 'full' | 'quantized' | 'compressed
   try {
     await chrome.storage.local.set({ selectedVersion: version });
   } catch (error) {
-    console.error('保存版本偏好失败:', error);
+    console.error('Failed to save version preference:', error);
   }
 };
 
 const savePortPreference = async (port: number) => {
   try {
     await chrome.storage.local.set({ nativeServerPort: port });
-    console.log(`端口偏好已保存: ${port}`);
+    console.log(`Port preference saved: ${port}`);
   } catch (error) {
-    console.error('保存端口偏好失败:', error);
+    console.error('Failed to save port preference:', error);
   }
 };
 
@@ -2623,10 +2669,10 @@ const loadPortPreference = async () => {
     const result = await chrome.storage.local.get(['nativeServerPort']);
     if (result.nativeServerPort) {
       nativeServerPort.value = result.nativeServerPort;
-      console.log(`端口偏好已加载: ${result.nativeServerPort}`);
+      console.log(`Port preference loaded: ${result.nativeServerPort}`);
     }
   } catch (error) {
-    console.error('加载端口偏好失败:', error);
+    console.error('Failed to load port preference:', error);
   }
 };
 
@@ -2697,7 +2743,7 @@ const saveModelState = async () => {
 
     await chrome.storage.local.set({ modelState });
   } catch (error) {
-    console.error('保存模型状态失败:', error);
+    console.error('Failed to save model state:', error);
   }
 };
 
@@ -2736,7 +2782,7 @@ const startModelStatusMonitoring = () => {
         }
       }
     } catch (error) {
-      console.error('获取模型状态失败:', error);
+      console.error('Failed to get model status:', error);
     }
   }, 1000);
 };
@@ -2919,7 +2965,7 @@ const switchModel = async (newModel: ModelPreset) => {
       currentModel.value = newModel;
       modelSwitchProgress.value = getMessage('successNotification');
       console.log(
-        '模型切换成功:',
+        'Model switched:',
         newModel,
         'version: quantized',
         'dimension:',
@@ -2937,13 +2983,13 @@ const switchModel = async (newModel: ModelPreset) => {
       throw new Error(response?.error || 'Model switch failed');
     }
   } catch (error: any) {
-    console.error('模型切换失败:', error);
+    console.error('Model switch failed:', error);
     modelSwitchProgress.value = `Model switch failed: ${error?.message || 'Unknown error'}`;
 
     modelInitializationStatus.value = 'error';
     isModelDownloading.value = false;
 
-    const errorMessage = error?.message || '未知错误';
+    const errorMessage = error?.message || 'Unknown error';
     if (
       errorMessage.includes('network') ||
       errorMessage.includes('fetch') ||
@@ -2993,7 +3039,7 @@ const setupServerStatusListener = () => {
 
 onMounted(async () => {
   await loadHiddenInterfaceState();
-  // 初始化主题
+  // Initialize theme
   await initTheme();
   await loadPortPreference();
   await loadProxySettings();
@@ -4637,7 +4683,7 @@ onUnmounted(() => {
   }
 }
 
-/* 快捷工具icon按钮样式 */
+/* Quick tools icon button styles */
 .rr-icon-buttons {
   display: flex;
   gap: 12px;
@@ -4687,7 +4733,7 @@ onUnmounted(() => {
   height: 24px;
 }
 
-/* 编辑按钮 - 蓝色 */
+/* Edit button - blue */
 .rr-icon-btn-edit {
   background: rgba(37, 99, 235, 0.1);
   color: #2563eb;
@@ -4698,7 +4744,7 @@ onUnmounted(() => {
   color: #1d4ed8;
 }
 
-/* 标注按钮 - 绿色 */
+/* Marker button - green */
 .rr-icon-btn-marker {
   background: rgba(16, 185, 129, 0.1);
   color: #10b981;
@@ -4796,14 +4842,14 @@ onUnmounted(() => {
   visibility: visible;
 }
 
-/* 首页视图 */
+/* Home view */
 .home-view {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* 管理入口卡片样式 */
+/* Management entry card styles */
 .entry-card {
   background: rgba(255, 255, 255, 0.43);
   border-radius: var(--ac-radius-card, 12px);

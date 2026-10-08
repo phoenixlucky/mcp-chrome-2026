@@ -1,1190 +1,1190 @@
-# Issues 总览
+# Issues Overview
 
-## 📊 统计信息
+## 📊 Stats
 
-- **总Issue数**: 183
-- **开放中**: 116
-- **已关闭**: 67
-- **关闭率**: 36.6%
-- **最后更新**: 2025-10-11
+- **Total issues**: 183
+- **Open**: 116
+- **Closed**: 67
+- **Close rate**: 36.6%
+- **Last updated**: 2025-10-11
 
-## 📑 目录
+## 📑 Contents
 
-- [功能请求](#功能请求)
-- [Bug报告](#bug报告)
-- [安装问题](#安装问题)
-- [配置问题](#配置问题)
-- [兼容性问题](#兼容性问题)
-- [文档改进](#文档改进)
-- [已解决的问题](#已解决的问题)
+- [Feature requests](#feature-requests)
+- [Bug reports](#bug-reports)
+- [Installation issues](#installation-issues)
+- [Configuration issues](#configuration-issues)
+- [Compatibility issues](#compatibility-issues)
+- [Documentation improvements](#documentation-improvements)
+- [Resolved issues](#resolved-issues)
 
 ---
 
-## 🚀 功能请求
+## 🚀 Feature requests
 
-### 开放中
+### Open
 
-#### #215 chrome_console获取的数据不完整
+#### #215 chrome_console returns incomplete data
 
-- **状态**: OPEN
-- **作者**: africa1207
-- **日期**: 2025-09-30
-- **描述**: chrome_console获取的数据是浅拷贝数据，无法获取深层对象信息
+- **Status**: OPEN
+- **Author**: africa1207
+- **Date**: 2025-09-30
+- **Description**: chrome_console data is a shallow copy; deep object info can't be retrieved
 
 #### #207 Screenshots can't autosave? I have to manually click Save?
 
-- **状态**: OPEN
-- **作者**: FVEFWFE
-- **日期**: 2025-09-18
-- **描述**: 希望截图能自动保存，而不需要手动点击保存
+- **Status**: OPEN
+- **Author**: FVEFWFE
+- **Date**: 2025-09-18
+- **Description**: Hope screenshots can be saved automatically without manually clicking save
 
-#### #205 希望支持从 clipboard 获取信息填入页面输入框
+#### #205 Support getting info from clipboard into page inputs
 
-- **状态**: OPEN
-- **作者**: sunzh231
-- **日期**: 2025-09-17
-- **描述**: 根据鼠标光标所在的输入框直接从clipboard获取信息填入，避免使用Inject Script被浏览器CSP阻止
+- **Status**: OPEN
+- **Author**: sunzh231
+- **Date**: 2025-09-17
+- **Description**: Get info from the clipboard directly based on the input box under the mouse cursor, avoiding Inject Script being blocked by the browser CSP
 
-#### #202 Electron应用程序如何使用此插件
+#### #202 How to use this plugin in an Electron app
 
-- **状态**: OPEN
-- **作者**: lyl340321
-- **日期**: 2025-09-13
-- **描述**: 在electron中支持了简易浏览器功能，想复用此插件提供mcp服务
+- **Status**: OPEN
+- **Author**: lyl340321
+- **Date**: 2025-09-13
+- **Description**: Added a simple browser feature in Electron and want to reuse this plugin to provide an mcp service
 
-#### #201 chrome-mcp无法从dialog中获取信息
+#### #201 chrome-mcp can't get info from dialogs
 
-- **状态**: OPEN
-- **作者**: qphien
-- **日期**: 2025-09-12
-- **描述**: dialog中含有token敏感信息，通过js获取内容的时候，获得的值为空
+- **Status**: OPEN
+- **Author**: qphien
+- **Date**: 2025-09-12
+- **Description**: The dialog contains token-sensitive info, but the value obtained by reading it via js is empty
 
-#### #200 如何滚动页面
+#### #200 How to scroll the page
 
-- **状态**: OPEN
-- **作者**: qphien
-- **日期**: 2025-09-12
-- **描述**: Mac上如何instruct chrome-mcp滚动页面，通过调用快捷键space，chrome页面并没有发生滚动
+- **Status**: OPEN
+- **Author**: qphien
+- **Date**: 2025-09-12
+- **Description**: How to instruct chrome-mcp to scroll the page on Mac; calling the space hotkey doesn't scroll the Chrome page
 
-#### #190 不支持离线加载本地模型吗？
+#### #190 No offline loading of local models?
 
-- **状态**: OPEN
-- **作者**: long36708
-- **日期**: 2025-09-02
-- **描述**: 内网环境下，无法自动下载hugeface上的模型，网络不通
+- **Status**: OPEN
+- **Author**: long36708
+- **Date**: 2025-09-02
+- **Description**: In an intranet environment, models on hugeface can't be downloaded automatically because the network is unreachable
 
 #### #183 how to save the HTML displayed in the Chrome browser using Chrome MCP
 
-- **状态**: OPEN
-- **作者**: sansanai
-- **日期**: 2025-08-28
-- **描述**: 如何保存Chrome浏览器中显示的HTML内容，特别是当HTML内容很大时
+- **Status**: OPEN
+- **Author**: sansanai
+- **Date**: 2025-08-28
+- **Description**: How to save the HTML content displayed in the Chrome browser, especially when it's very large
 
-#### #180 服务状态经常莫名其妙停止
+#### #180 Service status randomly stops
 
-- **状态**: OPEN
-- **作者**: IAmKongHai
-- **日期**: 2025-08-28
-- **描述**: 希望提高稳定性，在浏览器退出前一直保持服务状态运行中
+- **Status**: OPEN
+- **Author**: IAmKongHai
+- **Date**: 2025-08-28
+- **Description**: Hope for better stability, keeping the service running until the browser exits
 
-#### #178 操作MCP打开谷歌浏览器的页面之后他会自动弹窗出来
+#### #178 Page pops up automatically after MCP opens Chrome
 
-- **状态**: OPEN
-- **作者**: MiloQ
-- **日期**: 2025-08-27
-- **描述**: 希望浏览器能在后台静默运行
+- **Status**: OPEN
+- **Author**: MiloQ
+- **Date**: 2025-08-27
+- **Description**: Hope the browser can run silently in the background
 
 #### #177 n8n integration
 
-- **状态**: OPEN
-- **作者**: judaemon
-- **日期**: 2025-08-27
-- **描述**: 是否可以在n8n工作流中使用
+- **Status**: OPEN
+- **Author**: judaemon
+- **Date**: 2025-08-27
+- **Description**: Is it usable in an n8n workflow
 
-#### #175 可以以sse模式启动mcp server么
+#### #175 Can the mcp server be started in sse mode
 
-- **状态**: OPEN
-- **作者**: FriSeaSky
-- **日期**: 2025-08-25
-- **描述**: 当前看readme只支持其他两种模式，希望能实现sse模式
+- **Status**: OPEN
+- **Author**: FriSeaSky
+- **Date**: 2025-08-25
+- **Description**: The readme only lists the other two modes; hope sse mode can be implemented
 
 #### #171 Tab group api controls
 
-- **状态**: OPEN
-- **作者**: danieliser
-- **日期**: 2025-08-21
-- **描述**: 允许MCP控制标签组，创建、删除、添加标签到组等
+- **Status**: OPEN
+- **Author**: danieliser
+- **Date**: 2025-08-21
+- **Description**: Let MCP control tab groups: create, delete, add tabs to groups, etc.
 
 #### #169 Feature Request: Support Environment Variables to Disable Specific Tools
 
-- **状态**: OPEN
-- **作者**: lathidadia
-- **日期**: 2025-08-20
-- **描述**: 支持通过环境变量禁用或过滤特定工具，解决工具名称冲突问题
+- **Status**: OPEN
+- **Author**: lathidadia
+- **Date**: 2025-08-20
+- **Description**: Support disabling or filtering specific tools via environment variables to solve tool name conflicts
 
 #### #162 Needs some rate limit logic from tools going rogue in the real browser
 
-- **状态**: OPEN
-- **作者**: neberej
-- **日期**: 2025-08-16
-- **描述**: 需要添加速率限制逻辑，防止工具失控
+- **Status**: OPEN
+- **Author**: neberej
+- **Date**: 2025-08-16
+- **Description**: Need to add rate limiting logic to keep tools from going rogue
 
-#### #157 Chrome 商店
+#### #157 Chrome Web Store
 
-- **状态**: OPEN
-- **作者**: nelzomal
-- **日期**: 2025-08-13
-- **描述**: 有计划上架Chrome web store吗
+- **Status**: OPEN
+- **Author**: nelzomal
+- **Date**: 2025-08-13
+- **Description**: Any plans to publish to the Chrome web store
 
 #### #155 More intelligent
 
-- **状态**: OPEN
-- **作者**: nullCode666
-- **日期**: 2025-08-13
-- **描述**: 希望MCP能自动理解当前网页的源代码，找到对应的加密方法等
+- **Status**: OPEN
+- **Author**: nullCode666
+- **Date**: 2025-08-13
+- **Description**: Hope MCP can automatically understand the current page's source code and find the corresponding encryption methods
 
 #### #153 `chrome_inject_script` not working on some sites
 
-- **状态**: OPEN
-- **作者**: rmorse
-- **日期**: 2025-08-12
-- **描述**: 在某些网站上chrome_inject_script不工作，需要支持不同的注入点
+- **Status**: OPEN
+- **Author**: rmorse
+- **Date**: 2025-08-12
+- **Description**: chrome_inject_script doesn't work on some sites; different injection points need support
 
-#### #141 功能支持鼠标悬停、多窗口mcp隔离
+#### #141 Support mouse hover and multi-window mcp isolation
 
-- **状态**: OPEN
-- **作者**: lironghai
-- **日期**: 2025-08-07
-- **描述**: 支持鼠标悬停和多窗口MCP隔离功能
+- **Status**: OPEN
+- **Author**: lironghai
+- **Date**: 2025-08-07
+- **Description**: Support mouse hover and multi-window MCP isolation
 
-### 已关闭
+### Closed
 
 #### #145 Add file upload capability for web forms
 
-- **状态**: CLOSED
-- **作者**: kaovilai
-- **日期**: 2025-08-08
-- **描述**: 添加文件上传功能以支持web表单
+- **Status**: CLOSED
+- **Author**: kaovilai
+- **Date**: 2025-08-08
+- **Description**: Add file upload support for web forms
 
 #### #107 Support .dxt format
 
-- **状态**: CLOSED
-- **作者**: metalshanked
-- **日期**: 2025-07-16
-- **描述**: 支持Anthropic发布的.dxt格式，实现一键安装
+- **Status**: CLOSED
+- **Author**: metalshanked
+- **Date**: 2025-07-16
+- **Description**: Support the .dxt format released by Anthropic for one-click install
 
 ---
 
-## 🐛 Bug报告
+## 🐛 Bug reports
 
-### 开放中
+### Open
 
-#### #215 chrome_console获取的数据不完整
+#### #215 chrome_console returns incomplete data
 
-- **状态**: OPEN
-- **作者**: africa1207
-- **日期**: 2025-09-30
-- **描述**: chrome_console获取的数据是浅拷贝，深层对象显示为"object"
+- **Status**: OPEN
+- **Author**: africa1207
+- **Date**: 2025-09-30
+- **Description**: chrome_console data is a shallow copy; deep objects show as "object"
 
-#### #212 调用工具错误
+#### #212 Tool call error
 
-- **状态**: OPEN
-- **作者**: zhaooa
-- **日期**: 2025-09-28
-- **描述**: 工具是打开状态，但是还是提示调用工具错误
+- **Status**: OPEN
+- **Author**: zhaooa
+- **Date**: 2025-09-28
+- **Description**: The tool is enabled, but it still says tool call error
 
-#### #209 运行第一个例子的时候，mcp工具调用了但是画图没有动静
+#### #209 Graphic draws nothing in the first example though the mcp tool was called
 
-- **状态**: OPEN
-- **作者**: scwlkq
-- **日期**: 2025-09-26
+- **Status**: OPEN
+- **Author**: scwlkq
+- **Date**: 2025-09-26
 
-#### #206 请求报错
+#### #206 Request error
 
-- **状态**: OPEN
-- **作者**: lghxuelang
-- **日期**: 2025-09-18
-- **描述**: Invalid or missing MCP session ID for SSE
+- **Status**: OPEN
+- **Author**: lghxuelang
+- **Date**: 2025-09-18
+- **Description**: Invalid or missing MCP session ID for SSE
 
-#### #204 经常会打开 chrome-extension://hbdgbgagpkpjffpklnamcljpakneikee/true
+#### #204 Frequently opens chrome-extension://hbdgbgagpkpjffpklnamcljpakneikee/true
 
-- **状态**: OPEN
-- **作者**: Wouldyouplace45
-- **日期**: 2025-09-15
-- **描述**: 浏览器显示无法访问您的文件
+- **Status**: OPEN
+- **Author**: Wouldyouplace45
+- **Date**: 2025-09-15
+- **Description**: The browser shows it can't access your file
 
-#### #191 chrome_console要求当前页面没有打开dev tool
+#### #191 chrome_console requires that dev tools are closed on the current page
 
-- **状态**: OPEN
-- **作者**: string1225
-- **日期**: 2025-09-03
-- **描述**: 这是chrome浏览器的机制限制
+- **Status**: OPEN
+- **Author**: string1225
+- **Date**: 2025-09-03
+- **Description**: This is a Chrome browser mechanism limitation
 
-#### #184 trae显示个别工具名字超过60字符最大限制
+#### #184 trae shows some tool names exceeding the 60-character limit
 
-- **状态**: OPEN
-- **作者**: wangqi996
-- **日期**: 2025-08-29
+- **Status**: OPEN
+- **Author**: wangqi996
+- **Date**: 2025-08-29
 
 #### #163 chrome_screenshot always gives "exceeds maximum allowed tokens" error
 
-- **状态**: OPEN
-- **作者**: maddada
-- **日期**: 2025-08-18
-- **描述**: 截图响应超过最大允许的token数（25000）
+- **Status**: OPEN
+- **Author**: maddada
+- **Date**: 2025-08-18
+- **Description**: Screenshot response exceeds the max allowed token count (25000)
 
-#### #152 并发执行过程中发生错乱
+#### #152 Chaos during concurrent execution
 
-- **状态**: OPEN
-- **作者**: shatang123
-- **日期**: 2025-08-12
-- **描述**: 并发爬取网页时tabId错位，标签未关闭等问题
+- **Status**: OPEN
+- **Author**: shatang123
+- **Date**: 2025-08-12
+- **Description**: tabId mismatches and tabs not closing when scraping pages concurrently
 
-#### #149 一直提示脚本注入失败
+#### #149 Constant script injection failures
 
-- **状态**: OPEN
-- **作者**: manzhonglu
-- **日期**: 2025-08-11
+- **Status**: OPEN
+- **Author**: manzhonglu
+- **Date**: 2025-08-11
 
-#### #144 让它打开网页，打开之后，会一直等待，直到超时
+#### #144 It opens the page and then waits until it times out
 
-- **状态**: OPEN
-- **作者**: shopkeeper2020
-- **日期**: 2025-08-08
+- **Status**: OPEN
+- **Author**: shopkeeper2020
+- **Date**: 2025-08-08
 
-#### #142 我打开了网页，让他帮我点击个东西他都不好使
+#### #142 I opened a page and it can't even click something for me
 
-- **状态**: OPEN
-- **作者**: bbhxwl
-- **日期**: 2025-08-07
-- **描述**: 使用qweb3 4b，只是回答提问，不执行点击操作
+- **Status**: OPEN
+- **Author**: bbhxwl
+- **Date**: 2025-08-07
+- **Description**: Using qweb3 4b; it only answers questions and doesn't perform clicks
 
-#### #139 错误: Error calling tool: Request timed out after 30000ms
+#### #139 Error: Error calling tool: Request timed out after 30000ms
 
-- **状态**: OPEN
-- **作者**: sunhao28256
-- **日期**: 2025-08-05
+- **Status**: OPEN
+- **Author**: sunhao28256
+- **Date**: 2025-08-05
 
 #### #136 `chrome_keyboard` is not working with Claude Code
 
-- **状态**: OPEN
-- **作者**: hanayashiki
-- **日期**: 2025-08-03
-- **描述**: 虽然显示成功，但没有输入到textarea中
+- **Status**: OPEN
+- **Author**: hanayashiki
+- **Date**: 2025-08-03
+- **Description**: It shows success but nothing is typed into the textarea
 
-#### #128 如果找不到网页元素的话，会一直重试
+#### #128 It keeps retrying when a page element can't be found
 
-- **状态**: OPEN
-- **作者**: GragonForce666
-- **日期**: 2025-07-29
+- **Status**: OPEN
+- **Author**: GragonForce666
+- **Date**: 2025-07-29
 
-#### #122 各种各样的超时，自动停止
+#### #122 All kinds of timeouts, stops automatically
 
-- **状态**: OPEN
-- **作者**: fordiy
-- **日期**: 2025-07-26
-- **描述**: 已经把30秒超时改多10倍，还是有超时问题
+- **Status**: OPEN
+- **Author**: fordiy
+- **Date**: 2025-07-26
+- **Description**: Already increased the 30s timeout 10x, still timing out
 
-#### #118 无法自动点击 cloudflare 人机验证
+#### #118 Can't auto-click the cloudflare human verification
 
-- **状态**: OPEN
-- **作者**: windzhu0514
-- **日期**: 2025-07-23
+- **Status**: OPEN
+- **Author**: windzhu0514
+- **Date**: 2025-07-23
 
-#### #114 试了豆瓣、即刻，似乎抓取不了
+#### #114 Douban and Jike don't seem scrapeable
 
-- **状态**: OPEN
-- **作者**: imHw
-- **日期**: 2025-07-20
-- **描述**: AI反馈访问这些网站遇到问题，可能是反爬机制
+- **Status**: OPEN
+- **Author**: imHw
+- **Date**: 2025-07-20
+- **Description**: AI reports problems accessing these sites, possibly anti-scraping mechanisms
 
-#### #112 chrome_network_debugger的maxRequests太少了
+#### #112 chrome_network_debugger's maxRequests is too low
 
-- **状态**: OPEN
-- **作者**: kanekanefy
-- **日期**: 2025-07-19
-- **描述**: maxRequests限制在100个请求后自动停止
+- **Status**: OPEN
+- **Author**: kanekanefy
+- **Date**: 2025-07-19
+- **Description**: maxRequests stops automatically after 100 requests
 
-#### #111 使用CherryStudio进行网站截图时报错
+#### #111 Error when taking website screenshots with CherryStudio
 
-- **状态**: OPEN
-- **作者**: GehuaZhang
-- **日期**: 2025-07-18
-- **描述**: Cannot read properties of undefined (reading 'map')
+- **Status**: OPEN
+- **Author**: GehuaZhang
+- **Date**: 2025-07-18
+- **Description**: Cannot read properties of undefined (reading 'map')
 
-#### #99 chrome_get_web_content 工具获取的页面信息似乎不全
+#### #99 chrome_get_web_content seems to return incomplete page info
 
-- **状态**: OPEN
-- **作者**: Reviel
-- **日期**: 2025-07-13
-- **描述**: 获取PostGIS ticket页面时缺失Description部分内容
+- **Status**: OPEN
+- **Author**: Reviel
+- **Date**: 2025-07-13
+- **Description**: The Description section content is missing when fetching a PostGIS ticket page
 
-#### #92 AI无法关闭alert提示框
+#### #92 AI can't close alert dialogs
 
-- **状态**: OPEN
-- **作者**: chgblog
-- **日期**: 2025-07-11
-- **描述**: 遇到alert、confirm弹窗后AI无法继续操作，显示MCP超时
+- **Status**: OPEN
+- **Author**: chgblog
+- **Date**: 2025-07-11
+- **Description**: After an alert or confirm dialog appears, the AI can't continue and shows an MCP timeout
 
-#### #67 windows function call 报超时错误
+#### #67 windows function call reports a timeout error
 
-- **状态**: OPEN
-- **作者**: zhiyu
-- **日期**: 2025-07-01
+- **Status**: OPEN
+- **Author**: zhiyu
+- **Date**: 2025-07-01
 
-### 已关闭
+### Closed
 
 #### #181 The extension stays disconnected
 
-- **状态**: CLOSED
-- **作者**: Arefinw
-- **日期**: 2025-08-28
+- **Status**: CLOSED
+- **Author**: Arefinw
+- **Date**: 2025-08-28
 
-#### #140 语音引擎初始化失败
+#### #140 Voice engine initialization failed
 
-- **状态**: CLOSED
-- **作者**: Demi555
-- **日期**: 2025-08-06
+- **Status**: CLOSED
+- **Author**: Demi555
+- **Date**: 2025-08-06
 
-#### #116 插件点击连接，然后失焦点，隐藏，会自动断开连接
+#### #116 Plugin disconnects automatically after clicking connect, losing focus, or hiding
 
-- **状态**: CLOSED
-- **作者**: BeginnerDone
-- **日期**: 2025-07-22
+- **Status**: CLOSED
+- **Author**: BeginnerDone
+- **Date**: 2025-07-22
 
 #### #73 API Error: 413: Prompt is too long
 
-- **状态**: CLOSED
-- **作者**: Lehtien
-- **日期**: 2025-07-04
+- **Status**: CLOSED
+- **Author**: Lehtien
+- **Date**: 2025-07-04
 
-#### #60 Claude code Chrome MCP服务器启动时输出包含emoji的console.log语句
+#### #60 Claude code Chrome MCP server startup prints console.log lines containing emoji
 
-- **状态**: CLOSED
-- **作者**: gabyic
-- **日期**: 2025-06-28
-- **描述**: 导致MCP协议JSON解析错误
+- **Status**: CLOSED
+- **Author**: gabyic
+- **Date**: 2025-06-28
+- **Description**: Causes MCP protocol JSON parsing errors
 
 ---
 
-## 📦 安装问题
+## 📦 Installation issues
 
-### 开放中
+### Open
 
-#### #198 关于该插件在谷歌浏览器连接不上的问题
+#### #198 About the plugin failing to connect in Chrome
 
-- **状态**: OPEN
-- **作者**: nice-nicegod
-- **日期**: 2025-09-09
-- **描述**: 插件显示"已连接，服务未启动"。如果Node.js安装时更改了默认路径会导致此问题
+- **Status**: OPEN
+- **Author**: nice-nicegod
+- **Date**: 2025-09-09
+- **Description**: The plugin shows "Connected, Service Not Started". This happens if the default Node.js install path is changed
 
-#### #187 打开连接时显示 Connected, Service Not Started
+#### #187 Shows Connected, Service Not Started when opening the connection
 
-- **状态**: OPEN
-- **作者**: wyx66624
-- **日期**: 2025-08-31
-- **描述**: 已手动注册mcp-chrome-bridge，12306端口没有进程监听
+- **Status**: OPEN
+- **Author**: wyx66624
+- **Date**: 2025-08-31
+- **Description**: mcp-chrome-bridge was registered manually, but no process is listening on port 12306
 
 #### #174 Browser in Docker + Chrome MCP: troubleshooting
 
-- **状态**: OPEN
-- **作者**: f3l1x
-- **日期**: 2025-08-25
-- **描述**: 在Docker虚拟浏览器中预装扩展，显示"Connected, Service Not Started"
+- **Status**: OPEN
+- **Author**: f3l1x
+- **Date**: 2025-08-25
+- **Description**: Pre-installed the extension in a Docker virtual browser and it shows "Connected, Service Not Started"
 
 #### #170 Claude Code integration on WSL
 
-- **状态**: OPEN
-- **作者**: TimHuey
-- **日期**: 2025-08-20
-- **描述**: WSL中Claude Code无法识别mcp server
+- **Status**: OPEN
+- **Author**: TimHuey
+- **Date**: 2025-08-20
+- **Description**: Claude Code in WSL can't recognize the mcp server
 
 #### #159 WSL Support?
 
-- **状态**: OPEN
-- **作者**: D3OXY
-- **日期**: 2025-08-14
+- **Status**: OPEN
+- **Author**: D3OXY
+- **Date**: 2025-08-14
 
-#### #148 chrome插件已经成功启动，但是命令行显示failed
+#### #148 Extension started successfully, but the command line shows failed
 
-- **状态**: OPEN
-- **作者**: joytianya
-- **日期**: 2025-08-10
+- **Status**: OPEN
+- **Author**: joytianya
+- **Date**: 2025-08-10
 
-#### #147 有打算支持 docker 部署吗
+#### #147 Any plans to support docker deployment
 
-- **状态**: OPEN
-- **作者**: tgscan-dev
-- **日期**: 2025-08-10
+- **Status**: OPEN
+- **Author**: tgscan-dev
+- **Date**: 2025-08-10
 
-#### #143 服务器上怎么部署这个mcp服务
+#### #143 How to deploy this mcp service on a server
 
-- **状态**: OPEN
-- **作者**: no-bystander
-- **日期**: 2025-08-08
+- **Status**: OPEN
+- **Author**: no-bystander
+- **Date**: 2025-08-08
 
-#### #138 在chrome浏览器里已经安装上插件，可以配置端口
+#### #138 Plugin installed in Chrome, port configurable
 
-- **状态**: OPEN
-- **作者**: KylanJimmy
-- **日期**: 2025-08-05
-- **描述**: 是否可以绑定0.0.0.0的端口，而不只是127.0.0.1
+- **Status**: OPEN
+- **Author**: KylanJimmy
+- **Date**: 2025-08-05
+- **Description**: Can the port bind to 0.0.0.0 instead of just 127.0.0.1
 
-#### #137 win上 已连接，服务未启动
+#### #137 Connected, Service Not Started on win
 
-- **状态**: OPEN
-- **作者**: steven111920
-- **日期**: 2025-08-04
-- **描述**: 点击run_host.bat显示拒绝访问
+- **Status**: OPEN
+- **Author**: steven111920
+- **Date**: 2025-08-04
+- **Description**: Clicking run_host.bat shows access denied
 
-#### #127 已连接，服务未启动
+#### #127 Connected, Service Not Started
 
-- **状态**: OPEN
-- **作者**: Fanzaijun
-- **日期**: 2025-07-29
+- **Status**: OPEN
+- **Author**: Fanzaijun
+- **Date**: 2025-07-29
 
-#### #115 已连接服务未启动
+#### #115 Connected, Service Not Started
 
-- **状态**: OPEN
-- **作者**: yanghao112
-- **日期**: 2025-07-21
-- **描述**: 能排查的都排查了，还是不行
+- **Status**: OPEN
+- **Author**: yanghao112
+- **Date**: 2025-07-21
+- **Description**: Tried every troubleshooting step, still doesn't work
 
-#### #106 启动成功但是没法配置
+#### #106 Starts successfully but can't be configured
 
-- **状态**: OPEN
-- **作者**: crxxxxxxx
-- **日期**: 2025-07-15
+- **Status**: OPEN
+- **Author**: crxxxxxxx
+- **Date**: 2025-07-15
 
-#### #90 不能启动
+#### #90 Can't start
 
-- **状态**: OPEN
-- **作者**: qiffang
-- **日期**: 2025-07-11
-- **描述**: 运行run_hosts.sh一直hang住
+- **Status**: OPEN
+- **Author**: qiffang
+- **Date**: 2025-07-11
+- **Description**: Running run_hosts.sh just hangs
 
 #### #88 Failed to install on Apple Silicon Mac
 
-- **状态**: OPEN
-- **作者**: DaniloHandsOn
-- **日期**: 2025-07-10
-- **描述**: chrome-mcp-bridge命令未找到
+- **Status**: OPEN
+- **Author**: DaniloHandsOn
+- **Date**: 2025-07-10
+- **Description**: chrome-mcp-bridge command not found
 
-#### #85 一直报错 Session termination 400
+#### #85 Constant Session termination 400 errors
 
-- **状态**: OPEN
-- **作者**: hcoona
-- **日期**: 2025-07-08
+- **Status**: OPEN
+- **Author**: hcoona
+- **Date**: 2025-07-08
 
 #### #78 docs/CONTRIBUTING.md instructions to build missing packages/shared build
 
-- **状态**: OPEN
-- **作者**: adrianlzt
-- **日期**: 2025-07-06
-- **描述**: 文档缺少shared包的构建步骤
+- **Status**: OPEN
+- **Author**: adrianlzt
+- **Date**: 2025-07-06
+- **Description**: Docs are missing the shared package build step
 
 #### #68 Execute mcp-chrome-bridge -v and report [ERR_REQUIRE_ESM]
 
-- **状态**: OPEN
-- **作者**: coisini6
-- **日期**: 2025-07-02
-- **描述**: Windows10下报ERR_REQUIRE_ESM错误
+- **Status**: OPEN
+- **Author**: coisini6
+- **Date**: 2025-07-02
+- **Description**: ERR_REQUIRE_ESM error on Windows 10
 
-#### #65 mac m4 浏览器插件服务未连接
+#### #65 Browser plugin service not connected on mac m4
 
-- **状态**: OPEN
-- **作者**: wzp-coding
-- **日期**: 2025-06-30
-- **描述**: 已按troubleshooting排查，执行index.js卡住无反应
+- **Status**: OPEN
+- **Author**: wzp-coding
+- **Date**: 2025-06-30
+- **Description**: Followed troubleshooting; running index.js hangs with no response
 
-#### #62 无法启动
+#### #62 Can't start
 
-- **状态**: OPEN
-- **作者**: Mocha-s
-- **日期**: 2025-06-28
-- **描述**: 直接不知道怎么启动
+- **Status**: OPEN
+- **Author**: Mocha-s
+- **Date**: 2025-06-28
+- **Description**: Just don't know how to start it
 
-### 已关闭
+### Closed
 
 #### #196 SOLUTION - Native Messaging not working in Chromium
 
-- **状态**: CLOSED (已有PR #195解决)
-- **作者**: gebeer
-- **日期**: 2025-09-07
-- **描述**: mcp-chrome-bridge npm包只安装到Chrome目录，不支持Chromium
+- **Status**: CLOSED (fixed by PR #195)
+- **Author**: gebeer
+- **Date**: 2025-09-07
+- **Description**: The mcp-chrome-bridge npm package only installs to the Chrome directory and doesn't support Chromium
 
 #### #161 unexpected error: Running Status --> "Connected, Service Not Started"
 
-- **状态**: CLOSED
-- **作者**: TonnyWong1052
-- **日期**: 2025-08-15
+- **Status**: CLOSED
+- **Author**: TonnyWong1052
+- **Date**: 2025-08-15
 
-#### #154 Chrome 未能成功加载扩展程序
+#### #154 Chrome failed to load the extension
 
-- **状态**: CLOSED
-- **作者**: mmhzlrj
-- **日期**: 2025-08-12
-- **描述**: Missing 'manifest_version' key
+- **Status**: CLOSED
+- **Author**: mmhzlrj
+- **Date**: 2025-08-12
+- **Description**: Missing 'manifest_version' key
 
-#### #81 chromium浏览器启动失败的目录问题
+#### #81 Directory problem when chromium fails to launch
 
-- **状态**: CLOSED
-- **作者**: lesszzen
-- **日期**: 2025-07-07
-- **描述**: Chromium在Linux下配置文件目录为.config/chromium
+- **Status**: CLOSED
+- **Author**: lesszzen
+- **Date**: 2025-07-07
+- **Description**: Chromium's config directory is .config/chromium on Linux
 
-#### #69 是否有适配firefox浏览器计划
+#### #69 Any plans to support firefox
 
-- **状态**: CLOSED
-- **作者**: Shuai-S
-- **日期**: 2025-07-02
+- **Status**: CLOSED
+- **Author**: Shuai-S
+- **Date**: 2025-07-02
 
-#### #64 不支持linux部署这个项目吧
+#### #64 Linux deployment isn't supported, right
 
-- **状态**: CLOSED
-- **作者**: caiji2019-cai
-- **日期**: 2025-06-30
+- **Status**: CLOSED
+- **Author**: caiji2019-cai
+- **Date**: 2025-06-30
 
-#### #22 Mac上运行失败，Native服务没有成功启动
+#### #22 Fails on Mac, Native service didn't start
 
-- **状态**: CLOSED
-- **作者**: DengKaiRong
-- **日期**: 2025-06-19
+- **Status**: CLOSED
+- **Author**: DengKaiRong
+- **Date**: 2025-06-19
 
-#### #16 开发模式启动项目，server未成功启动
+#### #16 Started the project in dev mode, server didn't start
 
-- **状态**: CLOSED
-- **作者**: WSCZou
-- **日期**: 2025-06-18
+- **Status**: CLOSED
+- **Author**: WSCZou
+- **Date**: 2025-06-18
 
 ---
 
-## ⚙️ 配置问题
+## ⚙️ Configuration issues
 
-### 开放中
+### Open
 
 #### #203 INSTALL IN THE CURSOR, LOADING TOOLS,BUT NOT SUCESS
 
-- **状态**: OPEN
-- **作者**: chenhunhun
-- **日期**: 2025-09-14
-- **描述**: Cursor中配置后工具加载失败
+- **Status**: OPEN
+- **Author**: chenhunhun
+- **Date**: 2025-09-14
+- **Description**: Tool loading fails after configuring in Cursor
 
-#### #199 Claude code cil 连上不上怎么回事
+#### #199 Claude code cli can't connect, what's wrong
 
-- **状态**: OPEN
-- **作者**: 666xjs
-- **日期**: 2025-09-10
-- **描述**: 服务端运行成功了，但就是连上不上
+- **Status**: OPEN
+- **Author**: 666xjs
+- **Date**: 2025-09-10
+- **Description**: The server runs successfully, but it just can't connect
 
-#### #188 windsurf中无法连接
+#### #188 Can't connect in windsurf
 
-- **状态**: OPEN
-- **作者**: NoComments
-- **日期**: 2025-09-02
-- **描述**: Error: TransformStream is not defined
+- **Status**: OPEN
+- **Author**: NoComments
+- **Date**: 2025-09-02
+- **Description**: Error: TransformStream is not defined
 
-#### #185 Kiro 提示 "Enabled MCP Server chrome-mcp-server must specify a command"
+#### #185 Kiro says "Enabled MCP Server chrome-mcp-server must specify a command"
 
-- **状态**: OPEN
-- **作者**: Chris-C1108
-- **日期**: 2025-08-29
-- **描述**: 不清楚command是指什么，会不会是kiro不支持streamable-http类型
+- **Status**: OPEN
+- **Author**: Chris-C1108
+- **Date**: 2025-08-29
+- **Description**: Not sure what command refers to; maybe kiro doesn't support the streamable-http type
 
 #### #182 Claude CLI fails to connect to running server on macOS
 
-- **状态**: OPEN
-- **作者**: dreamreels
-- **日期**: 2025-08-28
-- **描述**: 扩展显示运行正常，但claude命令行工具无法连接
+- **Status**: OPEN
+- **Author**: dreamreels
+- **Date**: 2025-08-28
+- **Description**: The extension shows running fine, but the claude CLI can't connect
 
-#### #173 claude code 不支持streamableHttp
+#### #173 claude code doesn't support streamableHttp
 
-- **状态**: OPEN
-- **作者**: Baddts
-- **日期**: 2025-08-24
-- **描述**: 配置streamableHttp后claude code不会加载这个mcp
+- **Status**: OPEN
+- **Author**: Baddts
+- **Date**: 2025-08-24
+- **Description**: claude code doesn't load this mcp after configuring streamableHttp
 
 #### #168 Failed to parse MCP servers from JSON
 
-- **状态**: OPEN
-- **作者**: joyhu
-- **日期**: 2025-08-19
+- **Status**: OPEN
+- **Author**: joyhu
+- **Date**: 2025-08-19
 
-#### #167 claude code mcp 链接不了
+#### #167 claude code mcp can't connect
 
-- **状态**: OPEN
-- **作者**: TheBloodthirster
-- **日期**: 2025-08-18
-- **描述**: Native connection disconnected
+- **Status**: OPEN
+- **Author**: TheBloodthirster
+- **Date**: 2025-08-18
+- **Description**: Native connection disconnected
 
-#### #160 在使用multilingual-e5-base时出错
+#### #160 Error when using multilingual-e5-base
 
-- **状态**: OPEN
-- **作者**: lcylcyll
-- **日期**: 2025-08-15
-- **描述**: 模型要求维度是768D，但在谷歌浏览器上出错
+- **Status**: OPEN
+- **Author**: lcylcyll
+- **Date**: 2025-08-15
+- **Description**: The model requires 768D dimensions, but it errors in Chrome
 
 #### #150 Readme Image not found - Installation- Step 3
 
-- **状态**: OPEN
-- **作者**: amritbanerjee
-- **日期**: 2025-08-12
-- **描述**: Readme文件第3步的图片链接404
+- **Status**: OPEN
+- **Author**: amritbanerjee
+- **Date**: 2025-08-12
+- **Description**: The image link in step 3 of the Readme file is a 404
 
-#### #135 callTool() 这个工具函数 在哪个库里
+#### #135 Which library is the callTool() tool function in
 
-- **状态**: OPEN
-- **作者**: hechengdu
-- **日期**: 2025-08-03
+- **Status**: OPEN
+- **Author**: hechengdu
+- **Date**: 2025-08-03
 
-#### #134 Cursor无法连接Chrome MCP
+#### #134 Cursor can't connect to Chrome MCP
 
-- **状态**: OPEN
-- **作者**: shengcruz
-- **日期**: 2025-08-02
-- **描述**: 显示"No connection to browser extension"
+- **Status**: OPEN
+- **Author**: shengcruz
+- **Date**: 2025-08-02
+- **Description**: Shows "No connection to browser extension"
 
-#### #132 trae 加载失败
+#### #132 trae fails to load
 
-- **状态**: OPEN
-- **作者**: mimicode
-- **日期**: 2025-08-02
-- **描述**: chrome_send_command_to_inject_script长度超过60个字符
+- **Status**: OPEN
+- **Author**: mimicode
+- **Date**: 2025-08-02
+- **Description**: chrome_send_command_to_inject_script exceeds 60 characters
 
-#### #131 claude desktop 配置后不识别
+#### #131 claude desktop doesn't recognize it after configuration
 
-- **状态**: OPEN
-- **作者**: microxxx
-- **日期**: 2025-08-01
+- **Status**: OPEN
+- **Author**: microxxx
+- **Date**: 2025-08-01
 
-#### #124 请看截图，说已经搞掂画图了，但Excalidraw永远都是空白
+#### #124 See the screenshot, it says drawing is done, but Excalidraw stays blank
 
-- **状态**: OPEN
-- **作者**: fordiy
-- **日期**: 2025-07-27
+- **Status**: OPEN
+- **Author**: fordiy
+- **Date**: 2025-07-27
 
-#### #123 在AI输出过程中，经常会自动停掉
+#### #123 It often stops automatically while the AI is outputting
 
-- **状态**: OPEN
-- **作者**: fordiy
-- **日期**: 2025-07-26
-- **描述**: 没法继续在原来页面excalidraw画图
+- **Status**: OPEN
+- **Author**: fordiy
+- **Date**: 2025-07-26
+- **Description**: Can't continue drawing in excalidraw on the original page
 
-#### #121 cherrystudio升级1.5.3之后，无法调用了
+#### #121 Can't call it after cherrystudio upgraded to 1.5.3
 
-- **状态**: OPEN
-- **作者**: csfeng1
-- **日期**: 2025-07-26
+- **Status**: OPEN
+- **Author**: csfeng1
+- **Date**: 2025-07-26
 
-#### #109 cherrystudio无法正常使用MCP
+#### #109 cherrystudio can't use MCP properly
 
-- **状态**: OPEN
-- **作者**: kksqwerc
-- **日期**: 2025-07-17
-- **描述**: 工具已罗列出来，但在对话过程中无法准确调用
+- **Status**: OPEN
+- **Author**: kksqwerc
+- **Date**: 2025-07-17
+- **Description**: Tools are listed, but can't be called accurately during conversation
 
-#### #103 报错 400 的一般是客户端配置方式不对
+#### #103 A 400 error usually means the client config is wrong
 
-- **状态**: OPEN
-- **作者**: ifastcc
-- **日期**: 2025-07-15
-- **描述**: 给出了Claude code、Gemini cli、Cursor的正确配置方式
+- **Status**: OPEN
+- **Author**: ifastcc
+- **Date**: 2025-07-15
+- **Description**: Provides the correct configuration for Claude code, Gemini cli, and Cursor
 
-#### #102 Cherry-Studio 启动失败
+#### #102 Cherry-Studio fails to start
 
-- **状态**: OPEN
-- **作者**: Bboossccoo
-- **日期**: 2025-07-14
+- **Status**: OPEN
+- **Author**: Bboossccoo
+- **Date**: 2025-07-14
 
-#### #100 cursor调用excalidraw 提示Error calling tool
+#### #100 cursor reports Error calling tool when calling excalidraw
 
-- **状态**: OPEN
-- **作者**: DevilMay-Cry
-- **日期**: 2025-07-14
-- **描述**: Request timed out after 30000ms
+- **Status**: OPEN
+- **Author**: DevilMay-Cry
+- **Date**: 2025-07-14
+- **Description**: Request timed out after 30000ms
 
-#### #101 vscode使用：输入打开url，输入账号密码。一直卡在打开url中
+#### #101 vscode use: type to open url, type credentials, stuck on opening url
 
-- **状态**: OPEN
-- **作者**: kkk123dm
-- **日期**: 2025-07-14
+- **Status**: OPEN
+- **Author**: kkk123dm
+- **Date**: 2025-07-14
 
-### 已关闭
+### Closed
 
-#### #221 如何在VSC中配置mcp-chrome？
+#### #221 How to configure mcp-chrome in VSC?
 
-- **状态**: CLOSED
-- **作者**: valuex
-- **日期**: 2025-10-04
-- **描述**: 配置后不能启动服务器
+- **Status**: CLOSED
+- **Author**: valuex
+- **Date**: 2025-10-04
+- **Description**: Can't start the server after configuration
 
-#### #193 Cursor中添加mcp后一直显示loading tools
+#### #193 Cursor keeps showing loading tools after adding mcp
 
-- **状态**: CLOSED
-- **作者**: lixiaolong613
-- **日期**: 2025-09-04
+- **Status**: CLOSED
+- **Author**: lixiaolong613
+- **Date**: 2025-09-04
 
-#### #192 部署到远程服务器之后访问连接被重置
+#### #192 Access connection reset after deploying to a remote server
 
-- **状态**: CLOSED
-- **作者**: wlxwlxwlx
-- **日期**: 2025-09-04
+- **Status**: CLOSED
+- **Author**: wlxwlxwlx
+- **Date**: 2025-09-04
 
-#### #164 如何在claude desktop中也用上预定义的prompt template
+#### #164 How to use predefined prompt templates in claude desktop too
 
-- **状态**: CLOSED
-- **作者**: WeiyangZhang
-- **日期**: 2025-08-18
+- **Status**: CLOSED
+- **Author**: WeiyangZhang
+- **Date**: 2025-08-18
 
 #### #133 issue with setting up the MCP in Claude Code
 
-- **状态**: CLOSED
-- **作者**: seldaneg
-- **日期**: 2025-08-02
+- **Status**: CLOSED
+- **Author**: seldaneg
+- **Date**: 2025-08-02
 
 #### #113 Error invoking remote method 'mcp:restart-server'
 
-- **状态**: CLOSED
-- **作者**: Daiyuxin26
-- **日期**: 2025-07-19
+- **Status**: CLOSED
+- **Author**: Daiyuxin26
+- **Date**: 2025-07-19
 
-#### #102 Cherry-Studio 启动失败
+#### #102 Cherry-Studio fails to start
 
-- **状态**: CLOSED
-- **作者**: Bboossccoo
-- **日期**: 2025-07-14
+- **Status**: CLOSED
+- **Author**: Bboossccoo
+- **Date**: 2025-07-14
 
-#### #57 DIFY MCP调用失败
+#### #57 DIFY MCP call failed
 
-- **状态**: CLOSED
-- **作者**: SpringMeta
-- **日期**: 2025-06-27
+- **Status**: CLOSED
+- **Author**: SpringMeta
+- **Date**: 2025-06-27
 
-#### #45 Cherry Studio 下连接 MCP报错
+#### #45 Error connecting MCP under Cherry Studio
 
-- **状态**: CLOSED
-- **作者**: nooldey
-- **日期**: 2025-06-25
-- **描述**: serverType不正确，应使用小驼峰写法
+- **Status**: CLOSED
+- **Author**: nooldey
+- **Date**: 2025-06-25
+- **Description**: serverType is wrong; camelCase should be used
 
-#### #32 vscode 中启动失败
+#### #32 Fails to start in vscode
 
-- **状态**: CLOSED
-- **作者**: linjinxing
-- **日期**: 2025-06-23
+- **Status**: CLOSED
+- **Author**: linjinxing
+- **Date**: 2025-06-23
 
-#### #30 没法使用
+#### #30 Can't use it
 
-- **状态**: CLOSED
-- **作者**: 2513483494
-- **日期**: 2025-06-23
-- **描述**: unexpected status code: 400
+- **Status**: CLOSED
+- **Author**: 2513483494
+- **Date**: 2025-06-23
+- **Description**: unexpected status code: 400
 
-#### #19 cursor 里面配置后会出现报错
+#### #19 Errors appear after configuring in cursor
 
-- **状态**: CLOSED
-- **作者**: Sumouren1
-- **日期**: 2025-06-18
+- **Status**: CLOSED
+- **Author**: Sumouren1
+- **Date**: 2025-06-18
 
-#### #18 不支持cursor/cline么？
+#### #18 No cursor/cline support?
 
-- **状态**: CLOSED
-- **作者**: Rainmen-xia
-- **日期**: 2025-06-18
+- **Status**: CLOSED
+- **Author**: Rainmen-xia
+- **Date**: 2025-06-18
 
 #### #13 cherry studio addition failed
 
-- **状态**: CLOSED
-- **作者**: LLmoskk
-- **日期**: 2025-06-17
+- **Status**: CLOSED
+- **Author**: LLmoskk
+- **Date**: 2025-06-17
 
-#### #8 chrome_navigate调用报错
+#### #8 chrome_navigate call error
 
-- **状态**: CLOSED
-- **作者**: fcyf
-- **日期**: 2025-06-16
-
----
-
-## 🔌 兼容性问题
-
-### 开放中
-
-#### #172 iframe页面元素not found
-
-- **状态**: OPEN
-- **作者**: Actor12
-- **日期**: 2025-08-22
-- **描述**: 使用iframe开发的网页，chrome_fill_or_selector总是not found
-
-#### #126 自动回复、自动发布 希望功能更强大一些
-
-- **状态**: OPEN
-- **作者**: smartchainark
-- **日期**: 2025-07-29
-- **描述**: 在x平台和小红书平台无法正常完成任务
-
-#### #93 动态的数据怎样获取
-
-- **状态**: OPEN
-- **作者**: carter115
-- **日期**: 2025-07-11
-- **描述**: 页面上滚动鼠标才调用接口的数据
-
-#### #43 【无数据输出】cursor+edge 测试绘制一个月的浏览记录
-
-- **状态**: OPEN
-- **作者**: 3377
-- **日期**: 2025-06-24
-
-#### #42 能否和automa一起联动制作工作流呢？
-
-- **状态**: OPEN
-- **作者**: 3377
-- **日期**: 2025-06-24
-
-#### #40 语义引擎初始化失败
-
-- **状态**: OPEN
-- **作者**: HY-Hu
-- **日期**: 2025-06-24
-
-#### #39 一直报权限问题
-
-- **状态**: OPEN
-- **作者**: mozhuangshu
-- **日期**: 2025-06-24
-
-#### #33 找不到元素
-
-- **状态**: OPEN
-- **作者**: 2513483494
-- **日期**: 2025-06-23
-- **描述**: 腾讯云控制台页面元素找不到
-
-### 已关闭
+- **Status**: CLOSED
+- **Author**: fcyf
+- **Date**: 2025-06-16
 
 ---
 
-## 📚 文档改进
+## 🔌 Compatibility issues
 
-### 开放中
+### Open
 
-#### #197 指令里 无法执行
+#### #172 iframe page elements not found
 
-- **状态**: OPEN
-- **作者**: lujuny328-cmyk
-- **日期**: 2025-09-08
-- **描述**: 把链接桥放到指令里无法执行
+- **Status**: OPEN
+- **Author**: Actor12
+- **Date**: 2025-08-22
+- **Description**: chrome_fill_or_selector always returns not found on pages built with iframe
 
-#### #189 求拉群
+#### #126 Auto-reply, auto-publish — want stronger features
 
-- **状态**: OPEN
-- **作者**: wwenj
-- **日期**: 2025-09-02
-- **描述**: 文档中的群二维码过期了
+- **Status**: OPEN
+- **Author**: smartchainark
+- **Date**: 2025-07-29
+- **Description**: Can't complete tasks properly on the X platform and Xiaohongshu platform
 
-#### #117 好像没有点击扩展程序的工具？
+#### #93 How to get dynamic data
 
-- **状态**: OPEN
-- **作者**: sunweihunu
-- **日期**: 2025-07-22
-- **描述**: 希望能增加点击Chrome扩展程序的工具
+- **Status**: OPEN
+- **Author**: carter115
+- **Date**: 2025-07-11
+- **Description**: Data whose API is only called after scrolling the mouse on the page
 
-#### #125 二维码已过期
+#### #43 [No data output] cursor+edge test drawing a month of browsing history
 
-- **状态**: OPEN
-- **作者**: NuoLanC
-- **日期**: 2025-07-29
+- **Status**: OPEN
+- **Author**: 3377
+- **Date**: 2025-06-24
 
-### 已关闭
+#### #42 Can it work together with automa to build workflows?
 
-#### #95 整理网页文档包含图片的效果不如 playwright
+- **Status**: OPEN
+- **Author**: 3377
+- **Date**: 2025-06-24
 
-- **状态**: CLOSED
-- **作者**: Xuzan9396
-- **日期**: 2025-07-12
+#### #40 Semantic engine initialization failed
 
-#### #94 readme 视频链接失效
+- **Status**: OPEN
+- **Author**: HY-Hu
+- **Date**: 2025-06-24
 
-- **状态**: CLOSED
-- **作者**: vcan
-- **日期**: 2025-07-11
+#### #39 Constant permission errors
 
-#### #91 群满人了，大佬加下我
+- **Status**: OPEN
+- **Author**: mozhuangshu
+- **Date**: 2025-06-24
 
-- **状态**: CLOSED
-- **作者**: huangxingzhao
-- **日期**: 2025-07-11
+#### #33 Element not found
 
-#### #89 请问这个是什么工具
+- **Status**: OPEN
+- **Author**: 2513483494
+- **Date**: 2025-06-23
+- **Description**: Can't find elements on the Tencent Cloud console page
 
-- **状态**: CLOSED
-- **作者**: Messilimeng
-- **日期**: 2025-07-11
-- **描述**: 我用cursor有没有很好的互动prompt呢
+### Closed
 
-#### #84 如何配置自己的AI？
+---
 
-- **状态**: CLOSED
-- **作者**: liaoyu-zju
-- **日期**: 2025-07-08
+## 📚 Documentation improvements
 
-#### #83 中文文档中的微信二维码已过期
+### Open
 
-- **状态**: CLOSED
-- **作者**: YunfanGoForIt
-- **日期**: 2025-07-07
+#### #197 Can't run it from a command
+
+- **Status**: OPEN
+- **Author**: lujuny328-cmyk
+- **Date**: 2025-09-08
+- **Description**: Putting the bridge link in the command doesn't work
+
+#### #189 Please add me to the group
+
+- **Status**: OPEN
+- **Author**: wwenj
+- **Date**: 2025-09-02
+- **Description**: The group QR code in the docs has expired
+
+#### #117 Seems there's no tool to click extension popup?
+
+- **Status**: OPEN
+- **Author**: sunweihunu
+- **Date**: 2025-07-22
+- **Description**: Hope for a tool to click the Chrome extension popup
+
+#### #125 QR code expired
+
+- **Status**: OPEN
+- **Author**: NuoLanC
+- **Date**: 2025-07-29
+
+### Closed
+
+#### #95 Organizing web docs with images is worse than playwright
+
+- **Status**: CLOSED
+- **Author**: Xuzan9396
+- **Date**: 2025-07-12
+
+#### #94 readme video link broken
+
+- **Status**: CLOSED
+- **Author**: vcan
+- **Date**: 2025-07-11
+
+#### #91 Group is full, please add me
+
+- **Status**: CLOSED
+- **Author**: huangxingzhao
+- **Date**: 2025-07-11
+
+#### #89 What is this tool
+
+- **Status**: CLOSED
+- **Author**: Messilimeng
+- **Date**: 2025-07-11
+- **Description**: Do you have a good interactive prompt for cursor
+
+#### #84 How to configure my own AI?
+
+- **Status**: CLOSED
+- **Author**: liaoyu-zju
+- **Date**: 2025-07-08
+
+#### #83 WeChat QR code in the Chinese docs expired
+
+- **Status**: CLOSED
+- **Author**: YunfanGoForIt
+- **Date**: 2025-07-07
 
 #### #79 english ?
 
-- **状态**: CLOSED
-- **作者**: michabbb
-- **日期**: 2025-07-06
-- **描述**: README是英文的，而Chrome扩展完全是中文的
+- **Status**: CLOSED
+- **Author**: michabbb
+- **Date**: 2025-07-06
+- **Description**: The README is English while the Chrome extension is entirely Chinese
 
-#### #75 prompt 目录下的文件如何引用
+#### #75 How to reference files under the prompt directory
 
-- **状态**: CLOSED
-- **作者**: jovezhong
-- **日期**: 2025-07-05
+- **Status**: CLOSED
+- **Author**: jovezhong
+- **Date**: 2025-07-05
 
-#### #52 README 中多媒体资源 404 问题
+#### #52 README multimedia resource 404 issue
 
-- **状态**: CLOSED
-- **作者**: yunkst
-- **日期**: 2025-06-26
+- **Status**: CLOSED
+- **Author**: yunkst
+- **Date**: 2025-06-26
 
-#### #49 视频里面在浏览器右侧这个大模型聊天工具是什么啊？
+#### #49 What is this LLM chat tool on the right side of the browser in the video?
 
-- **状态**: CLOSED
-- **作者**: MoeMoeFish
-- **日期**: 2025-06-25
+- **Status**: CLOSED
+- **Author**: MoeMoeFish
+- **Date**: 2025-06-25
 
-#### #48 建议楼主创建一个微信群
+#### #48 Suggest the author create a WeChat group
 
-- **状态**: CLOSED
-- **作者**: goreycn
-- **日期**: 2025-06-25
+- **Status**: CLOSED
+- **Author**: goreycn
+- **Date**: 2025-06-25
 
-#### #44 没有看到查看MCP配置的连接按扭
+#### #44 Can't see the link button to view MCP config
 
-- **状态**: CLOSED
-- **作者**: jimleee
-- **日期**: 2025-06-25
+- **Status**: CLOSED
+- **Author**: jimleee
+- **Date**: 2025-06-25
 
-#### #35 画图功能没有调动起来
+#### #35 Drawing feature isn't working
 
-- **状态**: CLOSED
-- **作者**: guangzhou
-- **日期**: 2025-06-23
+- **Status**: CLOSED
+- **Author**: guangzhou
+- **Date**: 2025-06-23
 
-#### #34 怎么才能在画板上画图呢
+#### #34 How to draw on the canvas
 
-- **状态**: CLOSED
-- **作者**: guangzhou
-- **日期**: 2025-06-23
+- **Status**: CLOSED
+- **Author**: guangzhou
+- **Date**: 2025-06-23
 
-#### #31 可增加对Consle日志的读取吗
+#### #31 Can you add reading Console logs
 
-- **状态**: CLOSED
-- **作者**: ZoidbergPi
-- **日期**: 2025-06-23
+- **Status**: CLOSED
+- **Author**: ZoidbergPi
+- **Date**: 2025-06-23
 
-#### #26 使用教程
+#### #26 Tutorial
 
-- **状态**: CLOSED
-- **作者**: fanhaoj
-- **日期**: 2025-06-22
+- **Status**: CLOSED
+- **Author**: fanhaoj
+- **Date**: 2025-06-22
 
-#### #23 怎么打开对话框？
+#### #23 How to open the chat box?
 
-- **状态**: CLOSED
-- **作者**: kokwiw
-- **日期**: 2025-06-20
+- **Status**: CLOSED
+- **Author**: kokwiw
+- **Date**: 2025-06-20
 
-#### #17 对比2个京东商品就超token了
+#### #17 Comparing 2 JD products already exceeds the token limit
 
-- **状态**: CLOSED
-- **作者**: namejee
-- **日期**: 2025-06-18
+- **Status**: CLOSED
+- **Author**: namejee
+- **Date**: 2025-06-18
 
 #### #15 Claude Desktop
 
-- **状态**: CLOSED
-- **作者**: GoldRush520
-- **日期**: 2025-06-18
-- **描述**: Claude Desktop国内用不了，有没有其他可替代的
+- **Status**: CLOSED
+- **Author**: GoldRush520
+- **Date**: 2025-06-18
+- **Description**: Claude Desktop is unusable in China; any alternatives
 
-#### #11 大佬有没有可能添加一个drag and drop功能
+#### #11 Any chance of adding drag and drop
 
-- **状态**: CLOSED
-- **作者**: tom63001
-- **日期**: 2025-06-17
+- **Status**: CLOSED
+- **Author**: tom63001
+- **Date**: 2025-06-17
 
 ---
 
-## ✅ 已解决的问题
+## ✅ Resolved issues
 
-### 社区交流相关
+### Community
 
-#### #213 求个微信群组，互相交流
+#### #213 Want a WeChat group to chat
 
-- **状态**: OPEN
-- **作者**: zhangchao0323
-- **日期**: 2025-09-29
+- **Status**: OPEN
+- **Author**: zhangchao0323
+- **Date**: 2025-09-29
 
-#### #211 求拉群，想参与项目贡献～
+#### #211 Please add me to the group, I want to contribute ~
 
-- **状态**: OPEN
-- **作者**: suoaiyisheng
-- **日期**: 2025-09-27
+- **Status**: OPEN
+- **Author**: suoaiyisheng
+- **Date**: 2025-09-27
 
-### 使用问题
+### Usage questions
 
-#### #176 claude code 无法画图
+#### #176 claude code can't draw
 
-- **状态**: OPEN
-- **作者**: woshihoujinxin
-- **日期**: 2025-08-26
-- **描述**: 打开excalidraw.com画图，但没有流畅效果
+- **Status**: OPEN
+- **Author**: woshihoujinxin
+- **Date**: 2025-08-26
+- **Description**: Opened excalidraw.com to draw, but it's not smooth
 
-#### #166 画图问题
+#### #166 Drawing problem
 
-- **状态**: OPEN
-- **作者**: fyture
-- **日期**: 2025-08-18
-- **描述**: 模型说已完成，但excalidraw上什么都没有
+- **Status**: OPEN
+- **Author**: fyture
+- **Date**: 2025-08-18
+- **Description**: The model says it's done, but nothing appears in excalidraw
 
-### Python集成
+### Python integration
 
-#### #194 如何在代码上接入呢，不用AI agent
+#### #194 How to integrate in code without an AI agent
 
-- **状态**: CLOSED
-- **作者**: dreambe
-- **日期**: 2025-09-05
-- **描述**: 比如python，有没有demo代码
+- **Status**: CLOSED
+- **Author**: dreambe
+- **Date**: 2025-09-05
+- **Description**: For example python; is there demo code
 
-#### #82 尝试使用python代码直接调用工具失败
+#### #82 Failed to call tools directly with python code
 
-- **状态**: CLOSED
-- **作者**: YunfanGoForIt
-- **日期**: 2025-07-07
+- **Status**: CLOSED
+- **Author**: YunfanGoForIt
+- **Date**: 2025-07-07
 
-#### #24 可以使用python代码调用这个插件吗？
+#### #24 Can this plugin be called with python code?
 
-- **状态**: CLOSED
-- **作者**: liulint
-- **日期**: 2025-06-20
+- **Status**: CLOSED
+- **Author**: liulint
+- **Date**: 2025-06-20
 
-#### #21 请问目前不带有MCP功能的的LLM可以接入这个mcp服务器吗
+#### #21 Can an LLM without MCP support connect to this mcp server
 
-- **状态**: CLOSED
-- **作者**: JessiePen
-- **日期**: 2025-06-19
+- **Status**: CLOSED
+- **Author**: JessiePen
+- **Date**: 2025-06-19
 
-### 服务器部署
+### Server deployment
 
 #### #74 Suggestion: Enable External Access to Local Server
 
-- **状态**: OPEN
-- **作者**: ErrorGz
-- **日期**: 2025-07-05
-- **描述**: 建议修改HOST为0.0.0.0以允许外部访问
+- **Status**: OPEN
+- **Author**: ErrorGz
+- **Date**: 2025-07-05
+- **Description**: Suggest changing HOST to 0.0.0.0 to allow external access
 
-#### #72 Tab串联问题
+#### #72 Tab chaining problem
 
-- **状态**: CLOSED
-- **作者**: fundoop
-- **日期**: 2025-07-04
-- **描述**: 是否可以增加指定tab页面操作，切换tab等
+- **Status**: CLOSED
+- **Author**: fundoop
+- **Date**: 2025-07-04
+- **Description**: Can operations on a specific tab, tab switching, etc. be added
 
-#### #71 这个mcp服务器不能和客户端分开吗
+#### #71 Can't this mcp server be separated from the client
 
-- **状态**: CLOSED
-- **作者**: xiaodiao216
-- **日期**: 2025-07-03
+- **Status**: CLOSED
+- **Author**: xiaodiao216
+- **Date**: 2025-07-03
 
-#### #70 【Help Wanted】项目首页视频里的MCP客户端是什么？
+#### #70 [Help Wanted] What is the MCP client in the project homepage video?
 
-- **状态**: CLOSED
-- **作者**: tonyxu721
-- **日期**: 2025-07-03
+- **Status**: CLOSED
+- **Author**: tonyxu721
+- **Date**: 2025-07-03
 
-### 其他
+### Other
 
-#### #97 请问使用示例中出现的对话工具是什么
+#### #97 What is the chat tool in the usage examples
 
-- **状态**: CLOSED
-- **作者**: sbwg
-- **日期**: 2025-07-12
+- **Status**: CLOSED
+- **Author**: sbwg
+- **Date**: 2025-07-12
 
-#### #96 入口在哪里啊？
+#### #96 Where is the entry point?
 
-- **状态**: CLOSED
-- **作者**: DavidCalls
-- **日期**: 2025-07-12
+- **Status**: CLOSED
+- **Author**: DavidCalls
+- **Date**: 2025-07-12
 
 #### #80 alternative way question
 
-- **状态**: CLOSED
-- **作者**: yiminhale
-- **日期**: 2025-07-06
-- **描述**: 能否用npm而不是pnpm
+- **Status**: CLOSED
+- **Author**: yiminhale
+- **Date**: 2025-07-06
+- **Description**: Can npm be used instead of pnpm
 
-#### #51 navigate功能不能标签打开地址
+#### #51 navigate feature can't open a URL in a tab
 
-- **状态**: CLOSED
-- **作者**: adoin
-- **日期**: 2025-06-26
+- **Status**: CLOSED
+- **Author**: adoin
+- **Date**: 2025-06-26
 
 #### #25 [Feature Request] - Can I use it with my Cursor?
 
-- **状态**: CLOSED
-- **作者**: DaleXiao
-- **日期**: 2025-06-21
+- **Status**: CLOSED
+- **Author**: DaleXiao
+- **Date**: 2025-06-21
 
 #### #14 How to support VSCode or trae?
 
-- **状态**: CLOSED
-- **作者**: loki-zhou
-- **日期**: 2025-06-17
+- **Status**: CLOSED
+- **Author**: loki-zhou
+- **Date**: 2025-06-17
 
-#### #5 佬，augment里咋设置mcp？
+#### #5 Where do I set up mcp in augment, mate?
 
-- **状态**: CLOSED
-- **作者**: gally16
-- **日期**: 2025-06-15
-
----
-
-## 📈 Issue 趋势分析
-
-### 高频问题类型
-
-1. **安装配置问题** (约40%): 主要集中在Native Messaging连接失败、服务未启动
-2. **兼容性问题** (约25%): 不同客户端（Cursor、Claude Code、Cherry Studio等）的集成问题
-3. **功能请求** (约20%): 文件上传、鼠标悬停、多窗口隔离等
-4. **Bug报告** (约15%): 工具调用错误、超时、元素查找失败等
-
-### 常见解决方案
-
-1. **权限问题**: 使用`chmod -R 755`赋予dist目录权限
-2. **Node.js路径问题**: 重新安装Node.js到默认路径
-3. **配置格式问题**: 不同客户端使用不同的配置格式（streamableHttp vs streamable-http）
-4. **端口访问**: 默认127.0.0.1，需要外部访问时改为0.0.0.0
+- **Status**: CLOSED
+- **Author**: gally16
+- **Date**: 2025-06-15
 
 ---
 
-## 🔗 相关资源
+## 📈 Issue trends
 
-- [故障排除文档](TROUBLESHOOTING_zh.md)
-- [贡献指南](CONTRIBUTING_zh.md)
-- [工具文档](TOOLS_zh.md)
-- [Windows安装指南](WINDOWS_INSTALL_zh.md)
+### Frequent problem types
+
+1. **Install/config issues** (~40%): mainly Native Messaging connection failures and the service not starting
+2. **Compatibility issues** (~25%): integration problems with various clients (Cursor, Claude Code, Cherry Studio, etc.)
+3. **Feature requests** (~20%): file upload, mouse hover, multi-window isolation, etc.
+4. **Bug reports** (~15%): tool call errors, timeouts, element lookup failures, etc.
+
+### Common solutions
+
+1. **Permission issues**: use `chmod -R 755` to grant permissions on the dist directory
+2. **Node.js path issues**: reinstall Node.js to the default path
+3. **Config format issues**: different clients use different config formats (streamableHttp vs streamable-http)
+4. **Port access**: defaults to 127.0.0.1; change to 0.0.0.0 for external access
 
 ---
 
-**最后更新**: 2025-10-11  
-**统计数据来源**: GitHub Issues API
+## 🔗 Resources
+
+- [Troubleshooting docs](TROUBLESHOOTING_zh.md)
+- [Contributing guide](CONTRIBUTING_zh.md)
+- [Tool docs](TOOLS_zh.md)
+- [Windows install guide](WINDOWS_INSTALL_zh.md)
+
+---
+
+**Last updated**: 2025-10-11  
+**Stats source**: GitHub Issues API

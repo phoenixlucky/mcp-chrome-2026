@@ -49,32 +49,27 @@ function readTools(file) {
 function sync(file, source) {
   const absolute = path.join(root, file);
   let text = fs.readFileSync(absolute, 'utf8');
-  const documented = new Set(
-    [...text.matchAll(/^### `([^`]+)`/gm)].map((match) => match[1]),
-  );
+  const documented = new Set([...text.matchAll(/^### `([^`]+)`/gm)].map((match) => match[1]));
   const missing = readTools(source).filter((tool) => !documented.has(tool.name));
   if (!missing.length) return 0;
 
-  const isChinese = file.includes('_zh');
-  const heading = isChinese ? '## 🔄 Schema Catalog 补充' : '## 🔄 Schema Catalog Additions';
-  const generatedNote = isChinese
-    ? '该部分由共享工具 schema 自动生成。'
-    : 'This section is generated from the shared tool schema.';
-  const canonicalNote = isChinese
-    ? '规范 inputSchema 维护在 shared package 中，并由 pnpm check:tool-docs 校验。'
-    : 'The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.';
+  const heading = '## 🔄 Schema Catalog Additions';
+  const generatedNote = 'This section is generated from the shared tool schema.';
+  const canonicalNote =
+    'The canonical input schema is maintained in the shared package and is checked by pnpm check:tool-docs.';
   const blocks = missing.map(
-    (tool) =>
-      `### \`${tool.name}\`\n\n${tool.description}\n\n> ${canonicalNote}`,
+    (tool) => `### \`${tool.name}\`\n\n${tool.description}\n\n> ${canonicalNote}`,
   );
   const section = `\n\n${heading}\n\n> ${generatedNote}\n\n${blocks.join('\n\n')}`;
   const responseHeading = text.match(/^## 📋 Response Format/m)?.[0];
-  text = responseHeading ? text.replace(responseHeading, `${section}\n\n${responseHeading}`) : `${text.trimEnd()}${section}\n`;
+  text = responseHeading
+    ? text.replace(responseHeading, `${section}\n\n${responseHeading}`)
+    : `${text.trimEnd()}${section}\n`;
   fs.writeFileSync(absolute, text);
   return missing.length;
 }
 
 const added =
-  sync('docs/TOOLS.md', 'packages/shared/src/tools-en.ts') +
+  sync('docs/TOOLS.md', 'packages/shared/src/tools.ts') +
   sync('docs/TOOLS_zh.md', 'packages/shared/src/tools.ts');
 console.log(`Added ${added} tool documentation entries.`);

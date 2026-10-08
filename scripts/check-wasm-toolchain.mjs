@@ -41,10 +41,10 @@ async function installRust() {
   const installerPath = join(temporaryDirectory, isWindows ? 'rustup-init.exe' : 'rustup-init.sh');
 
   try {
-    console.error('未找到 Rust/cargo，正在下载并安装官方 Rust toolchain...');
+    console.error('Rust/cargo not found; downloading and installing the official Rust toolchain...');
     const response = await fetch(installerUrl);
     if (!response.ok) {
-      throw new Error(`下载 rustup 失败：HTTP ${response.status}`);
+      throw new Error(`Failed to download rustup: HTTP ${response.status}`);
     }
     await writeFile(installerPath, Buffer.from(await response.arrayBuffer()));
 
@@ -54,7 +54,7 @@ async function installRust() {
       : spawnSync('sh', [installerPath, ...args], { env: toolEnv, stdio: 'inherit' });
 
     if (result.status !== 0) {
-      throw new Error('rustup 安装失败');
+      throw new Error('rustup installation failed');
     }
   } finally {
     await rm(temporaryDirectory, { force: true, recursive: true });
@@ -72,10 +72,10 @@ function ensureWasmTarget() {
     return;
   }
 
-  console.error('正在安装 Rust WASM target wasm32-unknown-unknown...');
+  console.error('Installing the Rust WASM target wasm32-unknown-unknown...');
   const result = run('rustup', ['target', 'add', 'wasm32-unknown-unknown']);
   if (result.status !== 0) {
-    throw new Error('Rust WASM target 安装失败');
+    throw new Error('Rust WASM target installation failed');
   }
 }
 
@@ -95,15 +95,15 @@ async function main() {
     await installRust();
   }
   if (!commandExists('cargo')) {
-    throw new Error('Rust 安装完成但当前进程找不到 cargo，请重新打开终端后重试');
+    throw new Error('Rust is installed but cargo is not visible to this process; reopen the terminal and retry');
   }
 
   ensureWasmTarget();
 
-  console.error('未找到 wasm-pack，正在使用 cargo 自动安装 wasm-pack...');
+  console.error('wasm-pack not found; installing wasm-pack with cargo...');
   const install = run('cargo', ['install', 'wasm-pack', '--locked']);
   if (install.status !== 0 || !commandExists('wasm-pack')) {
-    throw new Error('wasm-pack 安装失败，或安装目录不在当前 PATH 中');
+    throw new Error('wasm-pack installation failed, or its install directory is not on the current PATH');
   }
 
   if (process.argv[2] === 'run') {

@@ -18,7 +18,7 @@ import type { ModelPreset } from './semantic-models';
 async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
   const cacheManager = ModelCacheManager.getInstance();
 
-  // 1. 尝试从缓存获取数据
+  // 1. Try to get the data from cache
   const cachedData = await cacheManager.getCachedModelData(modelUrl);
   if (cachedData) {
     return cachedData;
@@ -27,14 +27,14 @@ async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
   console.log('Model not found in cache or expired. Fetching from network...');
 
   try {
-    // 2. 从网络获取数据
+    // 2. Fetch the data from the network
     const response = await fetch(modelUrl);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch model: ${response.status} ${response.statusText}`);
     }
 
-    // 3. 获取数据并存储到缓存
+    // 3. Store the data in cache
     const arrayBuffer = await response.arrayBuffer();
     await cacheManager.storeModelData(modelUrl, arrayBuffer);
 
@@ -45,7 +45,7 @@ async function getCachedModelData(modelUrl: string): Promise<ArrayBuffer> {
     return arrayBuffer;
   } catch (error) {
     console.error(`Error fetching or caching model:`, error);
-    // 如果获取失败，清理可能不完整的缓存条目
+    // Clean up a possibly incomplete cache entry when fetching fails
     await cacheManager.deleteCacheEntry(modelUrl);
     throw error;
   }
@@ -605,7 +605,7 @@ export class SemanticSimilarityEngine {
   private _setupWorker(): void {
     console.log('SemanticSimilarityEngine: Setting up worker...');
 
-    // 方式1: Chrome extension URL (推荐，生产环境最可靠)
+    // Method 1: Chrome extension URL (recommended, most reliable in production)
     try {
       const workerUrl = chrome.runtime.getURL('workers/similarity.worker.js');
       console.log(`SemanticSimilarityEngine: Trying chrome.runtime.getURL ${workerUrl}`);
@@ -634,7 +634,7 @@ export class SemanticSimilarityEngine {
 
       this.pendingMessages.delete(id);
 
-      // 更新 Worker 统计信息
+      // Update worker stats
       if (stats) {
         this.performanceStats.workerStats = stats;
       }
@@ -663,7 +663,7 @@ export class SemanticSimilarityEngine {
       console.error('Event Lineno:', error.lineno);
       console.error('Event Colno:', error.colno);
       if (error.error) {
-        // 检查 event.error 是否存在
+        // Check whether event.error exists
         console.error('Actual Error Name:', error.error.name);
         console.error('Actual Error Message:', error.error.message);
         console.error('Actual Error Stack:', error.error.stack);
@@ -698,7 +698,7 @@ export class SemanticSimilarityEngine {
   }
 
   /**
-   * 带进度回调的初始化方法
+   * Initialization method with a progress callback
    */
   public async initializeWithProgress(
     onProgress?: (progress: { status: string; progress: number; message?: string }) => void,
@@ -715,7 +715,7 @@ export class SemanticSimilarityEngine {
   }
 
   /**
-   * 带进度回调的内部初始化方法
+   * Internal initialization method with a progress callback
    */
   private async _doInitializeWithProgress(
     onProgress?: (progress: { status: string; progress: number; message?: string }) => void,
@@ -723,7 +723,7 @@ export class SemanticSimilarityEngine {
     console.log('SemanticSimilarityEngine: Initializing with progress tracking...');
     const startTime = performance.now();
 
-    // 进度报告辅助函数
+    // Progress reporting helper
     const reportProgress = (status: string, progress: number, message?: string) => {
       if (onProgress) {
         onProgress({ status, progress, message });
@@ -733,11 +733,11 @@ export class SemanticSimilarityEngine {
     try {
       reportProgress('initializing', 5, 'Starting initialization...');
 
-      // 检测环境并决定使用哪种模式
+      // Detect the environment and decide which mode to use
       const workerSupported = this.isWorkerSupported();
       const inOffscreenDocument = this.isInOffscreenDocument();
 
-      // 🛠️ 防止死循环：如果已经在 offscreen document 中，强制使用直接 Worker 模式
+      // 🛠️ Prevent infinite recursion: if already inside the offscreen document, force direct Worker mode
       if (inOffscreenDocument) {
         this.useOffscreen = false;
         console.log(
@@ -754,18 +754,18 @@ export class SemanticSimilarityEngine {
       reportProgress('initializing', 10, 'Environment detection complete');
 
       if (this.useOffscreen) {
-        // 使用offscreen模式 - 委托给offscreen document，它会处理自己的进度
+        // Use offscreen mode - delegate to the offscreen document, which handles its own progress
         reportProgress('initializing', 15, 'Setting up offscreen document...');
         await this.ensureOffscreenDocument();
 
-        // 发送初始化消息到offscreen document
+        // Send the init message to the offscreen document
         console.log('SemanticSimilarityEngine: Sending config to offscreen:', {
           useLocalFiles: this.config.useLocalFiles,
           modelIdentifier: this.config.modelIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
         });
 
-        // 确保配置对象被正确序列化，显式设置所有属性
+        // Make sure the config object is serialized correctly by setting all properties explicitly
         const configToSend = {
           modelIdentifier: this.config.modelIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
@@ -774,7 +774,7 @@ export class SemanticSimilarityEngine {
           cacheSize: this.config.cacheSize,
           numThreads: this.config.numThreads,
           executionProviders: ['wasm'],
-          useLocalFiles: Boolean(this.config.useLocalFiles), // 强制转换为布尔值
+          useLocalFiles: Boolean(this.config.useLocalFiles), // Force-cast to boolean
           workerPath: this.config.workerPath,
           concurrentLimit: this.config.concurrentLimit,
           forceOffscreen: this.config.forceOffscreen,
@@ -783,7 +783,7 @@ export class SemanticSimilarityEngine {
           dimension: this.config.dimension,
         };
 
-        // 使用 JSON 序列化确保数据完整性
+        // Use JSON serialization to ensure data integrity
         const serializedConfig = JSON.parse(JSON.stringify(configToSend));
 
         reportProgress('initializing', 20, 'Delegating to offscreen document...');
@@ -801,7 +801,7 @@ export class SemanticSimilarityEngine {
         reportProgress('ready', 100, 'Initialized via offscreen document');
         console.log('SemanticSimilarityEngine: Initialized via offscreen document');
       } else {
-        // 使用直接Worker模式 - 这里我们可以提供真实的进度跟踪
+        // Use direct Worker mode - here we can provide real progress tracking
         await this._initializeDirectWorkerWithProgress(reportProgress);
       }
 
@@ -819,7 +819,7 @@ export class SemanticSimilarityEngine {
       this.isInitializing = false;
       this.initPromise = null;
 
-      // 创建一个更详细的错误对象
+      // Create a more detailed error object
       const enhancedError = new Error(errorMessage);
       enhancedError.name = 'ModelInitializationError';
       throw enhancedError;
@@ -830,11 +830,11 @@ export class SemanticSimilarityEngine {
     console.log('SemanticSimilarityEngine: Initializing...');
     const startTime = performance.now();
     try {
-      // 检测环境并决定使用哪种模式
+      // Detect the environment and decide which mode to use
       const workerSupported = this.isWorkerSupported();
       const inOffscreenDocument = this.isInOffscreenDocument();
 
-      // 🛠️ 防止死循环：如果已经在 offscreen document 中，强制使用直接 Worker 模式
+      // 🛠️ Prevent infinite recursion: if already inside the offscreen document, force direct Worker mode
       if (inOffscreenDocument) {
         this.useOffscreen = false;
         console.log(
@@ -849,17 +849,17 @@ export class SemanticSimilarityEngine {
       );
 
       if (this.useOffscreen) {
-        // 使用offscreen模式
+        // Use offscreen mode
         await this.ensureOffscreenDocument();
 
-        // 发送初始化消息到offscreen document
+        // Send the init message to the offscreen document
         console.log('SemanticSimilarityEngine: Sending config to offscreen:', {
           useLocalFiles: this.config.useLocalFiles,
           modelIdentifier: this.config.modelIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
         });
 
-        // 确保配置对象被正确序列化，显式设置所有属性
+        // Make sure the config object is serialized correctly by setting all properties explicitly
         const configToSend = {
           modelIdentifier: this.config.modelIdentifier,
           localModelPathPrefix: this.config.localModelPathPrefix,
@@ -868,7 +868,7 @@ export class SemanticSimilarityEngine {
           cacheSize: this.config.cacheSize,
           numThreads: this.config.numThreads,
           executionProviders: ['wasm'],
-          useLocalFiles: Boolean(this.config.useLocalFiles), // 强制转换为布尔值
+          useLocalFiles: Boolean(this.config.useLocalFiles), // Force-cast to boolean
           workerPath: this.config.workerPath,
           concurrentLimit: this.config.concurrentLimit,
           forceOffscreen: this.config.forceOffscreen,
@@ -896,7 +896,7 @@ export class SemanticSimilarityEngine {
           typeof this.config.useLocalFiles,
         );
 
-        // 使用 JSON 序列化确保数据完整性
+        // Use JSON serialization to ensure data integrity
         const serializedConfig = JSON.parse(JSON.stringify(configToSend));
         console.log(
           'SemanticSimilarityEngine: DEBUG - serializedConfig.useLocalFiles:',
@@ -906,7 +906,7 @@ export class SemanticSimilarityEngine {
         const response = await chrome.runtime.sendMessage({
           target: 'offscreen',
           type: OFFSCREEN_MESSAGE_TYPES.SIMILARITY_ENGINE_INIT,
-          config: serializedConfig, // 使用原始配置，不强制修改 useLocalFiles
+          config: serializedConfig, // Use the original config; do not force-modify useLocalFiles
         });
 
         if (!response || !response.success) {
@@ -915,7 +915,7 @@ export class SemanticSimilarityEngine {
 
         console.log('SemanticSimilarityEngine: Initialized via offscreen document');
       } else {
-        // 使用直接Worker模式
+        // Use direct Worker mode
         this._setupWorker();
 
         TransformersEnv.allowRemoteModels = !this.config.useLocalFiles;
@@ -927,14 +927,14 @@ export class SemanticSimilarityEngine {
           useLocalFiles: this.config.useLocalFiles,
         });
         if (TransformersEnv.backends?.onnx?.wasm) {
-          // 检查路径是否存在
+          // Check whether the path exists
           TransformersEnv.backends.onnx.wasm.numThreads = this.config.numThreads;
         }
 
         let tokenizerIdentifier = this.config.modelIdentifier;
         if (this.config.useLocalFiles) {
-          // 对于WXT，public目录下的资源在运行时位于根路径
-          // 直接使用模型标识符，transformers.js 会自动添加 /models/ 前缀
+          // For WXT, assets under public/ live at the root path at runtime
+          // Use the model identifier directly; transformers.js adds the /models/ prefix automatically
           tokenizerIdentifier = this.config.modelIdentifier;
         }
         console.log(
@@ -945,7 +945,7 @@ export class SemanticSimilarityEngine {
           local_files_only: this.config.useLocalFiles,
         };
 
-        // 对于不需要token_type_ids的模型，在tokenizer配置中明确设置
+        // For models that do not need token_type_ids, set it explicitly in the tokenizer config
         if (!this.config.requiresTokenTypeIds) {
           tokenizerConfig.return_token_type_ids = false;
         }
@@ -1012,7 +1012,7 @@ export class SemanticSimilarityEngine {
         }
         console.log('SemanticSimilarityEngine: Worker reported model initialized.');
 
-        // 尝试初始化 SIMD 加速
+        // Try to initialize SIMD acceleration
         try {
           console.log('SemanticSimilarityEngine: Checking SIMD support...');
           const simdSupported = await SIMDMathEngine.checkSIMDSupport();
@@ -1054,7 +1054,7 @@ export class SemanticSimilarityEngine {
       this.isInitializing = false;
       this.initPromise = null;
 
-      // 创建一个更详细的错误对象
+      // Create a more detailed error object
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const enhancedError = new Error(errorMessage);
       enhancedError.name = 'ModelInitializationError';
@@ -1063,12 +1063,12 @@ export class SemanticSimilarityEngine {
   }
 
   /**
-   * 直接Worker模式的初始化，支持进度回调
+   * Direct Worker mode initialization with progress callback support
    */
   private async _initializeDirectWorkerWithProgress(
     reportProgress: (status: string, progress: number, message?: string) => void,
   ): Promise<void> {
-    // 使用直接Worker模式
+    // Use direct Worker mode
     reportProgress('initializing', 25, 'Setting up worker...');
     this._setupWorker();
 
@@ -1094,7 +1094,7 @@ export class SemanticSimilarityEngine {
       `SemanticSimilarityEngine: Loading tokenizer from ${tokenizerIdentifier} (local_files_only: ${this.config.useLocalFiles})`,
     );
 
-    // 使用 transformers.js 2.17+ 的进度回调功能
+    // Use the progress callback feature from transformers.js 2.17+
     const tokenizerProgressCallback = (progress: any) => {
       if (progress.status === 'downloading') {
         const progressPercent = Math.min(40 + (progress.progress || 0) * 0.3, 70);
@@ -1111,7 +1111,7 @@ export class SemanticSimilarityEngine {
       local_files_only: this.config.useLocalFiles,
     };
 
-    // 对于不需要token_type_ids的模型，在tokenizer配置中明确设置
+    // For models that do not need token_type_ids, set it explicitly in the tokenizer config
     if (!this.config.requiresTokenTypeIds) {
       tokenizerConfig.return_token_type_ids = false;
     }
@@ -1122,7 +1122,7 @@ export class SemanticSimilarityEngine {
       }
       this.tokenizer = await AutoTokenizer.from_pretrained(tokenizerIdentifier, tokenizerConfig);
     } catch (error) {
-      // 如果进度回调不支持，回退到标准方式
+      // Fall back to the standard approach when the progress callback is unsupported
       console.log(
         'SemanticSimilarityEngine: Progress callback not supported, using standard loading',
       );
@@ -1186,7 +1186,7 @@ export class SemanticSimilarityEngine {
     console.log('SemanticSimilarityEngine: Worker reported model initialized.');
 
     reportProgress('initializing', 90, 'Setting up SIMD acceleration...');
-    // 尝试初始化 SIMD 加速
+    // Try to initialize SIMD acceleration
     try {
       console.log('SemanticSimilarityEngine: Checking SIMD support...');
       const simdSupported = await SIMDMathEngine.checkSIMDSupport();
@@ -1220,23 +1220,23 @@ export class SemanticSimilarityEngine {
     if (!this.isInitialized) throw new Error('Engine not initialized after warmup attempt.');
     console.log('SemanticSimilarityEngine: Warming up model...');
 
-    // 更有代表性的预热文本，包含不同长度和语言
+    // More representative warmup texts, covering different lengths
     const warmupTexts = [
-      // 短文本
+      // Short texts
       'Hello',
-      '你好',
+      'Hi',
       'Test',
-      // 中等长度文本
+      // Medium-length texts
       'Hello world, this is a test.',
-      '你好世界，这是一个测试。',
+      'Good morning world, this is a test.',
       'The quick brown fox jumps over the lazy dog.',
-      // 长文本
+      // Long texts
       'This is a longer text that contains multiple sentences. It helps warm up the model for various text lengths.',
-      '这是一个包含多个句子的较长文本。它有助于为各种文本长度预热模型。',
+      'This is a longer passage with several sentences. It helps warm up the model across different text lengths.',
     ];
 
     try {
-      // 渐进式预热：先单个，再批量
+      // Progressive warmup: first single, then batch
       console.log('SemanticSimilarityEngine: Phase 1 - Individual warmup...');
       for (const text of warmupTexts.slice(0, 4)) {
         await this.getEmbedding(text);
@@ -1245,7 +1245,7 @@ export class SemanticSimilarityEngine {
       console.log('SemanticSimilarityEngine: Phase 2 - Batch warmup...');
       await this.getEmbeddingsBatch(warmupTexts.slice(4));
 
-      // 保留预热结果，不清空缓存
+      // Keep the warmup results; do not clear the cache
       console.log('SemanticSimilarityEngine: Model warmup complete. Cache preserved.');
       console.log(`Embedding cache: ${this.cacheStats.embedding.size} items`);
       console.log(`Tokenization cache: ${this.cacheStats.tokenization.size} items`);
@@ -1257,7 +1257,7 @@ export class SemanticSimilarityEngine {
   private async _tokenizeText(text: string | string[]): Promise<TokenizedOutput> {
     if (!this.tokenizer) throw new Error('Tokenizer not initialized.');
 
-    // 对于单个文本，尝试使用缓存
+    // For a single text, try to use the cache
     if (typeof text === 'string') {
       const cacheKey = `tokenize:${text}`;
       const cached = this.tokenizationCache.get(cacheKey);
@@ -1276,27 +1276,27 @@ export class SemanticSimilarityEngine {
         return_tensors: 'np',
       };
 
-      // 对于不需要token_type_ids的模型，明确设置return_token_type_ids为false
+      // For models that do not need token_type_ids, explicitly set return_token_type_ids to false
       if (!this.config.requiresTokenTypeIds) {
         tokenizerOptions.return_token_type_ids = false;
       }
 
       const result = (await this.tokenizer(text, tokenizerOptions)) as TokenizedOutput;
 
-      // 更新性能统计
+      // Update performance stats
       this.performanceStats.totalTokenizationTime += performance.now() - startTime;
       this.performanceStats.averageTokenizationTime =
         this.performanceStats.totalTokenizationTime /
         (this.cacheStats.tokenization.hits + this.cacheStats.tokenization.misses);
 
-      // 缓存结果
+      // Cache the result
       this.tokenizationCache.set(cacheKey, result);
       this.cacheStats.tokenization.size = this.tokenizationCache.size;
 
       return result;
     }
 
-    // 对于批量文本，直接处理（批量处理通常不重复）
+    // For batch texts, process directly (batches usually do not repeat)
     const startTime = performance.now();
     const tokenizerOptions: any = {
       padding: true,
@@ -1305,7 +1305,7 @@ export class SemanticSimilarityEngine {
       return_tensors: 'np',
     };
 
-    // 对于不需要token_type_ids的模型，明确设置return_token_type_ids为false
+    // For models that do not need token_type_ids, explicitly set return_token_type_ids to false
     if (!this.config.requiresTokenTypeIds) {
       tokenizerOptions.return_token_type_ids = false;
     }
@@ -1323,7 +1323,7 @@ export class SemanticSimilarityEngine {
     if (!workerOutput.data || !workerOutput.dims)
       throw new Error('Invalid worker output for embedding extraction.');
 
-    // 优化：直接使用 Float32Array，避免不必要的转换
+    // Optimization: use Float32Array directly to avoid unnecessary conversions
     const lastHiddenStateData =
       workerOutput.data instanceof Float32Array
         ? workerOutput.data
@@ -1333,7 +1333,7 @@ export class SemanticSimilarityEngine {
     const seqLength = dims[1];
     const hiddenSize = dims[2];
 
-    // 使用内存池获取 embedding 数组
+    // Get an embedding array from the memory pool
     const embedding = this.memoryPool.getEmbedding(hiddenSize);
     let validTokens = 0;
 
@@ -1361,7 +1361,7 @@ export class SemanticSimilarityEngine {
     if (!workerOutput.data || !workerOutput.dims)
       throw new Error('Invalid worker output for batch embedding extraction.');
 
-    // 优化：直接使用 Float32Array，避免不必要的转换
+    // Optimization: use Float32Array directly to avoid unnecessary conversions
     const lastHiddenStateData =
       workerOutput.data instanceof Float32Array
         ? workerOutput.data
@@ -1374,7 +1374,7 @@ export class SemanticSimilarityEngine {
     const embeddings: Float32Array[] = [];
 
     for (let b = 0; b < batchSize; b++) {
-      // 使用内存池获取 embedding 数组
+      // Get an embedding array from the memory pool
       const embedding = this.memoryPool.getEmbedding(hiddenSize);
       let validTokens = 0;
       const currentAttentionMask = attentionMasksBatch[b];
@@ -1412,7 +1412,7 @@ export class SemanticSimilarityEngine {
     }
     this.cacheStats.embedding.misses++;
 
-    // 如果使用offscreen模式，委托给offscreen document
+    // If using offscreen mode, delegate to the offscreen document
     if (this.useOffscreen) {
       const response = await chrome.runtime.sendMessage({
         target: 'offscreen',
@@ -1425,7 +1425,7 @@ export class SemanticSimilarityEngine {
         throw new Error(response?.error || 'Failed to get embedding from offscreen document');
       }
 
-      // 验证响应数据
+      // Validate the response data
       if (!response.embedding || !Array.isArray(response.embedding)) {
         throw new Error('Invalid embedding data received from offscreen document');
       }
@@ -1439,7 +1439,7 @@ export class SemanticSimilarityEngine {
 
       const embedding = new Float32Array(response.embedding);
 
-      // 验证转换后的数据
+      // Validate the converted data
       console.log('SemanticSimilarityEngine: Converted embedding:', {
         length: embedding.length,
         type: typeof embedding,
@@ -1451,7 +1451,7 @@ export class SemanticSimilarityEngine {
       this.embeddingCache.set(cacheKey, embedding);
       this.cacheStats.embedding.size = this.embeddingCache.size;
 
-      // 更新性能统计
+      // Update performance stats
       this.performanceStats.totalEmbeddingComputations++;
 
       return embedding;
@@ -1506,9 +1506,9 @@ export class SemanticSimilarityEngine {
     if (!this.isInitialized) await this.initialize();
     if (!texts || texts.length === 0) return [];
 
-    // 如果使用offscreen模式，委托给offscreen document
+    // If using offscreen mode, delegate to the offscreen document
     if (this.useOffscreen) {
-      // 先检查缓存
+      // Check the cache first
       const results: (Float32Array | undefined)[] = new Array(texts.length).fill(undefined);
       const uncachedTexts: string[] = [];
       const uncachedIndices: number[] = [];
@@ -1526,12 +1526,12 @@ export class SemanticSimilarityEngine {
         }
       });
 
-      // 如果所有都在缓存中，直接返回
+      // If everything is cached, return directly
       if (uncachedTexts.length === 0) {
         return results as Float32Array[];
       }
 
-      // 只请求未缓存的文本
+      // Only request the uncached texts
       const response = await chrome.runtime.sendMessage({
         target: 'offscreen',
         type: OFFSCREEN_MESSAGE_TYPES.SIMILARITY_ENGINE_BATCH_COMPUTE,
@@ -1545,7 +1545,7 @@ export class SemanticSimilarityEngine {
         );
       }
 
-      // 将结果放回对应位置并缓存
+      // Put the results back in their positions and cache them
       response.embeddings.forEach((embeddingArray: number[], batchIndex: number) => {
         const embedding = new Float32Array(embeddingArray);
         const originalIndex = uncachedIndices[batchIndex];
@@ -1553,7 +1553,7 @@ export class SemanticSimilarityEngine {
 
         results[originalIndex] = embedding;
 
-        // 缓存结果
+        // Cache the result
         const cacheKey = this.getCacheKey(originalText, options);
         this.embeddingCache.set(cacheKey, embedding);
       });
@@ -1608,7 +1608,7 @@ export class SemanticSimilarityEngine {
         },
       };
 
-      // 使用真正的批处理推理
+      // Use real batch inference
       const workerOutput = await this._sendMessageToWorker('batchInfer', workerPayload);
       const attentionMasksForBatch: number[][] = [];
       const batchSize = tokenizedBatch.input_ids.dims[0];
@@ -1676,7 +1676,7 @@ export class SemanticSimilarityEngine {
     if (!this.isInitialized) await this.initialize();
     if (!pairs || pairs.length === 0) return [];
 
-    // 如果使用offscreen模式，委托给offscreen document
+    // If using offscreen mode, delegate to the offscreen document
     if (this.useOffscreen) {
       const response = await chrome.runtime.sendMessage({
         target: 'offscreen',
@@ -1692,7 +1692,7 @@ export class SemanticSimilarityEngine {
       return response.similarities;
     }
 
-    // 直接模式的原有逻辑
+    // Original logic for direct mode
     const simStartTime = performance.now();
     const uniqueTextsSet = new Set<string>();
     pairs.forEach((pair) => {
@@ -1744,7 +1744,7 @@ export class SemanticSimilarityEngine {
       embeddingMap.set(text, embeddingsArray[index]);
     });
 
-    // 使用 SIMD 优化的矩阵计算（如果可用）
+    // Use SIMD-optimized matrix computation when available
     if (this.useSIMD && this.simdMath) {
       try {
         const embeddings1 = texts1.map((text) => embeddingMap.get(text)!).filter(Boolean);
@@ -1766,7 +1766,7 @@ export class SemanticSimilarityEngine {
       }
     }
 
-    // JavaScript 回退版本
+    // JavaScript fallback version
     const matrix: number[][] = [];
     for (const textA of texts1) {
       const row: number[] = [];
@@ -1801,11 +1801,11 @@ export class SemanticSimilarityEngine {
       return 0;
     }
 
-    // 使用 SIMD 优化版本（如果可用）
+    // Use the SIMD-optimized version when available
     if (this.useSIMD && this.simdMath) {
       try {
-        // SIMD 版本是异步的，但为了保持接口兼容性，我们需要同步版本
-        // 这里我们回退到 JavaScript 版本，或者可以考虑重构为异步
+        // The SIMD version is async, but we need a sync version to keep the interface compatible
+        // Here we fall back to the JavaScript version; alternatively it could be refactored to be async
         return this.cosineSimilarityJS(vecA, vecB);
       } catch (error) {
         console.warn('SIMD cosine similarity failed, falling back to JavaScript:', error);
@@ -1829,7 +1829,7 @@ export class SemanticSimilarityEngine {
     return magnitude === 0 ? 0 : dotProduct / magnitude;
   }
 
-  // 新增：异步 SIMD 优化的余弦相似度
+  // New: async SIMD-optimized cosine similarity
   public async cosineSimilaritySIMD(vecA: Float32Array, vecB: Float32Array): Promise<number> {
     if (!vecA || !vecB || vecA.length !== vecB.length) {
       console.warn('Cosine similarity: Invalid vectors provided.', vecA, vecB);
@@ -1859,17 +1859,17 @@ export class SemanticSimilarityEngine {
 
   public validateInput(text1: string, text2: string | 'valid_dummy'): void {
     if (typeof text1 !== 'string' || (text2 !== 'valid_dummy' && typeof text2 !== 'string')) {
-      throw new Error('输入必须是字符串');
+      throw new Error('Input must be a string');
     }
     if (text1.trim().length === 0 || (text2 !== 'valid_dummy' && text2.trim().length === 0)) {
-      throw new Error('输入文本不能为空');
+      throw new Error('Input text cannot be empty');
     }
     const roughCharLimit = this.config.maxLength * 5;
     if (
       text1.length > roughCharLimit ||
       (text2 !== 'valid_dummy' && text2.length > roughCharLimit)
     ) {
-      console.warn('输入文本可能过长，将由分词器截断。');
+      console.warn('Input text may be too long and will be truncated by the tokenizer.');
     }
   }
 
@@ -1922,7 +1922,7 @@ export class SemanticSimilarityEngine {
     }
   }
 
-  // 新增：获取 Worker 统计信息
+  // New: get worker stats
   public async getWorkerStats(): Promise<WorkerStats | null> {
     if (!this.worker || !this.isInitialized) return null;
 
@@ -1935,7 +1935,7 @@ export class SemanticSimilarityEngine {
     }
   }
 
-  // 新增：清理 Worker 缓冲区
+  // New: clear worker buffers
   public async clearWorkerBuffers(): Promise<void> {
     if (!this.worker || !this.isInitialized) return;
 
@@ -1947,7 +1947,7 @@ export class SemanticSimilarityEngine {
     }
   }
 
-  // 新增：清理所有缓存
+  // New: clear all caches
   public clearAllCaches(): void {
     this.embeddingCache.clear();
     this.tokenizationCache.clear();
@@ -1958,7 +1958,7 @@ export class SemanticSimilarityEngine {
     console.log('SemanticSimilarityEngine: All caches cleared.');
   }
 
-  // 新增：获取内存使用情况
+  // New: get memory usage
   public getMemoryUsage(): {
     embeddingCacheUsage: number;
     tokenizationCacheUsage: number;
@@ -1977,7 +1977,7 @@ export class SemanticSimilarityEngine {
   public async dispose(): Promise<void> {
     console.log('SemanticSimilarityEngine: Disposing...');
 
-    // 清理 Worker 缓冲区
+    // Clean up worker buffers
     await this.clearWorkerBuffers();
 
     if (this.worker) {
@@ -1985,7 +1985,7 @@ export class SemanticSimilarityEngine {
       this.worker = null;
     }
 
-    // 清理 SIMD 引擎
+    // Clean up the SIMD engine
     if (this.simdMath) {
       this.simdMath.dispose();
       this.simdMath = null;

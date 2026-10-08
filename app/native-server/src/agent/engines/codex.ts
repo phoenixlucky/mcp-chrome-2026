@@ -34,10 +34,11 @@ export interface CodexEngineDependencies {
  * it focuses on streaming Codex JSON events into RealtimeEvent envelopes that the
  * sidepanel UI can consume.
  *
- * 中文说明：该引擎基于 other/cweb 中 Codex 适配器的事件协议，完整处理
- * item.started/item.delta/item.completed/item.failed/error 等事件，并
- * 通过 AgentStreamManager 将编码后的 RealtimeEvent 推送给 sidepanel，
- * 确保数据链路「Sidepanel → Native Server → Codex CLI → Sidepanel」闭环。
+ * This engine follows the event protocol of the Codex adapter in other/cweb,
+ * fully handling item.started/item.delta/item.completed/item.failed/error and
+ * other events, and pushes encoded RealtimeEvents to the sidepanel through
+ * AgentStreamManager, keeping the "Sidepanel → Native Server → Codex CLI →
+ * Sidepanel" data path a closed loop.
  */
 export class CodexEngine implements AgentEngine {
   public readonly name = 'codex' as const;
@@ -615,24 +616,25 @@ export class CodexEngine implements AgentEngine {
             const eventType = this.pickFirstString(event.type);
             switch (eventType) {
               case 'item.started':
-                handleItemStarted((event as { item?: unknown }).item ?? null);
+                handleItemStarted(event.item ?? null);
                 break;
               case 'item.delta':
-                handleItemDelta((event as { delta?: unknown }).delta ?? null);
+                handleItemDelta(event.delta ?? null);
                 break;
               case 'item.completed':
-                handleItemCompleted((event as { item?: unknown }).item ?? null);
+                handleItemCompleted(event.item ?? null);
                 break;
               case 'item.failed': {
-                const item = (event as { item?: unknown }).item ?? null;
+                const item = event.item ?? null;
                 handleItemCompleted(item);
                 // Flush assistant message before throwing (aligned with other/cweb)
                 emitAssistant(true);
                 resetAssistantBuffers();
+                // Failed items are JSON objects; primitives simply have no error field.
+                const failedItem =
+                  item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
                 const msg =
-                  (item &&
-                    typeof item === 'object' &&
-                    this.pickFirstString((item as Record<string, unknown>).error)) ||
+                  (failedItem && this.pickFirstString(failedItem.error)) ||
                   'Codex execution failed';
                 hasCompleted = true;
                 throw new Error(msg);
@@ -642,8 +644,8 @@ export class CodexEngine implements AgentEngine {
                 emitAssistant(true);
                 resetAssistantBuffers();
                 const msg =
-                  this.pickFirstString((event as { error?: unknown }).error) ||
-                  this.pickFirstString((event as { message?: unknown }).message) ||
+                  this.pickFirstString(event.error) ||
+                  this.pickFirstString(event.message) ||
                   stderrBuffer.slice(-5).join('\n') ||
                   'Codex execution error';
                 hasCompleted = true;
@@ -823,12 +825,12 @@ Work directly in the current directory. Do not create subdirectories unless spec
     const files: string[] = [];
     if (Array.isArray(changes)) {
       for (const entry of changes) {
-        const file =
-          entry && typeof entry === 'object'
-            ? ((entry as Record<string, unknown>).path as string) ||
-              ((entry as Record<string, unknown>).file as string)
-            : undefined;
-        if (file && typeof file === 'string') {
+        // Entries are JSON objects keyed by field name; primitives degrade to no file.
+        const record = entry as Record<string, unknown>;
+        const pathValue = record.path;
+        const fileValue = record.file;
+        const file = typeof pathValue === 'string' ? pathValue : fileValue;
+        if (typeof file === 'string') {
           files.push(file);
         }
       }
@@ -861,20 +863,18 @@ Work directly in the current directory. Do not create subdirectories unless spec
       return record.items;
     }
     const nestedItem = record.item;
-    if (
-      nestedItem &&
-      typeof nestedItem === 'object' &&
-      Array.isArray((nestedItem as Record<string, unknown>).items)
-    ) {
-      return (nestedItem as Record<string, unknown>).items;
+    if (nestedItem && typeof nestedItem === 'object') {
+      const nested = nestedItem as Record<string, unknown>;
+      if (Array.isArray(nested.items)) {
+        return nested.items;
+      }
     }
     const delta = record.delta;
-    if (
-      delta &&
-      typeof delta === 'object' &&
-      Array.isArray((delta as Record<string, unknown>).items)
-    ) {
-      return (delta as Record<string, unknown>).items;
+    if (delta && typeof delta === 'object') {
+      const nested = delta as Record<string, unknown>;
+      if (Array.isArray(nested.items)) {
+        return nested.items;
+      }
     }
     return [];
   }

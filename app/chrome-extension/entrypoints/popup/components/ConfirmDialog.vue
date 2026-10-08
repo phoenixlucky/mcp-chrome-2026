@@ -225,7 +225,7 @@ defineEmits<Emits>();
   box-shadow: none;
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (max-width: 420px) {
   .dialog-content {
     padding: 20px;
@@ -273,7 +273,7 @@ defineEmits<Emits>();
   }
 }
 
-/* 焦点样式 */
+/* Focus styles */
 .dialog-button:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);

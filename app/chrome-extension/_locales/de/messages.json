@@ -85,6 +85,14 @@
     "message": "Verbunden, Service nicht gestartet",
     "description": "Verbunden aber Service nicht gestartet Status"
   },
+  "startServiceButton": {
+    "message": "Dienst starten",
+    "description": "Dienst starten Schaltflächentext"
+  },
+  "serviceNotStartedTip": {
+    "message": "Native Host verbunden. Warten auf den Start des HTTP-Dienstes. Status aktualisieren oder den Status des Native Hosts prüfen.",
+    "description": "Hinweistext bei nicht gestartetem Dienst"
+  },
   "mcpServerConfigLabel": {
     "message": "MCP Server-Konfiguration",
     "description": "MCP Server-Konfigurationsabschnittslabel"
@@ -442,5 +450,177 @@
   "pagesUnit": {
     "message": "Seiten",
     "description": "Seiten Zähleinheit"
+  },
+  "userscriptsManagerTitle": {
+    "message": "Userscript-Manager",
+    "description": "Titel der Optionsseite"
+  },
+  "emergencySwitchLabel": {
+    "message": "Notfallschalter",
+    "description": "Globaler Deaktivierungsschalter"
+  },
+  "createRunSectionTitle": {
+    "message": "Erstellen / Ausführen",
+    "description": "Titel des Abschnitts Erstellen und Ausführen"
+  },
+  "nameLabel": {
+    "message": "Name",
+    "description": "Name-Eingabelabel"
+  },
+  "runAtLabel": {
+    "message": "Ausführungszeitpunkt",
+    "description": "runAt-Auswahllabel"
+  },
+  "runAtAuto": {
+    "message": "Automatisch",
+    "description": "runAt auto"
+  },
+  "runAtDocumentStart": {
+    "message": "document_start",
+    "description": "runAt document_start"
+  },
+  "runAtDocumentEnd": {
+    "message": "document_end",
+    "description": "runAt document_end"
+  },
+  "runAtDocumentIdle": {
+    "message": "document_idle",
+    "description": "runAt document_idle"
+  },
+  "worldLabel": {
+    "message": "Welt",
+    "description": "world-Auswahllabel"
+  },
+  "worldAuto": {
+    "message": "Automatisch",
+    "description": "world auto"
+  },
+  "worldIsolated": {
+    "message": "Isoliert (ISOLATED)",
+    "description": "ISOLATED world"
+  },
+  "worldMain": {
+    "message": "Seite (MAIN)",
+    "description": "MAIN world"
+  },
+  "modeLabel": {
+    "message": "Modus",
+    "description": "Modus-Auswahllabel"
+  },
+  "modeAuto": {
+    "message": "Automatisch",
+    "description": "mode auto"
+  },
+  "modePersistent": {
+    "message": "Persistent",
+    "description": "mode persistent"
+  },
+  "modeCss": {
+    "message": "Nur CSS",
+    "description": "mode css"
+  },
+  "modeOnce": {
+    "message": "Einmal ausführen (CDP)",
+    "description": "mode once"
+  },
+  "allFramesLabel": {
+    "message": "Alle Frames",
+    "description": "allFrames-Kontrollkästchen"
+  },
+  "persistLabel": {
+    "message": "Persistieren",
+    "description": "persist-Kontrollkästchen"
+  },
+  "dnrFallbackLabel": {
+    "message": "DNR-Fallback",
+    "description": "DNR-Fallback-Kontrollkästchen"
+  },
+  "matchesInputLabel": {
+    "message": "Übereinstimmungen (kommagetrennt)",
+    "description": "matches-Eingabe"
+  },
+  "excludesInputLabel": {
+    "message": "Ausschlüsse (kommagetrennt)",
+    "description": "excludes-Eingabe"
+  },
+  "tagsInputLabel": {
+    "message": "Tags (kommagetrennt)",
+    "description": "tags-Eingabe"
+  },
+  "scriptLabel": {
+    "message": "Skript",
+    "description": "Skript-Textbereichslabel"
+  },
+  "applyButton": {
+    "message": "Anwenden",
+    "description": "Anwenden-Schaltflächentext"
+  },
+  "runOnceButton": {
+    "message": "Einmal ausführen (CDP)",
+    "description": "Einmal-ausführen-Schaltflächentext"
+  },
+  "listSectionTitle": {
+    "message": "Liste",
+    "description": "Titel des Listenabschnitts"
+  },
+  "queryLabel": {
+    "message": "Suche",
+    "description": "Sucheingabelabel"
+  },
+  "statusAll": {
+    "message": "alle",
+    "description": "Status alle"
+  },
+  "statusEnabled": {
+    "message": "aktiviert",
+    "description": "Status aktiviert"
+  },
+  "statusDisabled": {
+    "message": "deaktiviert",
+    "description": "Status deaktiviert"
+  },
+  "domainLabel": {
+    "message": "Domain",
+    "description": "Domainfilter-Label"
+  },
+  "exportAllButton": {
+    "message": "Alle exportieren",
+    "description": "Exportieren-Schaltflächentext"
+  },
+  "tableHeaderName": {
+    "message": "Name",
+    "description": "Tabellenkopf Name"
+  },
+  "tableHeaderWorld": {
+    "message": "Welt",
+    "description": "Tabellenkopf World"
+  },
+  "tableHeaderRunAt": {
+    "message": "Ausführungszeitpunkt",
+    "description": "Tabellenkopf RunAt"
+  },
+  "tableHeaderUpdated": {
+    "message": "Aktualisiert",
+    "description": "Tabellenkopf Aktualisiert"
+  },
+  "deleteButton": {
+    "message": "Löschen",
+    "description": "Löschen-Schaltflächentext"
+  },
+  "placeholderOptional": {
+    "message": "optional",
+    "description": "Allgemeiner optionaler Platzhalter"
+  },
+  "placeholderMatchesExample": {
+    "message": "z.B. https://*.example.com/*",
+    "description": "Platzhalter für Übereinstimmungsbeispiel"
+  },
+  "placeholderScriptHint": {
+    "message": "JS/CSS/TM hier einfügen",
+    "description": "Platzhalter für Skript-Textbereich"
+  },
+  "placeholderDomainHint": {
+    "message": "example.com",
+    "description": "Platzhalter für Domainfilter"
   }
 }

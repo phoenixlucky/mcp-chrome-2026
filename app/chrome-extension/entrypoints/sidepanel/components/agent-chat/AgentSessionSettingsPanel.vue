@@ -291,7 +291,7 @@
             <!-- Tool List (expandable) -->
             <details v-if="managementInfo.tools?.length" class="text-[10px]">
               <summary class="cursor-pointer" :style="{ color: 'var(--ac-link, #3b82f6)' }">
-                {{ copy.viewTools }}（{{ managementInfo.tools.length }}）
+                {{ copy.viewTools }} ({{ managementInfo.tools.length }})
               </summary>
               <div
                 class="mt-1 p-2 max-h-32 overflow-y-auto ac-scroll"
@@ -313,7 +313,7 @@
             <!-- MCP Server List (expandable) -->
             <details v-if="managementInfo.mcpServers?.length" class="text-[10px]">
               <summary class="cursor-pointer" :style="{ color: 'var(--ac-link, #3b82f6)' }">
-                {{ copy.viewMcpServers }}（{{ managementInfo.mcpServers.length }}）
+                {{ copy.viewMcpServers }} ({{ managementInfo.mcpServers.length }})
               </summary>
               <div
                 class="mt-1 p-2 max-h-32 overflow-y-auto ac-scroll"

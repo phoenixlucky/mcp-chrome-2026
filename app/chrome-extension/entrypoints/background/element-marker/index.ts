@@ -178,7 +178,7 @@ async function ensureContextMenu() {
     } catch {}
     await chrome.contextMenus.create({
       id: CONTEXT_MENU_ID,
-      title: '标注元素',
+      title: 'Mark element',
       contexts: ['all'],
     });
   } catch (e) {
@@ -481,7 +481,7 @@ export function initElementMarkerListeners() {
             const listElements =
               req.listMode && Array.isArray(ensured.elements) ? ensured.elements : [];
             if (req.listMode && listElements.length === 0) {
-              return sendResponse({ success: false, error: '未找到可验证的批量元素' });
+              return sendResponse({ success: false, error: 'No list elements found to validate' });
             }
 
             const base = {
@@ -522,7 +522,8 @@ export function initElementMarkerListeners() {
             if (!coords && !req.listMode) {
               return sendResponse({
                 success: false,
-                error: '定位成功但无法获取元素坐标，请重新选择后验证',
+                error:
+                  'Located the element but could not read its coordinates; re-select it and validate again',
               });
             }
 

@@ -1,6 +1,6 @@
 /**
- * ARIA Strategy - 基于无障碍属性的选择器策略
- * 使用 aria-label, role 等属性生成选择器
+ * ARIA Strategy - selector strategy based on accessibility attributes
+ * Generates selectors from attributes such as aria-label and role
  */
 
 import type { SelectorCandidate, SelectorStrategy } from '../types';

@@ -21,10 +21,10 @@ export default defineConfig({
     name: 'chrome-mcp-server',
   },
   webExt: {
-    // 方案1: 禁用自动启动（推荐）
+    // Option 1: disable auto-start (recommended)
     disabled: true,
 
-    // 方案2: 如果要启用自动启动并使用现有配置，取消注释下面的配置
+    // Option 2: to enable auto-start with an existing profile, uncomment the config below
     // chromiumArgs: [
     //   '--user-data-dir=' + homedir() + (process.platform === 'darwin'
     //     ? '/Library/Application Support/Google/Chrome'
@@ -37,7 +37,7 @@ export default defineConfig({
   manifest: {
     // Use environment variable for the key, fallback to undefined if not set
     key: CHROME_EXTENSION_KEY,
-    default_locale: 'zh_CN',
+    default_locale: 'en',
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     permissions: [
@@ -69,7 +69,7 @@ export default defineConfig({
     },
     action: {
       default_popup: 'popup.html',
-      default_title: '猫娘 Chrome MCP',
+      default_title: 'Catgirl Chrome MCP',
     },
     // Chrome Side Panel entry for workflow management
     // Ref: https://developer.chrome.com/docs/extensions/reference/api/sidePanel
@@ -116,15 +116,15 @@ export default defineConfig({
     web_accessible_resources: [
       {
         resources: [
-          '/models/*', // 允许访问 public/models/ 下的所有文件
-          '/workers/*', // 允许访问 workers 文件
-          '/inject-scripts/*', // 允许内容脚本注入的助手文件
+          '/models/*', // allow access to all files under public/models/
+          '/workers/*', // allow access to worker files
+          '/inject-scripts/*', // helper files injected by content scripts
         ],
         matches: ['<all_urls>'],
       },
     ],
-    // 注意：以下安全策略在开发环境会阻断 dev server 的资源加载，
-    // 只在生产环境启用，开发环境交由 WXT 默认策略处理。
+    // Note: the security policies below block dev server asset loading in development,
+    // so they are only enabled in production; development relies on WXT's default policy.
     ...(IS_DEV
       ? {}
       : {
@@ -190,13 +190,13 @@ export default defineConfig({
     build: {
       // Extension pages run in separate worlds; modulepreload entries cannot be reused across them.
       modulePreload: false,
-      // 我们的构建产物需要兼容到es6
+      // Our build output must stay compatible with es6
       target: 'es2015',
-      // 非生产环境下生成sourcemap
+      // Generate sourcemaps outside production
       sourcemap: env.mode !== 'production',
       // Keep development builds fast, but ship minified production bundles.
       reportCompressedSize: env.mode === 'production',
-      // chunk大小超过1500kb是触发警告
+      // Warn when a chunk exceeds 1500kb
       chunkSizeWarningLimit: 1500,
       minify: env.mode === 'production' ? 'esbuild' : false,
     },

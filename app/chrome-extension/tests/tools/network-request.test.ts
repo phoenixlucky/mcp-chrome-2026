@@ -13,7 +13,7 @@ describe('network request', () => {
     expect(result.isError).toBe(true);
     expect(result.content[0]).toMatchObject({
       type: 'text',
-      text: expect.stringContaining('Chrome 内置页'),
+      text: expect.stringContaining('Chrome built-in page'),
     });
   });
 

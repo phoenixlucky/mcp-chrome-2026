@@ -152,7 +152,7 @@ const primaryStyle = computed(() => ({
 async function request(method: 'GET' | 'PUT', body?: Record<string, unknown>): Promise<void> {
   const serverPort = props.getServerPort();
   if (serverPort == null || !Number.isInteger(serverPort) || serverPort <= 0)
-    throw new Error('本地智能助手服务未连接，请稍后重试。');
+    throw new Error('The Agent server is not connected; try again later.');
   const response = await fetch(`http://127.0.0.1:${serverPort}/agent/settings/deepseek`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
@@ -187,7 +187,7 @@ async function save(): Promise<void> {
   error.value = '';
   try {
     if (!(await props.ensureServer())) {
-      throw new Error('本地智能助手服务未连接，请先点击“重新连接”。');
+      throw new Error('The Agent server is not connected; use "Reconnect Server".');
     }
     await request('PUT', { apiKey: apiKey.value, baseUrl: baseUrl.value });
     apiKey.value = '';

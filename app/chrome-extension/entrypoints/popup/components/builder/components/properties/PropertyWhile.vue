@@ -1,7 +1,7 @@
 <template>
   <div class="form-section">
     <div class="form-group">
-      <label class="form-label">条件 (JSON)</label>
+      <label class="form-label">Condition (JSON)</label>
       <textarea
         class="form-textarea"
         v-model="whileJson"
@@ -10,16 +10,16 @@
       ></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">子流 ID</label>
+      <label class="form-label">Subflow ID</label>
       <input
         class="form-input"
         v-model="(node as any).config.subflowId"
-        placeholder="选择或新建子流"
+        placeholder="Select or create a subflow"
       />
-      <button class="btn-sm" style="margin-top: 8px" @click="onCreateSubflow">新建子流</button>
+      <button class="btn-sm" style="margin-top: 8px" @click="onCreateSubflow">New subflow</button>
     </div>
     <div class="form-group">
-      <label class="form-label">最大迭代次数（可选）</label>
+      <label class="form-label">Max iterations (optional)</label>
       <input
         class="form-input"
         type="number"
@@ -31,7 +31,6 @@
 </template>
 
 <script lang="ts" setup>
-
 import { computed } from 'vue';
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 
@@ -57,7 +56,7 @@ const whileJson = computed({
 });
 
 function onCreateSubflow() {
-  const id = prompt('请输入新子流ID');
+  const id = prompt('Enter a new subflow ID');
   if (!id) return;
   emit('create-subflow', id);
   const n = props.node as any;

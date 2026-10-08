@@ -1,28 +1,28 @@
-# `/mcp-new` 接口说明
+# `/mcp-new` Endpoint Reference
 
-`/mcp-new` 是 MCP `2026-07-28` 的 Streamable HTTP 尝鲜入口。它采用按请求处理的无会话模式：客户端不需要先执行 `initialize` / `notifications/initialized`，也不需要保存或回传 `Mcp-Session-Id`。
+`/mcp-new` is a preview entry point for MCP `2026-07-28` Streamable HTTP. It uses a stateless, per-request model: clients do not need to run `initialize` / `notifications/initialized` first, and do not need to store or send back an `Mcp-Session-Id`.
 
-## 地址与请求要求
+## Address and Request Requirements
 
-默认地址：
+Default address:
 
 ```text
 http://127.0.0.1:12306/mcp-new
 ```
 
-每一条 JSON-RPC 请求都必须单独发送为 HTTP `POST`，并同时满足以下要求：
+Every JSON-RPC request must be sent separately as an HTTP `POST` and must satisfy all of the following requirements:
 
 - `Content-Type: application/json`
-- `Accept` 同时声明 `application/json` 和 `text/event-stream`
-- 请求头 `MCP-Protocol-Version: 2026-07-28`
-- 请求头 `Mcp-Method` 与 JSON-RPC 的 `method` 完全一致
-- 请求头 `Mcp-Name` 与本次请求的名称字段一致；调用工具时，它必须与 `params.name` 一致。对于 `tools/list` 这类没有名称字段的请求，使用 `tools/list`
-- JSON-RPC 请求体的 `params` 中必须包含 `_meta`
-- `_meta.io.modelcontextprotocol/protocolVersion` 必须为 `2026-07-28`，并与 `MCP-Protocol-Version` 一致
+- `Accept` declares both `application/json` and `text/event-stream`
+- The `MCP-Protocol-Version: 2026-07-28` header
+- The `Mcp-Method` header matches the JSON-RPC `method` exactly
+- The `Mcp-Name` header matches this request's name field; when calling a tool, it must match `params.name`. For requests without a name field, such as `tools/list`, use `tools/list`
+- The JSON-RPC request body's `params` must contain `_meta`
+- `_meta.io.modelcontextprotocol/protocolVersion` must be `2026-07-28` and must match `MCP-Protocol-Version`
 
-HTTP 请求头名称不区分大小写，但请求头的值区分大小写。`Mcp-Name` 应使用可安全放入 HTTP header 的值；如果名称包含非 ASCII 字符，应按 MCP 规范使用 Base64 sentinel 编码。
+HTTP header names are case-insensitive, but header values are case-sensitive. `Mcp-Name` should use a value that is safe to place in an HTTP header; if the name contains non-ASCII characters, encode it with the Base64 sentinel as specified by MCP.
 
-`_meta` 不是 HTTP 请求头，而是 JSON-RPC 请求体中的元数据。建议同时携带客户端能力和客户端信息：
+`_meta` is not an HTTP header; it is metadata in the JSON-RPC request body. It is recommended to also include the client capabilities and client info:
 
 ```json
 {
@@ -37,9 +37,9 @@ HTTP 请求头名称不区分大小写，但请求头的值区分大小写。`Mc
 }
 ```
 
-## 请求示例
+## Request Examples
 
-### 获取工具列表
+### List tools
 
 ```http
 POST /mcp-new HTTP/1.1
@@ -67,9 +67,9 @@ Mcp-Name: tools/list
 }
 ```
 
-### 调用工具
+### Call a tool
 
-`Mcp-Name` 必须与 `params.name` 相同。例如调用 `chrome_get_windows_and_tabs`：
+`Mcp-Name` must be identical to `params.name`. For example, to call `chrome_get_windows_and_tabs`:
 
 ```http
 POST /mcp-new HTTP/1.1
@@ -99,27 +99,27 @@ Mcp-Name: chrome_get_windows_and_tabs
 }
 ```
 
-## 响应与错误
+## Responses and Errors
 
-- 普通请求返回 `application/json` 的 JSON-RPC 响应。
-- 需要发送进度通知时，响应可以是 `text/event-stream`，最后仍会返回该请求的 JSON-RPC 结果。
-- `/mcp-new` 不会返回 `Mcp-Session-Id`，请求之间也不共享 MCP 会话。
-- 缺少必需请求头、请求头与请求体不一致，或协议版本不一致时，应按 `400 Bad Request` 处理。
-- 如果服务启用了 API Key，仍需按服务端配置发送 `Authorization: Bearer <key>`；Origin 校验也继续生效。
+- Ordinary requests return a JSON-RPC response as `application/json`.
+- When progress notifications must be sent, the response can be `text/event-stream`, and the JSON-RPC result for the request is still returned at the end.
+- `/mcp-new` never returns an `Mcp-Session-Id`, and MCP sessions are not shared between requests.
+- A missing required header, a header that disagrees with the request body, or a protocol version mismatch is handled as `400 Bad Request`.
+- If the service has an API key enabled, still send `Authorization: Bearer <key>` as configured on the server; Origin validation also still applies.
 
-## 与 `/mcp` 的区别
+## Differences from `/mcp`
 
-| 项目             | `/mcp-new`                       | `/mcp`                     |
-| ---------------- | -------------------------------- | -------------------------- |
-| 协议版本         | MCP `2026-07-28`                 | 兼容现有客户端的会话版     |
-| 初始化握手       | 不需要                           | 需要                       |
-| `Mcp-Session-Id` | 不使用                           | 使用                       |
-| 请求模型         | 每条请求独立 POST                | 按会话复用连接             |
-| 适用场景         | 支持新协议和按请求元数据的客户端 | 暂不支持新协议的现有客户端 |
+| Item                 | `/mcp-new`                                                     | `/mcp`                                                |
+| -------------------- | -------------------------------------------------------------- | ----------------------------------------------------- |
+| Protocol version     | MCP `2026-07-28`                                               | Session-based, compatible with existing clients       |
+| Initialize handshake | Not needed                                                     | Needed                                                |
+| `Mcp-Session-Id`     | Not used                                                       | Used                                                  |
+| Request model        | Each request is an independent POST                            | Connection reused per session                         |
+| Use case             | Clients that support the new protocol and per-request metadata | Existing clients that do not support the new protocol |
 
-## 客户端配置
+## Client Configuration
 
-仅在客户端支持 MCP `2026-07-28`、并能为每条请求生成上述请求头和 `_meta` 时使用：
+Use this only when the client supports MCP `2026-07-28` and can generate the headers and `_meta` above for every request:
 
 ```json
 {
@@ -132,4 +132,4 @@ Mcp-Name: chrome_get_windows_and_tabs
 }
 ```
 
-不支持这些请求要求的客户端请继续使用 `/mcp`。协议背景可参考 [MCP Streamable HTTP 规范](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/basic/transports/streamable-http.mdx)。
+Clients that do not support these request requirements should keep using `/mcp`. For protocol background, see the [MCP Streamable HTTP specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/basic/transports/streamable-http.mdx).

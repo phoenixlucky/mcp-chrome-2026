@@ -11,11 +11,11 @@ function readToolResult(
     (item) => item?.type === 'text' && typeof item.text === 'string',
   )?.text;
   if ((result as { isError?: boolean })?.isError || !text)
-    return { ok: false, error: text || '页面工具执行失败' };
+    return { ok: false, error: text || 'Page tool execution failed' };
   try {
     return { ok: true, value: JSON.parse(text) as JsonValue };
   } catch {
-    return { ok: false, error: '页面工具返回了无效数据' };
+    return { ok: false, error: 'Page tool returned invalid data' };
   }
 }
 
@@ -28,10 +28,10 @@ export const getTabUrlHandler: ActionHandler<'getTabUrl'> = {
   validate: (action) => {
     const { tabId, saveAs } = action.params;
     if (tabId !== undefined && (!Number.isInteger(tabId) || tabId < 0))
-      return invalid('标签页 ID 必须为非负整数');
-    return validSaveAs(saveAs) ? ok() : invalid('需填写保存变量名');
+      return invalid('tab ID must be a non-negative integer');
+    return validSaveAs(saveAs) ? ok() : invalid('A save variable name is required');
   },
-  describe: (action) => `获取标签信息 → ${action.params.saveAs || 'tabInfo'}`,
+  describe: (action) => `Get tab info → ${action.params.saveAs || 'tabInfo'}`,
   run: async (ctx, action) => {
     try {
       const tab = await chrome.tabs.get(action.params.tabId || ctx.tabId);
@@ -49,10 +49,10 @@ export const readPageHandler: ActionHandler<'readPage'> = {
   validate: (action) => {
     const { depth, saveAs } = action.params;
     if (depth !== undefined && (!Number.isInteger(depth) || depth < 0))
-      return invalid('最大深度必须为非负整数');
-    return validSaveAs(saveAs) ? ok() : invalid('需填写保存变量名');
+      return invalid('Max depth must be a non-negative integer');
+    return validSaveAs(saveAs) ? ok() : invalid('A save variable name is required');
   },
-  describe: (action) => `获取页面元素 → ${action.params.saveAs || 'page'}`,
+  describe: (action) => `Get page elements → ${action.params.saveAs || 'page'}`,
   run: async (ctx, action) => {
     const result = readToolResult(
       await handleCallTool({
@@ -72,8 +72,9 @@ export const readPageHandler: ActionHandler<'readPage'> = {
 
 export const getWebContentHandler: ActionHandler<'getWebContent'> = {
   type: 'getWebContent',
-  validate: (action) => (validSaveAs(action.params.saveAs) ? ok() : invalid('需填写保存变量名')),
-  describe: (action) => `获取网页内容 → ${action.params.saveAs || 'content'}`,
+  validate: (action) =>
+    validSaveAs(action.params.saveAs) ? ok() : invalid('A save variable name is required'),
+  describe: (action) => `Get web content → ${action.params.saveAs || 'content'}`,
   run: async (ctx, action) => {
     let selector: string | undefined;
     if (action.params.selector !== undefined) {

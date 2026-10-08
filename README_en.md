@@ -19,7 +19,7 @@
 
 <p align="center">
   <b>
-    <a href="README.md">🇨🇳 中文</a> ·
+    <a href="README_zh.md">🇨🇳 Chinese</a> ·
     <a href="README_en.md">🇬🇧 English</a>
   </b>
 </p>
@@ -290,7 +290,7 @@ It checks the Native Host extension connection and browser probe, creates a real
 | 📡 **Scraping**           |  16   | Scoped/Shadow DOM/iframe, pagination, isolated task state, diagnostics, proxy rotate              |
 | ⚡ **Performance**        |   3   | Trace start / stop / insight analysis                                                             |
 
-📖 Full API reference: [中文](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
+📖 Full API reference: [Chinese](docs/TOOLS_zh.md) · [English](docs/TOOLS.md)
 
 ---
 

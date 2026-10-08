@@ -663,7 +663,7 @@ async function ensureContextMenu(): Promise<void> {
     } catch {}
     await chrome.contextMenus.create({
       id: CONTEXT_MENU_ID,
-      title: '切换网页编辑模式',
+      title: 'Toggle Web Editing Mode',
       contexts: ['all'],
     });
   } catch (error) {
@@ -1462,7 +1462,7 @@ export function initWebEditorListeners(): void {
             return sendResponse({
               success: false,
               error:
-                'No Agent project selected. Open Side Panel → 智能助手 and select/create a project first.',
+                'No Agent project selected. Open Side Panel → Smart Assistant and select/create a project first.',
             });
           }
 

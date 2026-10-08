@@ -1,45 +1,45 @@
-# Property Panel UI 重构计划
+# Property Panel UI Refactor Plan
 
-## 背景
+## Background
 
-当前属性面板的 UI 实现与设计稿 `attr-ui.html` 存在较大差异。本文档详细规划了重构任务，按照优先级从高到低排列，目标是让属性面板的视觉效果和交互体验与设计稿一致。
+The current property panel UI differs significantly from the design mockup `attr-ui.html`. This document plans the refactor in detail, ordered from highest to lowest priority, with the goal of making the property panel's visuals and interactions match the design mockup.
 
-### 参考文件
+### Reference files
 
-- **设计稿**：`/attr-ui.html`
-- **当前样式**：`ui/shadow-host.ts`
-- **面板结构**：`ui/property-panel/property-panel.ts`
-- **控件组件**：`ui/property-panel/controls/*.ts`
+- **Design mockup**: `/attr-ui.html`
+- **Current styles**: `ui/shadow-host.ts`
+- **Panel structure**: `ui/property-panel/property-panel.ts`
+- **Control components**: `ui/property-panel/controls/*.ts`
 
 ---
 
-## 前置任务（已完成）
+## Prerequisites (done)
 
-### 0.1 最小化 Bug 修复 ✅
+### 0.1 Minimize bug fix ✅
 
-**问题**：toolbar 和属性面板最小化时，只是背景消失了，里面的内容实际上还在
+**Problem**: when the toolbar and property panel were minimized, only the background disappeared; the content was actually still there
 
-**根因**：CSS 中 `display: flex/inline-flex` 覆盖了 `[hidden]` 属性的默认 `display: none`
+**Root cause**: `display: flex/inline-flex` in CSS overrode the default `display: none` of the `[hidden]` attribute
 
-**解决方案**：
+**Solution**:
 
-- [x] 在 `shadow-host.ts` 末尾添加全局 `[hidden] { display: none !important; }` 规则
+- [x] Add a global `[hidden] { display: none !important; }` rule at the end of `shadow-host.ts`
 
-### 0.2 输入框优化 ✅
+### 0.2 Input optimization ✅
 
-**问题**：
+**Problem**:
 
-1. 输入框显示 placeholder 而非真实值
-2. Number 类型输入框不支持键盘上下键调整
+1. Inputs showed the placeholder instead of the real value
+2. Number inputs did not support keyboard up/down stepping
 
-**解决方案**：
+**Solution**:
 
-- [x] 创建 `ui/property-panel/controls/number-stepping.ts` 工具模块
-  - 支持 ArrowUp/ArrowDown 键盘步进
-  - 支持 Shift (10x)、Alt (0.1x) 修饰键
-  - 支持多种 CSS 单位 (px, %, rem, em, vh, vw, vmin, vmax)
-- [x] 修改所有 control 显示真实值（inline 优先，fallback 到 computed）
-- [x] 为所有数值输入框添加 keyboard stepping 支持：
+- [x] Create the `ui/property-panel/controls/number-stepping.ts` utility module
+  - Support ArrowUp/ArrowDown keyboard stepping
+  - Support Shift (10x) and Alt (0.1x) modifiers
+  - Support multiple CSS units (px, %, rem, em, vh, vw, vmin, vmax)
+- [x] Change all controls to show the real value (inline first, fallback to computed)
+- [x] Add keyboard stepping to all numeric inputs:
   - `size-control.ts` - Width/Height
   - `spacing-control.ts` - Margin/Padding
   - `position-control.ts` - Top/Right/Bottom/Left/Z-Index
@@ -49,95 +49,95 @@
 
 ---
 
-## 阶段一：基础视觉系统对齐 ✅ 已完成
+## Phase 1: Base visual system alignment ✅ done
 
-### 1.1 颜色方案重构 ✅
+### 1.1 Color scheme refactor ✅
 
-**目标**：将颜色系统从当前的灰色调整为设计稿的白底+灰输入框风格
+**Goal**: shift the color system from the current gray to the design's white background + gray input style
 
-| 属性         | 旧值              | 新值                              | 状态 |
-| ------------ | ----------------- | --------------------------------- | ---- |
-| 面板背景     | `#f8f8f8`         | `#ffffff`                         | ✅   |
-| 输入框背景   | `#f0f0f0`         | `#f3f3f3`                         | ✅   |
-| 输入框 hover | `#e8e8e8` (bg)    | `border #e0e0e0` (inset)          | ✅   |
-| 输入框 focus | `box-shadow` 外圈 | `inset 2px border #3b82f6` + 白底 | ✅   |
-| 边框色       | `#e8e8e8`         | `#e5e5e5`                         | ✅   |
+| Property     | Old value         | New value                             | Status |
+| ------------ | ----------------- | ------------------------------------- | ------ |
+| Panel bg     | `#f8f8f8`         | `#ffffff`                             | ✅     |
+| Input bg     | `#f0f0f0`         | `#f3f3f3`                             | ✅     |
+| Input hover  | `#e8e8e8` (bg)    | `border #e0e0e0` (inset)              | ✅     |
+| Input focus  | `box-shadow` ring | `inset 2px border #3b82f6` + white bg | ✅     |
+| Border color | `#e8e8e8`         | `#e5e5e5`                             | ✅     |
 
-**完成的任务**：
+**Completed tasks**:
 
-- [x] 更新 CSS 变量定义 (`shadow-host.ts:56-97`)
-- [x] 修改输入框 hover/focus 样式为 inset border 模式
-- [x] 面板背景改为纯白
+- [x] Update the CSS variable definitions (`shadow-host.ts:56-97`)
+- [x] Change the input hover/focus styles to the inset border pattern
+- [x] Make the panel background pure white
 
-### 1.2 字体与字号调整 ✅
+### 1.2 Font and font size adjustments ✅
 
-| 属性         | 旧值     | 新值                      | 状态 |
-| ------------ | -------- | ------------------------- | ---- |
-| 面板基础字号 | `13px`   | `11px`                    | ✅   |
-| 标签字号     | `11px`   | `10px`                    | ✅   |
-| 输入框字号   | `12px`   | `11px`                    | ✅   |
-| 字体家族     | 系统字体 | Inter + 系统字体 fallback | ✅   |
+| Property        | Old value | New value                    | Status |
+| --------------- | --------- | ---------------------------- | ------ |
+| Panel base size | `13px`    | `11px`                       | ✅     |
+| Label size      | `11px`    | `10px`                       | ✅     |
+| Input size      | `12px`    | `11px`                       | ✅     |
+| Font family     | System    | Inter + system font fallback | ✅     |
 
-**完成的任务**：
+**Completed tasks**:
 
-- [x] 添加 Inter 字体声明（使用系统字体 fallback）
-- [x] 调整面板、标签、输入框的字号
-- [x] 移除标签的大写样式
+- [x] Add the Inter font declaration (with system font fallback)
+- [x] Adjust the font sizes of the panel, labels, and inputs
+- [x] Remove the uppercase style from labels
 
-### 1.3 间距与边距调整 ✅
+### 1.3 Spacing and margin adjustments ✅
 
-| 属性          | 旧值        | 新值       | 状态 |
-| ------------- | ----------- | ---------- | ---- |
-| 面板宽度      | `320px`     | `280px`    | ✅   |
-| Header 内边距 | `10px 14px` | `8px 12px` | ✅   |
-| Body gap      | `10px`      | `12px`     | ✅   |
+| Property       | Old value   | New value  | Status |
+| -------------- | ----------- | ---------- | ------ |
+| Panel width    | `320px`     | `280px`    | ✅     |
+| Header padding | `10px 14px` | `8px 12px` | ✅     |
+| Body gap       | `10px`      | `12px`     | ✅     |
 
-**完成的任务**：
+**Completed tasks**:
 
-- [x] 调整 `.we-panel`, `.we-prop-body`, `.we-field-group` 的 padding/gap
-- [x] 调整 header 的 padding
+- [x] Adjust the padding/gap of `.we-panel`, `.we-prop-body`, `.we-field-group`
+- [x] Adjust the header padding
 
-### 1.4 圆角与阴影 ✅
+### 1.4 Corner radius and shadows ✅
 
-| 属性       | 旧值        | 新值               | 状态 |
-| ---------- | ----------- | ------------------ | ---- |
-| 面板阴影   | `0 1px 2px` | Tailwind shadow-xl | ✅   |
-| 输入框圆角 | `6px`       | `4px`              | ✅   |
-| Tab 阴影   | 无          | `shadow-sm`        | ✅   |
+| Property     | Old value   | New value          | Status |
+| ------------ | ----------- | ------------------ | ------ |
+| Panel shadow | `0 1px 2px` | Tailwind shadow-xl | ✅     |
+| Input radius | `6px`       | `4px`              | ✅     |
+| Tab shadow   | none        | `shadow-sm`        | ✅     |
 
-**完成的任务**：
+**Completed tasks**:
 
-- [x] 增强面板阴影效果（双层阴影模拟 shadow-xl）
-- [x] 调整输入框圆角为 4px
-- [x] 为激活的 Tab 添加阴影
+- [x] Strengthen the panel shadow (double-layer shadow emulating shadow-xl)
+- [x] Change the input radius to 4px
+- [x] Add a shadow to the active Tab
 
-### 1.5 Group/Section 样式重构 ✅
+### 1.5 Group/Section style refactor ✅
 
-| 属性         | 旧样式      | 新样式      | 状态 |
-| ------------ | ----------- | ----------- | ---- |
-| Group 边框   | 卡片边框    | 无边框      | ✅   |
-| Section 分隔 | 无          | 顶部分隔线  | ✅   |
-| Header 样式  | 粗体 + 大字 | 11px + #333 | ✅   |
+| Property        | Old style    | New style   | Status |
+| --------------- | ------------ | ----------- | ------ |
+| Group border    | Card border  | No border   | ✅     |
+| Section divider | none         | Top divider | ✅     |
+| Header style    | Bold + large | 11px + #333 | ✅     |
 
-**完成的任务**：
+**Completed tasks**:
 
-- [x] 移除 `.we-group` 的边框和背景
-- [x] 添加 Section 间的分隔线 (`border-top`)
-- [x] 调整 Group header 样式
+- [x] Remove the border and background of `.we-group`
+- [x] Add a divider between Sections (`border-top`)
+- [x] Adjust the Group header style
 
 ---
 
-## 阶段二：输入容器组件重构 ✅ 基础完成
+## Phase 2: Input container component refactor ✅ basics done
 
-### 2.1 建立输入容器系统 ✅
+### 2.1 Build the input container system ✅
 
-**背景**：设计稿的输入框不是单体 input，而是一个容器系统，支持：
+**Background**: the design's inputs are not a single input but a container system that supports:
 
-- 前缀（prefix）：标签、图标
-- 后缀（suffix）：单位、图标
-- 容器驱动的 hover/focus 样式
+- Prefix: label, icon
+- Suffix: unit, icon
+- Container-driven hover/focus styles
 
-**当前结构**：
+**Current structure**:
 
 ```html
 <div class="we-field">
@@ -146,73 +146,73 @@
 </div>
 ```
 
-**目标结构**：
+**Target structure**:
 
 ```html
 <div class="we-field">
   <span class="we-field-label">Position</span>
   <div class="we-input-container">
-    <!-- 新增容器 -->
+    <!-- new container -->
     <span class="we-input-container__prefix">X</span>
-    <!-- 可选前缀 -->
+    <!-- optional prefix -->
     <input class="we-input-container__input" />
     <span class="we-input-container__suffix">px</span>
-    <!-- 可选后缀 -->
+    <!-- optional suffix -->
   </div>
 </div>
 ```
 
-**已完成**：
+**Completed**:
 
-- [x] 在 `shadow-host.ts` 中定义 `.we-input-container` 样式
-- [x] 定义 `.we-input-container__prefix` 和 `.we-input-container__suffix` 样式
-- [x] 创建 `ui/property-panel/components/input-container.ts` 组件
-- [x] 将 hover/focus 样式移到容器级别（使用 `:focus-within`）
+- [x] Define `.we-input-container` styles in `shadow-host.ts`
+- [x] Define `.we-input-container__prefix` and `.we-input-container__suffix` styles
+- [x] Create the `ui/property-panel/components/input-container.ts` component
+- [x] Move the hover/focus styles to the container level (using `:focus-within`)
 
-### 2.2 更新各 Control 使用新容器 ✅ 已完成
+### 2.2 Update each Control to use the new container ✅ done
 
-**需要更新的控件**：
+**Controls to update**:
 
-- [x] `size-control.ts` - Width/Height（2列布局 + W/H 前缀 + 动态单位后缀）
-- [x] `spacing-control.ts` - Margin/Padding（重构为 2x2 网格 + 方向图标 + 动态单位后缀）
-- [x] `position-control.ts` - Top/Right/Bottom/Left/Z-Index（T/R/B/L 前缀 + 动态单位后缀）
-- [x] `layout-control.ts` - Gap（图标前缀 + 动态单位后缀）
-- [x] `typography-control.ts` - Font Size/Line Height（动态单位后缀，line-height 智能显示）
-- [ ] `appearance-control.ts` - Opacity/Border Radius/Border Width（待实施）
+- [x] `size-control.ts` - Width/Height (2-column layout + W/H prefixes + dynamic unit suffix)
+- [x] `spacing-control.ts` - Margin/Padding (refactored into a 2x2 grid + direction icons + dynamic unit suffix)
+- [x] `position-control.ts` - Top/Right/Bottom/Left/Z-Index (T/R/B/L prefixes + dynamic unit suffix)
+- [x] `layout-control.ts` - Gap (icon prefix + dynamic unit suffix)
+- [x] `typography-control.ts` - Font Size/Line Height (dynamic unit suffix, smart line-height display)
+- [ ] `appearance-control.ts` - Opacity/Border Radius/Border Width (to be implemented)
 
-**已完成的共享模块**：
+**Completed shared modules**:
 
-- [x] 创建 `css-helpers.ts` 共享模块（extractUnitSuffix, hasExplicitUnit, normalizeLength）
-- [x] 所有控件使用共享 helper，消除重复代码
-
----
-
-## 阶段三：Section 结构重构（待实施）
-
-### 3.1 Tab 信息架构调整
-
-**当前**：4 个 Tab（Design/CSS/Props/DOM）
-**设计稿**：2 个 Tab（Design/CSS）
-
-**方案选择**：
-
-- **方案 A**：保留 4 个 Tab，调整为溢出菜单
-- **方案 B**：将 Props/DOM 移到其他入口
-- **方案 C**：保持 4 个 Tab，调整样式适应
-
-**任务**：
-
-- [ ] 确定 Tab 数量的产品决策
-- [ ] 实现选定方案
+- [x] Create the `css-helpers.ts` shared module (extractUnitSuffix, hasExplicitUnit, normalizeLength)
+- [x] All controls use the shared helpers, eliminating duplicated code
 
 ---
 
-## 阶段四：功能组件实现（待实施）
+## Phase 3: Section structure refactor (to be implemented)
 
-### 4.1 Flow 布局图标组 ✅ 已完成
+### 3.1 Tab information architecture adjustment
 
-**设计稿位置**：`attr-ui.html:133-156`
-**功能**：4 个图标按钮控制 `flex-direction`
+**Current**: 4 tabs (Design/CSS/Props/DOM)
+**Design mockup**: 2 tabs (Design/CSS)
+
+**Options**:
+
+- **Option A**: keep 4 tabs, turn them into an overflow menu
+- **Option B**: move Props/DOM to another entry point
+- **Option C**: keep 4 tabs, adjust the styles to fit
+
+**Tasks**:
+
+- [ ] Decide on the number of tabs (product decision)
+- [ ] Implement the chosen option
+
+---
+
+## Phase 4: Feature component implementation (to be implemented)
+
+### 4.1 Flow layout icon group ✅ done
+
+**Design mockup location**: `attr-ui.html:133-156`
+**Feature**: 4 icon buttons controlling `flex-direction`
 
 ```
 [→] Row
@@ -221,17 +221,17 @@
 [↑] Column Reverse
 ```
 
-**已完成**：
+**Completed**:
 
-- [x] 创建 `ui/property-panel/components/icon-button-group.ts` 通用组件
-- [x] 在 `shadow-host.ts` 中添加 `.we-icon-button-group` 样式
-- [x] 在 `layout-control.ts` 中用图标组替换 Direction select
-- [x] 添加对应的 SVG 箭头图标（row/column/row-reverse/column-reverse）
+- [x] Create the generic `ui/property-panel/components/icon-button-group.ts` component
+- [x] Add `.we-icon-button-group` styles in `shadow-host.ts`
+- [x] Replace the Direction select in `layout-control.ts` with the icon group
+- [x] Add the corresponding SVG arrow icons (row/column/row-reverse/column-reverse)
 
-### 4.2 Alignment 九宫格 ✅ 已完成
+### 4.2 Alignment 3x3 grid ✅ done
 
-**设计稿位置**：`attr-ui.html:166-208`
-**功能**：3x3 网格控制 `justify-content` + `align-items`
+**Design mockup location**: `attr-ui.html:166-208`
+**Feature**: 3x3 grid controlling `justify-content` + `align-items`
 
 ```
 [↖][↑][↗]
@@ -239,145 +239,145 @@
 [↙][↓][↘]
 ```
 
-**已完成**：
+**Completed**:
 
-- [x] 创建 `ui/property-panel/components/alignment-grid.ts` 组件
-- [x] 在 `shadow-host.ts` 中添加 `.we-alignment-grid` 样式
-- [x] 替换 `layout-control.ts` 中的 Justify/Align select
-- [x] 使用 `beginMultiStyle` 实现两个属性的原子提交
+- [x] Create the `ui/property-panel/components/alignment-grid.ts` component
+- [x] Add `.we-alignment-grid` styles in `shadow-host.ts`
+- [x] Replace the Justify/Align selects in `layout-control.ts`
+- [x] Use `beginMultiStyle` for atomic commit of both properties
 
-### 4.3 修复 Color Picker ✅ 部分完成
+### 4.3 Fix Color Picker ✅ partially done
 
-**当前问题**：
+**Current problems**:
 
-- `showPicker()` 无 try/catch，可能抛错
-- alpha 通道被丢弃
-- token 值 `var(--xxx)` 显示不正确
+- `showPicker()` has no try/catch and may throw
+- The alpha channel is dropped
+- Token values `var(--xxx)` display incorrectly
 
-**已完成**：
+**Completed**:
 
-- [x] 添加 `showPicker()` 的错误处理（try/catch + fallback to click）
-- [x] 改进 `var()` 值的解析和显示（通过 placeholder 传入 computed value）
+- [x] Add error handling for `showPicker()` (try/catch + fallback to click)
+- [x] Improve parsing and display of `var()` values (pass the computed value through the placeholder)
 
-**待实施**：
+**To be implemented**:
 
-- [ ] 支持 alpha 通道（RGBA/HSLA）- 需要引入第三方 color picker
-- [ ] 考虑引入第三方 color picker（如 `@simonwep/pickr`）
+- [ ] Support the alpha channel (RGBA/HSLA) - requires a third-party color picker
+- [ ] Consider a third-party color picker (e.g. `@simonwep/pickr`)
 
 ---
 
-## 阶段五：新功能模块（待实施）
+## Phase 5: New feature modules (to be implemented)
 
-### 5.1 Shadow & Blur 控制
+### 5.1 Shadow & Blur control
 
-**设计稿位置**：`attr-ui.html:396-425`
-**功能**：
+**Design mockup location**: `attr-ui.html:396-425`
+**Features**:
 
-- 启用/禁用开关
-- 类型选择（Drop shadow/Inner shadow/Layer Blur/Backdrop Blur）
-- 可见性控制
+- Enable/disable switch
+- Type selection (Drop shadow/Inner shadow/Layer Blur/Backdrop Blur)
+- Visibility control
 
-**CSS 属性**：
+**CSS properties**:
 
 - `box-shadow`
 - `filter: blur()`
 - `backdrop-filter: blur()`
 
-**任务**：
+**Tasks**:
 
-- [x] 创建 `ui/property-panel/controls/effects-control.ts`
-- [x] 实现 `box-shadow` 值解析和编辑
-- [x] 实现 `filter` 值解析和编辑
-- [x] 实现 `backdrop-filter` 值解析和编辑
-- [x] 添加类型切换 UI
-- [ ] 添加启用/禁用开关（可选，后续实现）
+- [x] Create `ui/property-panel/controls/effects-control.ts`
+- [x] Implement `box-shadow` value parsing and editing
+- [x] Implement `filter` value parsing and editing
+- [x] Implement `backdrop-filter` value parsing and editing
+- [x] Add the type switch UI
+- [ ] Add the enable/disable switch (optional, later)
 
-### 5.2 渐变编辑器
+### 5.2 Gradient editor
 
-**设计稿位置**：`attr-ui.html:269-325`
-**功能**：
+**Design mockup location**: `attr-ui.html:269-325`
+**Features**:
 
-- Linear/Radial 渐变类型
-- 颜色停止点（color stops）
-- 角度控制
-- 翻转按钮
+- Linear/Radial gradient types
+- Color stops
+- Angle control
+- Flip button
 
-**CSS 属性**：
+**CSS properties**:
 
 - `background-image: linear-gradient(...)`
 - `background-image: radial-gradient(...)`
 
-**任务**：
+**Tasks**:
 
-- [x] 创建 `ui/property-panel/controls/gradient-control.ts`
-- [x] 实现渐变值解析（CSS gradient → 数据结构）
-- [x] 实现角度/位置输入
-- [x] 实现 2 个颜色停止点的编辑
-- [x] 集成到 property-panel（作为独立的 Gradient 控制组）
-- [ ] 实现渐变预览 slider（可选，后续优化）
-- [ ] 实现 color stop 添加/删除/拖拽（可选，后续优化）
+- [x] Create `ui/property-panel/controls/gradient-control.ts`
+- [x] Implement gradient value parsing (CSS gradient → data structure)
+- [x] Implement angle/position inputs
+- [x] Implement editing of 2 color stops
+- [x] Integrate into property-panel (as a standalone Gradient field group)
+- [ ] Implement the gradient preview slider (optional, later optimization)
+- [ ] Implement color stop add/remove/drag (optional, later optimization)
 
-### 5.3 Token/变量 Pill 显示
+### 5.3 Token/variable pill display
 
-**设计稿位置**：`attr-ui.html:374-384`
-**功能**：当值为 CSS 变量时，显示为可点击的 pill
+**Design mockup location**: `attr-ui.html:374-384`
+**Feature**: when the value is a CSS variable, display it as a clickable pill
 
-**任务**：
+**Tasks**:
 
-- [ ] 检测 `var(--xxx)` 值
-- [ ] 渲染为 pill 样式
-- [ ] 点击打开 token picker
-
----
-
-## 阶段六：代码质量（贯穿始终）
-
-### 6.1 样式系统统一
-
-- [x] 所有颜色使用 CSS 变量（阶段一完成）
-- [ ] 所有尺寸使用一致的 token
-- [ ] 移除 inline style，统一到 `shadow-host.ts`
-
-### 6.2 组件复用
-
-- [ ] 提取通用组件到 `ui/property-panel/components/`
-- [ ] 统一事件处理模式
-- [ ] 统一 disabled/enabled 状态处理
-
-### 6.3 类型安全
-
-- [ ] 所有组件使用 TypeScript 严格类型
-- [ ] 定义清晰的接口和类型
-- [ ] 移除 any 类型断言
+- [ ] Detect `var(--xxx)` values
+- [ ] Render as a pill style
+- [ ] Click opens the token picker
 
 ---
 
-## 实施进度
+## Phase 6: Code quality (throughout)
 
-| 阶段 | 任务               | 状态    | 备注                                         |
-| ---- | ------------------ | ------- | -------------------------------------------- |
-| 0.1  | 最小化 Bug 修复    | ✅      | 添加全局 `[hidden]` 规则                     |
-| 0.2  | 输入框优化         | ✅      | number-stepping + 真实值显示                 |
-| 1.1  | 颜色方案重构       | ✅      | 白底 + 灰输入框 + inset focus                |
-| 1.2  | 字体与字号调整     | ✅      | 11px 基准 + Inter 字体                       |
-| 1.3  | 间距与边距调整     | ✅      | 更紧凑的布局                                 |
-| 1.4  | 圆角与阴影         | ✅      | shadow-xl + 4px 圆角                         |
-| 1.5  | Group/Section 样式 | ✅      | 分隔线风格                                   |
-| 2.1  | 输入容器系统       | ✅      | 组件 + CSS 样式                              |
-| 2.2  | 更新 Controls      | ✅      | 所有主要控件已迁移，共享 css-helpers.ts      |
-| 3.1  | Tab 信息架构       | 待实施  |                                              |
-| 4.1  | Flow 图标组        | ✅      | icon-button-group.ts + 集成到 layout-control |
-| 4.2  | Alignment 九宫格   | ✅      | alignment-grid.ts + 集成到 layout-control    |
-| 4.3  | 修复 Color Picker  | ✅ 部分 | showPicker 异常处理 + var() 解析             |
-| 5.1  | Shadow & Blur      | ✅      | effects-control.ts + 集成到 property-panel   |
-| 5.2  | 渐变编辑器         | ✅      | gradient-control.ts + 集成到 property-panel  |
-| 5.3  | Token Pill         | 待实施  |                                              |
+### 6.1 Unify the style system
+
+- [x] All colors use CSS variables (done in Phase 1)
+- [ ] All dimensions use consistent tokens
+- [ ] Remove inline styles, unify into `shadow-host.ts`
+
+### 6.2 Component reuse
+
+- [ ] Extract generic components into `ui/property-panel/components/`
+- [ ] Unify the event handling pattern
+- [ ] Unify disabled/enabled state handling
+
+### 6.3 Type safety
+
+- [ ] All components use strict TypeScript types
+- [ ] Define clear interfaces and types
+- [ ] Remove any type assertions
 
 ---
 
-## 注意事项
+## Implementation progress
 
-1. **渐进式实施**：每个 Phase 完成后应可独立测试和发布
-2. **保持向后兼容**：重构过程中不应破坏现有功能
-3. **设计决策记录**：遇到设计稿与实际需求冲突时，记录决策原因
-4. **性能考虑**：新增组件需考虑渲染性能，避免不必要的 DOM 操作
+| Phase | Task                         | Status            | Notes                                                 |
+| ----- | ---------------------------- | ----------------- | ----------------------------------------------------- |
+| 0.1   | Minimize bug fix             | ✅                | Added the global `[hidden]` rule                      |
+| 0.2   | Input optimization           | ✅                | number-stepping + real value display                  |
+| 1.1   | Color scheme refactor        | ✅                | White bg + gray inputs + inset focus                  |
+| 1.2   | Font and size tweaks         | ✅                | 11px baseline + Inter font                            |
+| 1.3   | Spacing and margin           | ✅                | Tighter layout                                        |
+| 1.4   | Radius and shadows           | ✅                | shadow-xl + 4px radius                                |
+| 1.5   | Group/Section styles         | ✅                | Divider style                                         |
+| 2.1   | Input container system       | ✅                | Component + CSS styles                                |
+| 2.2   | Update Controls              | ✅                | All main controls migrated, shared css-helpers.ts     |
+| 3.1   | Tab information architecture | To be implemented |                                                       |
+| 4.1   | Flow icon group              | ✅                | icon-button-group.ts + integrated into layout-control |
+| 4.2   | Alignment 3x3 grid           | ✅                | alignment-grid.ts + integrated into layout-control    |
+| 4.3   | Fix Color Picker             | ✅ partial        | showPicker error handling + var() parsing             |
+| 5.1   | Shadow & Blur                | ✅                | effects-control.ts + integrated into property-panel   |
+| 5.2   | Gradient editor              | ✅                | gradient-control.ts + integrated into property-panel  |
+| 5.3   | Token Pill                   | To be implemented |                                                       |
+
+---
+
+## Notes
+
+1. **Incremental implementation**: each Phase should be independently testable and shippable when done
+2. **Stay backward compatible**: the refactor must not break existing features
+3. **Record design decisions**: when the design mockup conflicts with real requirements, record the reasons for the decision
+4. **Performance**: new components must consider render performance and avoid unnecessary DOM operations

@@ -44,6 +44,7 @@
     "@iconify-json/lucide": "^1.2.130",
     "@tailwindcss/vite": "^4.3.3",
     "@types/chrome": "^0.0.318",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@wxt-dev/module-vue": "^1.0.3",
     "dotenv": "^17.4.2",
     "fake-indexeddb": "^6.2.5",

@@ -4,8 +4,8 @@
     <MarkerTargetPicker :node="node" />
     <div class="form-section">
       <div class="form-group" data-field="fill.value">
-        <label class="form-label">输入值</label>
-        <VarInput v-model="value" :variables="variables" placeholder="支持 {变量名} 格式" />
+        <label class="form-label">Value</label>
+        <VarInput v-model="value" :variables="variables" placeholder="Supports {var} format" />
       </div>
     </div>
   </div>

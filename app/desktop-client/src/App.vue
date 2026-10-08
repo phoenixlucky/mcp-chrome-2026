@@ -132,21 +132,21 @@ type ErrorDiagnostics = {
 };
 
 const ERROR_CATEGORY_LABELS: Record<string, string> = {
-  element_not_found: '元素找不到',
-  element_not_actionable: '元素不可操作',
-  navigation_cancelled: '导航被取消',
-  selector_multiple_matches: '元素匹配多个',
-  coordinate_target_missing: '坐标位置无元素',
-  tab_missing: 'Tab 不存在',
-  restricted_page: '受限页面不可注入',
-  message_channel_closed: '消息通道关闭',
-  proxy_error: '住宅代理错误',
-  other: '其他错误',
+  element_not_found: 'Element not found',
+  element_not_actionable: 'Element not actionable',
+  navigation_cancelled: 'Navigation cancelled',
+  selector_multiple_matches: 'Selector matched multiple elements',
+  coordinate_target_missing: 'No element at coordinates',
+  tab_missing: 'Tab missing',
+  restricted_page: 'Restricted page cannot be injected',
+  message_channel_closed: 'Message channel closed',
+  proxy_error: 'Residential proxy error',
+  other: 'Other errors',
 };
 
 const state = reactive({
   phase: 'checking' as 'checking' | 'running' | 'waiting' | 'stopped' | 'offline',
-  message: '正在启动本地服务…',
+  message: 'Starting the local service…',
   lastUpdated: '',
   busy: false,
   data: null as Record<string, any> | null,
@@ -161,7 +161,7 @@ const runtimeFilter = ref<'all' | RuntimeTask['summary']['status']>('all');
 const selectedRuntimeTaskId = ref<string | null>(null);
 const runtimeActionTaskId = ref<string | null>(null);
 const activeNav = ref('overview');
-const errorDiagnosticsMessage = ref('尚未读取错误日志');
+const errorDiagnosticsMessage = ref('Error logs not loaded yet');
 const errorTerminalFilter = ref('all');
 const errorCategoryFilter = ref<string | null>(null);
 const isExportingErrorDiagnostics = ref(false);
@@ -223,7 +223,7 @@ const selectedRuntimeTask = computed(
 const runtimeActiveCount = computed(() => runtime.value?.activeCount ?? 0);
 
 function classifyErrorMessage(message: string) {
-  if (/住宅代理|代理(?:请求|测试|认证|配置|轮换)|proxy|tunnel/i.test(message)) return 'proxy_error';
+  if (/proxy|tunnel/i.test(message)) return 'proxy_error';
   if (/matched multiple elements/i.test(message)) return 'selector_multiple_matches';
   if (/not actionable/i.test(message)) return 'element_not_actionable';
   if (/No element found at the specified coordinates/i.test(message))
@@ -241,15 +241,15 @@ function classifyErrorMessage(message: string) {
 const phaseMeta = computed(() => {
   switch (state.phase) {
     case 'running':
-      return { label: '运行中', tone: 'success' };
+      return { label: 'Running', tone: 'success' };
     case 'waiting':
-      return { label: '等待 Chrome', tone: 'warning' };
+      return { label: 'Waiting for Chrome', tone: 'warning' };
     case 'stopped':
-      return { label: '服务已停止', tone: 'warning' };
+      return { label: 'Service stopped', tone: 'warning' };
     case 'offline':
-      return { label: '等待连接', tone: 'danger' };
+      return { label: 'Waiting to connect', tone: 'danger' };
     default:
-      return { label: '检查中', tone: 'info' };
+      return { label: 'Checking', tone: 'info' };
   }
 });
 
@@ -292,17 +292,17 @@ function statusFor(value: boolean | undefined, waiting = false) {
 }
 
 function formatActivity(value: unknown) {
-  if (!value) return '暂无活动';
+  if (!value) return 'No activity';
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
 
 function clientName(client: McpClient) {
-  return client.clientInfo?.name || '未识别客户端';
+  return client.clientInfo?.name || 'Unknown client';
 }
 
 function clientVersion(client: McpClient) {
-  return client.clientInfo?.version || '版本未知';
+  return client.clientInfo?.version || 'Unknown version';
 }
 
 function clientInitial(client: McpClient) {
@@ -311,22 +311,22 @@ function clientInitial(client: McpClient) {
 
 function transportLabel(client: McpClient) {
   if (client.transport === 'stdio') return 'STDIO';
-  if (client.endpoint === '/sse' || client.transport === 'sse') return 'SSE（旧版 MCP）';
-  return 'Streamable HTTP（兼容版）';
+  if (client.endpoint === '/sse' || client.transport === 'sse') return 'SSE (legacy MCP)';
+  return 'Streamable HTTP (compatible)';
 }
 
 function requestTransportLabel(request: McpRequest) {
   if (request.transport === 'stdio') return 'STDIO';
   if (request.transport === 'sse' || request.endpoint === '/sse') return 'SSE';
-  if (request.endpoint === '/mcp-new') return 'Streamable HTTP（尝鲜版）';
-  return 'Streamable HTTP（兼容版）';
+  if (request.endpoint === '/mcp-new') return 'Streamable HTTP (preview)';
+  return 'Streamable HTTP (compatible)';
 }
 
 function requestStatusLabel(status: McpRequest['status']) {
-  if (status === 'success') return '成功';
-  if (status === 'cancelled') return '已取消';
-  if (status === 'error') return '失败';
-  return '执行中';
+  if (status === 'success') return 'Success';
+  if (status === 'cancelled') return 'Cancelled';
+  if (status === 'error') return 'Failed';
+  return 'Running';
 }
 
 function requestStatusClass(status: McpRequest['status']) {
@@ -349,7 +349,7 @@ function shortSessionId(sessionId: string) {
 }
 
 function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number') return '暂无请求';
+  if (typeof value !== 'number') return 'No requests';
   return value < 1 ? '<1 ms' : `${value} ms`;
 }
 
@@ -365,11 +365,11 @@ function formatDuration(value: string | undefined) {
   const elapsedMs = Math.max(0, Date.now() - new Date(value).getTime());
   if (!Number.isFinite(elapsedMs)) return '—';
   const minutes = Math.floor(elapsedMs / 60_000);
-  if (minutes < 1) return '不到 1 分钟';
-  if (minutes < 60) return `${minutes} 分钟`;
+  if (minutes < 1) return 'Less than 1 min';
+  if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时 ${minutes % 60} 分钟`;
-  return `${Math.floor(hours / 24)} 天 ${hours % 24} 小时`;
+  if (hours < 24) return `${hours} h ${minutes % 60} min`;
+  return `${Math.floor(hours / 24)} d ${hours % 24} h`;
 }
 
 function formatElapsed(value: number | undefined) {
@@ -384,14 +384,14 @@ function runtimeKindLabel(kind: RuntimeTask['summary']['kind']) {
 
 function runtimeStatusLabel(status: RuntimeTask['summary']['status']) {
   const labels: Record<RuntimeTask['summary']['status'], string> = {
-    running: '运行中',
-    waiting: '等待 Chrome',
-    paused: '已暂停',
-    cancelling: '取消中',
-    success: '成功',
-    error: '失败',
-    cancelled: '已取消',
-    unknown: '状态未知',
+    running: 'Running',
+    waiting: 'Waiting for Chrome',
+    paused: 'Paused',
+    cancelling: 'Cancelling',
+    success: 'Success',
+    error: 'Failed',
+    cancelled: 'Cancelled',
+    unknown: 'Unknown status',
   };
   return labels[status];
 }
@@ -422,9 +422,9 @@ function shortRequestId(requestId: string) {
 async function copyValue(value: string) {
   try {
     await navigator.clipboard.writeText(value);
-    state.message = '已复制到剪贴板';
+    state.message = 'Copied to clipboard';
   } catch {
-    state.message = '复制失败，请手动选择地址';
+    state.message = 'Copy failed, select the address manually';
   }
 }
 
@@ -467,7 +467,7 @@ async function refreshRuntime() {
       selectedRuntimeTaskId.value = visibleRuntimeTasks.value[0].summary.taskId;
     }
   } else if (response.status === 401 || response.status === 403) {
-    state.message = response.error || '运行控制未通过本地认证';
+    state.message = response.error || 'Runtime control failed local authentication';
   }
 }
 
@@ -482,9 +482,9 @@ async function controlRuntimeTask(
     const response = await localRequest(path, 'POST');
     state.message = response.ok
       ? action === 'focus'
-        ? '已聚焦浏览器标签页'
-        : `${runtimeStatusLabel((response.data?.status as RuntimeTask['summary']['status']) || task.summary.status)} · 控制已发送`
-      : response.error || '运行时操作失败';
+        ? 'Browser tab focused'
+        : `${runtimeStatusLabel((response.data?.status as RuntimeTask['summary']['status']) || task.summary.status)} · control sent`
+      : response.error || 'Runtime operation failed';
     await refreshRuntime();
     await refresh();
   } finally {
@@ -503,11 +503,11 @@ async function refreshErrorDiagnostics(force = false) {
     if (requestVersion !== errorDiagnosticsRequestVersion) return;
     if (!response.ok || !response.data) {
       errorDiagnostics.value = null;
-      errorDiagnosticsMessage.value = response.error || '错误诊断服务尚未连接';
+      errorDiagnosticsMessage.value = response.error || 'Error diagnostics service not connected';
       return;
     }
     errorDiagnostics.value = response.data as ErrorDiagnostics;
-    errorDiagnosticsMessage.value = '错误日志已更新';
+    errorDiagnosticsMessage.value = 'Error logs updated';
   } finally {
     if (requestVersion === errorDiagnosticsRequestVersion) {
       isRefreshingErrorDiagnostics.value = false;
@@ -559,8 +559,9 @@ function toggleErrorCategory(category: string) {
 
 async function clearErrorDiagnostics() {
   if (isClearingErrorDiagnostics.value) return;
-  const targetLabel = errorTerminalFilter.value === 'all' ? '全部终端' : '当前选中的终端';
-  if (!window.confirm(`确定清除${targetLabel}的错误日志吗？此操作不可恢复。`)) return;
+  const targetLabel =
+    errorTerminalFilter.value === 'all' ? 'all terminals' : 'the selected terminal';
+  if (!window.confirm(`Clear error logs for ${targetLabel}? This cannot be undone.`)) return;
 
   isClearingErrorDiagnostics.value = true;
   // Invalidate an in-flight poll before sending the clear request. Its result
@@ -577,8 +578,8 @@ async function clearErrorDiagnostics() {
       ? await invoke<BridgeResponse>('clear_error_diagnostics', { terminalId })
       : await localRequest(path, 'POST');
     if (!response.ok) {
-      const errors = Array.isArray(response.data?.errors) ? response.data.errors.join('；') : '';
-      errorDiagnosticsMessage.value = response.error || errors || '错误日志清除失败';
+      const errors = Array.isArray(response.data?.errors) ? response.data.errors.join('; ') : '';
+      errorDiagnosticsMessage.value = response.error || errors || 'Failed to clear error logs';
       return;
     }
     errorCategoryFilter.value = null;
@@ -594,7 +595,7 @@ async function clearErrorDiagnostics() {
         errors: [],
       };
     }
-    errorDiagnosticsMessage.value = '错误日志已清除';
+    errorDiagnosticsMessage.value = 'Error logs cleared';
     await refreshErrorDiagnostics(true);
   } finally {
     isClearingErrorDiagnostics.value = false;
@@ -604,13 +605,13 @@ async function clearErrorDiagnostics() {
 async function refresh(probe = false) {
   if (state.busy) return;
   state.busy = true;
-  state.message = probe ? '正在检查 Chrome 响应…' : '正在刷新状态…';
+  state.message = probe ? 'Checking Chrome response…' : 'Refreshing status…';
   try {
     const response = await localRequest(probe ? '/status?probe=1' : '/status');
     if (!response.ok || !response.data) {
       state.phase = 'offline';
       state.data = null;
-      state.message = response.error || `服务尚未监听 ${PORT}`;
+      state.message = response.error || `Service is not listening on ${PORT}`;
       return;
     }
 
@@ -621,9 +622,9 @@ async function refresh(probe = false) {
     state.phase = running && connected ? 'running' : running ? 'waiting' : 'stopped';
     state.message = probe
       ? response.data.probe?.ok
-        ? `Chrome 响应正常 · ${response.data.probe.elapsedMs} ms`
-        : 'Chrome 没有返回有效响应'
-      : '状态已更新';
+        ? `Chrome responded normally · ${response.data.probe.elapsedMs} ms`
+        : 'Chrome returned no valid response'
+      : 'Status updated';
     state.lastUpdated = new Date().toLocaleTimeString();
   } finally {
     state.busy = false;
@@ -633,7 +634,7 @@ async function refresh(probe = false) {
 async function startBridge() {
   if (!isTauri) return refresh();
   state.busy = true;
-  state.message = '正在启动桥接服务…';
+  state.message = 'Starting the bridge service…';
   try {
     await invoke('start_bridge');
   } catch (error) {
@@ -647,7 +648,7 @@ async function startBridge() {
 
 async function control(action: 'start' | 'stop') {
   state.busy = true;
-  state.message = action === 'start' ? '正在启动服务…' : '正在停止服务…';
+  state.message = action === 'start' ? 'Starting the service…' : 'Stopping the service…';
   try {
     await localRequest(`/__chrome_mcp_bridge/${action}`, 'POST');
   } finally {
@@ -667,13 +668,15 @@ async function openLog() {
 async function cancelMcpRequest(request: McpRequest) {
   if (cancellingRequestId.value) return;
   cancellingRequestId.value = request.requestId;
-  state.message = '正在中断 MCP 请求…';
+  state.message = 'Cancelling the MCP request…';
   try {
     const path = `/__chrome_mcp_bridge/requests/${encodeURIComponent(request.requestId)}/cancel`;
     const response = isTauri
       ? await invoke<BridgeResponse>('cancel_mcp_request', { requestId: request.requestId })
       : await localRequest(path, 'POST');
-    state.message = response.ok ? '已发送中断请求' : response.error || '中断请求失败';
+    state.message = response.ok
+      ? 'Cancellation request sent'
+      : response.error || 'Cancellation request failed';
   } catch (error) {
     state.message = error instanceof Error ? error.message : String(error);
   } finally {
@@ -734,58 +737,59 @@ onUnmounted(() => {
       <div class="sidebar-brand">
         <span class="brand-mark"><AssetIcon name="cat" :size="48" /></span>
         <div
-          ><strong>猫娘 Chrome MCP Server</strong><small>CHROME MCP SERVER FOR ANYTHING</small></div
+          ><strong>Catgirl Chrome MCP Server</strong
+          ><small>CHROME MCP SERVER FOR ANYTHING</small></div
         >
       </div>
-      <nav class="sidebar-nav" aria-label="主导航">
+      <nav class="sidebar-nav" aria-label="Main navigation">
         <a
           class="nav-item"
           :class="{ active: activeNav === 'overview' }"
           href="#overview"
           @click="activeNav = 'overview'"
-          ><AssetIcon name="home" class="nav-icon" :size="19" />概览</a
+          ><AssetIcon name="home" class="nav-icon" :size="19" />Overview</a
         >
         <a
           class="nav-item"
           :class="{ active: activeNav === 'runtime-control' }"
           href="#runtime-control"
           @click="activeNav = 'runtime-control'"
-          ><AssetIcon name="activity" class="nav-icon" :size="19" />运行控制</a
+          ><AssetIcon name="activity" class="nav-icon" :size="19" />Runtime control</a
         >
         <a
           class="nav-item"
           :class="{ active: activeNav === 'connections' }"
           href="#connections"
           @click="activeNav = 'connections'"
-          ><AssetIcon name="message" class="nav-icon" :size="19" />MCP 会话</a
+          ><AssetIcon name="message" class="nav-icon" :size="19" />MCP sessions</a
         >
         <a
           class="nav-item"
           :class="{ active: activeNav === 'transports' }"
           href="#transports"
           @click="activeNav = 'transports'"
-          ><AssetIcon name="box" class="nav-icon" :size="19" />工具管理</a
+          ><AssetIcon name="box" class="nav-icon" :size="19" />Tools</a
         >
         <a
           class="nav-item"
           :class="{ active: activeNav === 'actions' }"
           href="#actions"
           @click="activeNav = 'actions'"
-          ><AssetIcon name="settings" class="nav-icon" :size="19" />服务配置</a
+          ><AssetIcon name="settings" class="nav-icon" :size="19" />Service config</a
         >
         <a
           class="nav-item"
           :class="{ active: activeNav === 'diagnostics' }"
           href="#diagnostics"
           @click="activeNav = 'diagnostics'"
-          ><AssetIcon name="file" class="nav-icon" :size="19" />日志中心</a
+          ><AssetIcon name="file" class="nav-icon" :size="19" />Logs</a
         >
         <a
           class="nav-item"
           :class="{ active: activeNav === 'settings' }"
           href="#diagnostics"
           @click="activeNav = 'settings'"
-          ><AssetIcon name="sliders" class="nav-icon" :size="19" />设置</a
+          ><AssetIcon name="sliders" class="nav-icon" :size="19" />Settings</a
         >
       </nav>
       <div class="sidebar-footer"
@@ -801,14 +805,15 @@ onUnmounted(() => {
       <header class="topbar">
         <div
           ><span class="topbar-kicker">LOCAL AUTOMATION RUNTIME</span
-          ><span class="topbar-divider"></span><span class="topbar-page">控制台</span></div
+          ><span class="topbar-divider"></span><span class="topbar-page">Console</span></div
         >
         <div class="topbar-actions"
-          ><span class="secure-badge"><AssetIcon name="lock" :size="14" />本机安全连接</span
+          ><span class="secure-badge"
+            ><AssetIcon name="lock" :size="14" />Local secure connection</span
           ><button
             class="top-icon"
             type="button"
-            aria-label="刷新状态"
+            aria-label="Refresh status"
             :disabled="state.busy"
             @click="refresh()"
             ><AssetIcon name="refresh" :size="18" :class="{ spinning: state.busy }" /></button
@@ -819,11 +824,10 @@ onUnmounted(() => {
         <div class="hero-copy">
           <p class="eyebrow">LOCAL AUTOMATION RUNTIME</p>
           <h1>Chrome MCP Bridge</h1>
-          <p class="subtitle">让 AI 安全、直接地使用你当前的 Chrome</p>
+          <p class="subtitle">Let AI use your current Chrome safely and directly</p>
           <blockquote class="motto"
-            >“大道为先，若计不先定，虑不蚤决，则进退不定，疑生必败。”<cite
-              >—《尉缭子·劝令》</cite
-            ></blockquote
+            >"The Way comes first: if plans are not set and decisions not made early, advance and
+            retreat waver, and doubt breeds defeat."<cite>— Wei Liaozi, Quanling</cite></blockquote
           >
         </div>
         <div class="hero-status" :class="`tone-${phaseMeta.tone}`"
@@ -840,7 +844,7 @@ onUnmounted(() => {
             alt=""
             aria-hidden="true"
           />
-          <span class="metric-label">服务状态</span>
+          <span class="metric-label">Service status</span>
           <strong>{{ phaseMeta.label }}</strong>
           <small>{{ state.message }}</small>
         </article>
@@ -848,7 +852,7 @@ onUnmounted(() => {
           class="metric metric-button panel accent-purple"
           type="button"
           :disabled="clients.length === 0 && !statelessMcp"
-          :aria-label="`查看 ${sessions} 个活跃 MCP 会话和无会话请求监控`"
+          :aria-label="`View ${sessions} active MCP sessions and stateless request monitoring`"
           @click="showClients = true"
         >
           <span class="metric-icon"><AssetIcon name="message" :size="25" /></span>
@@ -858,13 +862,15 @@ onUnmounted(() => {
             alt=""
             aria-hidden="true"
           />
-          <span class="metric-label">活跃 MCP 会话</span>
+          <span class="metric-label">Active MCP sessions</span>
           <strong>{{ sessions }}</strong>
           <small>{{
-            clients.length || statelessMcp ? '点击查看连接与请求监控' : '暂无客户端详情'
+            clients.length || statelessMcp
+              ? 'Click to view connections and request monitoring'
+              : 'No client details yet'
           }}</small>
           <span v-if="clients.length || statelessMcp" class="metric-action"
-            >查看详情 <AssetIcon name="chevron-right" :size="14" aria-hidden="true"
+            >View details <AssetIcon name="chevron-right" :size="14" aria-hidden="true"
           /></span>
         </button>
         <article class="metric panel accent-green">
@@ -875,9 +881,9 @@ onUnmounted(() => {
             alt=""
             aria-hidden="true"
           />
-          <span class="metric-label">可用工具</span>
+          <span class="metric-label">Available tools</span>
           <strong>{{ toolCount }}</strong>
-          <small>浏览器控制能力</small>
+          <small>Browser control capabilities</small>
         </article>
       </section>
 
@@ -886,35 +892,38 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">RUNTIME CONTROL</span>
             <div class="heading-title"
-              ><AssetIcon name="activity" :size="20" /><h2>实时运行控制</h2></div
+              ><AssetIcon name="activity" :size="20" /><h2>Live runtime control</h2></div
             >
-            <p class="card-subtitle">统一查看 MCP、Agent 和 Workflow；桌面端不展示敏感参数。</p>
+            <p class="card-subtitle"
+              >Unified view of MCP, Agent and Workflow; the desktop app omits sensitive
+              parameters.</p
+            >
           </div>
           <div class="runtime-summary">
             <span class="live-pill"
-              ><span class="pulse"></span>{{ runtimeActiveCount }} 个运行中</span
+              ><span class="pulse"></span>{{ runtimeActiveCount }} running</span
             >
             <button class="button secondary" type="button" @click="refreshRuntime"
-              ><AssetIcon name="refresh" :size="14" />刷新</button
+              ><AssetIcon name="refresh" :size="14" />Refresh</button
             >
           </div>
         </div>
         <div class="runtime-toolbar">
           <label
-            >筛选
+            >Filter
             <select v-model="runtimeFilter">
-              <option value="all">全部状态</option>
-              <option value="running">运行中</option>
-              <option value="waiting">等待 Chrome</option>
-              <option value="paused">已暂停</option>
-              <option value="success">成功</option>
-              <option value="error">失败</option>
-              <option value="cancelled">已取消</option>
-              <option value="unknown">状态未知</option>
+              <option value="all">All statuses</option>
+              <option value="running">Running</option>
+              <option value="waiting">Waiting for Chrome</option>
+              <option value="paused">Paused</option>
+              <option value="success">Success</option>
+              <option value="error">Failed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="unknown">Unknown status</option>
             </select></label
           >
           <span class="runtime-security-note"
-            ><AssetIcon name="lock" :size="13" />仅显示脱敏摘要</span
+            ><AssetIcon name="lock" :size="13" />Redacted summary only</span
           >
         </div>
         <div class="runtime-layout">
@@ -935,10 +944,11 @@ onUnmounted(() => {
               </div>
               <strong>{{ task.summary.label }}</strong>
               <small
-                >{{ task.summary.toolName || '等待下一步' }} · {{ runtimeElapsed(task) }}</small
+                >{{ task.summary.toolName || 'Waiting for next step' }} ·
+                {{ runtimeElapsed(task) }}</small
               >
               <small
-                >{{ task.summary.origin || '域名未报告' }} · Tab
+                >{{ task.summary.origin || 'Origin not reported' }} · Tab
                 {{ task.summary.tabId ?? '—' }}</small
               >
             </button>
@@ -949,8 +959,8 @@ onUnmounted(() => {
                 alt=""
                 aria-hidden="true"
               />
-              <strong>当前没有符合筛选条件的任务。</strong>
-              <small>正在运行的 MCP、Agent 和 Workflow 会显示在这里。</small>
+              <strong>No tasks match the current filter.</strong>
+              <small>Running MCP, Agent and Workflow tasks appear here.</small>
             </div>
           </div>
           <article v-if="selectedRuntimeTask" class="runtime-detail">
@@ -969,22 +979,22 @@ onUnmounted(() => {
             </div>
             <dl class="runtime-info-list">
               <div
-                ><dt>当前工具 / 步骤</dt
+                ><dt>Current tool / step</dt
                 ><dd>{{ selectedRuntimeTask.summary.toolName || '—' }}</dd></div
               >
               <div
                 ><dt>Profile</dt
-                ><dd>{{ selectedRuntimeTask.summary.profileId || '当前 Chrome' }}</dd></div
+                ><dd>{{ selectedRuntimeTask.summary.profileId || 'Current Chrome' }}</dd></div
               >
               <div
-                ><dt>标签页 / 域名</dt
+                ><dt>Tab / origin</dt
                 ><dd
                   >Tab {{ selectedRuntimeTask.summary.tabId ?? '—' }} ·
                   {{ selectedRuntimeTask.summary.origin || '—' }}</dd
                 ></div
               >
               <div
-                ><dt>运行时间</dt><dd>{{ runtimeElapsed(selectedRuntimeTask) }}</dd></div
+                ><dt>Elapsed</dt><dd>{{ runtimeElapsed(selectedRuntimeTask) }}</dd></div
               >
             </dl>
             <p v-if="selectedRuntimeTask.summary.errorMessage" class="runtime-error">{{
@@ -996,7 +1006,7 @@ onUnmounted(() => {
                 type="button"
                 :disabled="!selectedRuntimeTask.summary.cancelable || Boolean(runtimeActionTaskId)"
                 @click="controlRuntimeTask(selectedRuntimeTask, 'cancel')"
-                ><AssetIcon name="alert" :size="14" />取消</button
+                ><AssetIcon name="alert" :size="14" />Cancel</button
               >
               <button
                 v-if="selectedRuntimeTask.summary.status !== 'paused'"
@@ -1004,7 +1014,7 @@ onUnmounted(() => {
                 type="button"
                 :disabled="!selectedRuntimeTask.summary.pausable || Boolean(runtimeActionTaskId)"
                 @click="controlRuntimeTask(selectedRuntimeTask, 'pause')"
-                ><AssetIcon name="pause" :size="14" />暂停</button
+                ><AssetIcon name="pause" :size="14" />Pause</button
               >
               <button
                 v-else
@@ -1012,7 +1022,7 @@ onUnmounted(() => {
                 type="button"
                 :disabled="Boolean(runtimeActionTaskId)"
                 @click="controlRuntimeTask(selectedRuntimeTask, 'resume')"
-                ><AssetIcon name="play" :size="14" />继续</button
+                ><AssetIcon name="play" :size="14" />Resume</button
               >
               <button
                 class="button secondary"
@@ -1021,17 +1031,17 @@ onUnmounted(() => {
                   selectedRuntimeTask.summary.tabId == null || Boolean(runtimeActionTaskId)
                 "
                 @click="controlRuntimeTask(selectedRuntimeTask, 'focus')"
-                ><AssetIcon name="crosshair" :size="14" />聚焦标签页</button
+                ><AssetIcon name="crosshair" :size="14" />Focus tab</button
               >
               <button
                 class="button secondary"
                 type="button"
                 @click="copyValue(selectedRuntimeTask.summary.taskId)"
-                ><AssetIcon name="copy" :size="14" />复制 ID</button
+                ><AssetIcon name="copy" :size="14" />Copy ID</button
               >
             </div>
             <details class="runtime-events"
-              ><summary>时间线（{{ selectedRuntimeTask.events.length }}）</summary
+              ><summary>Timeline ({{ selectedRuntimeTask.events.length }})</summary
               ><div
                 v-for="event in selectedRuntimeTask.events"
                 :key="`${event.at}-${event.type}`"
@@ -1049,8 +1059,8 @@ onUnmounted(() => {
               alt=""
               aria-hidden="true"
             />
-            <strong>选择一个任务查看详情。</strong>
-            <small>运行状态、时间线和操作会显示在这里。</small>
+            <strong>Select a task to view details.</strong>
+            <small>Run status, timeline and actions appear here.</small>
           </div>
         </div>
       </section>
@@ -1060,32 +1070,34 @@ onUnmounted(() => {
           <div class="card-heading">
             <div>
               <span class="section-kicker">CONNECTION</span>
-              <div class="heading-title"><AssetIcon name="plug" :size="20" /><h2>连接状态</h2></div>
+              <div class="heading-title"
+                ><AssetIcon name="plug" :size="20" /><h2>Connection status</h2></div
+              >
             </div>
             <span class="live-pill"><span class="pulse"></span>LIVE</span>
           </div>
           <div class="connection-list">
             <div class="connection-row">
               <span class="icon-bubble"><AssetIcon name="plug" :size="18" /></span>
-              <div><b>Chrome 扩展</b><small>当前浏览器配置</small></div>
+              <div><b>Chrome extension</b><small>Current browser profile</small></div>
               <span class="state-text" :class="`text-${statusFor(extensionConnected)}`">{{
-                extensionConnected ? '已连接' : '未连接'
+                extensionConnected ? 'Connected' : 'Not connected'
               }}</span
               ><AssetIcon name="chevron-right" class="row-chevron" :size="17" />
             </div>
             <div class="connection-row">
               <span class="icon-bubble"><AssetIcon name="cable" :size="18" /></span>
-              <div><b>Native Host</b><small>Native Messaging 通道</small></div>
+              <div><b>Native Host</b><small>Native Messaging channel</small></div>
               <span class="state-text" :class="`text-${statusFor(nativeConnected, true)}`">{{
-                nativeConnected ? '已连接' : '等待连接'
+                nativeConnected ? 'Connected' : 'Waiting to connect'
               }}</span
               ><AssetIcon name="chevron-right" class="row-chevron" :size="17" />
             </div>
             <div class="connection-row">
               <span class="icon-bubble"><AssetIcon name="search-check" :size="18" /></span>
-              <div><b>健康检查</b><small>端到端 Chrome 回包</small></div>
+              <div><b>Health check</b><small>End-to-end Chrome round trip</small></div>
               <span class="state-text" :class="`text-${statusFor(state.data?.probe?.ok, true)}`">{{
-                state.data?.probe?.ok ? `${state.data.probe.elapsedMs} ms` : '手动检查'
+                state.data?.probe?.ok ? `${state.data.probe.elapsedMs} ms` : 'Manual check'
               }}</span
               ><AssetIcon name="chevron-right" class="row-chevron" :size="17" />
             </div>
@@ -1097,40 +1109,42 @@ onUnmounted(() => {
             <div>
               <span class="section-kicker">ENDPOINT</span>
               <div class="heading-title"
-                ><AssetIcon name="server" :size="20" /><h2>服务信息</h2></div
+                ><AssetIcon name="server" :size="20" /><h2>Service info</h2></div
               >
             </div>
             <span class="local-only"><AssetIcon name="network" :size="14" />127.0.0.1</span>
           </div>
           <dl class="info-list">
             <div
-              ><dt>MCP 地址</dt
+              ><dt>MCP address</dt
               ><dd
                 >http://127.0.0.1:{{ PORT }}/mcp
                 <button
                   class="inline-icon"
                   type="button"
-                  aria-label="复制 MCP 地址"
+                  aria-label="Copy MCP address"
                   @click="copyValue(`http://127.0.0.1:${PORT}/mcp`)"
                   ><AssetIcon name="copy" :size="14" /></button></dd
             ></div>
             <div
-              ><dt>端口</dt
+              ><dt>Port</dt
               ><dd
                 >{{ PORT }}
                 <button
                   class="inline-icon"
                   type="button"
-                  aria-label="复制端口"
+                  aria-label="Copy port"
                   @click="copyValue(String(PORT))"
                   ><AssetIcon name="copy" :size="14" /></button></dd
             ></div>
             <div
-              ><dt>最后活动</dt
+              ><dt>Last activity</dt
               ><dd>{{ formatActivity(state.data?.nativeHost?.lastActivityAt) }}</dd></div
             >
           </dl>
-          <p class="privacy-note"><span>●</span> 数据仅在本机传输，不经过云端</p>
+          <p class="privacy-note"
+            ><span>●</span> Data stays on this machine, never through the cloud</p
+          >
         </article>
       </section>
 
@@ -1139,9 +1153,11 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">ERROR DIAGNOSTICS</span>
             <div class="heading-title"
-              ><AssetIcon name="alert" :size="20" /><h2>错误诊断板块</h2></div
+              ><AssetIcon name="alert" :size="20" /><h2>Error diagnostics</h2></div
             >
-            <p class="card-subtitle">统计每个终端的插件错误，并保留原始日志供排查。</p>
+            <p class="card-subtitle"
+              >Counts extension errors per terminal and keeps raw logs for troubleshooting.</p
+            >
           </div>
           <div class="error-diagnostics-actions">
             <button
@@ -1150,7 +1166,7 @@ onUnmounted(() => {
               :disabled="isRefreshingErrorDiagnostics || isClearingErrorDiagnostics"
               @click="refreshErrorDiagnostics()"
               ><AssetIcon name="refresh" :size="14" />{{
-                isRefreshingErrorDiagnostics ? '刷新中…' : '刷新'
+                isRefreshingErrorDiagnostics ? 'Refreshing…' : 'Refresh'
               }}</button
             >
             <button
@@ -1159,7 +1175,7 @@ onUnmounted(() => {
               :disabled="!errorDiagnostics || isExportingErrorDiagnostics"
               @click="exportErrorDiagnostics"
               ><AssetIcon name="clipboard" :size="14" />{{
-                isExportingErrorDiagnostics ? '导出中…' : '导出 JSON'
+                isExportingErrorDiagnostics ? 'Exporting…' : 'Export JSON'
               }}</button
             >
             <button
@@ -1169,10 +1185,10 @@ onUnmounted(() => {
               @click="clearErrorDiagnostics"
               ><AssetIcon name="trash" :size="14" />{{
                 isClearingErrorDiagnostics
-                  ? '清除中…'
+                  ? 'Clearing…'
                   : errorTerminalFilter === 'all'
-                    ? '清除全部日志'
-                    : '清除当前终端'
+                    ? 'Clear all logs'
+                    : 'Clear current terminal'
               }}</button
             >
           </div>
@@ -1180,15 +1196,15 @@ onUnmounted(() => {
         <div v-if="errorDiagnostics" class="error-diagnostics-body">
           <div class="error-diagnostics-toolbar">
             <label
-              >终端
+              >Terminal
               <select v-model="errorTerminalFilter" @change="errorCategoryFilter = null">
-                <option value="all">全部终端</option>
+                <option value="all">All terminals</option>
                 <option
                   v-for="terminal in errorTerminalOptions"
                   :key="terminal.terminalId"
                   :value="terminal.terminalId"
                 >
-                  {{ terminal.name }}（{{ terminal.terminalId }}）
+                  {{ terminal.name }} ({{ terminal.terminalId }})
                 </option>
               </select>
             </label>
@@ -1199,9 +1215,9 @@ onUnmounted(() => {
                 type="button"
                 @click="errorCategoryFilter = null"
               >
-                已筛选：{{ selectedErrorCategoryLabel }} ×
+                Filtered: {{ selectedErrorCategoryLabel }} ×
               </button>
-              <span class="error-diagnostics-total">{{ errorTotal }} 条错误</span>
+              <span class="error-diagnostics-total">{{ errorTotal }} errors</span>
             </div>
           </div>
           <div class="error-category-grid">
@@ -1219,13 +1235,15 @@ onUnmounted(() => {
               ><strong>{{ row.count }}</strong>
             </button>
           </div>
-          <p v-if="!selectedTerminalLogs.length" class="error-category-empty">暂无错误记录</p>
+          <p v-if="!selectedTerminalLogs.length" class="error-category-empty"
+            >No error records yet</p
+          >
           <p v-if="errorDiagnostics.errors.length" class="diagnostic-warning">
-            {{ errorDiagnostics.errors.join('；') }}
+            {{ errorDiagnostics.errors.join('; ') }}
           </p>
           <details class="error-log-details">
-            <summary>查看原始错误日志（{{ visibleErrorLogs.length }} 条）</summary>
-            <pre>{{ errorLogText() || '暂无错误日志。' }}</pre>
+            <summary>View raw error logs ({{ visibleErrorLogs.length }})</summary>
+            <pre>{{ errorLogText() || 'No error logs yet.' }}</pre>
           </details>
         </div>
         <p v-else class="error-diagnostics-empty">{{ errorDiagnosticsMessage }}</p>
@@ -1236,7 +1254,7 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">MCP TRANSPORTS</span>
             <div class="heading-title"
-              ><AssetIcon name="cable" :size="20" /><h2>全部服务入口</h2></div
+              ><AssetIcon name="cable" :size="20" /><h2>All service endpoints</h2></div
             >
           </div>
           <span class="local-only"><AssetIcon name="lock" :size="13" />LOCAL ONLY</span>
@@ -1244,71 +1262,74 @@ onUnmounted(() => {
         <div class="transport-grid">
           <div class="transport-entry">
             <span class="transport-icon tone-blue"><AssetIcon name="globe" :size="18" /></span>
-            <strong>Streamable HTTP（兼容版）</strong>
+            <strong>Streamable HTTP (compatible)</strong>
             <code>http://127.0.0.1:{{ PORT }}/mcp</code>
-            <small>保留会话，兼容现有客户端</small>
+            <small>Keeps sessions, works with existing clients</small>
           </div>
           <div class="transport-entry transport-entry-new">
             <span class="transport-icon tone-purple"><AssetIcon name="link" :size="18" /></span>
-            <strong>Streamable HTTP（尝鲜版）</strong>
+            <strong>Streamable HTTP (preview)</strong>
             <code>http://127.0.0.1:{{ PORT }}/mcp-new</code>
-            <small>MCP 2026-07-28，无会话</small>
+            <small>MCP 2026-07-28, no sessions</small>
           </div>
           <div class="transport-entry">
             <span class="transport-icon tone-blue"><AssetIcon name="file" :size="18" /></span>
-            <strong>SSE（旧版 MCP）</strong>
+            <strong>SSE (legacy MCP)</strong>
             <code>http://127.0.0.1:{{ PORT }}/sse</code>
-            <small>消息地址：/messages?sessionId=…</small>
+            <small>Message URL: /messages?sessionId=…</small>
           </div>
           <div class="transport-entry">
             <span class="transport-icon tone-amber"><AssetIcon name="terminal" :size="18" /></span>
             <strong>STDIO</strong>
-            <code>mcp-chrome-stdio 或 EXE --stdio</code>
-            <small>内部连接 Streamable HTTP（兼容版）</small>
+            <code>mcp-chrome-stdio or EXE --stdio</code>
+            <small>Connects internally over Streamable HTTP (compatible)</small>
           </div>
         </div>
       </section>
 
       <section class="action-bar panel" id="actions">
         <div class="action-copy"
-          ><b><AssetIcon name="wrench" :size="15" />快捷操作</b
+          ><b><AssetIcon name="wrench" :size="15" />Quick actions</b
           ><small>{{
-            state.lastUpdated ? `上次刷新 ${state.lastUpdated}` : '等待首次刷新'
+            state.lastUpdated ? `Last refreshed ${state.lastUpdated}` : 'Waiting for first refresh'
           }}</small></div
         >
         <button class="button secondary" :disabled="state.busy" @click="refresh()"
-          ><AssetIcon name="refresh" :size="15" />刷新状态</button
+          ><AssetIcon name="refresh" :size="15" />Refresh status</button
         >
         <button class="button secondary" :disabled="state.busy" @click="refresh(true)"
-          ><AssetIcon name="search-check" :size="15" />健康检查</button
+          ><AssetIcon name="search-check" :size="15" />Health check</button
         >
         <button
           class="button primary"
           :disabled="state.busy || state.phase === 'offline'"
           @click="control('start')"
-          ><AssetIcon name="server" :size="15" />启动服务</button
+          ><AssetIcon name="server" :size="15" />Start service</button
         >
         <button
           class="button danger"
           :disabled="state.busy || !serverRunning"
           @click="control('stop')"
-          ><AssetIcon name="check-circle" :size="15" />停止服务</button
+          ><AssetIcon name="check-circle" :size="15" />Stop service</button
         >
         <button class="button secondary" @click="openLog"
-          ><AssetIcon name="file" :size="15" />打开日志</button
+          ><AssetIcon name="file" :size="15" />Open log</button
         >
       </section>
 
       <section class="details panel" id="diagnostics">
         <div class="detail-head"
           ><span class="section-kicker"><AssetIcon name="activity" :size="13" /> DIAGNOSTICS</span
-          ><span>通信协议 V{{ protocolVersion }} · 应用 v{{ APP_VERSION }}</span></div
+          ><span>Protocol V{{ protocolVersion }} · App v{{ APP_VERSION }}</span></div
         >
         <p>{{ state.message }}</p>
-        <code>Native Messaging：com.chromemcp.nativehost</code>
+        <code>Native Messaging: com.chromemcp.nativehost</code>
       </section>
 
-      <footer>Chrome MCP Bridge · 关闭窗口后继续驻留系统托盘 · F5 刷新状态</footer>
+      <footer
+        >Chrome MCP Bridge · Keeps running in the system tray after the window closes · F5 refreshes
+        status</footer
+      >
 
       <div
         v-if="showClients"
@@ -1328,19 +1349,19 @@ onUnmounted(() => {
               <span class="section-kicker">ACTIVE SESSIONS</span>
               <div class="heading-title"
                 ><AssetIcon name="message" :size="20" /><h2 id="clients-title"
-                  >当前连接客户端</h2
+                  >Connected clients</h2
                 ></div
               >
               <p>
-                共 {{ sessions }} 个 MCP 会话<span v-if="statelessMcp">
-                  · 另有 {{ statelessMcp.requestCount }} 次无会话请求</span
+                {{ sessions }} MCP sessions<span v-if="statelessMcp">
+                  · plus {{ statelessMcp.requestCount }} stateless requests</span
                 >
               </p>
             </div>
             <button
               class="icon-button"
               type="button"
-              aria-label="关闭客户端列表"
+              aria-label="Close client list"
               @click="showClients = false"
             >
               <AssetIcon name="close" :size="17" />
@@ -1353,55 +1374,59 @@ onUnmounted(() => {
                 ><AssetIcon name="radio" :size="17"
               /></span>
               <div class="client-title">
-                <strong>Streamable HTTP（尝鲜版）</strong>
-                <small>无会话请求监控 · {{ statelessMcp.endpoint }}</small>
+                <strong>Streamable HTTP (preview)</strong>
+                <small>Stateless request monitoring · {{ statelessMcp.endpoint }}</small>
               </div>
               <span class="client-connected stateless-connected">
                 <span class="status-dot"></span
-                >{{ statelessMcp.activeRequests ? '请求中' : '已监控' }}
+                >{{ statelessMcp.activeRequests ? 'Requesting' : 'Monitoring' }}
               </span>
             </div>
             <dl class="client-details stateless-details">
               <div class="client-detail-endpoint"
-                ><dt>服务入口</dt
+                ><dt>Endpoint</dt
                 ><dd class="client-endpoint"
                   >http://127.0.0.1:{{ PORT }}{{ statelessMcp.endpoint }}</dd
                 ></div
               >
               <div
-                ><dt>最近客户端</dt
-                ><dd>{{ statelessMcp.clientInfo?.name || '未识别客户端' }}</dd></div
+                ><dt>Last client</dt
+                ><dd>{{ statelessMcp.clientInfo?.name || 'Unknown client' }}</dd></div
               >
               <div
-                ><dt>最近活动</dt
+                ><dt>Last activity</dt
                 ><dd>{{ formatActivity(statelessMcp.lastRequestAt || undefined) }}</dd></div
               >
               <div
-                ><dt>请求数</dt><dd>{{ statelessMcp.requestCount }} 次</dd></div
+                ><dt>Request count</dt><dd>{{ statelessMcp.requestCount }}</dd></div
               >
               <div
-                ><dt>最近耗时</dt
+                ><dt>Last latency</dt
                 ><dd :class="latencyTone(statelessMcp.lastRequestLatencyMs)">
                   {{ formatLatency(statelessMcp.lastRequestLatencyMs) }}
                 </dd></div
               >
               <div v-if="statelessMcp.remoteAddress"
-                ><dt>来源地址</dt><dd>{{ statelessMcp.remoteAddress }}</dd></div
+                ><dt>Remote address</dt><dd>{{ statelessMcp.remoteAddress }}</dd></div
               >
               <div v-if="statelessMcp.errorCount"
-                ><dt>错误次数</dt
-                ><dd class="latency-danger">{{ statelessMcp.errorCount }} 次</dd></div
+                ><dt>Error count</dt
+                ><dd class="latency-danger">{{ statelessMcp.errorCount }}</dd></div
               >
             </dl>
             <p class="stateless-note"
-              >无会话模式不会生成 session ID，这里按请求记录最近活动与耗时。</p
+              >Stateless mode creates no session ID; recent activity and latency are recorded per
+              request.</p
             >
           </article>
 
           <div class="request-monitor global-request-monitor">
             <div class="request-monitor-heading">
-              <strong><AssetIcon name="activity" :size="14" />活动请求 · 当前仍在执行</strong>
-              <span>{{ activeMcpRequests.length }} 个</span>
+              <strong
+                ><AssetIcon name="activity" :size="14" />Active requests · currently
+                executing</strong
+              >
+              <span>{{ activeMcpRequests.length }}</span>
             </div>
             <div v-if="activeMcpRequests.length" class="request-list">
               <article
@@ -1412,13 +1437,13 @@ onUnmounted(() => {
                 <div class="request-entry-copy">
                   <strong>{{ request.toolName || request.method }}</strong>
                   <small>
-                    {{ requestTransportLabel(request) }} · {{ request.endpoint || 'MCP' }} · 已运行
-                    {{ formatElapsed(request.elapsedMs) }}
+                    {{ requestTransportLabel(request) }} · {{ request.endpoint || 'MCP' }} · running
+                    for {{ formatElapsed(request.elapsedMs) }}
                   </small>
                   <small
-                    >请求 ID：{{ shortRequestId(request.requestId)
+                    >Request ID: {{ shortRequestId(request.requestId)
                     }}<span v-if="request.jsonRpcId !== null">
-                      · JSON-RPC ID：{{ request.jsonRpcId }}</span
+                      · JSON-RPC ID: {{ request.jsonRpcId }}</span
                     ></small
                   >
                 </div>
@@ -1427,11 +1452,11 @@ onUnmounted(() => {
                   type="button"
                   :disabled="Boolean(cancellingRequestId) || Boolean(request.cancelRequestedAt)"
                   @click="cancelMcpRequest(request)"
-                  >{{ request.cancelRequestedAt ? '中断中…' : '中断' }}</button
+                  >{{ request.cancelRequestedAt ? 'Cancelling…' : 'Cancel' }}</button
                 >
               </article>
             </div>
-            <p v-else class="request-empty">当前没有执行中的 MCP 请求。</p>
+            <p v-else class="request-empty">No MCP requests are executing right now.</p>
           </div>
 
           <div class="request-monitor global-request-monitor recent-request-monitor">
@@ -1450,10 +1475,11 @@ onUnmounted(() => {
                   ><AssetIcon name="chevron-right" :size="15"
                 /></span>
                 <strong
-                  ><AssetIcon name="clipboard" :size="14" />最近请求 · 已完成的调用记录</strong
+                  ><AssetIcon name="clipboard" :size="14" />Recent requests · completed
+                  calls</strong
                 >
               </button>
-              <span>{{ recentMcpRequests.length }} 条</span>
+              <span>{{ recentMcpRequests.length }}</span>
             </div>
             <div id="recent-mcp-request-list" v-show="showRecentMcpRequests">
               <div v-if="recentMcpRequests.length" class="request-list recent-request-list">
@@ -1481,7 +1507,7 @@ onUnmounted(() => {
                   </span>
                 </article>
               </div>
-              <p v-else class="request-empty">暂无已完成的工具调用或失败请求。</p>
+              <p v-else class="request-empty">No completed tool calls or failed requests yet.</p>
             </div>
           </div>
 
@@ -1493,64 +1519,64 @@ onUnmounted(() => {
                   <strong>{{ clientName(client) }}</strong>
                   <small>{{ clientVersion(client) }}</small>
                 </div>
-                <span class="client-connected"><span class="status-dot"></span>已连接</span>
+                <span class="client-connected"><span class="status-dot"></span>Connected</span>
               </div>
               <dl class="client-details">
                 <div
-                  ><dt>连接方式</dt><dd>{{ transportLabel(client) }}</dd></div
+                  ><dt>Transport</dt><dd>{{ transportLabel(client) }}</dd></div
                 >
                 <div class="client-detail-endpoint"
-                  ><dt>服务入口</dt
+                  ><dt>Endpoint</dt
                   ><dd class="client-endpoint">{{ endpointLabel(client) }}</dd></div
                 >
                 <div
-                  ><dt>会话 ID</dt
+                  ><dt>Session ID</dt
                   ><dd :title="client.sessionId">{{ shortSessionId(client.sessionId) }}</dd></div
                 >
                 <div
-                  ><dt>建立时间</dt><dd>{{ formatActivity(client.createdAt) }}</dd></div
+                  ><dt>Established</dt><dd>{{ formatActivity(client.createdAt) }}</dd></div
                 >
                 <div
-                  ><dt>连接时长</dt><dd>{{ formatDuration(client.createdAt) }}</dd></div
+                  ><dt>Connected for</dt><dd>{{ formatDuration(client.createdAt) }}</dd></div
                 >
                 <div
-                  ><dt>最后活动</dt><dd>{{ formatActivity(client.lastActivityAt) }}</dd></div
+                  ><dt>Last activity</dt><dd>{{ formatActivity(client.lastActivityAt) }}</dd></div
                 >
                 <div
-                  ><dt>最近耗时</dt
+                  ><dt>Last latency</dt
                   ><dd :class="latencyTone(client.lastRequestLatencyMs)">
                     {{ formatLatency(client.lastRequestLatencyMs) }}
                   </dd></div
                 >
                 <div
-                  ><dt>平均耗时</dt
+                  ><dt>Average latency</dt
                   ><dd :class="latencyTone(client.averageRequestLatencyMs)">
                     {{ formatLatency(client.averageRequestLatencyMs) }}
                   </dd></div
                 >
                 <div
-                  ><dt>请求数</dt><dd>{{ client.requestCount }} 次</dd></div
+                  ><dt>Request count</dt><dd>{{ client.requestCount }}</dd></div
                 >
                 <div v-if="client.remoteAddress"
-                  ><dt>来源地址</dt><dd>{{ client.remoteAddress }}</dd></div
+                  ><dt>Remote address</dt><dd>{{ client.remoteAddress }}</dd></div
                 >
                 <div v-if="client.activeRequests"
-                  ><dt>处理中</dt><dd>{{ client.activeRequests }} 个请求</dd></div
+                  ><dt>In flight</dt><dd>{{ client.activeRequests }} requests</dd></div
                 >
                 <div v-if="client.maxRequestLatencyMs !== null"
-                  ><dt>峰值耗时</dt
+                  ><dt>Peak latency</dt
                   ><dd :class="latencyTone(client.maxRequestLatencyMs)">{{
                     formatLatency(client.maxRequestLatencyMs)
                   }}</dd></div
                 >
                 <div v-if="client.p95RequestLatencyMs !== null"
-                  ><dt>P95 耗时</dt
+                  ><dt>P95 latency</dt
                   ><dd :class="latencyTone(client.p95RequestLatencyMs)">{{
                     formatLatency(client.p95RequestLatencyMs)
                   }}</dd></div
                 >
                 <div v-if="client.errorCount"
-                  ><dt>错误次数</dt><dd class="latency-danger">{{ client.errorCount }} 次</dd></div
+                  ><dt>Error count</dt><dd class="latency-danger">{{ client.errorCount }}</dd></div
                 >
               </dl>
               <p v-if="client.userAgent" class="client-user-agent" :title="client.userAgent">
@@ -1563,14 +1589,18 @@ onUnmounted(() => {
             class="empty-clients"
           >
             <span class="empty-icon"><AssetIcon name="radio" :size="25" /></span>
-            <strong>暂时没有可显示的客户端</strong>
-            <p>客户端建立 MCP 会话后，这里会显示它在初始化请求中报告的名称和版本。</p>
+            <strong>No clients to show yet</strong>
+            <p
+              >Once a client opens an MCP session, the name and version it reports in the initialize
+              request appear here.</p
+            >
           </div>
 
           <p class="modal-note"
-            >客户端名称来自 MCP initialize 请求；活动请求覆盖 Streamable HTTP、SSE 和 STDIO
-            入口。耗时为服务端统计的 MCP 请求处理耗时，包含浏览器工具执行时间，不是网络 Ping。P95
-            只统计最近 100 次请求。</p
+            >Client names come from MCP initialize requests; active requests cover Streamable HTTP,
+            SSE and STDIO endpoints. Latency is the server-side MCP request handling time, including
+            browser tool execution, not a network ping. P95 only counts the most recent 100
+            requests.</p
           >
         </section>
       </div>

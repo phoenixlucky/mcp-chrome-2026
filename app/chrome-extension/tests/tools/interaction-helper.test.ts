@@ -223,7 +223,7 @@ describe('interaction helpers', () => {
 
   it('recovers a click from a selector when the ref has expired', async () => {
     const button = document.createElement('button');
-    button.setAttribute('aria-label', '选择 image.jpg - 1');
+    button.setAttribute('aria-label', 'Select image.jpg - 1');
     setRect(button);
     document.body.append(button);
 
@@ -234,7 +234,7 @@ describe('interaction helpers', () => {
       callHelper(handler, {
         action: 'clickElement',
         ref: 'ref_expired',
-        selector: 'button[aria-label^="选择 image.jpg"]',
+        selector: 'button[aria-label^="Select image.jpg"]',
         timeout: 100,
       }),
     ).resolves.toMatchObject({ success: true, clicked: true });

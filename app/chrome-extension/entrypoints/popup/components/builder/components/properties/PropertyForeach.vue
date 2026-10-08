@@ -1,7 +1,7 @@
 <template>
   <div class="form-section">
     <div class="form-group">
-      <label class="form-label">列表变量</label>
+      <label class="form-label">List variable</label>
       <input
         class="form-input"
         v-model="(node as any).config.listVar"
@@ -9,30 +9,33 @@
       />
     </div>
     <div class="form-group">
-      <label class="form-label">循环项变量名</label>
-      <input class="form-input" v-model="(node as any).config.itemVar" placeholder="默认 item" />
+      <label class="form-label">Loop item variable name</label>
+      <input
+        class="form-input"
+        v-model="(node as any).config.itemVar"
+        placeholder="Default: item"
+      />
     </div>
     <div class="form-group">
-      <label class="form-label">子流 ID</label>
+      <label class="form-label">Subflow ID</label>
       <input
         class="form-input"
         v-model="(node as any).config.subflowId"
-        placeholder="选择或新建子流"
+        placeholder="Select or create a subflow"
       />
-      <button class="btn-sm" style="margin-top: 8px" @click="onCreateSubflow">新建子流</button>
+      <button class="btn-sm" style="margin-top: 8px" @click="onCreateSubflow">New subflow</button>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 
 const props = defineProps<{ node: NodeBase }>();
 const emit = defineEmits<{ (e: 'create-subflow', id: string): void }>();
 
 function onCreateSubflow() {
-  const id = prompt('请输入新子流ID');
+  const id = prompt('Enter a new subflow ID');
   if (!id) return;
   emit('create-subflow', id);
   const n = props.node as any;

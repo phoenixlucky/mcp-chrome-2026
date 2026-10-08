@@ -1,9 +1,10 @@
 /**
- * Welcome page i18n
+ * Welcome page i18n.
  *
  * zh / en switching for the welcome page. The choice is persisted in
  * localStorage (`LOCALE_STORAGE_KEY`) and defaults to the browser language.
  * `applyLocale` keeps the document <html lang> and <title> in sync.
+ * The `zh` COPY values below are intentionally left in Chinese.
  */
 
 export type Locale = 'zh' | 'en';

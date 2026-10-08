@@ -1,12 +1,12 @@
-/* 现代化全局样式 */
+/* Modern global styles */
 :root {
-  /* 字体系统 */
+  /* Font system */
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
   font-weight: 400;
 
-  /* 颜色系统 */
+  /* Color system */
   --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --primary-color: #667eea;
   --primary-dark: #5a67d8;
@@ -34,7 +34,7 @@
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
 
-  /* 间距系统 */
+  /* Spacing system */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
@@ -43,19 +43,19 @@
   --spacing-2xl: 24px;
   --spacing-3xl: 32px;
 
-  /* 圆角系统 */
+  /* Border radius system */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
 
-  /* 动画 */
+  /* Animations */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s ease;
   --transition-slow: 0.5s ease;
 
-  /* 字体渲染优化 */
+  /* Font rendering optimization */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -63,7 +63,7 @@
   -webkit-text-size-adjust: 100%;
 }
 
-/* 重置样式 */
+/* Reset styles */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -90,7 +90,7 @@ body {
   padding: 0;
 }
 
-/* 链接样式 */
+/* Link styles */
 a {
   color: var(--primary-color);
   text-decoration: none;
@@ -101,7 +101,7 @@ a:hover {
   color: var(--primary-dark);
 }
 
-/* 按钮基础样式重置 */
+/* Button base style reset */
 button {
   font-family: inherit;
   font-size: inherit;
@@ -117,7 +117,7 @@ button:disabled {
   opacity: 0.6;
 }
 
-/* 输入框基础样式 */
+/* Input base styles */
 input,
 textarea,
 select {
@@ -140,7 +140,7 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-/* 滚动条样式 */
+/* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -161,19 +161,19 @@ select:focus {
   background: var(--text-muted);
 }
 
-/* 选择文本样式 */
+/* Text selection styles */
 ::selection {
   background: rgba(102, 126, 234, 0.2);
   color: var(--text-primary);
 }
 
-/* 焦点可见性 */
+/* Focus visibility */
 :focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
-/* 动画关键帧 */
+/* Animation keyframes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -216,7 +216,7 @@ select:focus {
   }
 }
 
-/* 响应式断点 */
+/* Responsive breakpoints */
 @media (max-width: 420px) {
   :root {
     --spacing-xs: 3px;
@@ -229,7 +229,7 @@ select:focus {
   }
 }
 
-/* 高对比度模式支持 */
+/* High contrast mode support */
 @media (prefers-contrast: high) {
   :root {
     --border-color: #000000;
@@ -237,7 +237,7 @@ select:focus {
   }
 }
 
-/* 减少动画偏好 */
+/* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

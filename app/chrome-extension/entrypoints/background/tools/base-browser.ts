@@ -102,7 +102,7 @@ export function createExecutionUnknownResponse(
         tabId,
         action,
         timeoutMs,
-        message: `操作可能已经执行，禁止盲目重复。${error instanceof Error ? error.message : String(error)}`,
+        message: `The operation may have already run; do not blindly retry. ${error instanceof Error ? error.message : String(error)}`,
       },
     }),
   );

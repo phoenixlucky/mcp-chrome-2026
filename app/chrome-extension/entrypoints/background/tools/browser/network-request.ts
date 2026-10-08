@@ -137,7 +137,7 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
       }
       if (!/^https?:\/\//i.test(activeTab.url ?? '')) {
         return createErrorResponse(
-          '当前标签是 Chrome 内置页，不能注入网络请求脚本。请先打开任意 http(s) 网页；代理出口检测请使用 chrome_proxy_diagnostics。',
+          'The active tab is a Chrome built-in page, so a network request script cannot be injected. Open any http(s) page first; use chrome_proxy_diagnostics to check the proxy exit.',
         );
       }
       const activeTabId = activeTab.id;

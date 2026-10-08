@@ -1,35 +1,35 @@
-# 智能助手指南
+# Smart Assistant Guide
 
-## 开始使用
+## Get started
 
-1. 启动 Native Server 并重新加载 Chrome 扩展。
-2. 打开扩展侧边栏的“智能助手”，新建或选择项目和会话。
-3. 在项目菜单选择 Claude、Codex 或 DeepSeek；会话设置可选择模型。
+1. Start the Native Server and reload the Chrome extension.
+2. Open **Smart Assistant** in the extension side panel, then create or select a project and session.
+3. Choose Claude, Codex, or DeepSeek in the project menu; select a model in session settings.
 
-助手会以温柔、专业的猫娘风格回复，同时保持任务和工具执行的准确性。
+The assistant uses a warm, professional catgirl persona while keeping task and tool execution reliable.
 
-## DeepSeek API 设置
+## Configure DeepSeek
 
-在侧边栏右上角的设置菜单选择 **DeepSeek API Settings**，输入 API Key；可选填写 Base URL，保存后即可为任意 DeepSeek 会话使用。
+Open the side-panel settings menu and select **DeepSeek API Settings**. Enter an API key and, if needed, a Base URL. The saved setting is available to every DeepSeek session.
 
-- Key 只发送给本机 Native Server，并且设置读取接口只返回是否已配置，不返回明文。
-- Key 保存在本机智能助手数据库中；使用共享电脑时请在完成后点击 **Remove saved key**。
-- 也可在启动服务前设置 `DEEPSEEK_API_KEY`，以及可选的 `DEEPSEEK_BASE_URL`。插件中保存的设置优先于环境变量。
-- API 协议与模型信息以 [DeepSeek 官方文档](https://api-docs.deepseek.com/) 为准。
+- The key is sent only to the local Native Server; read APIs return configuration status, never the plaintext key.
+- The key is stored in the local assistant database. Use **Remove saved key** after using a shared computer.
+- You can instead set `DEEPSEEK_API_KEY` before starting the server, with optional `DEEPSEEK_BASE_URL`. A saved plugin setting takes precedence.
+- Refer to the [official DeepSeek documentation](https://api-docs.deepseek.com/) for API and model details.
 
-PowerShell 示例：
+PowerShell example:
 
 ```powershell
 $env:DEEPSEEK_API_KEY = 'your-api-key'
 pnpm run dev:native
 ```
 
-## 当前能力边界
+## Current limits
 
-DeepSeek 当前提供基础流式文本对话，并显示推理内容（如果 API 返回）。它尚不支持 MCP 工具调用、历史会话续接、图片或文件输入；需要这些能力时请选择 Claude 或 Codex。
+DeepSeek currently provides basic streamed text chat and displays reasoning content when supplied by the API. It does not yet support MCP tool calls, conversation resumption, image input, or file input. Choose Claude or Codex when those capabilities are required.
 
-## 常见问题
+## Troubleshooting
 
-- **API Key 未配置**：在插件设置中保存 Key，或设置环境变量后重启 Native Server。
-- **Credit balance is too low**：这是提供商账户余额/额度不足；请检查 DeepSeek 账户的余额或充值状态后重试。
-- **请求失败**：确认 Base URL、网络和所选模型；错误信息会显示 API 状态码及提供商返回的简短原因。
+- **API key is not configured**: save it in extension settings or set the environment variable and restart the Native Server.
+- **Credit balance is too low**: the provider account has insufficient balance or quota; review the DeepSeek account and retry.
+- **Request failed**: verify the Base URL, network, and selected model. The assistant displays the HTTP status and a concise provider message.

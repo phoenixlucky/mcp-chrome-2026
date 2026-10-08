@@ -1,6 +1,6 @@
 /**
- * @fileoverview 插件注册表
- * @description 管理节点和触发器插件的注册和查询
+ * @fileoverview Plugin registry
+ * @description Manages registration and lookup of node and trigger plugins
  */
 
 import type { NodeKind } from '../../domain/flow';
@@ -14,40 +14,40 @@ import type {
 } from './types';
 
 /**
- * 插件注册表
- * @description 单例模式，管理所有已注册的节点和触发器
+ * Plugin registry
+ * @description Singleton managing all registered nodes and triggers
  */
 export class PluginRegistry implements PluginRegistrationContext {
   private nodes = new Map<NodeKind, NodeDefinition>();
   private triggers = new Map<TriggerKind, TriggerDefinition>();
 
   /**
-   * 注册节点定义
-   * @description 如果已存在同名节点，会覆盖
+   * Register a node definition
+   * @description Overwrites if a node with the same kind already exists
    */
   registerNode(def: NodeDefinition): void {
     this.nodes.set(def.kind, def);
   }
 
   /**
-   * 注册触发器定义
-   * @description 如果已存在同名触发器，会覆盖
+   * Register a trigger definition
+   * @description Overwrites if a trigger with the same kind already exists
    */
   registerTrigger(def: TriggerDefinition): void {
     this.triggers.set(def.kind, def);
   }
 
   /**
-   * 获取节点定义
-   * @returns 节点定义或 undefined
+   * Get a node definition
+   * @returns Node definition or undefined
    */
   getNode(kind: NodeKind): NodeDefinition | undefined {
     return this.nodes.get(kind);
   }
 
   /**
-   * 获取节点定义（必须存在）
-   * @throws RRError 如果节点未注册
+   * Get a node definition (required)
+   * @throws RRError if the node is not registered
    */
   getNodeOrThrow(kind: NodeKind): NodeDefinition {
     const def = this.nodes.get(kind);
@@ -58,16 +58,16 @@ export class PluginRegistry implements PluginRegistrationContext {
   }
 
   /**
-   * 获取触发器定义
-   * @returns 触发器定义或 undefined
+   * Get a trigger definition
+   * @returns Trigger definition or undefined
    */
   getTrigger(kind: TriggerKind): TriggerDefinition | undefined {
     return this.triggers.get(kind);
   }
 
   /**
-   * 获取触发器定义（必须存在）
-   * @throws RRError 如果触发器未注册
+   * Get a trigger definition (required)
+   * @throws RRError if the trigger is not registered
    */
   getTriggerOrThrow(kind: TriggerKind): TriggerDefinition {
     const def = this.triggers.get(kind);
@@ -81,43 +81,43 @@ export class PluginRegistry implements PluginRegistrationContext {
   }
 
   /**
-   * 检查节点是否已注册
+   * Check whether a node is registered
    */
   hasNode(kind: NodeKind): boolean {
     return this.nodes.has(kind);
   }
 
   /**
-   * 检查触发器是否已注册
+   * Check whether a trigger is registered
    */
   hasTrigger(kind: TriggerKind): boolean {
     return this.triggers.has(kind);
   }
 
   /**
-   * 获取所有已注册的节点类型
+   * Get all registered node kinds
    */
   listNodeKinds(): NodeKind[] {
     return Array.from(this.nodes.keys());
   }
 
   /**
-   * 获取所有已注册的触发器类型
+   * Get all registered trigger kinds
    */
   listTriggerKinds(): TriggerKind[] {
     return Array.from(this.triggers.keys());
   }
 
   /**
-   * 注册插件
-   * @description 调用插件的 register 方法
+   * Register a plugin
+   * @description Calls the plugin's register method
    */
   registerPlugin(plugin: RRPlugin): void {
     plugin.register(this);
   }
 
   /**
-   * 批量注册插件
+   * Register plugins in bulk
    */
   registerPlugins(plugins: RRPlugin[]): void {
     for (const plugin of plugins) {
@@ -126,8 +126,8 @@ export class PluginRegistry implements PluginRegistrationContext {
   }
 
   /**
-   * 清空所有注册
-   * @description 主要用于测试
+   * Clear all registrations
+   * @description Mainly for tests
    */
   clear(): void {
     this.nodes.clear();
@@ -135,11 +135,11 @@ export class PluginRegistry implements PluginRegistrationContext {
   }
 }
 
-/** 全局插件注册表实例 */
+/** Global plugin registry instance */
 let globalRegistry: PluginRegistry | null = null;
 
 /**
- * 获取全局插件注册表
+ * Get the global plugin registry
  */
 export function getPluginRegistry(): PluginRegistry {
   if (!globalRegistry) {
@@ -149,8 +149,8 @@ export function getPluginRegistry(): PluginRegistry {
 }
 
 /**
- * 重置全局插件注册表
- * @description 主要用于测试
+ * Reset the global plugin registry
+ * @description Mainly for tests
  */
 export function resetPluginRegistry(): void {
   globalRegistry = null;

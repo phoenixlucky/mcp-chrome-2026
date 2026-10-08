@@ -1,11 +1,12 @@
-## 让Claude Code/Codex也能使用的可视化编辑器
+# A Visual Editor for Claude Code & Codex
 
-如何开启：`右键 > chrome mcp server > 切换网页编辑模式`
-或者快捷键： `cmd/ctrl + shift + o`
+**How to enable:**
+`Right Click > Chrome MCP Server > Toggle Web Editing Mode`
+**Shortcut:** `Cmd/Ctrl` + `Shift` + `O`
 
-### 交互式尺寸与排版调整
+### Interactive Sizing & Layout Adjustment
 
-接在画布上拖拽元素边缘调整宽、高及字体大小。所有的视觉调整将自动转换为代码变更建议，由 Agent 应用到源码中，实现设计与代码的实时同步。
+Directly drag element edges on the canvas to adjust width, height, and font sizes. All visual manipulations are automatically converted into code suggestions and applied to your source code by the Agent, bridging the gap between design and development in real-time.
 
 <div align="center">
   <a href="https://youtu.be/76_DsUU7aHs">
@@ -13,9 +14,9 @@
   </a>
 </div>
 
-### 可视化属性面板
+### Visual Property Controls
 
-通过元素属性面板直接管理 CSS 属性。支持一键调整 Flex/Grid 布局、内外边距及样式细节。适合快速原型设计或 UI 微调，大幅减少 CSS 编写时间。
+Manage CSS properties directly through a visual inspector panel. Effortlessly tweak Flex/Grid layouts, margins, padding, and styling details with a single click. Perfect for rapid prototyping or UI fine-tuning, significantly reducing the time spent writing raw CSS.
 
 <div align="center">
   <a href="https://youtu.be/ADOzT7El2mI">
@@ -23,9 +24,9 @@
   </a>
 </div>
 
-### 直接调试组件Vue/React组件的状态
+### Live Component State Debugging (Vue/React)
 
-支持实时查看和修改 React 及 Vue 组件的 props，无需离开当前视图，即可测试组件在不同状态下的渲染表现。
+Inspect and modify React and Vue component props in real-time. Test how your components render under different data states without ever leaving your current view or writing temporary console logs.
 
 <div align="center">
   <a href="https://youtu.be/PaIxdpGcEEk">
@@ -33,9 +34,11 @@
   </a>
 </div>
 
-### 点选并提示
+### Point, Click & Prompt
 
-选中任意页面元素，直接向Claude Code或者Codex发送修改指令。工具会自动提取选中组件结构与上下文信息发送给 AI，从而实现比全局对话更精准、更低延迟的代码修改。比如你可以点选某个元素然后说「把这个变大一些」，让Claude Code帮你在几秒内实现精准修改并实时生效
+Select any element on the page and send instructions directly to Claude Code or Codex. The tool automatically captures the component's structure and context, enabling the AI to provide modifications with far greater precision and lower latency than global chat contexts.
+
+Simply click an element and say, _"Make this bigger"_ or _"Change the background to red"_, and watch Claude Code implement the exact changes in seconds.
 
 <div align="center">
   <a href="https://youtu.be/dSkt5HaTU_s">

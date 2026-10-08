@@ -68,21 +68,21 @@ fn validate_payload(root: &Path) -> bool {
 
 fn extract_payload(exe_path: &Path) -> Result<PathBuf, String> {
     let mut executable =
-        File::open(exe_path).map_err(|error| format!("无法读取启动器：{error}"))?;
+        File::open(exe_path).map_err(|error| format!("Unable to read the launcher: {error}"))?;
     let executable_len = executable
         .metadata()
-        .map_err(|error| format!("无法读取启动器信息：{error}"))?
+        .map_err(|error| format!("Unable to read launcher metadata: {error}"))?
         .len();
     if executable_len < FOOTER_LEN as u64 {
-        return Err("启动器文件不完整，缺少运行时数据".into());
+        return Err("The launcher file is incomplete; runtime data is missing".into());
     }
     executable
         .seek(SeekFrom::End(-(FOOTER_LEN as i64)))
-        .map_err(|error| format!("无法读取启动器 footer：{error}"))?;
+        .map_err(|error| format!("Unable to read the launcher footer: {error}"))?;
     let mut footer = vec![0; FOOTER_LEN];
     executable
         .read_exact(&mut footer)
-        .map_err(|error| format!("无法读取启动器 footer：{error}"))?;
+        .map_err(|error| format!("Unable to read the launcher footer: {error}"))?;
     let info = parse_bundle_footer(executable_len, &footer)?;
 
     let cache_root = data_root().join("mcp-chrome-bridge/portable");
@@ -91,7 +91,7 @@ fn extract_payload(exe_path: &Path) -> Result<PathBuf, String> {
     if marker.is_file() && validate_payload(&final_root) {
         return Ok(final_root);
     }
-    fs::create_dir_all(&cache_root).map_err(|error| format!("无法创建运行时缓存目录：{error}"))?;
+    fs::create_dir_all(&cache_root).map_err(|error| format!("Unable to create the runtime cache directory: {error}"))?;
 
     let unique = format!(
         "{}-{}",
@@ -104,19 +104,19 @@ fn extract_payload(exe_path: &Path) -> Result<PathBuf, String> {
     let temp_root = cache_root.join(format!("runtime-stage-{unique}"));
     let zip_path = cache_root.join(format!("bundle-{unique}.zip"));
     let result = (|| -> Result<(), String> {
-        fs::create_dir_all(&temp_root).map_err(|error| format!("无法创建临时解包目录：{error}"))?;
+        fs::create_dir_all(&temp_root).map_err(|error| format!("Unable to create the temporary extraction directory: {error}"))?;
         executable
             .seek(SeekFrom::Start(info.bundle_offset))
-            .map_err(|error| format!("无法定位内嵌运行时：{error}"))?;
+            .map_err(|error| format!("Unable to locate the embedded runtime: {error}"))?;
         let mut zip = OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(&zip_path)
-            .map_err(|error| format!("无法创建临时压缩包：{error}"))?;
+            .map_err(|error| format!("Unable to create the temporary archive: {error}"))?;
         let mut limited = executable.take(info.bundle_len);
-        io::copy(&mut limited, &mut zip).map_err(|error| format!("无法提取内嵌压缩包：{error}"))?;
+        io::copy(&mut limited, &mut zip).map_err(|error| format!("Unable to extract the embedded archive: {error}"))?;
         zip.flush()
-            .map_err(|error| format!("无法写入内嵌压缩包：{error}"))?;
+            .map_err(|error| format!("Unable to write the embedded archive: {error}"))?;
         drop(zip);
 
         let tar_result = Command::new("tar.exe")
@@ -140,33 +140,33 @@ fn extract_payload(exe_path: &Path) -> Result<PathBuf, String> {
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .status()
-                .map_err(|error| format!("tar.exe 和 PowerShell 均无法启动：{error}"))?;
+                .map_err(|error| format!("Neither tar.exe nor PowerShell could be started: {error}"))?;
             if !status.success() {
-                return Err("运行时解压失败，请检查系统 tar.exe 或 PowerShell".into());
+                return Err("Failed to extract the runtime; check the system tar.exe or PowerShell".into());
             }
         }
         if !validate_payload(&temp_root) {
-            return Err("运行时压缩包缺少必要文件，EXE 可能已损坏".into());
+            return Err("The runtime archive is missing required files; the EXE may be corrupted".into());
         }
         fs::write(temp_root.join(".complete"), &info.bundle_hash)
-            .map_err(|error| format!("无法标记运行时缓存：{error}"))?;
+            .map_err(|error| format!("Unable to mark the runtime cache: {error}"))?;
         match fs::rename(&temp_root, &final_root) {
             Ok(()) => Ok(()),
             Err(_error) if marker.is_file() && validate_payload(&final_root) => Ok(()),
-            Err(error) => Err(format!("无法发布运行时缓存：{error}")),
+            Err(error) => Err(format!("Unable to publish the runtime cache: {error}")),
         }
     })();
     let _ = fs::remove_file(&zip_path);
     let _ = fs::remove_dir_all(&temp_root);
     result?;
     if !validate_payload(&final_root) {
-        return Err("运行时缓存校验失败".into());
+        return Err("Runtime cache validation failed".into());
     }
     Ok(final_root)
 }
 
 fn launch() -> Result<i32, String> {
-    let exe_path = env::current_exe().map_err(|error| format!("无法定位启动器：{error}"))?;
+    let exe_path = env::current_exe().map_err(|error| format!("Unable to locate the launcher: {error}"))?;
     let payload_root = extract_payload(&exe_path)?;
     let args: Vec<_> = env::args_os().skip(1).collect();
     if args.len() == 1 && args[0] == "--verify-package" {
@@ -177,7 +177,7 @@ fn launch() -> Result<i32, String> {
             .env("CHROME_MCP_PAYLOAD_ROOT", &payload_root)
             .env("CHROME_MCP_LAUNCHER_PATH", &exe_path)
             .status()
-            .map_err(|error| format!("无法验证内置 Node 运行时：{error}"))?;
+            .map_err(|error| format!("Unable to verify the bundled Node runtime: {error}"))?;
         return Ok(status.code().unwrap_or(1));
     }
     let node = payload_root.join("node.exe");
@@ -189,7 +189,7 @@ fn launch() -> Result<i32, String> {
         .env("CHROME_MCP_PAYLOAD_ROOT", &payload_root)
         .env("CHROME_MCP_LAUNCHER_PATH", &exe_path)
         .status()
-        .map_err(|error| format!("无法启动内置 Node 运行时：{error}"))?;
+        .map_err(|error| format!("Unable to start the bundled Node runtime: {error}"))?;
     Ok(status.code().unwrap_or(1))
 }
 
@@ -215,11 +215,11 @@ fn show_error(message: &str) {
                 ) -> i32;
             }
             let text: Vec<u16> =
-                std::ffi::OsStr::new(&format!("{message}\n\n日志：{}", log_path.display()))
+                std::ffi::OsStr::new(&format!("{message}\n\nLog: {}", log_path.display()))
                     .encode_wide()
                     .chain(Some(0))
                     .collect();
-            let title: Vec<u16> = std::ffi::OsStr::new("Chrome MCP Bridge 启动失败")
+            let title: Vec<u16> = std::ffi::OsStr::new("Chrome MCP Bridge failed to start")
                 .encode_wide()
                 .chain(Some(0))
                 .collect();
@@ -233,7 +233,7 @@ fn main() {
         Ok(code) => std::process::exit(code),
         Err(error) => {
             show_error(&error);
-            eprintln!("Chrome MCP Bridge 启动失败：{error}");
+            eprintln!("Chrome MCP Bridge failed to start: {error}");
             std::process::exit(1);
         }
     }

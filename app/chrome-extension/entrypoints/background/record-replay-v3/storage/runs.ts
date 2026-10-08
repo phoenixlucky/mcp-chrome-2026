@@ -1,6 +1,6 @@
 /**
- * @fileoverview RunRecordV3 持久化
- * @description 实现 Run 记录的 CRUD 操作
+ * @fileoverview RunRecordV3 persistence
+ * @description Implements Run record CRUD operations
  */
 
 import type { RunId } from '../domain/ids';
@@ -11,10 +11,10 @@ import type { RunsStore } from '../engine/storage/storage-port';
 import { RR_V3_STORES, withTransaction } from './db';
 
 /**
- * 校验 Run 记录结构
+ * Validate the Run record structure
  */
 function validateRunRecord(record: RunRecordV3): void {
-  // 校验 schema 版本
+  // Validate the schema version
   if (record.schemaVersion !== RUN_SCHEMA_VERSION) {
     throw createRRError(
       RR_ERROR_CODES.VALIDATION_ERROR,
@@ -22,7 +22,7 @@ function validateRunRecord(record: RunRecordV3): void {
     );
   }
 
-  // 校验必填字段
+  // Validate required fields
   if (!record.id) {
     throw createRRError(RR_ERROR_CODES.VALIDATION_ERROR, 'Run id is required');
   }
@@ -35,7 +35,7 @@ function validateRunRecord(record: RunRecordV3): void {
 }
 
 /**
- * 创建 RunsStore 实现
+ * Create the RunsStore implementation
  */
 export function createRunsStore(): RunsStore {
   return {
@@ -62,7 +62,7 @@ export function createRunsStore(): RunsStore {
     },
 
     async save(record: RunRecordV3): Promise<void> {
-      // 校验
+      // Validate
       validateRunRecord(record);
 
       return withTransaction(RR_V3_STORES.RUNS, 'readwrite', async (stores) => {
@@ -79,7 +79,7 @@ export function createRunsStore(): RunsStore {
       return withTransaction(RR_V3_STORES.RUNS, 'readwrite', async (stores) => {
         const store = stores[RR_V3_STORES.RUNS];
 
-        // 先读取现有记录
+        // Read the existing record first
         const existing = await new Promise<RunRecordV3 | null>((resolve, reject) => {
           const request = store.get(id);
           request.onsuccess = () => resolve((request.result as RunRecordV3) ?? null);
@@ -90,12 +90,12 @@ export function createRunsStore(): RunsStore {
           throw createRRError(RR_ERROR_CODES.INTERNAL, `Run "${id}" not found`);
         }
 
-        // 合并并更新
+        // Merge and update
         const updated: RunRecordV3 = {
           ...existing,
           ...patch,
-          id: existing.id, // 确保 id 不变
-          schemaVersion: existing.schemaVersion, // 确保版本不变
+          id: existing.id, // Ensure id stays unchanged
+          schemaVersion: existing.schemaVersion, // Ensure the version stays unchanged
           updatedAt: Date.now(),
         };
 

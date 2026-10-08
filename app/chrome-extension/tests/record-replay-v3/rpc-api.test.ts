@@ -892,11 +892,11 @@ describe('V3 RPC Flow CRUD APIs', () => {
                 { id: 'node-1', kind: 'test', config: {}, name: 'Start Node', disabled: false },
               ],
               edges: [],
-              // 符合 VariableDefinition 类型：name 必填，description/default/label 可选
+              // Matches the VariableDefinition type: name is required, description/default/label optional
               variables: [
                 { name: 'url', description: 'Target URL', default: 'https://example.com' },
               ],
-              // 符合 FlowPolicy 类型
+              // Matches the FlowPolicy type
               policy: { runTimeoutMs: 30000, defaultNodePolicy: { onError: { kind: 'stop' } } },
               meta: { tags: ['test', 'demo'] },
             },

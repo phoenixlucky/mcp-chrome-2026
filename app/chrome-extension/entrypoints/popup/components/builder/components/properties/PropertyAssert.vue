@@ -1,7 +1,7 @@
 <template>
   <div class="form-section">
     <div class="form-group">
-      <label class="form-label">断言条件 (JSON)</label>
+      <label class="form-label">Assert condition (JSON)</label>
       <textarea
         class="form-textarea"
         v-model="assertJson"
@@ -10,7 +10,7 @@
       ></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">失败策略</label>
+      <label class="form-label">Failure strategy</label>
       <select class="form-select" v-model="(node as any).config.failStrategy">
         <option value="stop">stop</option>
         <option value="warn">warn</option>
@@ -21,7 +21,6 @@
 </template>
 
 <script lang="ts" setup>
-
 import { computed } from 'vue';
 import type { NodeBase } from '@/entrypoints/background/record-replay-v3/builder-types';
 

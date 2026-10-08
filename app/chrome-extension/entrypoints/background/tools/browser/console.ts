@@ -15,11 +15,11 @@ interface ConsoleToolParams {
   windowId?: number;
   includeExceptions?: boolean;
   maxMessages?: number;
-  // 新增参数
+  // Additional params
   mode?: ConsoleMode;
-  buffer?: boolean; // mode="buffer" 的别名
-  clear?: boolean; // 读取前清空
-  clearAfterRead?: boolean; // 读取后清空（mcp-tools.js 风格）
+  buffer?: boolean; // alias for mode="buffer"
+  clear?: boolean; // clear before reading
+  clearAfterRead?: boolean; // clear after reading (mcp-tools.js style)
   pattern?: string;
   onlyErrors?: boolean;
   limit?: number;
@@ -64,7 +64,7 @@ interface ConsoleResult {
   droppedExceptionCount: number;
 }
 
-// 辅助函数
+// Helper functions
 
 function normalizeLimit(value: unknown, fallback: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : fallback;
@@ -75,7 +75,7 @@ function parseRegexPattern(pattern?: string): RegExp | undefined {
   if (typeof pattern !== 'string') return undefined;
   const trimmed = pattern.trim();
   if (!trimmed) return undefined;
-  // 支持 /pattern/flags 语法
+  // Support the /pattern/flags syntax
   const match = trimmed.match(/^\/(.+)\/([gimsuy]*)$/);
   try {
     return match ? new RegExp(match[1], match[2]) : new RegExp(trimmed);
@@ -162,7 +162,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
     let targetTab: chrome.tabs.Tab;
     let targetTabId: number | undefined;
 
-    // 解析正则表达式
+    // Compile the regex pattern
     let compiledPattern: RegExp | undefined;
     try {
       compiledPattern = parseRegexPattern(pattern);
@@ -198,18 +198,18 @@ class ConsoleTool extends BaseBrowserToolExecutor {
 
       targetTabId = targetTab.id;
 
-      // 确定模式：buffer 参数是 mode="buffer" 的别名
+      // Resolve the mode: the buffer param is an alias for mode="buffer"
       const resolvedMode: ConsoleMode =
         mode === 'buffer' || buffer === true ? 'buffer' : 'snapshot';
 
-      // 计算有效的消息限制
+      // Compute the effective message limit
       const normalizedMaxMessages = normalizeLimit(maxMessages, DEFAULT_MAX_MESSAGES);
       const effectiveLimit =
         typeof limit === 'number'
           ? normalizeLimit(limit, normalizedMaxMessages)
           : normalizedMaxMessages;
 
-      // Buffer 模式
+      // Buffer mode
       if (resolvedMode === 'buffer') {
         try {
           await consoleBuffer.ensureStarted(targetTabId);
@@ -221,13 +221,13 @@ class ConsoleTool extends BaseBrowserToolExecutor {
           throw error;
         }
 
-        // 处理读取前清空请求
+        // Handle a clear-before-read request
         let clearedBefore: { clearedMessages: number; clearedExceptions: number } | null = null;
         if (clear === true) {
           clearedBefore = consoleBuffer.clear(targetTabId, 'manual');
         }
 
-        // 读取缓冲区
+        // Read the buffer
         const read = consoleBuffer.read(targetTabId, {
           pattern: compiledPattern,
           onlyErrors,
@@ -239,13 +239,13 @@ class ConsoleTool extends BaseBrowserToolExecutor {
           return createErrorResponse('Console buffer is not available for this tab.');
         }
 
-        // 处理读取后清空请求（mcp-tools.js 风格，避免重复读取）
+        // Handle a clear-after-read request (mcp-tools.js style, avoids duplicate reads)
         let clearedAfter: { clearedMessages: number; clearedExceptions: number } | null = null;
         if (clearAfterRead === true) {
           clearedAfter = consoleBuffer.clear(targetTabId, 'manual');
         }
 
-        // 构建清空摘要
+        // Build the clear summary
         let clearedSummary = '';
         if (clearedBefore) {
           clearedSummary += ` Cleared ${clearedBefore.clearedMessages} messages and ${clearedBefore.clearedExceptions} exceptions before reading.`;
@@ -281,13 +281,13 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         };
       }
 
-      // Snapshot 模式（一次性捕获）
+      // Snapshot mode (one-shot capture)
       const result = await this.captureConsoleMessages(targetTabId, {
         includeExceptions,
         maxMessages: effectiveLimit,
       });
 
-      // 应用过滤器
+      // Apply filters
       const filtered = applyResultFilters(result, {
         pattern: compiledPattern,
         onlyErrors,
@@ -572,7 +572,7 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         // Clean up
         chrome.debugger.onEvent.removeListener(eventListener);
 
-        // 如果 buffer 模式正在使用这个 tab，不要关闭 Runtime/Log 域
+        // If buffer mode is using this tab, do not disable the Runtime/Log domains
         const keepDomainsEnabled = consoleBuffer.isCapturing(tabId);
         if (!keepDomainsEnabled) {
           try {

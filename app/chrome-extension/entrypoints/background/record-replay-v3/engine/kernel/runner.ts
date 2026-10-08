@@ -1,6 +1,6 @@
 /**
- * @fileoverview RunRunner 接口和实现
- * @description 定义和实现单个 Run 的顺序执行器
+ * @fileoverview RunRunner interface and implementation
+ * @description Defines and implements the sequential executor for a single Run
  */
 
 import type { NodeId, RunId } from '../../domain/ids';
@@ -35,72 +35,72 @@ import type { RunResult } from './kernel';
 // ==================== Types ====================
 
 /**
- * RunRunner 运行时状态
+ * RunRunner runtime state
  */
 export interface RunnerRuntimeState {
   /** Run ID */
   runId: RunId;
-  /** 当前节点 ID */
+  /** Current node ID */
   currentNodeId: NodeId | null;
-  /** 当前尝试次数 */
+  /** Current attempt count */
   attempt: number;
-  /** 变量表 */
+  /** Variable table */
   vars: Record<string, JsonValue>;
-  /** 是否暂停 */
+  /** Whether paused */
   paused: boolean;
-  /** 是否取消 */
+  /** Whether canceled */
   canceled: boolean;
 }
 
 /**
- * RunRunner 配置
+ * RunRunner config
  */
 export interface RunnerConfig {
-  /** Flow 快照 */
+  /** Flow snapshot */
   flow: FlowV3;
   /** Tab ID */
   tabId: number;
-  /** 初始参数 */
+  /** Initial args */
   args?: JsonObject;
-  /** 起始节点 ID */
+  /** Start node ID */
   startNodeId?: NodeId;
-  /** 调试配置 */
+  /** Debug config */
   debug?: { breakpoints?: NodeId[]; pauseOnStart?: boolean };
 }
 
 /**
- * RunRunner 接口
+ * RunRunner interface
  */
 export interface RunRunner {
   /** Run ID */
   readonly runId: RunId;
-  /** 当前状态 */
+  /** Current state */
   readonly state: RunnerRuntimeState;
-  /** 订阅事件 */
+  /** Subscribe to events */
   onEvent(listener: (event: RunEvent) => void): Unsubscribe;
-  /** 开始执行 */
+  /** Start execution */
   start(): Promise<RunResult>;
-  /** 暂停执行 */
+  /** Pause execution */
   pause(): void;
-  /** 恢复执行 */
+  /** Resume execution */
   resume(): void;
-  /** 取消执行 */
+  /** Cancel execution */
   cancel(reason?: string): void;
-  /** 获取变量值 */
+  /** Get a variable value */
   getVar(name: string): JsonValue | undefined;
-  /** 设置变量值 */
+  /** Set a variable value */
   setVar(name: string, value: JsonValue): void;
 }
 
 /**
- * RunRunner 工厂接口
+ * RunRunner factory interface
  */
 export interface RunRunnerFactory {
   create(runId: RunId, config: RunnerConfig): RunRunner;
 }
 
 /**
- * RunRunner 工厂依赖
+ * RunRunner factory dependencies
  */
 export interface RunRunnerFactoryDeps {
   storage: StoragePort;
@@ -225,7 +225,7 @@ class SerialQueue {
 // ==================== Factory ====================
 
 /**
- * 创建 NotImplemented 的 RunRunnerFactory
+ * Create a NotImplemented RunRunnerFactory
  */
 export function createNotImplementedRunnerFactory(): RunRunnerFactory {
   return {
@@ -236,7 +236,7 @@ export function createNotImplementedRunnerFactory(): RunRunnerFactory {
 }
 
 /**
- * 创建 RunRunner 工厂
+ * Create the RunRunner factory
  */
 export function createRunRunnerFactory(deps: RunRunnerFactoryDeps): RunRunnerFactory {
   const plugins = deps.plugins ?? getPluginRegistry();
@@ -275,9 +275,7 @@ type OnErrorDecision =
   | { kind: 'retry'; retryPolicy: RetryPolicy | null };
 
 type NodeRunResult =
-  | { nextNodeId: NodeId | null }
-  | { terminal: 'failed'; error: RRError }
-  | { terminal: 'canceled' };
+  { nextNodeId: NodeId | null } | { terminal: 'failed'; error: RRError } | { terminal: 'canceled' };
 
 /**
  * Storage-backed RunRunner implementation
@@ -735,7 +733,10 @@ class StorageBackedRunRunner implements RunRunner {
     if (this.subflowStack.includes(subflowId)) {
       return {
         ok: false,
-        error: createRRError(RR_ERROR_CODES.DAG_CYCLE, `Recursive subflow "${subflowId}" is not allowed`),
+        error: createRRError(
+          RR_ERROR_CODES.DAG_CYCLE,
+          `Recursive subflow "${subflowId}" is not allowed`,
+        ),
       };
     }
 
@@ -763,7 +764,10 @@ class StorageBackedRunRunner implements RunRunner {
         if (!node) {
           return {
             ok: false,
-            error: createRRError(RR_ERROR_CODES.DAG_INVALID, `Subflow node "${currentNodeId}" not found`),
+            error: createRRError(
+              RR_ERROR_CODES.DAG_INVALID,
+              `Subflow node "${currentNodeId}" not found`,
+            ),
           };
         }
         if (node.disabled) {
@@ -809,8 +813,7 @@ class StorageBackedRunRunner implements RunRunner {
       return {
         kind: 'goto',
         target: configured.target as
-          | { kind: 'edgeLabel'; label: string }
-          | { kind: 'node'; nodeId: NodeId },
+          { kind: 'edgeLabel'; label: string } | { kind: 'node'; nodeId: NodeId },
       };
     }
 

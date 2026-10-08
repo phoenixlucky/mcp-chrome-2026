@@ -3,7 +3,8 @@ import { computed, ref } from 'vue';
 export type AgentLocale = 'zh' | 'en';
 
 const STORAGE_KEY = 'agent-chat-locale';
-const locale = ref<AgentLocale>(localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'zh');
+// English is the default; only an explicit 'zh' opt-in switches to Chinese.
+const locale = ref<AgentLocale>(localStorage.getItem(STORAGE_KEY) === 'zh' ? 'zh' : 'en');
 
 export function useAgentLocale() {
   const isChinese = computed(() => locale.value === 'zh');

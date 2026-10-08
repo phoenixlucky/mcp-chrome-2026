@@ -5,6 +5,8 @@ import {
   CallToolRequestSchema,
   CallToolResult,
   ListToolsRequestSchema,
+  type ServerNotification,
+  type ServerRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import { TOOL_SCHEMAS } from '@ethanwilkins/chrome-mcp-shared-2026';
@@ -78,7 +80,9 @@ async function waitForHttpServer(pingUrl: string, timeoutMs: number): Promise<bo
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await isHttpServerReady(pingUrl)) return true;
-    await new Promise((resolve) => setTimeout(resolve, DEFAULT_AUTOSTART_POLL_MS));
+    const { promise, resolve } = Promise.withResolvers<void>();
+    setTimeout(resolve, DEFAULT_AUTOSTART_POLL_MS);
+    await promise;
   }
   return isHttpServerReady(pingUrl);
 }
@@ -121,7 +125,7 @@ async function ensureLocalHttpServer(url: string): Promise<void> {
   if (!(await waitForHttpServer(localConfig.pingUrl, DEFAULT_AUTOSTART_TIMEOUT_MS))) {
     stopEmbeddedHttpServer();
     throw new Error(
-      `无法启动本地 MCP HTTP 服务。请检查端口 ${localConfig.port}，或设置 CHROME_MCP_AUTOSTART_SERVER=0 后手动启动服务。`,
+      `Could not start the local MCP HTTP service. Check port ${localConfig.port}, or set CHROME_MCP_AUTOSTART_SERVER=0 and start the service manually.`,
     );
   }
 }
@@ -154,7 +158,7 @@ export const ensureMcpClient = async (options: UnifiedRequestOptions = {}) => {
     try {
       const config = loadConfig();
       if (!config || typeof config.url !== 'string' || !config.url.trim()) {
-        throw new Error('MCP_SERVER_URL 或 stdio-config.json 中的 url 无效');
+        throw new Error('MCP_SERVER_URL or the url in stdio-config.json is invalid');
       }
       await ensureLocalHttpServer(config.url);
       const apiKey = process.env.CHROME_MCP_API_KEY?.trim();
@@ -215,8 +219,8 @@ export const setupTools = (server: Server) => {
 
 const handleToolCall = async (
   name: string,
-  args: any,
-  extra?: RequestHandlerExtra<any, any>,
+  args: Record<string, unknown>,
+  extra?: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ): Promise<CallToolResult> => {
   try {
     const access = checkToolAccess(name);
@@ -258,12 +262,12 @@ const handleToolCall = async (
       resetMcpClient();
       throw error;
     }
-  } catch (error: any) {
+  } catch (error) {
     return {
       content: [
         {
           type: 'text',
-          text: `Error calling tool: ${error.message}`,
+          text: `Error calling tool: ${error instanceof Error ? error.message : String(error)}`,
         },
       ],
       isError: true,
